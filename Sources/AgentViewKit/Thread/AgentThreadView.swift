@@ -304,27 +304,44 @@ public struct AgentThreadView<Composer: View>: View {
           FloatingGlassContainer(spacing: editorStyle.spacing.s) {
             AgentInfoHeader(connection: connection, sessionTitle: sessionTitle).padding(headerInset).floatingGlass()
               .hostPathContextMenu(headerContextMenuPath)
-              .padding(.horizontal, editorStyle.spacing.m)
+              .padding(.horizontal, barEdgeInset)
               .padding(.vertical, editorStyle.spacing.s)
           }
         }
         // The bar spaces the banners, which have no margin of their own
-        // (^rgsq3k4): a group gives its padding to each banner, and a banner
-        // that shows nothing takes no space.
-        Group {
-          if let connection {
-            AgentConnectionBanner(connection: connection)
+        // (^rgsq3k4): the stack stands them one tile margin apart. With no
+        // subview there is no stack, so banners that show nothing take no
+        // space.
+        Group(subviews: banners) { subviews in
+          if !subviews.isEmpty {
+            VStack(spacing: editorStyle.tile.margin) { subviews }
+              .padding(.horizontal, barEdgeInset)
+              .padding(.vertical, editorStyle.tile.margin)
           }
-          SessionNoticeBanner(session: session)
-          SessionStreamBanner(session: session, connection: connection)
         }
-        .padding(editorStyle.tile.margin)
       }
     }
     .safeAreaBar(edge: .bottom) { floatingControls }
     .background { SessionAnnouncementObserver(session: session) }
     .agentCommandScope(session: session, anchors: anchors)
     .onDisappear(perform: closeWhenSupported)
+  }
+
+  /// The banners of the top bar, from the top: the connection banner when the
+  /// host gave the connection model, the notice banner and the stream banner.
+  @ViewBuilder private var banners: some View {
+    if let connection {
+      AgentConnectionBanner(connection: connection)
+    }
+    SessionNoticeBanner(session: session)
+    SessionStreamBanner(session: session, connection: connection)
+  }
+
+  /// The inset of the content of the two bars from the side edges of the
+  /// thread: the medium spacing step. The header, the banners and the floating
+  /// controls all take it, so their side edges line up.
+  private var barEdgeInset: CGFloat {
+    editorStyle.spacing.m
   }
 
   /// The inset of the ``AgentInfoHeader`` in its glass: the medium spacing
@@ -383,7 +400,7 @@ public struct AgentThreadView<Composer: View>: View {
           .alignmentGuide(.top) { $0[.bottom] + spacing }
       }
     }
-    .padding(editorStyle.spacing.m)
+    .padding(barEdgeInset)
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier(AgentThreadLayout.floatingControlsIdentifier)
   }
