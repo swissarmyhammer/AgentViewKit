@@ -67,6 +67,7 @@ public struct SpeechInputButton: View {
         label
       }
       .buttonStyle(.glass)
+      .glassForegroundStyle()
       .buttonBorderShape(.circle)
       .help(helpText)
       .accessibilityLabel(String(localized: "Dictate", bundle: .module))
@@ -78,7 +79,7 @@ public struct SpeechInputButton: View {
   }
 
   /// The icon of the button. While a session runs, the waveform shows the
-  /// input level. The icon has the primary style and no tint, because only
+  /// input level. The icon has no style of its own and no tint, because only
   /// the primary action of the composer (Send) has a tint.
   @ViewBuilder
   private var label: some View {
@@ -86,7 +87,6 @@ public struct SpeechInputButton: View {
     case .recording:
       Image(systemName: SharedSymbol.listening, variableValue: level)
         .fontWeight(editorStyle.symbolWeight)
-        .foregroundStyle(.primary)
     case .idle:
       Image(systemName: SharedSymbol.microphone)
         .fontWeight(editorStyle.symbolWeight)

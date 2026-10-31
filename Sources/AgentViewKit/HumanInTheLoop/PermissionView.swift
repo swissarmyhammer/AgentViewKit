@@ -152,6 +152,7 @@ public struct PermissionView: View {
 
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.placedSecondary) private var placedSecondary
   @Environment(\.permissionAnswerReport) private var reportAnswer
   @Environment(\.permissionRingIsExternal) private var ringIsExternal
 
@@ -218,7 +219,7 @@ public struct PermissionView: View {
       if let description = request.request.description {
         Text(description)
           .font(editorTheme.font(for: .ui, style: .callout))
-          .foregroundStyle(.secondary)
+          .foregroundStyle(placedSecondary)
       }
     }
   }
@@ -257,7 +258,7 @@ public struct PermissionView: View {
         if let kind = entry.kind {
             Text(kind.wireValue)
             .font(editorTheme.font(for: .ui, style: .caption))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(placedSecondary)
         }
       }
     } else {
@@ -278,7 +279,7 @@ public struct PermissionView: View {
         Label(command.command, systemImage: Self.commandSymbol)
           .textSelection(.enabled)
         Label(command.cwd.rawValue, systemImage: Self.directorySymbol)
-          .foregroundStyle(.secondary)
+          .foregroundStyle(placedSecondary)
       }
       .font(editorTheme.codeFont)
       .accessibilityElement(children: .ignore)
@@ -346,7 +347,7 @@ public struct PermissionView: View {
     if option.kind == .allowOnce {
       button.requestActionStyle(.primary)
     } else if PermissionPresentation.isSecondary(kind: option.kind) {
-      button.requestActionStyle(.secondary).foregroundStyle(.secondary)
+      button.foregroundStyle(.secondary).requestActionStyle(.secondary)
     } else {
       button.requestActionStyle(.secondary)
     }

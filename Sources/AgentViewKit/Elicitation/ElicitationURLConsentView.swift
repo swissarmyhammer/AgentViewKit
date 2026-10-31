@@ -172,6 +172,7 @@ public struct ElicitationURLConsentView: View {
   @Environment(\.authorizationPresenter) private var presenter
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.placedSecondary) private var placedSecondary
 
   /// The report that gets each start and each stop of the browser task, or
   /// `nil`.
@@ -244,7 +245,7 @@ public struct ElicitationURLConsentView: View {
         ProgressView()
           .controlSize(.small)
         Text(waitingMessage)
-          .foregroundStyle(.secondary)
+          .foregroundStyle(placedSecondary)
       }
       .accessibilityElement(children: .ignore)
       .accessibilityLabel(waitingMessage)

@@ -120,6 +120,8 @@ public struct TerminalView: View {
 
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.themeForeground) private var themeForeground
+  @Environment(\.themeSecondary) private var themeSecondary
 
   /// Makes the view of a terminal entry of a `SessionModel` (plan.md §3.8
   /// "Terminal view").
@@ -195,11 +197,11 @@ public struct TerminalView: View {
   private var header: some View {
     HStack(spacing: editorStyle.spacing.s) {
       Image(systemName: SharedSymbol.terminal)
-        .foregroundStyle(.secondary)
+        .foregroundStyle(themeSecondary)
         .accessibilityHidden(true)
       Text(entry.command ?? String(localized: "Terminal", bundle: .module))
         .font(editorTheme.codeFont)
-        .foregroundStyle(entry.command == nil ? .secondary : .primary)
+        .foregroundStyle(entry.command == nil ? themeSecondary : themeForeground)
         .lineLimit(1)
         .truncationMode(.middle)
         .accessibilityIdentifier(Self.commandIdentifier)
@@ -207,7 +209,7 @@ public struct TerminalView: View {
       if let cwd = entry.cwd?.rawValue {
         Text(cwd)
           .font(editorTheme.font(for: .ui, style: .caption))
-          .foregroundStyle(.secondary)
+          .foregroundStyle(themeSecondary)
           .lineLimit(1)
           .truncationMode(.head)
           .help(cwd)
@@ -246,7 +248,7 @@ public struct TerminalView: View {
           .accessibilityIdentifier(Self.progressIdentifier)
         Text(String(localized: "Running", bundle: .module))
           .font(editorTheme.font(for: .ui, style: .caption))
-          .foregroundStyle(.secondary)
+          .foregroundStyle(themeSecondary)
           .accessibilityHidden(true)
       }
       .frame(maxWidth: .infinity, alignment: .leading)

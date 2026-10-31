@@ -98,6 +98,7 @@ public struct DefaultPromptAccessory: View {
         .fontWeight(editorStyle.symbolWeight)
     }
     .buttonStyle(.glass)
+    .glassForegroundStyle()
     .buttonBorderShape(.circle)
     .disabled(!submit.isEnabled)
     .help(String(localized: "Send the prompt", bundle: .module))
@@ -115,6 +116,7 @@ public struct DefaultPromptAccessory: View {
         .fontWeight(editorStyle.symbolWeight)
     }
     .buttonStyle(.glass)
+    .glassForegroundStyle()
     .buttonBorderShape(.circle)
     .help(String(localized: "Stop the work of the agent", bundle: .module))
     .accessibilityIdentifier(Self.stopIdentifier)

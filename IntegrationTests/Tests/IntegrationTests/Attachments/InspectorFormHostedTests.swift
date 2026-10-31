@@ -131,7 +131,8 @@ import Testing
         Section {
           FontRecorder(record: record)
         }
-      })
+      }
+      .editorTheme(.system))
     defer { harness.close() }
 
     #expect(record.fonts.last == EnvironmentValues().editorTheme.uiFont)

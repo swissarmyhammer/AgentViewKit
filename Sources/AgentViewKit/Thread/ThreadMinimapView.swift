@@ -126,13 +126,19 @@ public struct ThreadMinimapView: View {
   /// The opacity of the viewport band.
   static let bandOpacity: CGFloat = 0.18
 
-  /// The color of the viewport band: `.primary`, at ``bandOpacity``.
+  /// The color of the viewport band: the foreground of the theme, at
+  /// ``bandOpacity``.
   ///
   /// The band marks the rows in view, the current item of the rail. It is not
   /// the selection and has no focus, so it does not use the accent of the
   /// theme: the accent is only for the selection and the focus (card
   /// ^y2mrfxt). The band is neutral, as the viewport of the Xcode minimap.
-  static let bandColor = Color.primary
+  ///
+  /// - Parameter theme: The EditorKit theme.
+  /// - Returns: The color.
+  static func bandColor(in theme: any EditorTheme.Theme) -> Color {
+    theme.editorForeground
+  }
 
   /// The opacity of the ticks of the entry cases with no strong color.
   static let quietTickOpacity: CGFloat = 0.4
@@ -225,10 +231,11 @@ public struct ThreadMinimapView: View {
     let keys = entries.map(\.rowKey)
     let ticks = entries.map { Tick(tint: Self.tint(of: $0, in: editorTheme), mark: Self.tickMark(of: $0)) }
     let band = visibleRange(in: keys)
+    let bandColor = Self.bandColor(in: editorTheme)
     let current = band?.lowerBound ?? 0
     return ZStack {
       Canvas { context, size in
-        Self.draw(ticks: ticks, band: band, in: &context, size: size)
+        Self.draw(ticks: ticks, band: band, bandColor: bandColor, in: &context, size: size)
       }
       .accessibilityHidden(true)
       #if DEBUG
@@ -293,10 +300,11 @@ public struct ThreadMinimapView: View {
   /// - Parameters:
   ///   - ticks: The color and the shape of each tick, in transcript order.
   ///   - band: The positions of the entries in view, or `nil`.
+  ///   - bandColor: The color of the viewport band.
   ///   - context: The graphics context.
   ///   - size: The size of the rail.
   private static func draw(
-    ticks: [Tick], band: ClosedRange<Int>?, in context: inout GraphicsContext, size: CGSize
+    ticks: [Tick], band: ClosedRange<Int>?, bandColor: Color, in context: inout GraphicsContext, size: CGSize
   ) {
     guard !ticks.isEmpty else { return }
     let slot = size.height / CGFloat(ticks.count)
@@ -439,8 +447,8 @@ public struct ThreadMinimapView: View {
   ///
   /// No tick uses the accent of the theme: the accent is only for the
   /// selection and the focus (card ^y2mrfxt), and a tick is neither. Thus a
-  /// user message tick is `.primary` and an agent message tick is
-  /// `.secondary`.
+  /// user message tick is the foreground of the theme and an agent message
+  /// tick is its secondary foreground.
   ///
   /// - Parameters:
   ///   - entry: The transcript entry.
@@ -448,12 +456,12 @@ public struct ThreadMinimapView: View {
   /// - Returns: The color.
   static func tint(of entry: TranscriptEntry, in theme: any EditorTheme.Theme) -> Color {
     return switch entry {
-    case .userMessage: Color.primary
-    case .agentMessage, .thought, .terminal, .plan: Color.secondary
+    case .userMessage: theme.editorForeground
+    case .agentMessage, .thought, .terminal, .plan: theme.secondaryForeground
     case .toolCall(let toolCall): theme.statusColor(for: toolCall.shownStatus)
     case .error: theme.severityError
     case .unknown, .compaction:
-      Color.secondary.opacity(Self.quietTickOpacity)
+      theme.secondaryForeground.opacity(Self.quietTickOpacity)
     }
   }
 }

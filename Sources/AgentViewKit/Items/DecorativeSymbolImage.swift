@@ -4,7 +4,7 @@ import SwiftUI
 /// A decorative symbol of a header: the symbol before its title, or the
 /// chevron between two segments of its breadcrumb.
 ///
-/// The view shows the symbol with the `.secondary` style and the symbol
+/// The view shows the symbol with `\.placedSecondary` and the symbol
 /// weight of the shared style, and hides it from accessibility, because the
 /// text next to it tells the same thing. The symbol does not use the accent
 /// of the EditorKit theme: the accent is only for the selection and the focus
@@ -19,10 +19,11 @@ struct DecorativeSymbolImage: View {
   let name: String
 
   @Environment(\.editorStyle) private var editorStyle
+  @Environment(\.placedSecondary) private var placedSecondary
 
   var body: some View {
     Image(systemName: name)
-      .foregroundStyle(.secondary)
+      .foregroundStyle(placedSecondary)
       .fontWeight(editorStyle.symbolWeight)
       .accessibilityHidden(true)
   }

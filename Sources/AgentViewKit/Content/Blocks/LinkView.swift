@@ -33,6 +33,7 @@ public struct LinkView: View {
   @Environment(\.openURL) private var openURL
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.themeSecondary) private var themeSecondary
 
   /// Makes the view of an ACP resource link.
   ///
@@ -66,7 +67,7 @@ public struct LinkView: View {
         Text(name)
         Text(uri)
           .font(editorTheme.font(for: .ui, style: .caption))
-          .foregroundStyle(.secondary)
+          .foregroundStyle(themeSecondary)
       }
       .accessibilityElement(children: .combine)
     }

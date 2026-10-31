@@ -144,6 +144,8 @@ public struct CommandOutputView: View {
 
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.themeForeground) private var themeForeground
+  @Environment(\.themeSecondary) private var themeSecondary
   @Environment(\.pasteboard) private var pasteboard
 
   /// Makes the view.
@@ -213,7 +215,7 @@ public struct CommandOutputView: View {
     HStack(spacing: editorStyle.spacing.s) {
       Text(command ?? String(localized: "Output", bundle: .module))
         .font(editorTheme.codeFont)
-        .foregroundStyle(command == nil ? .secondary : .primary)
+        .foregroundStyle(command == nil ? themeSecondary : themeForeground)
         .lineLimit(1)
         .truncationMode(.middle)
       Spacer(minLength: editorStyle.spacing.s)

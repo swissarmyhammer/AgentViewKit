@@ -48,7 +48,7 @@ public struct ConnectionsView: View {
         ConnectionRow(server: server)
       }
     } else {
-      ContentUnavailableView(
+      EmptyStateView(
         String(localized: "No MCP Servers", bundle: .module),
         systemImage: SharedSymbol.connection,
         description: Text("The MCP servers of the session show here.", bundle: .module)

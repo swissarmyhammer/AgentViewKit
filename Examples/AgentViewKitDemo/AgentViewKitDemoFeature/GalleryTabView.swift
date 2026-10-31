@@ -274,7 +274,7 @@ struct GalleryTabView: View, DemoStartingTab {
       case .failed(let error):
         DemoFailureLabel(error: error, identifier: Self.stateFailureIdentifier)
       case .empty:
-        ContentUnavailableView(
+        EmptyStateView(
           "No Session Is Open",
           systemImage: Self.noSessionSymbol,
           description: Text("Select a session or a connection state in the list.")

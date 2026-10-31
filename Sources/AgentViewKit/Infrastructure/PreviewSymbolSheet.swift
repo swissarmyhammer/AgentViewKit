@@ -38,7 +38,6 @@ struct PreviewSymbolSheet<Value: Hashable, Icon: View>: View {
           }
         }
       }
-      .font(editorTheme.uiFont)
     }
   }
 }

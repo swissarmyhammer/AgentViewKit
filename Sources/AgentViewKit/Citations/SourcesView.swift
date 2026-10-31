@@ -54,6 +54,7 @@ public struct SourcesView: View {
   @Environment(\.citationSelection) private var selection
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.themeSecondary) private var themeSecondary
 
   /// Makes the footer of a citation payload.
   ///
@@ -112,7 +113,7 @@ public struct SourcesView: View {
         Image(systemName: SharedSymbol.sources)
       }
       .font(editorTheme.font(for: .ui, style: .subheadline))
-      .foregroundStyle(.secondary)
+      .foregroundStyle(themeSecondary)
     }
     .onChange(of: selection?.revision) {
       guard let index = selection?.index, payload.sources.indices.contains(index - 1) else { return }
@@ -145,6 +146,7 @@ private struct SourceRow: View {
 
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.themeSecondary) private var themeSecondary
 
   var body: some View {
     let isCurrent = scrollRequest != nil
@@ -161,7 +163,7 @@ private struct SourceRow: View {
         if !source.snippet.isEmpty {
           Text(source.snippet)
             .font(editorTheme.font(for: .ui, style: .caption))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(themeSecondary)
             .lineLimit(Self.snippetLineLimit)
         }
       }
@@ -176,8 +178,8 @@ private struct SourceRow: View {
 ///
 /// A link does not use the accent as its text color: the accent is only for
 /// the selection and the focus (card ^y2mrfxt). The link mark
-/// (``SharedSymbol/link``) marks the link in its place, with the `.secondary`
-/// style and the symbol weight of the shared style. Unlike a
+/// (``SharedSymbol/link``) marks the link in its place, with the color of
+/// `\.themeSecondary` and the symbol weight of the shared style. Unlike a
 /// `DecorativeSymbolImage`, the mark is an accessibility element with the
 /// label "Link", because it tells what the card after it is.
 private struct SourceLink: View {
@@ -188,11 +190,12 @@ private struct SourceLink: View {
   let source: CitationSource
 
   @Environment(\.editorStyle) private var editorStyle
+  @Environment(\.themeSecondary) private var themeSecondary
 
   var body: some View {
     HStack(spacing: editorStyle.spacing.xs) {
       Image(systemName: SharedSymbol.link)
-        .foregroundStyle(.secondary)
+        .foregroundStyle(themeSecondary)
         .fontWeight(editorStyle.symbolWeight)
         .accessibilityLabel(Text("Link", bundle: .module))
         .accessibilityIdentifier(SourcesView.linkMarkIdentifier(index: index))

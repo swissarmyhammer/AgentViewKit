@@ -54,6 +54,7 @@ public struct ScrollToBottomPill: View {
         .fontWeight(editorStyle.symbolWeight)
     }
     .buttonStyle(.glass)
+    .glassForegroundStyle()
     .buttonBorderShape(.capsule)
     .floatingGlassID(FloatingGlassID.scrollPill)
     .accessibilityIdentifier(Self.identifier)

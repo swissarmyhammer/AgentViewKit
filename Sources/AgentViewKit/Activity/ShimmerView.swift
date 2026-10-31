@@ -1,3 +1,4 @@
+import EditorStyle
 import SwiftUI
 
 /// A label with a highlight that moves across it (plan.md §5, §9 B).
@@ -34,6 +35,8 @@ public struct ShimmerView: View {
   let text: String
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @Environment(\.themeForeground) private var themeForeground
+  @Environment(\.themeSecondary) private var themeSecondary
 
   /// Makes a shimmering label.
   ///
@@ -74,18 +77,21 @@ public struct ShimmerView: View {
 
   /// The gradient that puts the highlight at a center.
   ///
-  /// - Parameter center: The center of the highlight, as a fraction of the
-  ///   label width.
-  /// - Returns: A gradient with the secondary color and a primary color
-  ///   highlight.
-  static func gradient(center: Double) -> LinearGradient {
+  /// - Parameters:
+  ///   - center: The center of the highlight, as a fraction of the label
+  ///     width.
+  ///   - base: The color of the label around the highlight.
+  ///   - highlight: The color at the center of the highlight.
+  /// - Returns: A gradient of the base color with a highlight of the highlight
+  ///   color.
+  static func gradient(center: Double, base: Color, highlight: Color) -> LinearGradient {
     LinearGradient(
       stops: [
-        Gradient.Stop(color: .secondary, location: gradientStart),
-        Gradient.Stop(color: .secondary, location: clamped(center - highlightHalfWidth)),
-        Gradient.Stop(color: .primary, location: clamped(center)),
-        Gradient.Stop(color: .secondary, location: clamped(center + highlightHalfWidth)),
-        Gradient.Stop(color: .secondary, location: gradientEnd),
+        Gradient.Stop(color: base, location: gradientStart),
+        Gradient.Stop(color: base, location: clamped(center - highlightHalfWidth)),
+        Gradient.Stop(color: highlight, location: clamped(center)),
+        Gradient.Stop(color: base, location: clamped(center + highlightHalfWidth)),
+        Gradient.Stop(color: base, location: gradientEnd),
       ],
       startPoint: .leading,
       endPoint: .trailing
@@ -105,11 +111,12 @@ public struct ShimmerView: View {
   @ViewBuilder private var label: some View {
     if reduceMotion {
       Text(text)
-        .foregroundStyle(.secondary)
+        .foregroundStyle(themeSecondary)
     } else {
       TimelineView(.animation) { context in
         Text(text)
-          .foregroundStyle(Self.gradient(center: Self.highlightCenter(at: context.date)))
+          .foregroundStyle(
+            Self.gradient(center: Self.highlightCenter(at: context.date), base: themeSecondary, highlight: themeForeground))
       }
     }
   }

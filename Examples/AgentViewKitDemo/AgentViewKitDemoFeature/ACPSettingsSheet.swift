@@ -15,9 +15,6 @@ struct ACPSettingsSheet: View {
   /// The minimum height of the connection list.
   static let connectionsHeight: CGFloat = 120
 
-  /// The space between the groups of the sheet.
-  static let groupSpacing: CGFloat = 20
-
   /// The minimum width of the sheet.
   static let minimumWidth: CGFloat = 420
 
@@ -36,7 +33,7 @@ struct ACPSettingsSheet: View {
   var body: some View {
     NavigationStack {
       ScrollView {
-        VStack(alignment: .leading, spacing: Self.groupSpacing) {
+        VStack(alignment: .leading, spacing: editorStyle.spacing.xl) {
           GroupBox("MCP Servers") {
             // The kit views have no margin of their own: the sheet spaces
             // them with the steps of the style.

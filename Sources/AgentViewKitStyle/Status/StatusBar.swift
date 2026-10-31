@@ -252,6 +252,8 @@ public struct StatusBar: View {
         actionButton(action)
       }
     }
+    // A bar is chrome, so its explanation keeps the vibrant `.secondary`.
+    .onChrome()
     .contentTile()
     .inlineEdge(radius: editorStyle.radii.l)
     .accessibilityElement(children: .contain)

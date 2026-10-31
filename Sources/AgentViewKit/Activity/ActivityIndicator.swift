@@ -70,6 +70,7 @@ public struct ActivityIndicator: View {
   let source: Source
 
   @Environment(\.editorStyle) private var editorStyle
+  @Environment(\.themeSecondary) private var themeSecondary
 
   /// Makes an indicator.
   ///
@@ -116,7 +117,7 @@ public struct ActivityIndicator: View {
         ProgressView()
           .controlSize(.small)
         Text(name)
-          .foregroundStyle(.secondary)
+          .foregroundStyle(themeSecondary)
           .lineLimit(1)
       }
       .accessibilityElement(children: .combine)

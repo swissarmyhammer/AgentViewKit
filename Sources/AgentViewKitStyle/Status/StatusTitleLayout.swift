@@ -41,6 +41,7 @@ public struct StatusTitleLayout<Symbol: View, Action: View>: View {
 
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.placedSecondary) private var placedSecondary
 
   /// Makes the layout of a status text.
   ///
@@ -91,7 +92,7 @@ public struct StatusTitleLayout<Symbol: View, Action: View>: View {
   private var explanationText: some View {
     Text(explanation)
       .font(editorTheme.font(for: .ui, style: .callout))
-      .foregroundStyle(.secondary)
+      .foregroundStyle(placedSecondary)
       .textSelection(.enabled)
       .accessibilityHidden(true)
   }

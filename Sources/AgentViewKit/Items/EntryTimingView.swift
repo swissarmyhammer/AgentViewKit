@@ -1,6 +1,4 @@
 import EditorStyle
-import EditorSwiftUI
-import EditorTheme
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -22,10 +20,9 @@ import SwiftUI
 /// ``SwiftUI/View/entryTiming(_:)``, or to each row of a ``ConversationView``
 /// and an ``AgentThreadView`` with ``SwiftUI/View/transcriptTiming(_:)``.
 ///
-/// The view has no style of its own. The time is chrome, so its font is the
-/// UI font (`uiFont`, the `ui` font role) of the EditorKit theme of the
-/// environment (`\.editorTheme`), its text uses the
-/// secondary level of the foreground, and its spacing and symbol weight come
+/// The view has no style of its own. The time is chrome, so it draws in the
+/// root font of the theme, its text uses `\.themeSecondary`, and its spacing
+/// and symbol weight come
 /// from the shared style (`\.editorStyle`). The system formatters write the time and the
 /// duration in the locale of the environment.
 ///
@@ -58,8 +55,8 @@ public struct EntryTimingView: View, PrefixedAccessibilityIdentifier {
   let entry: TranscriptEntry
 
   @Environment(\.editorStyle) private var editorStyle
-  @Environment(\.editorTheme) private var editorTheme
   @Environment(\.locale) private var locale
+  @Environment(\.themeSecondary) private var themeSecondary
 
   /// Makes the time view of a transcript entry.
   ///
@@ -187,8 +184,7 @@ public struct EntryTimingView: View, PrefixedAccessibilityIdentifier {
         Text(Self.durationText(for: shown, width: .abbreviated, locale: locale))
       }
     }
-    .font(editorTheme.uiFont)
-    .foregroundStyle(.secondary)
+    .foregroundStyle(themeSecondary)
     .accessibilityElement(children: .ignore)
     .accessibilityLabel(Self.accessibilityLabel(startedAt: startedAt, duration: duration, locale: locale))
     .accessibilityIdentifier(Self.identifier(for: entry.rowKey))

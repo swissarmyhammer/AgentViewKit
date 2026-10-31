@@ -6,10 +6,10 @@ import SwiftUI
 /// The label of one changed file: the symbol of the change, the file name on
 /// one line with middle truncation, and the added and the removed line counts.
 ///
-/// The symbol has the symbol weight of `\.editorStyle` and the `.secondary`
-/// style. The counts use the `diffAddedText` and `diffRemovedText` roles of the
-/// EditorKit theme. The text is the caption of the `ui` font role, with
-/// monospaced digits. ``DiffFileChip`` wraps the label in its button, and a
+/// The symbol has the symbol weight of `\.editorStyle` and the color of
+/// `\.themeSecondary`. The counts use the `diffAddedText` and `diffRemovedText`
+/// roles of the EditorKit theme. The text is the caption of the `ui` font role,
+/// with monospaced digits. ``DiffFileChip`` wraps the label in its button, and a
 /// view kit shows it in a row of its own.
 ///
 /// The label draws no selection, no focus and no fill, and it has no padding of
@@ -45,6 +45,7 @@ public struct DiffFileLabel: View {
 
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.themeSecondary) private var themeSecondary
 
   /// Makes the label of one file.
   ///
@@ -92,7 +93,7 @@ public struct DiffFileLabel: View {
       Image(systemName: Self.symbolName(for: operation))
         .symbolRenderingMode(.hierarchical)
         .fontWeight(editorStyle.symbolWeight)
-        .foregroundStyle(.secondary)
+        .foregroundStyle(themeSecondary)
       Text(Self.name(ofPath: path))
         .lineLimit(1)
         .truncationMode(.middle)

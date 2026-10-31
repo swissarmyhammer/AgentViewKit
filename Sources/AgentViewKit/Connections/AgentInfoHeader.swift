@@ -21,7 +21,7 @@ import SwiftUI
 /// The header follows the path control of the macOS HIG. The first segment
 /// is the agent: its symbol, its name and its version line. When the host
 /// gives a session title, a chevron in the `.secondary` style follows, and
-/// then the title in the `.primary` style. With no session title, the header
+/// then the title, in the foreground of the glass. With no session title, the header
 /// shows the agent alone. Each text has one line, and the agent segment has
 /// the higher layout priority, so a long session title truncates first. The
 /// segments are text with no glass and no fill of their own: the one glass
@@ -127,7 +127,6 @@ struct AgentBreadcrumb: View {
           .imageScale(.small)
         Text(sessionTitle)
           .font(editorTheme.font(for: .ui, style: .headline))
-          .foregroundStyle(.primary)
           .lineLimit(1)
           .accessibilityIdentifier(Self.sessionIdentifier)
       }

@@ -34,7 +34,8 @@ import Testing
 
     StyleViewHost.layOut(
       DiffContentView(note: "Binary file changed", systemImage: SharedSymbol.binary, identifier: "note")
-        .labelStyle(FontRecordingLabelStyle(record: record)))
+        .labelStyle(FontRecordingLabelStyle(record: record))
+        .editorTheme(.system))
 
     #expect(record.values.last == EnvironmentValues().editorTheme.uiFont)
   }

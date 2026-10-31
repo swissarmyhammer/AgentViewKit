@@ -1,3 +1,4 @@
+import EditorStyle
 import SwiftUI
 
 /// The button of a ``StatusBar``: the title and the symbol of its
@@ -107,7 +108,7 @@ public struct GlassStatusBarActionStyle: StatusBarActionStyle {
   /// - Parameter configuration: The action and its button.
   /// - Returns: The button in the `.glass` style.
   public func makeBody(configuration: StatusBarActionConfiguration) -> some View {
-    configuration.button.buttonStyle(.glass)
+    configuration.button.buttonStyle(.glass).glassForegroundStyle()
   }
 }
 

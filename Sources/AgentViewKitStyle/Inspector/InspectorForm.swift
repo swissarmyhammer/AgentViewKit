@@ -73,7 +73,6 @@ public struct InspectorForm<Actions: View, Content: View>: View {
     }
     .formStyle(.grouped)
     .scrollContentBackground(.hidden)
-    .font(editorTheme.uiFont)
   }
 }
 
