@@ -1,8 +1,9 @@
-import AgentViewKitStyle
 import EditorCommands
 import EditorDiff
 import SwiftUI
 import Testing
+
+@testable import AgentViewKitStyle
 
 /// Checks the diff renderer setup, the diff summary, the file chip and the
 /// tool call scope kind through their public API.
@@ -46,10 +47,10 @@ import Testing
 
   @Test func eachOperationHasALabel() {
     let operations: [DiffSummary.Operation] = [
-      .added, .deleted, .modified, .renamed(from: "a"), .copied(from: "a"), .unknown("x"),
+      .added, .deleted, .modified, .renamed(from: "a"), .copied(from: "a"), .binary, .unknown("x"),
     ]
 
-    #expect(operations.map(\.label) == ["Added", "Deleted", "Modified", "Renamed", "Copied", "Changed"])
+    #expect(operations.map(\.label) == ["Added", "Deleted", "Modified", "Renamed", "Copied", "Binary", "Changed"])
   }
 
   @Test func theChangeLabelOfAFileNamesItsOperationAndItsLanguage() {
@@ -68,6 +69,55 @@ import Testing
     #expect(DiffFileChip.symbolName(for: .modified) == SharedSymbol.modifiedFile)
     #expect(DiffFileChip.symbolName(for: .renamed(from: "a")) == SharedSymbol.renamedFile)
     #expect(DiffFileChip.symbolName(for: .copied(from: "a")) == SharedSymbol.copiedFile)
+    #expect(DiffFileChip.symbolName(for: .binary) == SharedSymbol.binary)
+  }
+
+  @Test func aBinaryFileOfAPatchHasTheBinaryOperation() {
+    let files = DiffSummary.parse(
+      gitPatch: """
+        diff --git a/logo.png b/logo.png
+        index 1234567..89abcde 100644
+        Binary files a/logo.png and b/logo.png differ
+        """)
+
+    #expect(files.map(\.operation) == [.binary])
+  }
+
+  @Test func aGitBinaryPatchHasTheBinaryOperation() {
+    let files = DiffSummary.parse(
+      gitPatch: """
+        diff --git a/logo.png b/logo.png
+        index 1234567..89abcde 100644
+        GIT binary patch
+        """)
+
+    #expect(files.map(\.operation) == [.binary])
+  }
+
+  @Test func theBinaryOperationHasItsWord() {
+    #expect(DiffSummary.Operation.binary.label == "Binary")
+  }
+
+  @Test func aLabelWithNoOperationShowsTheDocumentSymbol() {
+    #expect(DiffFileLabel.symbolName(for: nil) == SharedSymbol.document)
+  }
+
+  @Test func aLabelWithAnOperationShowsTheSymbolOfTheOperation() {
+    #expect(DiffFileLabel.symbolName(for: .added) == SharedSymbol.addedFile)
+  }
+
+  @Test func aLabelKeepsItsCounts() {
+    let counts = DiffFileLabel.Counts(added: 1, removed: 2)
+
+    #expect(DiffFileLabel.shownCounts(counts, for: .modified) == counts)
+  }
+
+  @Test func aBinaryFileShowsNoCounts() {
+    #expect(DiffFileLabel.shownCounts(DiffFileLabel.Counts(added: 1, removed: 2), for: .binary) == nil)
+  }
+
+  @Test func aLabelNamesTheLastPartOfThePath() {
+    #expect(DiffFileLabel.name(ofPath: "Sources/Board/BoardColumn.swift") == "BoardColumn.swift")
   }
 
   @Test func theRendererKeepsOnlyTheSelectedFile() throws {

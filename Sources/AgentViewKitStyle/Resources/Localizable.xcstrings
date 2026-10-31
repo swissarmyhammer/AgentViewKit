@@ -31,6 +31,16 @@
         }
       }
     },
+    "Binary" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Binary"
+          }
+        }
+      }
+    },
     "Cannot read the patch at line %lld" : {
       "localizations" : {
         "en" : {
