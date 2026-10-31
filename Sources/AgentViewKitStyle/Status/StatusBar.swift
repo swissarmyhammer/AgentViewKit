@@ -111,6 +111,12 @@ public struct StatusBar: View {
       self.accessibilityLabel = accessibilityLabel
       self.symbolHelp = symbolHelp
     }
+
+    /// The accessibility label of the text of the bar: ``accessibilityLabel``,
+    /// or the title and the explanation.
+    var textLabel: String {
+      accessibilityLabel ?? (explanation.isEmpty ? title : "\(title), \(explanation)")
+    }
   }
 
   /// The button of a bar.
@@ -223,14 +229,10 @@ public struct StatusBar: View {
             .textSelection(.enabled)
         }
       }
-      .accessibilityElement(children: .combine)
-      .accessibilityLabel { combined in
-        if let label = message.accessibilityLabel {
-          Text(label)
-        } else {
-          combined
-        }
-      }
+      // A selectable text leaves a combined element, so the text is one
+      // element with an explicit label.
+      .accessibilityElement(children: .ignore)
+      .accessibilityLabel(message.textLabel)
       .accessibilityIdentifier(message.identifier)
       Spacer(minLength: editorStyle.spacing.s)
       if let action {
