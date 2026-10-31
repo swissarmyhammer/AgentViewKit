@@ -28,9 +28,6 @@ import Testing
   /// The path of the scope of the tab.
   static let tabPath = FocusPath.root(FocusSegment(kind: "openTab"))
 
-  /// The time a click of the bed may take to reach the window, in seconds.
-  static let eventTimeLimit: TimeInterval = 5
-
   /// The command system of the window.
   let system: CommandSystem
 
@@ -101,57 +98,13 @@ import Testing
   /// Sends one press and release of the mouse for each number in
   /// `clickCounts`, at `point`, through the event queue of the app.
   ///
-  /// `postEvent(_:atStart:)` stops the main run loop, which would end the
-  /// process in its outermost run, so the clicks run in a nested run. Each
-  /// click sets `NSApp.currentEvent` on its way to the window, as in an app.
-  ///
   /// - Parameters:
   ///   - point: The point, in window coordinates.
   ///   - clickCounts: The click count of each press, such as `[1, 2]` for a
   ///     double click.
   func click(at point: NSPoint, clickCounts: [Int] = [1]) async {
-    OpenBed.deliver(clickCounts.flatMap { events(at: point, clickCount: $0) })
-    await RunLoopBlockFence.afterPendingBlocks()
+    await QueuedClicks.click(at: point, clickCounts: clickCounts, in: harness.window)
     harness.render()
-  }
-
-  /// The press and the release of one click.
-  ///
-  /// - Parameters:
-  ///   - point: The point, in window coordinates.
-  ///   - clickCount: The click count of the events.
-  /// - Returns: The two events.
-  private func events(at point: NSPoint, clickCount: Int) -> [NSEvent] {
-    [(NSEvent.EventType.leftMouseDown, Float(1)), (.leftMouseUp, Float(0))].compactMap { type, pressure in
-      NSEvent.mouseEvent(
-        with: type, location: point, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
-        windowNumber: harness.window.windowNumber, context: nil, eventNumber: 0, clickCount: clickCount,
-        pressure: pressure)
-    }
-  }
-
-  /// Posts `events` and dispatches each one, in a nested run of the main run
-  /// loop.
-  ///
-  /// - Parameter events: The events.
-  private static func deliver(_ events: [NSEvent]) {
-    var isDone = false
-    let dispatch: @MainActor () -> Void = {
-      events.forEach { NSApp.postEvent($0, atStart: false) }
-      for _ in events {
-        let limit = Date(timeIntervalSinceNow: eventTimeLimit)
-        if let event = NSApp.nextEvent(
-          matching: [.leftMouseDown, .leftMouseUp], until: limit, inMode: .default, dequeue: true)
-        {
-          NSApp.sendEvent(event)
-        }
-      }
-      isDone = true
-    }
-    CFRunLoopPerformBlock(CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue) {
-      MainActor.assumeIsolated { dispatch() }
-    }
-    while !isDone { _ = CFRunLoopRunInMode(.defaultMode, eventTimeLimit, true) }
   }
 
   /// The scope among the tab and the rows that holds the first responder of

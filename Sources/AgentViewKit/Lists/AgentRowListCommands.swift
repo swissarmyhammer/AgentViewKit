@@ -73,7 +73,7 @@ final class AgentRowListTarget: NavScroller {
       let index = rowIDs.firstIndex(of: id), rowIDs.indices.contains(index + offset)
     else { return .none }
     let next = rowIDs[index + offset]
-    proxy?.scrollTo(next)
+    proxy?.scrollTo(AgentRowEntryID.row(next))
     return .target(listPath.appending(FocusSegment(kind: rowKind, id: next)))
   }
 
