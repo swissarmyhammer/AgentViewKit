@@ -186,9 +186,9 @@ public struct EditorKitPromptEditor: View {
 
   /// The list of the open completion session.
   ///
-  /// The list insets each row by the extra small spacing step on the leading
-  /// and the trailing edge, so the selection surface of a row stands clear
-  /// of the edges of the menu. A row has no padding around it (^rgsq3k4).
+  /// The list has a scroll content margin of the extra small spacing step, so
+  /// the selection surface of a row stands clear of the edges of the menu. A
+  /// row has no padding around it (`style.md`, rule 10).
   ///
   /// - Parameters:
   ///   - completion: The open session.
@@ -197,12 +197,10 @@ public struct EditorKitPromptEditor: View {
   private func completionList(_ completion: CompletionSessionState, model: EditorModel) -> some View {
     CompletionSuggestionsList(
       items: completion.listedItems, selectedIndex: completion.listedSelectedIndex, id: \.label,
-      row: { item, isSelected in
-        PromptCompletionRow(item: item, isSelected: isSelected)
-          .padding(.horizontal, editorStyle.spacing.xs)
-      },
+      row: { item, isSelected in PromptCompletionRow(item: item, isSelected: isSelected) },
       onCommit: { item in accept(item, in: model) }
     )
+    .scrollContentMargins(\.spacing.xs)
     .frame(width: Self.completionListWidth)
     .frame(maxHeight: Self.completionListMaximumHeight)
     .fixedSize(horizontal: false, vertical: true)
@@ -604,46 +602,20 @@ public struct EditorKitPromptEditor: View {
   }
 }
 
-/// One row of the completion list of ``EditorKitPromptEditor``.
-///
-/// The selected row sits on the shared selection surface of EditorKit, in
-/// the small radius. The row has no padding around its surface (^rgsq3k4):
-/// the list of ``EditorKitPromptEditor`` insets the row from its edges.
+/// One row of the completion list of ``EditorKitPromptEditor``: the shared
+/// ``CompletionRow`` of a completion. The list of the editor gives the space
+/// around its rows.
 struct PromptCompletionRow: View {
-  /// The radius step of the selection surface: the small radius of a row in
-  /// a list.
-  static let selectionRadius = EditorStyle.Radius.small
-
   /// The completion of the row.
   let item: Completion
 
   /// Whether the row is the selected row.
   let isSelected: Bool
 
-  @Environment(\.editorStyle) private var editorStyle
-  @Environment(\.editorTheme) private var editorTheme
-
   var body: some View {
-    HStack(spacing: editorStyle.spacing.s) {
-      Text(item.label)
-        .font(editorTheme.uiFont)
-        .lineLimit(1)
-      Spacer(minLength: editorStyle.spacing.s)
-      if let detail = item.detail {
-        Text(detail)
-          .font(editorTheme.font(for: .ui, style: .caption))
-          .foregroundStyle(.secondary)
-          .lineLimit(1)
-      }
-    }
-    .padding(.horizontal, editorStyle.spacing.s)
-    .padding(.vertical, editorStyle.spacing.xs)
-    .selectableSurface(isSelected, radius: Self.selectionRadius)
-    .accessibilityElement(children: .combine)
-    .accessibilityLabel(item.label)
-    .accessibilityValue(item.detail ?? "")
-    .accessibilityAddTraits(isSelected ? .isSelected : [])
-    .accessibilityIdentifier(EditorKitPromptEditor.completionRowIdentifier)
+    CompletionRow(
+      label: item.label, detail: item.detail, isSelected: isSelected,
+      identifier: EditorKitPromptEditor.completionRowIdentifier)
   }
 }
 
