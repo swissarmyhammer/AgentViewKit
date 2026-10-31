@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import SwiftUI
@@ -30,6 +31,7 @@ struct MarkdownProse: View {
   /// The citation pills of the text.
   var citations: [CitationPlacement] = []
 
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
@@ -50,7 +52,9 @@ struct MarkdownProse: View {
       let marked = CitationMarkers.marked(text, placements: citations)
       let spans = parser.mathSpans(in: text)
       StructuredText(
-        marked.text, parser: CitationMarkdownParser(base: parser, digitFace: editorTheme.face(for: .ui)))
+        marked.text,
+        parser: CitationMarkdownParser(
+          base: parser, digitFace: editorTheme.face(for: .ui), padding: InlineCitationPadding(style: editorStyle)))
         .modifier(SpokenMathText(spoken: spans.isEmpty ? nil : parser.spokenText(for: text)))
         .overlay(alignment: .topLeading) {
           MathSpanAccessibility(spans: spans)

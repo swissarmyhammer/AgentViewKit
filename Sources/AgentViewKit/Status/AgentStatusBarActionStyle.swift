@@ -13,7 +13,8 @@ import SwiftUI
 ///
 /// Each view of the kit that shows a ``StatusBar`` sets this style with
 /// ``SwiftUI/View/statusBarActionStyle(_:)``: the ``StateBanner``, the
-/// ``SessionStreamBanner`` and the ``AgentConnectionBanner``. This is the one
+/// ``SessionStreamBanner``, the ``AgentConnectionBanner`` and the row of a
+/// notice (``NoticeRow``). This is the one
 /// place where the kit gives the button of a bar its look and its scope.
 struct AgentStatusBarActionStyle: StatusBarActionStyle {
   /// Gives the button the button style of its place and the scope of a bar

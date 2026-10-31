@@ -541,16 +541,6 @@
         }
       }
     },
-    "Dismiss" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dismiss"
-          }
-        }
-      }
-    },
     "Each item must be one of the choices." : {
       "localizations" : {
         "en" : {

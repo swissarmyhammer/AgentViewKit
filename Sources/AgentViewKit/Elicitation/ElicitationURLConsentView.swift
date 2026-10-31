@@ -269,7 +269,7 @@ public struct ElicitationURLConsentView: View {
   /// The buttons of the current step.
   private var footer: some View {
     HStack(spacing: editorStyle.spacing.s) {
-      Spacer()
+      Spacer(minLength: 0)
       switch phase {
       case .idle:
         cancelButton(action: cancel)

@@ -1,4 +1,5 @@
 import AppKit
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import Observation
@@ -177,28 +178,45 @@ extension View {
 
 // MARK: - Pill
 
+/// The padding of a citation pill, from the tokens of `\.editorStyle`.
+///
+/// Textual sizes an attachment outside the SwiftUI environment, so the pill
+/// and the attachment carry this value. `EditorStyle` is not `Hashable`, and a
+/// Textual attachment must be.
+nonisolated struct InlineCitationPadding: Hashable, Sendable {
+  /// The padding above and below the digits, as a part of their cap height:
+  /// the ``ChipMetrics`` rule of a chip.
+  let chipRatio: CGFloat
+
+  /// The space at the left and at the right of the digits, in points. The
+  /// chip tokens have no ratio for it, so it is a step of the spacing scale.
+  let horizontal: CGFloat
+
+  /// Reads the padding of a pill from a style.
+  ///
+  /// - Parameter style: The style of the text.
+  init(style: EditorStyle) {
+    chipRatio = style.chip.paddingRatio
+    horizontal = style.spacing.xs
+  }
+}
+
 /// The font and the sizes of a citation pill for one font size.
 ///
 /// ``InlineCitationPill`` and the Textual attachment of a pill use the same
 /// font and sizes, so that the pill fits the space that the text layout gives
 /// it. The digits are chrome, so they draw in the `ui` face of the theme, and
-/// the sizes come from that face.
+/// the sizes come from that face. The height is the one chip rule
+/// (``ChipMetrics``): the line height of the digits and the chip padding above
+/// and below them.
 nonisolated struct InlineCitationMetrics: Equatable, Sendable {
   /// The size of the pill digits, as a part of the text font size.
   static let fontScale: CGFloat = 0.75
 
-  /// The space at the left and at the right of the digits, as a part of the
-  /// digit font size.
-  static let horizontalPaddingScale: CGFloat = 0.45
-
-  /// The space above and below the digits, as a part of the digit font size.
-  static let verticalPaddingScale: CGFloat = 0.1
-
   /// The weight of the digits.
   static let weight = Font.Weight.semibold
 
-  /// The count of sides that get each padding: left and right, or top and
-  /// bottom.
+  /// The count of sides that get the horizontal padding: left and right.
   static let paddedSides: CGFloat = 2
 
   /// The font of the digits: the face of the pill at the digit size, at
@@ -220,7 +238,8 @@ nonisolated struct InlineCitationMetrics: Equatable, Sendable {
   ///   - textFontSize: The size of the text around the pill, in points.
   ///   - face: The face of the digits: the `ui` face of the theme. The metrics
   ///     set its size.
-  init(index: Int, textFontSize: CGFloat, face: FontFace) {
+  ///   - padding: The padding of the pill, from the style of the text.
+  init(index: Int, textFontSize: CGFloat, face: FontFace, padding: InlineCitationPadding) {
     let digitFontSize = textFontSize * Self.fontScale
     var digitFace = face
     digitFace.size = digitFontSize
@@ -229,13 +248,12 @@ nonisolated struct InlineCitationMetrics: Equatable, Sendable {
     // each context, and the default context stands for the one of the text.
     let font = digitFont.resolve(in: EnvironmentValues().fontResolutionContext).ctFont as NSFont
     let digitsWidth = (String(index) as NSString).size(withAttributes: [.font: font]).width
-    let verticalPadding = digitFontSize * Self.verticalPaddingScale
-    let horizontalPadding = digitFontSize * Self.horizontalPaddingScale
-    let height = (font.ascender - font.descender + verticalPadding * Self.paddedSides).rounded(.up)
-    let width = (digitsWidth + horizontalPadding * Self.paddedSides).rounded(.up)
+    let chip = ChipMetrics(font: font, paddingRatio: padding.chipRatio)
+    let height = chip.height.rounded(.up)
+    let width = (digitsWidth + padding.horizontal * Self.paddedSides).rounded(.up)
     self.digitFont = digitFont
     self.size = CGSize(width: max(width, height), height: height)
-    self.baselineOffset = font.descender - verticalPadding
+    self.baselineOffset = font.descender - chip.padding
   }
 }
 
@@ -256,12 +274,15 @@ struct InlineCitationPill: View {
 
   @Environment(\.font) private var font
   @Environment(\.fontResolutionContext) private var fontResolutionContext
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.themeAccent) private var themeAccent
 
   var body: some View {
     let textFontSize = (font ?? .body).resolve(in: fontResolutionContext).pointSize
     let metrics = InlineCitationMetrics(
-      index: index, textFontSize: textFontSize, face: editorTheme.face(for: .ui))
+      index: index, textFontSize: textFontSize, face: editorTheme.face(for: .ui),
+      padding: InlineCitationPadding(style: editorStyle))
     return Text(verbatim: String(index))
       .font(metrics.digitFont)
       .lineLimit(1)
@@ -270,7 +291,7 @@ struct InlineCitationPill: View {
       // The accent is only for the selection and the focus, so the digits keep
       // the text color of the environment. The accent fill of the citation chip
       // is the one exception (shared style rule 1, card ^y2mrfxt).
-      .background(Capsule().fill(editorTheme.accent.opacity(Self.fillOpacity)))
+      .background(Capsule().fill(themeAccent.opacity(Self.fillOpacity)))
   }
 }
 

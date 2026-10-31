@@ -2,6 +2,7 @@
   @testable import AgentViewKit
   import AgentViewKitTestSupport
   import AppKit
+  import EditorStyle
   import EditorTestSupport
   import SwiftUI
   import Testing
@@ -131,6 +132,49 @@
           AgentInfoHeader.identifier, AgentConnectionBanner.disconnectedIdentifier,
           SessionStreamBanner.closedIdentifier,
         ], in: harness)
+    }
+
+    /// The trailing edge of a banner of the top bar stands on the trailing
+    /// edge of the floating controls of the bottom bar. The test reads the
+    /// edge of the banner from its Dismiss button, one tile padding inside it.
+    @Test func theBannersLineUpWithTheFloatingControls() async throws {
+      let session = try await Self.openSessionWithNotice()
+      defer { session.close() }
+      let harness = ConnectionModelViewsHostedTests.mountThread(session)
+      defer { harness.close() }
+      harness.render()
+      let notice = try #require(session.model.notices.first)
+
+      let dismiss = try #require(harness.frame(identifier: SessionNoticeBanner.dismissIdentifier(for: notice.id)))
+      let controls = try #require(harness.frame(identifier: AgentThreadLayout.floatingControlsIdentifier))
+      let bannerEdge = dismiss.maxX + EditorStyle.default.tile.padding
+
+      #expect(
+        abs(bannerEdge - controls.maxX) <= ThreadBottomBarHostedTests.edgeTolerance,
+        "banner edge \(bannerEdge), controls \(controls)")
+    }
+
+    /// Two adjacent banners stand one tile margin apart. The test reads the
+    /// edge of each banner from its text, one tile padding inside the edge.
+    @Test func twoBannersStandOneTileMarginApart() async throws {
+      let session = try await Self.openSessionWithNotice()
+      defer { session.close() }
+      let harness = ConnectionModelViewsHostedTests.mountThread(session)
+      defer { harness.close() }
+
+      // A close of the transport shows the disconnected banner, and the
+      // closed state of the stream banner below it.
+      session.close()
+      let connection = session.connection
+      await harness.render { connection.state == .disconnected }
+      let disconnected = try #require(harness.frame(identifier: AgentConnectionBanner.disconnectedIdentifier))
+      let closed = try #require(harness.frame(identifier: SessionStreamBanner.closedIdentifier))
+      let style = EditorStyle.default
+
+      // The y axis of the screen goes up.
+      let gap = (disconnected.minY - style.tile.padding) - (closed.maxY + style.tile.padding)
+
+      #expect(abs(gap - style.tile.margin) <= ThreadBottomBarHostedTests.edgeTolerance, "gap \(gap)")
     }
   }
 #endif

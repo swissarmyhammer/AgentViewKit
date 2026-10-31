@@ -17,6 +17,11 @@ import SwiftUI
 /// The text of the bar has the ``Message/identifier`` of its message. The
 /// accessibility label of the bar is the title.
 ///
+/// A bar is dismissible when its action is
+/// ``Action/makeDismiss(identifier:perform:)``, as the bar of a notice is. A
+/// kit that shows the button with its symbol only sets `.labelStyle(.iconOnly)`
+/// on the bar.
+///
 /// The symbol takes its color from the ``Message/severity`` of the message:
 /// the error, warning or information color of the EditorKit theme, the status
 /// colors of the theme (D112), or the `.secondary` style for a neutral
@@ -52,7 +57,7 @@ public struct StatusBar: View {
     /// The short title of the bar.
     public let title: String
 
-    /// The explanation below the title.
+    /// The explanation below the title. An empty explanation shows no line.
     public let explanation: String
 
     /// The SF Symbol name of the bar.
@@ -70,11 +75,19 @@ public struct StatusBar: View {
     /// a message with a symbol effect, except under Reduce Motion.
     public let isOngoing: Bool
 
+    /// The accessibility label of the text of the bar, or `nil` for the title
+    /// and the explanation.
+    public let accessibilityLabel: String?
+
+    /// The help tag of the symbol, or `nil` for no help tag.
+    public let symbolHelp: String?
+
     /// Makes the text of a bar.
     ///
     /// - Parameters:
     ///   - title: The short title of the bar.
-    ///   - explanation: The explanation below the title.
+    ///   - explanation: The explanation below the title. An empty explanation
+    ///     shows no line.
     ///   - symbolName: The SF Symbol name of the bar. Read it from
     ///     ``SharedSymbol``, or from `ItemStatus` of EditorStyle.
     ///   - identifier: The accessibility identifier of the text of the bar.
@@ -82,9 +95,12 @@ public struct StatusBar: View {
     ///     ``Severity/neutral``.
     ///   - isOngoing: Whether the message tells of work that goes on. The
     ///     default is `false`.
+    ///   - accessibilityLabel: The accessibility label of the text of the bar,
+    ///     or `nil` for the title and the explanation.
+    ///   - symbolHelp: The help tag of the symbol, or `nil` for no help tag.
     public init(
       title: String, explanation: String, symbolName: String, identifier: String, severity: Severity = .neutral,
-      isOngoing: Bool = false
+      isOngoing: Bool = false, accessibilityLabel: String? = nil, symbolHelp: String? = nil
     ) {
       self.title = title
       self.explanation = explanation
@@ -92,6 +108,14 @@ public struct StatusBar: View {
       self.identifier = identifier
       self.severity = severity
       self.isOngoing = isOngoing
+      self.accessibilityLabel = accessibilityLabel
+      self.symbolHelp = symbolHelp
+    }
+
+    /// The accessibility label of the text of the bar: ``accessibilityLabel``,
+    /// or the title and the explanation.
+    var textLabel: String {
+      accessibilityLabel ?? (explanation.isEmpty ? title : "\(title), \(explanation)")
     }
   }
 
@@ -137,6 +161,19 @@ public struct StatusBar: View {
       self.hint = hint
       self.perform = perform
     }
+
+    /// Makes the Dismiss button of a dismissible bar, such as the bar of a
+    /// notice.
+    ///
+    /// - Parameters:
+    ///   - identifier: The accessibility identifier of the button.
+    ///   - perform: The closure that a press calls: it removes the bar.
+    /// - Returns: The button, with the ``SharedSymbol/dismiss`` symbol.
+    public static func makeDismiss(identifier: String, perform: @escaping () -> Void) -> Action {
+      Action(
+        title: String(localized: "Dismiss", bundle: .module), systemImage: SharedSymbol.dismiss,
+        identifier: identifier, isEnabled: true, perform: perform)
+    }
   }
 
   /// The text of the bar.
@@ -180,15 +217,22 @@ public struct StatusBar: View {
     HStack(spacing: editorStyle.spacing.m) {
       StatusSymbolImage(name: message.symbolName, color: Self.symbolColor(for: message, in: editorTheme))
         .liveSymbolEffect(isActive: message.isOngoing)
+        .help(message.symbolHelp ?? "")
         .accessibilityHidden(true)
       VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
         Text(message.title)
           .font(editorTheme.font(for: .ui, style: .headline))
-        Text(message.explanation)
-          .font(editorTheme.font(for: .ui, style: .callout))
-          .foregroundStyle(.secondary)
+        if !message.explanation.isEmpty {
+          Text(message.explanation)
+            .font(editorTheme.font(for: .ui, style: .callout))
+            .foregroundStyle(.secondary)
+            .textSelection(.enabled)
+        }
       }
-      .accessibilityElement(children: .combine)
+      // A selectable text leaves a combined element, so the text is one
+      // element with an explicit label.
+      .accessibilityElement(children: .ignore)
+      .accessibilityLabel(message.textLabel)
       .accessibilityIdentifier(message.identifier)
       Spacer(minLength: editorStyle.spacing.s)
       if let action {

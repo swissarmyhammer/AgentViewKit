@@ -303,7 +303,7 @@ public struct PermissionView: View {
       Button(terminalLinkTitle, systemImage: Self.terminalLinkSymbol) {
         showsTerminal.toggle()
       }
-      .buttonStyle(.link)
+      .requestActionStyle(.secondary)
       .accessibilityIdentifier(Self.terminalLinkIdentifier)
       if showsTerminal {
         TerminalView(entry: entry)

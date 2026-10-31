@@ -134,6 +134,10 @@ struct CitationMarkdownParser<Base: MarkupParser>: MarkupParser {
   /// face that sizes it.
   let digitFace: FontFace
 
+  /// The padding of the pill, from the style of the text. Each pill carries
+  /// it for the same reason.
+  let padding: InlineCitationPadding
+
   func attributedString(for input: String) throws -> AttributedString {
     let parsed = try base.attributedString(for: input)
     guard input.contains(CitationMarkers.start) else { return parsed }
@@ -152,7 +156,7 @@ struct CitationMarkdownParser<Base: MarkupParser>: MarkupParser {
   private func pill(number: Int, attributes: AttributeContainer) -> AttributedString {
     var attributes = attributes
     attributes.textual.attachment = AnyAttachment(
-      InlineCitationAttachment(number: number, digitFace: digitFace))
+      InlineCitationAttachment(number: number, digitFace: digitFace, padding: padding))
     attributes.link = InlineCitation.url(index: number)
     return AttributedString(MathMarkdownParser.attachmentCharacter, attributes: attributes)
   }
@@ -169,6 +173,9 @@ nonisolated struct InlineCitationAttachment: Textual.Attachment {
 
   /// The face of the digits: the `ui` face of the theme of the text.
   let digitFace: FontFace
+
+  /// The padding of the pill, from the style of the text.
+  let padding: InlineCitationPadding
 
   /// The text of the pill in a copy: `[<number>]`.
   var description: String { "[\(number)]" }
@@ -194,7 +201,8 @@ nonisolated struct InlineCitationAttachment: Textual.Attachment {
   /// - Returns: The sizes.
   private func metrics(in environment: TextEnvironmentValues) -> InlineCitationMetrics {
     InlineCitationMetrics(
-      index: number, textFontSize: FontScaled(CGFloat(1)).resolve(in: environment), face: digitFace)
+      index: number, textFontSize: FontScaled(CGFloat(1)).resolve(in: environment), face: digitFace,
+      padding: padding)
   }
 }
 

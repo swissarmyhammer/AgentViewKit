@@ -129,23 +129,30 @@ struct NoticeBanner: View {
   }
 }
 
-/// One row of a notice: the symbol and the tint of a severity, a title, an
-/// optional description, and a Dismiss button.
-///
-/// The row is content, so it has no fill and no glass. A separator stroke
-/// marks its edge (`.inlineEdge(radius:)`, D113). Only its
-/// Dismiss button has a button style of its own, which comes from the place
-/// of the row (``RequestDeckPlace/style(of:)``): the `.glass` style in
-/// content, and the `.bordered` style on the glass of a ``RequestDeck`` in a
-/// bar of floating controls.
-///
-/// The text is one accessibility element with the label of the row, and the
-/// Dismiss button is its sibling. ``NoticeBanner`` and the notice of a request
-/// that the agent withdraws (``WithdrawnNoticeRow``) show this row.
-struct NoticeRow: View {
-  /// The SF Symbol name of the Dismiss button.
-  static let dismissSymbol = SharedSymbol.dismiss
+extension StatusBar.Message.Severity {
+  /// The severity of the bar of a notice.
+  ///
+  /// - Parameter severity: The severity of the notice. A severity that the kit
+  ///   does not know informs, as the tint of the theme has it
+  ///   (`Theme.tint(for:)`).
+  init(notice severity: NoticeSeverity) {
+    switch severity {
+    case .info, .unknown: self = .information
+    case .warning: self = .warning
+    case .error: self = .failure
+    }
+  }
+}
 
+/// One row of a notice: a dismissible ``StatusBar`` with the symbol and the
+/// tint of a severity, a title and an optional description.
+///
+/// The bar gives the layout, the edge and the accessibility elements. The kit
+/// style of a bar button (``AgentStatusBarActionStyle``) gives the Dismiss
+/// button its button style and its scope, and the button shows its symbol
+/// only. ``NoticeBanner`` and the notice of a request that the agent withdraws
+/// (``WithdrawnNoticeRow``) show this row.
+struct NoticeRow: View {
   /// The severity, which gives the symbol and the tint.
   let severity: NoticeSeverity
 
@@ -167,43 +174,16 @@ struct NoticeRow: View {
   /// The closure that the Dismiss button calls.
   let dismiss: () -> Void
 
-  @Environment(\.editorStyle) private var editorStyle
-  @Environment(\.editorTheme) private var editorTheme
-
   var body: some View {
-    HStack(alignment: .top, spacing: editorStyle.spacing.m) {
-      StatusSymbolImage(
-        name: NoticeBanner.symbolName(for: severity),
-        color: editorTheme.tint(for: severity)
-      )
-        .help(NoticeBanner.severityLabel(severity))
-        .accessibilityHidden(true)
-      VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
-        Text(title)
-          .font(editorTheme.font(for: .ui, style: .headline))
-        if let description {
-          Text(description)
-            .font(editorTheme.font(for: .ui, style: .callout))
-            .foregroundStyle(.secondary)
-            .textSelection(.enabled)
-        }
-      }
-      // The text is the element of the row, and the button is its sibling.
-      .accessibilityElement(children: .ignore)
-      .accessibilityLabel(label)
-      .accessibilityIdentifier(identifier)
-      Spacer(minLength: editorStyle.spacing.s)
-      Button(
-        String(localized: "Dismiss", bundle: .module), systemImage: Self.dismissSymbol,
-        action: dismiss
-      )
-        .labelStyle(.iconOnly)
-        .requestActionStyle(.secondary)
-        .accessibilityIdentifier(dismissIdentifier)
-        .agentControlScope(dismissIdentifier)
-    }
-    .contentTile()
-    .inlineEdge(radius: editorStyle.radii.l)
+    StatusBar(
+      message: StatusBar.Message(
+        title: title, explanation: description ?? "", symbolName: NoticeBanner.symbolName(for: severity),
+        identifier: identifier, severity: StatusBar.Message.Severity(notice: severity), accessibilityLabel: label,
+        symbolHelp: NoticeBanner.severityLabel(severity)),
+      action: .makeDismiss(identifier: dismissIdentifier, perform: dismiss)
+    )
+    .labelStyle(.iconOnly)
+    .statusBarActionStyle(AgentStatusBarActionStyle())
   }
 }
 

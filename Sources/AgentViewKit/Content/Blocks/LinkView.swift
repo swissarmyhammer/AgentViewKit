@@ -1,4 +1,5 @@
 import AppKit
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import FoundationModelsACP
@@ -30,6 +31,7 @@ public struct LinkView: View {
   @State private var icon: NSImage?
 
   @Environment(\.openURL) private var openURL
+  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the view of an ACP resource link.
@@ -60,7 +62,7 @@ public struct LinkView: View {
         icon = await Self.loadIcon(from: iconSource)
       }
     } else {
-      VStack(alignment: .leading) {
+      VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
         Text(name)
         Text(uri)
           .font(editorTheme.font(for: .ui, style: .caption))

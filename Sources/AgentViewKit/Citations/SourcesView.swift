@@ -93,7 +93,7 @@ public struct SourcesView: View {
   public var body: some View {
     let highlighted = selection?.index
     DisclosureGroup(isExpanded: $isExpanded) {
-      VStack(alignment: .leading, spacing: rowGap) {
+      VStack(alignment: .leading, spacing: editorStyle.spacing.l) {
         ForEach(Array(payload.sources.enumerated()), id: \.offset) { position, source in
           let index = position + 1
           SourceRow(
@@ -104,7 +104,7 @@ public struct SourcesView: View {
         }
       }
       .padding([.horizontal, .bottom], editorStyle.spacing.xs)
-      .padding(.top, rowsTopInset)
+      .padding(.top, editorStyle.spacing.s)
     } label: {
       Label {
         Text("Sources (\(payload.sources.count))", bundle: .module)
@@ -119,22 +119,6 @@ public struct SourcesView: View {
       isExpanded = true
     }
     .contentContainer(identifier: Self.identifier)
-  }
-
-  /// The space between two rows: the small spacing step, and the extra small
-  /// step below the first row and above the second row.
-  ///
-  /// A row has no padding of its own (^rgsq3k4), so the stack of the rows
-  /// gives the space that each row had around it, and insets the rows in the
-  /// disclosure by the extra small step.
-  private var rowGap: CGFloat {
-    editorStyle.spacing.xs + editorStyle.spacing.s + editorStyle.spacing.xs
-  }
-
-  /// The space above the first row: the extra small spacing step below the
-  /// label and the extra small step above the row.
-  private var rowsTopInset: CGFloat {
-    editorStyle.spacing.xs + editorStyle.spacing.xs
   }
 }
 

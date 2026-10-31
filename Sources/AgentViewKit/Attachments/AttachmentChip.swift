@@ -51,7 +51,7 @@ public struct AttachmentChip: View {
         .resizable()
         .frame(width: Self.iconSide, height: Self.iconSide)
         .accessibilityHidden(true)
-      VStack(alignment: .leading) {
+      VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
         Text(attachment.name)
           .lineLimit(1)
           .truncationMode(.middle)

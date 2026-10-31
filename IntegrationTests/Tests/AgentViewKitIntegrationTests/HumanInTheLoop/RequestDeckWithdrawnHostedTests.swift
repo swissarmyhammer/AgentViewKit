@@ -158,7 +158,9 @@ import Testing
     // own content by the tile padding.
     let tile = EditorStyle.default.tile
     let insets = tile.margin + tile.padding
-    #expect(deck.maxY - text.maxY == insets)
+    // The bar centers its parts, so the taller of the text and the button
+    // stands on the tile padding at each edge.
+    #expect(deck.maxY - max(text.maxY, dismiss.maxY) == insets)
     #expect(min(text.minY, dismiss.minY) - deck.minY == insets)
   }
 

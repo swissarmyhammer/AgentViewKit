@@ -585,7 +585,7 @@ public struct ElicitationFooter: View {
 
   public var body: some View {
     HStack(spacing: editorStyle.spacing.s) {
-      Spacer()
+      Spacer(minLength: 0)
       Button(
         String(localized: "Cancel", bundle: .module), systemImage: ElicitationView.cancelSymbol,
         role: .cancel

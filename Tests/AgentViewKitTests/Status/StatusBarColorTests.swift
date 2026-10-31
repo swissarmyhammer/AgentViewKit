@@ -1,4 +1,5 @@
 import AgentViewKitTestSupport
+import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 import Testing
@@ -86,6 +87,16 @@ import Testing
   @Test func aBarThatIsNotAFailureShowsItsSymbolWithTheSecondaryStyle() throws {
     for message in try Self.otherMessages() {
       #expect(StatusBar.symbolColor(for: message, in: Self.theme) == Color.secondary, "\(message.identifier)")
+    }
+  }
+
+  @Test func eachNoticeSeverityGivesTheSeverityOfItsBar() {
+    let severities: [(NoticeSeverity, StatusBar.Message.Severity)] = [
+      (.info, .information), (.warning, .warning), (.error, .failure), (.unknown("custom"), .information),
+    ]
+
+    for (notice, bar) in severities {
+      #expect(StatusBar.Message.Severity(notice: notice) == bar, "\(notice)")
     }
   }
 }
