@@ -30,6 +30,7 @@ inspector of its file with ``SwiftUI/View/toolCallLocationChipStyle(_:)``.
 - ``SurfaceCorners``
 - ``SwiftUI/View/selectableSurface(_:radius:)``
 - ``SwiftUI/View/selectableSurface(_:corners:)``
+- ``SwiftUI/View/changeHighlightEdge(radius:isShowing:)``
 
 ### Symbols
 
@@ -46,6 +47,13 @@ inspector of its file with ``SwiftUI/View/toolCallLocationChipStyle(_:)``.
 - ``StatusBarActionStyle``
 - ``GlassStatusBarActionStyle``
 - ``SwiftUI/View/statusBarActionStyle(_:)``
+- ``StreamBannerContent``
+- ``ReloadPhase``
+
+### Rows
+
+- ``InspectorActionRow``
+- ``CompletionRow``
 
 ### Chips
 
@@ -57,6 +65,7 @@ inspector of its file with ``SwiftUI/View/toolCallLocationChipStyle(_:)``.
 - ``PlainToolCallLocationChipStyle``
 - ``SwiftUI/View/toolCallLocationChipStyle(_:)``
 - ``DiffFileChip``
+- ``DiffFileLabel``
 
 ### Diffs
 
