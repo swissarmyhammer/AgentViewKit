@@ -19,10 +19,27 @@
   /// terminal output. Each frame is in screen points, and the y axis goes up.
   @Suite(.serialized, .hostedSerially) @MainActor struct ContentTileInsetHostedTests {
     /// The largest difference, in points, between two lengths that a test
-    /// counts as the same length. An accessibility frame is rounded to a
-    /// whole pixel, and the window of the harness has a backing scale of
-    /// one.
+    /// counts as the same length. An accessibility frame can be rounded to a
+    /// whole pixel, and the window of the harness takes the backing scale of
+    /// the machine: one on a runner of CI, two on a Retina display.
     static let layoutTolerance: CGFloat = 1
+
+    /// The display scales of a request card: a runner of CI has a scale of
+    /// one, and a Retina display has a scale of two.
+    nonisolated static let displayScales: [CGFloat] = [1, 2]
+
+    /// The largest distance, in points, from the top of the accessibility
+    /// frame of a request card with no tile padding to the top of the frame
+    /// of its title.
+    ///
+    /// The distance is not zero, and no part of it is padding. The frame of
+    /// the card is the outer edge of its 1 pt stroke, which is centered on
+    /// the edge, so it reaches 0.5 pt past the layout. That stroke sits on an
+    /// edge that snaps to a whole pixel, 0.46 pt at a scale of one. The frame
+    /// of the title is 16 pt high, in the 16.08 pt box of its `Label`. These
+    /// parts come to 1.04 pt at a scale of one, and to 0.54 pt at a scale of
+    /// two, where the snap moves the edge 0.04 pt the other way.
+    static let bareTitleLimit: CGFloat = 1.5
 
     /// The output of the terminal of the tests.
     static let output = "Build complete!"
@@ -76,18 +93,53 @@
           identifier: PermissionView.optionIdentifier(for: PermissionViewHostedTests.optionID(.allowOnce))))
     }
 
-    @Test func theRequestCardInsetsItsContentByTheTilePadding() async throws {
+    /// The frames of the parts of a request card at one tile padding and one
+    /// display scale.
+    ///
+    /// - Parameters:
+    ///   - pending: The pending request of the card.
+    ///   - session: The scripted session that holds the request.
+    ///   - padding: The tile padding of the style of the card.
+    ///   - displayScale: The display scale of the card.
+    /// - Returns: The frames of the card, the title and the first option.
+    /// - Throws: An issue when the card has no such part.
+    static func cardFrames(
+      of pending: PendingPermissionRequest, in session: ScriptedSession, padding: CGFloat, displayScale: CGFloat
+    ) throws -> (card: CGRect, title: CGRect, firstOption: CGRect) {
+      var style = EditorStyle.default
+      style.tile.padding = padding
+      let harness = HostedViewHarness(size: PermissionViewHostedTests.cardSize) {
+        PermissionView(request: pending, session: session.model)
+          .environment(\.editorStyle, style)
+          .environment(\.displayScale, displayScale)
+          .transaction { $0.disablesAnimations = true }
+      }
+      harness.render()
+      defer { harness.close() }
+      return (
+        try #require(harness.frame(identifier: PermissionView.identifier)),
+        try #require(harness.frame(identifier: PermissionView.titleIdentifier)),
+        try firstOptionFrame(in: harness)
+      )
+    }
+
+    @Test(arguments: displayScales)
+    func theRequestCardInsetsItsContentByTheTilePadding(displayScale: CGFloat) async throws {
       let session = try await ScriptedSession.open()
       defer { session.close() }
-      let harness = try await PermissionViewHostedTests.mountCard(in: session)
-      defer { harness.close() }
+      let pending = try await session.receivePermissionRequest(
+        id: PermissionViewHostedTests.agentRequestID, params: PermissionViewHostedTests.makeParams())
 
-      let card = try #require(harness.frame(identifier: PermissionView.identifier))
-      let title = try #require(harness.frame(identifier: PermissionView.titleIdentifier))
-      let firstOption = try Self.firstOptionFrame(in: harness)
+      let padded = try Self.cardFrames(of: pending, in: session, padding: Self.tile.padding, displayScale: displayScale)
+      let bare = try Self.cardFrames(of: pending, in: session, padding: 0, displayScale: displayScale)
 
-      Self.expectLength(firstOption.minX - card.minX, is: Self.tile.padding, "leading inset")
-      Self.expectLength(card.maxY - title.maxY, is: Self.tile.padding, "top inset")
+      Self.expectLength(padded.firstOption.minX - padded.card.minX, is: Self.tile.padding, "leading inset")
+      // The two cards differ only in the padding, so the parts of ``bareTitleLimit`` cancel
+      // and the difference is the padding itself, at each scale.
+      let paddedInset = padded.card.maxY - padded.title.maxY
+      let bareInset = bare.card.maxY - bare.title.maxY
+      #expect(paddedInset - bareInset == Self.tile.padding, "top inset: \(paddedInset) less \(bareInset)")
+      #expect(bareInset <= Self.bareTitleLimit, "bare top inset: \(bareInset)")
     }
 
     @Test func theRequestCardPutsTheTileGapBetweenItsHeaderAndItsBody() async throws {
