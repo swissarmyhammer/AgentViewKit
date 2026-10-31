@@ -629,7 +629,7 @@ private struct DeckCard: View {
     // behind it. An edge card thus hides its content, and the band shows only
     // the top edge of its stroke above the front card.
     cardContent
-      .environment(\.permissionRingIsExternal, true)
+      .environment(\.permissionFrameIsExternal, true)
       .focused(keyboardFocus, equals: request.id)
       .frame(maxHeight: .infinity, alignment: .top)
       .opacity(showsWhole ? 1 : 0)

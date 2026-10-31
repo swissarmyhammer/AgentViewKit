@@ -154,7 +154,7 @@ public struct PermissionView: View {
   @Environment(\.editorTheme) private var editorTheme
   @Environment(\.placedSecondary) private var placedSecondary
   @Environment(\.permissionAnswerReport) private var reportAnswer
-  @Environment(\.permissionRingIsExternal) private var ringIsExternal
+  @Environment(\.permissionFrameIsExternal) private var frameIsExternal
 
   /// The report that gets the method of each request that the "switch to
   /// auto" button starts, or `nil`.
@@ -188,14 +188,14 @@ public struct PermissionView: View {
     }
     .contentTile()
     .frame(maxWidth: .infinity, alignment: .leading)
-    .inlineEdge(radius: editorStyle.radii.l)
+    .modifier(PermissionCardEdge(isDrawn: !frameIsExternal, radius: editorStyle.radii.l))
     // The card is a focusable view of its item scope, so a jump or a move
     // lands the focus on the card and the scope draws no ring. EditorKit's
     // focus ring (^8qtcdqc) draws it in the theme accent with the large
     // radius of the style, and the system focus effect stays off.
     .focusable()
     .focusEffectDisabled()
-    .editorFocusRing(isFocused: isFocused && !ringIsExternal, radius: .large)
+    .editorFocusRing(isFocused: isFocused && !frameIsExternal, radius: .large)
     .preference(key: PermissionCardFocusKey.self, value: isFocused)
     .focused($isFocused)
     .defaultFocus($isFocused, true)
@@ -486,11 +486,30 @@ struct PermissionCardFocusKey: PreferenceKey {
   }
 }
 
+/// The content edge of a ``PermissionView`` that draws its own.
+private struct PermissionCardEdge: ViewModifier {
+  /// Whether the card draws the edge.
+  let isDrawn: Bool
+
+  /// The radius of the edge.
+  let radius: CGFloat
+
+  @ViewBuilder func body(content: Self.Content) -> some View {
+    if isDrawn {
+      content.inlineEdge(radius: radius)
+    } else {
+      content
+    }
+  }
+}
+
 extension EnvironmentValues {
-  /// Whether the host of a ``PermissionView`` draws its focus ring, so the card
-  /// draws none. A ``RequestDeck`` masks the card, and the mask would cut the
-  /// outer part of the ring.
-  @Entry var permissionRingIsExternal: Bool = false
+  /// Whether the host of a ``PermissionView`` draws its edge and its focus ring,
+  /// so the card draws neither. A ``RequestDeck`` draws both around each card:
+  /// a card can be shorter than the frame of the deck, and a second edge would
+  /// show inside the first, and its mask would cut the outer part of a ring on
+  /// the card.
+  @Entry var permissionFrameIsExternal: Bool = false
 
   /// The ``ObservationReport`` that gets each ``PermissionAnswer`` of the
   /// nearest ``PermissionView``, or `nil`.
