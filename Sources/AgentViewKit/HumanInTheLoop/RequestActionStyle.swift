@@ -80,7 +80,7 @@ private struct RequestActionStyleModifier: ViewModifier {
   func body(content: Content) -> some View {
     let place = RequestDeckPlace(declared: declaredPlace, isInFloatingGlassContainer: glassNamespace != nil)
     switch place.style(of: action) {
-    case .glass: content.buttonStyle(.glass)
+    case .glass: content.buttonStyle(.glass).glassForegroundStyle()
     case .bordered: content.buttonStyle(.bordered)
     case .inherited: content
     }

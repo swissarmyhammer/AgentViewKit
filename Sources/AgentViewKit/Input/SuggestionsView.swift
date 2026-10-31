@@ -77,6 +77,7 @@ struct SuggestionChip: View {
       text.wrappedValue = AttributedString(suggestion)
     }
     .buttonStyle(.glass)
+    .glassForegroundStyle()
     .buttonBorderShape(.capsule)
     .floatingGlassID(FloatingGlassID.suggestion(index))
     .help(String(localized: "Use this prompt", bundle: .module))
