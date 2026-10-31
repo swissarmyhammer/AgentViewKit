@@ -88,6 +88,17 @@ public enum AgentRowDensity: Hashable, Sendable {
     case .compact: style.spacing.xs
     }
   }
+
+  /// The inset of a section header from the edges of the list: the side insets
+  /// of a row, so the header lines up with the content of the rows. The space
+  /// above and below it is the row spacing of the list.
+  ///
+  /// - Parameter style: The style of the list.
+  /// - Returns: The insets of a header.
+  func headerInsets(in style: EditorStyle) -> EdgeInsets {
+    let row = rowInsets(in: style)
+    return EdgeInsets(top: 0, leading: row.leading, bottom: 0, trailing: row.trailing)
+  }
 }
 
 /// A list of rows whose selection and keys come from the command scopes of
@@ -108,6 +119,13 @@ public enum AgentRowDensity: Hashable, Sendable {
 /// style. The list has no margin around its rows (^rgsq3k4): the layout that
 /// holds it gives one, such as `.scrollContentMargins(\.tile.margin)`.
 ///
+/// The list can hold sections (``AgentRowSection``), each with a header above
+/// its rows, in the one lazy stack. A section with no items shows no header.
+/// The rows of all the sections act as the rows of one flat list: a header is
+/// no row, so the keys, the jump labels and the mouse pass it by, and VoiceOver
+/// reads it as a heading. When the focus lands on the first row of a section,
+/// the list scrolls the header of the section into view with the row.
+///
 /// The list registers the `nav.*` commands of EditorKit at its own scope, so
 /// the keys work in each host: the Down Arrow and the Up Arrow select the next
 /// row and the row before, and Esc moves the focus out of the rows to the
@@ -127,11 +145,8 @@ public enum AgentRowDensity: Hashable, Sendable {
 /// and that row and an outer scroll view give it no height to fill, so it takes
 /// the height of all its rows and the lazy stack makes each one.
 public struct AgentRowList<Item, Row: View, Footer: View>: View {
-  /// The items of the rows, in list order.
-  let items: [Item]
-
-  /// The id of an item, which is the id of the segment of its row.
-  let id: KeyPath<Item, String>
+  /// The headers and the rows of the stack, in list order.
+  let entries: [AgentRowListEntry<Item>]
 
   /// The scope of the list.
   let scope: AgentRowListScope
@@ -186,14 +201,60 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
     onOpen: ((Item) -> Void)? = nil,
     @ViewBuilder row: @escaping (Item) -> Row, @ViewBuilder footer: () -> Footer
   ) {
-    self.items = items
-    self.id = id
+    self.init(
+      entries: AgentRowListEntry.rows(of: items, id: id), scope: scope, openTrigger: openTrigger, density: density,
+      onOpen: onOpen, row: row, footer: footer())
+  }
+
+  /// Makes a list of sections with a view after the last row.
+  ///
+  /// - Parameters:
+  ///   - sections: The sections, in list order. A section with no items shows
+  ///     no header.
+  ///   - id: The id of an item. Each item of the list has its own id, across
+  ///     the sections too.
+  ///   - scope: The scope of the list.
+  ///   - openTrigger: What opens a row with the mouse. A double click by
+  ///     default.
+  ///   - density: How tight the rows stand. The tile spaces of the style by
+  ///     default.
+  ///   - onOpen: The action that Return and the open trigger run on an item,
+  ///     or `nil` for a list whose rows do not open.
+  ///   - row: The builder of the content of a row.
+  ///   - footer: The builder of the view after the last row.
+  public init(
+    sections: [AgentRowSection<Item>], id: KeyPath<Item, String>, scope: AgentRowListScope,
+    openOn openTrigger: AgentRowOpenTrigger = .doubleClick, density: AgentRowDensity = .regular,
+    onOpen: ((Item) -> Void)? = nil,
+    @ViewBuilder row: @escaping (Item) -> Row, @ViewBuilder footer: () -> Footer
+  ) {
+    self.init(
+      entries: AgentRowListEntry.entries(of: sections, id: id), scope: scope, openTrigger: openTrigger,
+      density: density, onOpen: onOpen, row: row, footer: footer())
+  }
+
+  /// Makes a list of `entries`, the one path of the flat and the sectioned
+  /// list.
+  ///
+  /// - Parameters:
+  ///   - entries: The headers and the rows, in list order.
+  ///   - scope: The scope of the list.
+  ///   - openTrigger: What opens a row with the mouse.
+  ///   - density: How tight the rows stand.
+  ///   - onOpen: The action that opens an item, or `nil`.
+  ///   - row: The builder of the content of a row.
+  ///   - footer: The view after the last row.
+  private init(
+    entries: [AgentRowListEntry<Item>], scope: AgentRowListScope, openTrigger: AgentRowOpenTrigger,
+    density: AgentRowDensity, onOpen: ((Item) -> Void)?, row: @escaping (Item) -> Row, footer: Footer
+  ) {
+    self.entries = entries
     self.scope = scope
     self.openTrigger = openTrigger
     self.density = density
     self.onOpen = onOpen
     self.row = row
-    self.footer = footer()
+    self.footer = footer
   }
 
   public var body: some View {
@@ -202,13 +263,22 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
     ScrollViewReader { proxy in
       ScrollView {
         LazyVStack(alignment: .leading, spacing: density.rowSpacing(in: editorStyle)) {
-          ForEach(items, id: id) { item in
-            rowView(for: item, at: path.appending(scope.rowSegment(for: item[keyPath: id])), in: system)
+          ForEach(entries) { entry in
+            switch entry {
+            case .header(let sectionID, let title):
+              AgentRowSectionHeader(title: title, identifier: AgentRowSectionHeader.identifier(for: sectionID))
+                .padding(density.headerInsets(in: editorStyle))
+            case .row(let id, let item):
+              rowView(for: item, id: id, in: path, system: system)
+            }
           }
           footer
         }
       }
       .background(AgentRowListMount(target: target, values: values(system: system, path: path, proxy: proxy)))
+      .onChange(of: focusedPath) { previous, focused in
+        showHeader(of: focused, movingFrom: previous, in: path, proxy: proxy)
+      }
     }
     .commandScope(segment: scope.list)
     .scopeFocusRing(radius: AgentRowListLayout.radius)
@@ -220,19 +290,46 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
   ///
   /// - Parameters:
   ///   - item: The item of the row.
-  ///   - rowPath: The path of the scope of the row.
+  ///   - id: The id of the row.
+  ///   - listPath: The path of the scope of the list.
   ///   - system: The system that the list registers in, whose geometry
   ///     gives the focus to the row on a click.
   /// - Returns: The row.
-  private func rowView(for item: Item, at rowPath: FocusPath, in system: CommandSystem) -> some View {
-    AgentRowListRow(
-      segment: scope.rowSegment(for: item[keyPath: id]), isSelected: focusedPath == rowPath,
+  private func rowView(for item: Item, id: String, in listPath: FocusPath, system: CommandSystem) -> some View {
+    let segment = scope.rowSegment(for: id)
+    let rowPath = listPath.appending(segment)
+    return AgentRowListRow(
+      segment: segment, isSelected: focusedPath == rowPath,
       select: { _ = system.geometry.requestFocus(at: rowPath) }, open: opener(of: item),
       openTrigger: openTrigger, density: density
     ) {
       row(item)
     }
-    .id(item[keyPath: id])
+  }
+
+  /// Scrolls the header of a section into view when a move up lands on the
+  /// first row of that section.
+  ///
+  /// A move up brings the row in at the top edge, so the header above it stays
+  /// out of view, and a scroll to the header ends with the row below it. A move
+  /// down brings the row in at the bottom edge with the header above it, so it
+  /// needs no scroll of its own. Two scrolls of one update do not add up: the
+  /// last one wins, so the move up scrolls only to the header.
+  ///
+  /// - Parameters:
+  ///   - focused: The path of the focused scope of the window, or `nil`.
+  ///   - previous: The path that held the focus before, or `nil`.
+  ///   - listPath: The path of the scope of the list.
+  ///   - proxy: The proxy of the scroll view of the list.
+  private func showHeader(
+    of focused: FocusPath?, movingFrom previous: FocusPath?, in listPath: FocusPath, proxy: ScrollViewProxy
+  ) {
+    guard let focused, let previous, listPath.isAncestor(of: focused), let rowID = target.rowID(on: focused),
+      let previousID = target.rowID(on: previous), let index = target.rowIDs.firstIndex(of: rowID),
+      let previousIndex = target.rowIDs.firstIndex(of: previousID), index < previousIndex,
+      let header = AgentRowListEntry.headerID(above: rowID, in: entries)
+    else { return }
+    proxy.scrollTo(header)
   }
 
   /// The action that opens `item`, or `nil` for a list whose rows do not
@@ -252,16 +349,16 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
   ///   - proxy: The proxy of the scroll view of the list.
   /// - Returns: The values.
   private func values(system: CommandSystem, path: FocusPath, proxy: ScrollViewProxy) -> AgentRowListMount.Values {
-    let ids = items.map { $0[keyPath: id] }
+    let rows = entries.compactMap(\.row)
     let open = onOpen.map { open in
       { (rowID: String) in
-        if let item = items.first(where: { $0[keyPath: id] == rowID }) {
-          open(item)
+        if let row = rows.first(where: { $0.id == rowID }) {
+          open(row.item)
         }
       }
     }
     return AgentRowListMount.Values(
-      system: system, path: path, rowKind: scope.rowKind, rowIDs: ids, open: open, proxy: proxy)
+      system: system, path: path, rowKind: scope.rowKind, rowIDs: rows.map(\.id), open: open, proxy: proxy)
   }
 }
 
@@ -286,6 +383,34 @@ extension AgentRowList where Footer == EmptyView {
     @ViewBuilder row: @escaping (Item) -> Row
   ) {
     self.init(items, id: id, scope: scope, openOn: openTrigger, density: density, onOpen: onOpen, row: row) {
+      EmptyView()
+    }
+  }
+
+  /// Makes a list of sections.
+  ///
+  /// - Parameters:
+  ///   - sections: The sections, in list order. A section with no items shows
+  ///     no header.
+  ///   - id: The id of an item. Each item of the list has its own id, across
+  ///     the sections too.
+  ///   - scope: The scope of the list.
+  ///   - openTrigger: What opens a row with the mouse. A double click by
+  ///     default.
+  ///   - density: How tight the rows stand. The tile spaces of the style by
+  ///     default.
+  ///   - onOpen: The action that Return and the open trigger run on an item,
+  ///     or `nil` for a list whose rows do not open.
+  ///   - row: The builder of the content of a row.
+  public init(
+    sections: [AgentRowSection<Item>], id: KeyPath<Item, String>, scope: AgentRowListScope,
+    openOn openTrigger: AgentRowOpenTrigger = .doubleClick, density: AgentRowDensity = .regular,
+    onOpen: ((Item) -> Void)? = nil,
+    @ViewBuilder row: @escaping (Item) -> Row
+  ) {
+    self.init(
+      sections: sections, id: id, scope: scope, openOn: openTrigger, density: density, onOpen: onOpen, row: row
+    ) {
       EmptyView()
     }
   }
@@ -411,6 +536,21 @@ struct AgentRowClicks: ViewModifier {
   AgentRowList(
     PreviewFixtures.suggestions, id: \.self,
     scope: AgentRowListScope(list: FocusSegment(kind: "previewList"), rowKind: "previewRow")
+  ) { suggestion in
+    Text(suggestion)
+  }
+  .scrollContentMargins(\.tile.margin)
+}
+
+#Preview("Sections") {
+  AgentRowList(
+    sections: [
+      AgentRowSection(id: "pinned", title: "Pinned", items: Array(PreviewFixtures.suggestions.prefix(1))),
+      AgentRowSection(id: "recent", title: "Recent", items: Array(PreviewFixtures.suggestions.dropFirst())),
+    ],
+    id: \.self,
+    scope: AgentRowListScope(list: FocusSegment(kind: "previewList"), rowKind: "previewRow"),
+    openOn: .click, density: .compact, onOpen: { _ in }
   ) { suggestion in
     Text(suggestion)
   }
