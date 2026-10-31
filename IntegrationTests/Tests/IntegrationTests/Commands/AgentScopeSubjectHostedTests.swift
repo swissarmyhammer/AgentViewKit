@@ -83,7 +83,7 @@ import Testing
   /// - Parameters:
   ///   - session: The scripted session.
   ///   - harness: The mount that renders the view after the wait: a
-  ///     `HostedViewHarness` or a `CaptureMount`.
+  ///     `HostedViewHarness`.
   /// - Returns: The tool call entry of the session model.
   /// - Throws: The error of the transport, or the error of `#require` when the
   ///   transcript has no tool call entry.

@@ -125,7 +125,7 @@
     static let inspector = """
       The thread column has no fill, and the inspector form hides its own background, so the \
       column shows the system inspector background. Since ^zbcys18 the grouped-form rows draw dark with light \
-      text in dark (ReviewGalleryScreenTests checks it), as the recorded attachment-inspector-dark.png shows. \
+      text in dark, as the recorded attachment-inspector-dark.png shows. \
       The QuickLook preview is hidden on purpose. Since ^sbx2q4h the "Exit code 0" text of the terminal \
       output is the primary label color, with the green on the symbol only. Since ^ey6v778 the tiles of the \
       thread column take the tile spacing of the theme; the new image is not judged yet. Since ^tgjr9xg the \
@@ -137,7 +137,7 @@
     static let gallery = """
       The sidebar shows the system sidebar background, with no kit fill. The open "Permission \
       request" session shows its pending-request count badge (an AVK-8r chip). Since ^zbcys18 the sidebar \
-      rows draw light text on the dark sidebar glass in dark (ReviewGalleryScreenTests checks it); the badge \
+      rows draw light text on the dark sidebar glass in dark; the badge \
       color is not judged yet. The Look popover is not in the image: a popover is its own window that AppKit \
       puts on the screen, and the gallery shows no window (AVK-12). The detail is the resumed permission \
       session, with the partial-history banner (no fill) and the permission card. Since ^ey6v778 the banner \

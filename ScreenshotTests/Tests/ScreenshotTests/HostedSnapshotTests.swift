@@ -13,44 +13,42 @@ import Testing
 /// rule 9).
 ///
 /// Each test shows one view with the fixed data of ``SnapshotFixtures`` in
-/// each look, Light and Dark, in a ``CaptureMount``, and writes the capture as
-/// `<name>-light.png` or `<name>-dark.png` with ``GeneratedImages``, for the
-/// review gallery. Nothing compares a capture with an earlier one. The
-/// window server draws each part as the app shows it: the AppKit views, the
-/// Liquid Glass and the scroll edge effect.
+/// each look, Light and Dark, and records the capture as `<name>-light.png` or
+/// `<name>-dark.png` for the review gallery. Nothing compares a capture with
+/// an earlier one. The window server draws each part as the app shows it: the
+/// AppKit views, the Liquid Glass and the scroll edge effect.
 ///
 /// Open the review gallery after a run to look at the images.
 @Suite(.serialized, .hostedSerially) @MainActor struct HostedSnapshotTests {
-  /// Shows `view` in `look` and generates the image of the capture for the
-  /// review gallery.
+  /// Shows `view` in each look and records its image for the review gallery.
   ///
   /// - Parameters:
   ///   - view: The real view to show.
   ///   - name: The name of the view in the image name, such as `thread`.
   ///   - size: The size of the image, in points.
-  ///   - look: The look of the window.
   ///   - hiddenTypes: The classes of the AppKit views that the image does not
-  ///     show (``CaptureMount/capture(_:size:appearance:hiding:settle:)``).
+  ///     show (``ReviewMount/hideViews(of:)``).
   ///   - settle: The wait for a certain event before the image.
-  ///   - sourceLocation: The location of the caller, for the issue.
-  /// - Throws: The error of `settle`, of the capture.
+  /// - Throws: The error of `settle`, or of the capture.
   static func generate<Content: View>(
-    _ view: Content, named name: String, size: CGSize, look: ReviewAppearance,
-    hiding hiddenTypes: [NSView.Type] = [], settle: @MainActor () async throws -> Void = {},
-    sourceLocation: SourceLocation = #_sourceLocation
+    _ view: Content, named name: String, size: CGSize, hiding hiddenTypes: [NSView.Type] = [],
+    settle: @escaping @MainActor () async throws -> Void = {}
   ) async throws {
-    let image = try await CaptureMount<Content>.capture(
-      view, size: size, appearance: look, hiding: hiddenTypes, settle: { _ in try await settle() })
-    try GeneratedImages.write(image, suite: "HostedSnapshotTests", named: name, in: look)
+    try await ReviewGalleryScreenTests.gallery.record(
+      suite: "HostedSnapshotTests", named: name, size: size,
+      settle: { mount in
+        try await settle()
+        mount.hideViews(of: hiddenTypes)
+      },
+      content: { _ in view })
   }
 
-  @Test(arguments: ReviewAppearance.allCases)
-  func theThread(look: ReviewAppearance) async throws {
+  @Test func theThread() async throws {
     let session = SnapshotFixtures.threadSession
     let cache = CodeBlockModelCache()
     let thread = AgentThreadView(session: session).environment(\.codeBlockModelCache, cache)
 
-    try await Self.generate(thread, named: "thread", size: SnapshotFixtures.threadSize, look: look) {
+    try await Self.generate(thread, named: "thread", size: SnapshotFixtures.threadSize) {
       await SnapshotFixtures.waitForSyntax(of: try SnapshotFixtures.codeBlockModel(in: cache, session: session))
     }
   }
@@ -66,70 +64,60 @@ import Testing
   /// the list is away from the bottom, with rows under the bar, so this image
   /// does not show it. `GlassSnapshotTests` shows the pill in the floating
   /// controls.
-  @Test(arguments: ReviewAppearance.allCases)
-  func theButtonsOfTheBottomBarBelowTheTranscript(look: ReviewAppearance) async throws {
+  @Test func theButtonsOfTheBottomBarBelowTheTranscript() async throws {
     try await Self.generate(
-      SnapshotFixtures.bottomBarThread, named: "bottom-bar-buttons", size: SnapshotFixtures.threadSize, look: look)
+      SnapshotFixtures.bottomBarThread, named: "bottom-bar-buttons", size: SnapshotFixtures.threadSize)
   }
 
-  @Test(arguments: ReviewAppearance.allCases)
-  func theIdleComposer(look: ReviewAppearance) async throws {
+  @Test func theIdleComposer() async throws {
     let composer = SnapshotFixtures.composer(for: SnapshotFixtures.idleSession)
 
-    try await Self.generate(composer, named: "composer-idle", size: SnapshotFixtures.composerSize, look: look)
+    try await Self.generate(composer, named: "composer-idle", size: SnapshotFixtures.composerSize)
   }
 
-  @Test(arguments: ReviewAppearance.allCases)
-  func theComposerWhileTheAgentRuns(look: ReviewAppearance) async throws {
+  @Test func theComposerWhileTheAgentRuns() async throws {
     let composer = SnapshotFixtures.composer(for: SnapshotFixtures.runningSession)
 
-    try await Self.generate(composer, named: "composer-running", size: SnapshotFixtures.composerSize, look: look)
+    try await Self.generate(composer, named: "composer-running", size: SnapshotFixtures.composerSize)
   }
 
-  @Test(arguments: ReviewAppearance.allCases)
-  func thePermissionRequestCard(look: ReviewAppearance) async throws {
+  @Test func thePermissionRequestCard() async throws {
     let card = try SnapshotFixtures.permissionCard()
 
-    try await Self.generate(card, named: "permission-card", size: SnapshotFixtures.cardSize, look: look)
+    try await Self.generate(card, named: "permission-card", size: SnapshotFixtures.cardSize)
   }
 
-  @Test(arguments: ReviewAppearance.allCases)
-  func theRequestDeckInTheBar(look: ReviewAppearance) async throws {
+  @Test func theRequestDeckInTheBar() async throws {
     try await Self.generate(
-      RequestDeckSurfaceHostedTests.deckInBar, named: "request-deck-bar", size: RequestDeckSurfaceHostedTests.size,
-      look: look)
+      SnapshotFixtures.deckInBar, named: "request-deck-bar", size: SnapshotFixtures.requestDeckSize)
   }
 
-  @Test(arguments: ReviewAppearance.allCases)
-  func theSessionNotice(look: ReviewAppearance) async throws {
+  @Test func theSessionNotice() async throws {
     // The banner has no margin of its own (^rgsq3k4); the image spaces it
     // with the tile margin, as the top bar of a thread does.
     let banner = SessionNoticeBanner(session: SnapshotFixtures.noticeSession)
       .padding(EditorStyle.default.tile.margin)
 
-    try await Self.generate(banner, named: "session-notice", size: SnapshotFixtures.cardSize, look: look)
+    try await Self.generate(banner, named: "session-notice", size: SnapshotFixtures.cardSize)
   }
 
-  @Test(arguments: ReviewAppearance.allCases)
-  func theStatusBanner(look: ReviewAppearance) async throws {
+  @Test func theStatusBanner() async throws {
     let banner = StateBanner(session: SnapshotFixtures.runningSession)
 
-    try await Self.generate(banner, named: "status-banner", size: SnapshotFixtures.bannerSize, look: look)
+    try await Self.generate(banner, named: "status-banner", size: SnapshotFixtures.bannerSize)
   }
 
-  @Test(arguments: ReviewAppearance.allCases)
-  func theCodeBlock(look: ReviewAppearance) async throws {
+  @Test func theCodeBlock() async throws {
     let model = EditorModel(PreviewFixtures.codeSample)
     let block = CodeBlockView(
       code: PreviewFixtures.codeSample, language: PreviewFixtures.codeSampleLanguage, model: model)
 
-    try await Self.generate(block, named: "code-block", size: SnapshotFixtures.codeBlockSize, look: look) {
+    try await Self.generate(block, named: "code-block", size: SnapshotFixtures.codeBlockSize) {
       await SnapshotFixtures.waitForSyntax(of: model)
     }
   }
 
-  @Test(arguments: ReviewAppearance.allCases)
-  func theTerminalOutput(look: ReviewAppearance) async throws {
+  @Test func theTerminalOutput() async throws {
     let entry = try #require(
       PreviewFixtures.entry(
         .terminal(
@@ -137,18 +125,16 @@ import Testing
           exitCode: CommandOutputView.successExitCode),
         as: TerminalEntry.self))
 
-    try await Self.generate(
-      TerminalView(entry: entry), named: "terminal", size: SnapshotFixtures.terminalSize, look: look)
+    try await Self.generate(TerminalView(entry: entry), named: "terminal", size: SnapshotFixtures.terminalSize)
   }
 
-  @Test(arguments: ReviewAppearance.allCases)
-  func theElicitationForm(look: ReviewAppearance) async throws {
+  @Test func theElicitationForm() async throws {
     let session = PreviewFixtures.elicitationSession
     let request = try #require(session.pendingElicitations.first)
 
     try await Self.generate(
       ElicitationView(request: request, owner: session), named: "elicitation-form",
-      size: SnapshotFixtures.elicitationSize, look: look)
+      size: SnapshotFixtures.elicitationSize)
   }
 
   /// The attachment inspector of a file on disk, over the text backdrop of
@@ -162,8 +148,7 @@ import Testing
   /// second later shows the text of the file. Thus the preview row shows its
   /// place at the fixed height of the preview, with the backdrop through the
   /// row, on each run.
-  @Test(arguments: ReviewAppearance.allCases)
-  func theAttachmentInspector(look: ReviewAppearance) async throws {
+  @Test func theAttachmentInspector() async throws {
     let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let attachment = try AttachmentFixtures.attachment(
@@ -174,7 +159,7 @@ import Testing
     }
 
     try await Self.generate(
-      inspector, named: "attachment-inspector", size: SnapshotFixtures.inspectorSize, look: look,
+      inspector, named: "attachment-inspector", size: SnapshotFixtures.inspectorSize,
       hiding: [QLPreviewView.self])
   }
 }

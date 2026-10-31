@@ -18,7 +18,7 @@ extension ScriptedSession {
   /// - Parameters:
   ///   - id: The JSON-RPC id of the request.
   ///   - harness: The mount that renders the view after the wait: a
-  ///     `HostedViewHarness` or a `CaptureMount`.
+  ///     `HostedViewHarness`.
   /// - Returns: The local id of the pending request.
   /// - Throws: The error of the transport.
   func sendPermissionRequest(id: Int, rendering harness: some RenderedMount) async throws -> UUID {

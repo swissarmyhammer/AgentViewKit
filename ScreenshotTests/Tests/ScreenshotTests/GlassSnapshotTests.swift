@@ -20,8 +20,8 @@ import Testing
 /// part is at the bottom of its image, over text (``overText(_:)``), so that
 /// the image shows the glass.
 ///
-/// Each test generates the image of the capture, `<name>-light.png` or
-/// `<name>-dark.png`, with ``GeneratedImages`` for the review gallery.
+/// Each test records the image of the capture, `<name>-light.png` and
+/// `<name>-dark.png`, for the review gallery.
 @Suite(.serialized, .hostedSerially) @MainActor struct GlassSnapshotTests {
   /// The size of the image of the floating controls of the thread, in
   /// points.
@@ -33,24 +33,19 @@ import Testing
   /// The spacing of the style between two floating controls.
   static var spacing: CGFloat { EditorStyle.default.spacing.s }
 
-  /// Shows `view` over text in `look` and generates its image for the
-  /// review gallery.
+  /// Shows `view` over text in each look and records its image for the review
+  /// gallery.
   ///
   /// - Parameters:
   ///   - view: The glass part to show.
   ///   - name: The name of the view in the image name, such as
   ///     `composer-field`.
   ///   - size: The size of the image, in points.
-  ///   - look: The look of the window.
-  ///   - sourceLocation: The location of the caller, for the issue.
   /// - Throws: The error of the capture.
-  static func generate(
-    _ view: some View, named name: String, size: CGSize, look: ReviewAppearance,
-    sourceLocation: SourceLocation = #_sourceLocation
-  ) async throws {
-    let part = overText(view)
-    let image = try await CaptureMount.capture(part, size: size, appearance: look)
-    try GeneratedImages.write(image, suite: "GlassSnapshotTests", named: name, in: look)
+  static func generate(_ view: some View, named name: String, size: CGSize) async throws {
+    try await ReviewGalleryScreenTests.gallery.record(suite: "GlassSnapshotTests", named: name, size: size) { _ in
+      overText(view)
+    }
   }
 
   /// The Markdown text under the glass: two plain paragraphs of a transcript.
@@ -121,7 +116,7 @@ import Testing
   }
 
   /// The size of the image of the thread header, in points.
-  static let headerSize = CGSize(width: 480, height: 120)
+  static let headerSize = CGSize(width: 480, height: 140)
 
   /// The session title that the thread header shows in its image.
   static let headerSessionTitle = "AgentViewKit"
@@ -131,41 +126,35 @@ import Testing
   /// top bar of ``AgentThreadView``.
   static var threadHeader: some View {
     FloatingGlassContainer(spacing: spacing) {
-      AgentInfoHeader(connection: SnapshotFixtures.signInConnection, sessionTitle: headerSessionTitle)
+      AgentInfoHeader(connection: FailedTurnFixtures.signInConnection, sessionTitle: headerSessionTitle)
         .padding(.horizontal, EditorStyle.default.spacing.m)
         .padding(.vertical, EditorStyle.default.spacing.s)
         .floatingGlass()
     }
   }
 
-  @Test(arguments: ReviewAppearance.allCases)
-  func theHeaderOfTheThread(look: ReviewAppearance) async throws {
-    try await Self.generate(Self.threadHeader, named: "thread-header", size: Self.headerSize, look: look)
+  @Test func theHeaderOfTheThread() async throws {
+    try await Self.generate(Self.threadHeader, named: "thread-header", size: Self.headerSize)
   }
 
-  @Test(arguments: ReviewAppearance.allCases)
-  func theComposer(look: ReviewAppearance) async throws {
+  @Test func theComposer() async throws {
     try await Self.generate(
       Self.composer(for: SnapshotFixtures.idleSession), named: "composer-field-idle",
-      size: SnapshotFixtures.composerSize, look: look)
+      size: SnapshotFixtures.composerSize)
   }
 
-  @Test(arguments: ReviewAppearance.allCases)
-  func theComposerWhileTheAgentRuns(look: ReviewAppearance) async throws {
+  @Test func theComposerWhileTheAgentRuns() async throws {
     try await Self.generate(
       Self.composer(for: SnapshotFixtures.runningSession), named: "composer-field-running",
-      size: SnapshotFixtures.composerSize, look: look)
+      size: SnapshotFixtures.composerSize)
   }
 
-  @Test(arguments: ReviewAppearance.allCases)
-  func theRequestDeckInTheBar(look: ReviewAppearance) async throws {
+  @Test func theRequestDeckInTheBar() async throws {
     try await Self.generate(
-      RequestDeckSurfaceHostedTests.deckInBar, named: "request-deck-bar", size: RequestDeckSurfaceHostedTests.size,
-      look: look)
+      SnapshotFixtures.deckInBar, named: "request-deck-bar", size: SnapshotFixtures.requestDeckSize)
   }
 
-  @Test(arguments: ReviewAppearance.allCases)
-  func theFloatingControlsOfTheThread(look: ReviewAppearance) async throws {
-    try await Self.generate(Self.floatingControls, named: "floating-controls", size: Self.controlsSize, look: look)
+  @Test func theFloatingControlsOfTheThread() async throws {
+    try await Self.generate(Self.floatingControls, named: "floating-controls", size: Self.controlsSize)
   }
 }

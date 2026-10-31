@@ -24,9 +24,9 @@ let rootProducts: [Target.Dependency] = [
   .product(name: "AgentViewKitDemoSupport", package: rootPackageName),
 ]
 
-/// The EditorKit products that the hosted and capture tests import: the
-/// views, the commands, the style and the theme of the kit, and the hosted
-/// window, capture and review gallery helpers of `EditorTestSupport`.
+/// The EditorKit products that the hosted tests import: the views, the
+/// commands, the style and the theme of the kit, and the hosted window helpers
+/// of `EditorTestSupport`.
 let editorKitProducts: [Target.Dependency] = [
   .product(name: "EditorSwiftUI", package: "EditorKit"),
   .product(name: "EditorTheme", package: "EditorKit"),
@@ -56,10 +56,11 @@ let acpProducts: [Target.Dependency] = [
 ///   the commands, the wire and the scripted agents, with no window, no hosting
 ///   view and no capture. It is the per-card gate and the TDD loop.
 /// - `swift test --package-path IntegrationTests` runs the integration tests:
-///   each test that mounts a view in a window or a hosting view, the snapshot
-///   images of real windows, and the review gallery
-///   (`~/Library/Caches/AgentViewKit/screenshot-check/`). Use
-///   `--filter` to run one test. It runs once per batch, at the end.
+///   each test that mounts a view in a window or a hosting view, with no
+///   capture. Use `--filter` to run one test. It runs once per batch, at the
+///   end.
+/// - `swift test --package-path ScreenshotTests` runs the review gallery,
+///   locally and never in CI.
 ///
 /// The shared `swift-ci` workflow builds this package in its unit job on every
 /// run, and runs it in its integration job. `.github/workflows/ci.yml` sets
@@ -84,9 +85,8 @@ let package = Package(
     .package(url: "https://github.com/gonzalezreal/textual", exact: "0.5.0"),
   ],
   targets: [
-    // The hosted, snapshot and gallery tests: each one mounts a view in
-    // EditorKit's `HostedViewHarness` or `CaptureWindow`, or captures the real
-    // window from the window server. No file of `Style/` imports the style
+    // The hosted tests: each one mounts a view in EditorKit's
+    // `HostedViewHarness`. No file of `Style/` imports the style
     // library with `@testable`, so each of those tests reads only what a host
     // of the product reads.
     .testTarget(

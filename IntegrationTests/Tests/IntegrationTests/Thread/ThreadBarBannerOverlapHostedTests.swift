@@ -22,20 +22,20 @@
   /// the bottom bar, and the frame of the ``AgentInfoHeader`` is the top bar.
   @Suite(.serialized, .hostedSerially) @MainActor struct ThreadBarBannerOverlapHostedTests {
     /// The number of the agent messages of the failed turn of each test.
-    /// Together they are taller than ``SnapshotFixtures/threadSize``, so the
+    /// Together they are taller than ``FailedTurnFixtures/threadSize``, so the
     /// list scrolls, and the rows far from the bottom are not laid out when
     /// the list starts at the bottom.
     static let messageCount = 12
 
     /// The failed turn of
-    /// ``SnapshotFixtures/failedTurnSession(messageCount:)`` with
+    /// ``FailedTurnFixtures/failedTurnSession(messageCount:)`` with
     /// ``messageCount`` agent messages.
     static var failedTurnSession: SessionModel {
-      SnapshotFixtures.failedTurnSession(messageCount: messageCount)
+      FailedTurnFixtures.failedTurnSession(messageCount: messageCount)
     }
 
     /// The thread of the failed turn of `session`, with the sign-in card of
-    /// ``SnapshotFixtures/signInConnection``: the content of the
+    /// ``FailedTurnFixtures/signInConnection``: the content of the
     /// `bottom-bar-buttons` snapshot images.
     ///
     /// - Parameters:
@@ -43,7 +43,7 @@
     ///   - anchors: The manager of the scroll position of the list.
     /// - Returns: The thread view, with no animation.
     static func failedTurnThread(_ session: SessionModel, anchors: ScrollAnchorManager) -> some View {
-      AgentThreadView(session: session, connection: SnapshotFixtures.signInConnection, anchors: anchors) {
+      AgentThreadView(session: session, connection: FailedTurnFixtures.signInConnection, anchors: anchors) {
         DefaultThreadComposer()
       }
       .transaction { $0.disablesAnimations = true }
@@ -74,7 +74,7 @@
       let session = Self.failedTurnSession
       let lastKey = try #require(session.transcript.last?.rowKey)
       let harness = HostedViewHarness(
-        Self.failedTurnThread(session, anchors: ScrollAnchorManager()), size: SnapshotFixtures.threadSize)
+        Self.failedTurnThread(session, anchors: ScrollAnchorManager()), size: FailedTurnFixtures.threadSize)
       defer { harness.close() }
       harness.render()
       harness.render()
@@ -91,7 +91,7 @@
       let session = try await ConversationViewHostedTests.openSession(messages: ConversationViewHostedTests.scrollEntryCount)
       defer { session.close() }
       let model = session.model
-      let harness = HostedViewHarness(size: SnapshotFixtures.threadSize) {
+      let harness = HostedViewHarness(size: FailedTurnFixtures.threadSize) {
         AgentThreadView(session: model).transaction { $0.disablesAnimations = true }
       }
       defer { harness.close() }
@@ -116,7 +116,7 @@
       let session = Self.failedTurnSession
       let firstKey = try #require(session.transcript.first?.rowKey)
       let anchors = ScrollAnchorManager()
-      let harness = HostedViewHarness(Self.failedTurnThread(session, anchors: anchors), size: SnapshotFixtures.threadSize)
+      let harness = HostedViewHarness(Self.failedTurnThread(session, anchors: anchors), size: FailedTurnFixtures.threadSize)
       defer { harness.close() }
       harness.render()
 

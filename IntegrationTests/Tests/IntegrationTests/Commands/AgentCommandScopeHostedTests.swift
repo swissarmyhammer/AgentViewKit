@@ -152,7 +152,7 @@ import Testing
   /// - Parameters:
   ///   - session: The scripted session.
   ///   - harness: The mount that renders the view after the wait: a
-  ///     `HostedViewHarness` or a `CaptureMount`.
+  ///     `HostedViewHarness`.
   /// - Throws: The error of the transport.
   static func sendScopeMessage(
     to session: ScriptedSession, rendering harness: some RenderedMount

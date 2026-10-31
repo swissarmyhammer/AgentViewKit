@@ -1,5 +1,6 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
+import EditorStyle
 import EditorSwiftUI
 import FoundationModelsACP
 import FoundationModelsACPClient
@@ -36,14 +37,11 @@ enum SnapshotFixtures {
 
   /// The width of the image of the thread, the composer and the elicitation
   /// form, in points.
-  static let wideWidth: CGFloat = 480
+  static let wideWidth = FailedTurnFixtures.threadWidth
 
   /// The width of the image of a card, a banner, the code block and the
   /// terminal output, in points.
   static let narrowWidth: CGFloat = 420
-
-  /// The height of the image of the thread, in points.
-  static let threadHeight: CGFloat = 640
 
   /// The height of the image of the composer, in points.
   static let composerHeight: CGFloat = 140
@@ -64,7 +62,7 @@ enum SnapshotFixtures {
   static let elicitationHeight: CGFloat = 620
 
   /// The size of the image of the thread, in points.
-  static let threadSize = CGSize(width: wideWidth, height: threadHeight)
+  static let threadSize = FailedTurnFixtures.threadSize
 
   /// The size of the image of the composer, in points.
   static let composerSize = CGSize(width: wideWidth, height: composerHeight)
@@ -119,48 +117,16 @@ enum SnapshotFixtures {
     SessionModel.preview(transcript: [.update(.stateUpdate(.running(RunningStateUpdate())))])
   }
 
-  /// The default number of the agent messages of
-  /// ``failedTurnSession(messageCount:)``. With the error entry, they fit in
-  /// the part of the list of a thread of ``threadSize`` between its two bars,
-  /// when the bottom bar shows the failure banner and the sign-in card. So at
-  /// rest no row is under a bar, and each line of the image is readable
-  /// (^zg9tysk).
-  static let failedTurnMessageCount = 1
+  /// The size of the image of the request deck in the bar, in points.
+  static let requestDeckSize = CGSize(width: 320, height: 320)
 
-  /// A session whose last turn failed: `messageCount` agent messages, an idle
-  /// state with the stop reason `error`, and an error entry at the end of the
-  /// transcript. In a thread, the state banner in the bottom bar then shows
-  /// its Show Error button.
-  ///
-  /// - Parameter messageCount: The number of the agent messages, at least
-  ///   one.
-  /// - Returns: The session model.
-  static func failedTurnSession(messageCount: Int = failedTurnMessageCount) -> SessionModel {
-    let messages = (1...messageCount).map { number in
-      PreviewTranscriptItem.agent(
-        "Step \(number): the import reads the next rows of the customer file, and skips each row that has no "
-          + "email address. The count of the skipped rows goes to the log.")
+  /// The deck of a code-built session model that holds one form elicitation,
+  /// in a `FloatingGlassContainer`, as in the composer slot of
+  /// ``AgentThreadView``.
+  static var deckInBar: some View {
+    FloatingGlassContainer(spacing: EditorStyle.default.spacing.s) {
+      RequestDeck(session: .preview(pendingElicitations: [PreviewFixtures.formElicitation]))
     }
-    let session = SessionModel.preview(
-      transcript: messages + [.update(.stateUpdate(.idle(IdleStateUpdate(stopReason: .error))))])
-    session.appendError(code: .internalError, message: "The tool did not start.", data: nil)
-    return session
-  }
-
-  /// The one agent auth method of ``signInConnection``.
-  static let signInMethod = AuthMethod.agent(
-    AuthMethodAgent(
-      methodId: AuthMethodId(rawValue: "tests-agent-login"), name: "Sign in with the agent",
-      description: "The agent opens its sign-in page."))
-
-  /// A code-built connection model that asks for a sign-in with
-  /// ``signInMethod``.
-  static var signInConnection: ConnectionModel {
-    .preview(
-      authState: .required([signInMethod]),
-      initializeResponse: InitializeResponse(
-        info: Implementation(name: "tests-agent", version: "1.0.0"),
-        protocolVersion: ACPClient.supportedProtocolVersion, authMethods: [signInMethod]))
   }
 
   /// A code-built session model that holds one permission request, with one
@@ -198,10 +164,12 @@ enum SnapshotFixtures {
   }
 
   /// The thread of the `bottom-bar-buttons` images: the failed turn of
-  /// ``failedTurnSession(messageCount:)``, with the sign-in card of
-  /// ``signInConnection`` and the default composer.
+  /// ``FailedTurnFixtures/failedTurnSession(messageCount:)``, with the sign-in
+  /// card of ``FailedTurnFixtures/signInConnection`` and the default composer.
   static var bottomBarThread: some View {
-    AgentThreadView(session: failedTurnSession(), connection: signInConnection) {
+    AgentThreadView(
+      session: FailedTurnFixtures.failedTurnSession(), connection: FailedTurnFixtures.signInConnection
+    ) {
       DefaultThreadComposer()
     }
   }

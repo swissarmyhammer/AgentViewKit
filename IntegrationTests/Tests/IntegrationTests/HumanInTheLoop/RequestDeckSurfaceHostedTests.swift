@@ -1,5 +1,4 @@
 @testable import AgentViewKit
-import EditorStyle
 import EditorTestSupport
 import FoundationModelsACPClient
 import SwiftUI
@@ -15,15 +14,6 @@ import Testing
   /// A code-built session model that holds one form elicitation.
   static var session: SessionModel {
     .preview(pendingElicitations: [PreviewFixtures.formElicitation])
-  }
-
-  /// The deck of ``session`` in a
-  /// `FloatingGlassContainer`, as in the composer slot of
-  /// ``AgentThreadView``.
-  static var deckInBar: some View {
-    FloatingGlassContainer(spacing: EditorStyle.default.spacing.s) {
-      RequestDeck(session: session)
-    }
   }
 
   @Test func aCardInTheComposerSlotIsInTheFloatingControlsOfTheThread() throws {

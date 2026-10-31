@@ -337,7 +337,7 @@
     static func signInThread() throws -> some View {
       demoThread(
         .preview(transcript: [.update(try promptWithAttachment())]),
-        connection: SnapshotFixtures.signInConnection)
+        connection: FailedTurnFixtures.signInConnection)
     }
 
     /// The sign-in screen: ``signInThread()`` in each look.
@@ -389,7 +389,7 @@
         named: SnapshotFixtures.inspectorFileName, in: directory)
       let session = try transcriptSession()
       let screen = try ReviewGalleryScreen.inspector.reviewScreen(settle: { mount in
-        hideViews(of: [QLPreviewView.self], in: mount.hostingView)
+        mount.hideViews(of: [QLPreviewView.self])
       }) { _ in
         demoThread(session, connection: connection)
           .environment(\.inspectorSelection, InspectorSelection(attachment: attachment))

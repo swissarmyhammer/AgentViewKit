@@ -1,6 +1,6 @@
 # Architecture
 
-Shared conventions are in [EditorKit's ARCHITECTURE.md](../EditorKit/ARCHITECTURE.md).
+Shared conventions are in [EditorKit's "View kit conventions"](../EditorKit/ARCHITECTURE.md#view-kit-conventions).
 
 ## No backward compatibility
 
@@ -23,7 +23,7 @@ The package has two library products:
 | `AgentViewKitStyle` | `Sources/AgentViewKitStyle` | EditorKit only: `EditorStyle`, `EditorTheme`, `EditorSwiftUI`, `EditorDiff`, `EditorCommands` | Each view kit. Its dependency closure holds no ACP package, no Textual and no math engine. |
 | `AgentViewKit` | `Sources/AgentViewKit` | `AgentViewKitStyle`, EditorKit, FoundationModelsACP, FoundationModelsACPClient, Textual, swiftui-math | An ACP client app: the agent thread views and the ACP helpers. |
 
-Two more library products, `AgentViewKitTestSupport` and `AgentViewKitDemoSupport`, are test support for the nested `IntegrationTests/` package (see "Test tiers"). No host of the kit links them.
+Two more library products, `AgentViewKitTestSupport` and `AgentViewKitDemoSupport`, are test support for the nested `IntegrationTests/` and `ScreenshotTests/` packages (see "Tests of this kit"). No host of the kit links them.
 
 ```mermaid
 flowchart LR
@@ -51,38 +51,14 @@ AgentViewKit follows [EditorKit/style.md](../EditorKit/style.md), the one style 
 - Every typing surface is an EditorKit editor (`style.md`, "Text input"): `EditorView` or `SingleLineField`, never a system text input or `.searchable`.
 - Review enforces the rules of `style.md` and the rules of the kit (user decision of 2026-10-30, ^v0nj72). No test reads the source or the docs of the package as text.
 
-## Review gallery
+## Tests of this kit
 
-The review gallery is one page, `~/Library/Caches/AgentViewKit/screenshot-check/index.html` (EditorKit `style.md`, "Review gallery"). The user reviews the look of the kit there; there is no manual check.
+The tiers, the test names, the gallery and the rule against measuring pixels are EditorKit's [View kit conventions](../EditorKit/ARCHITECTURE.md#view-kit-conventions). What is particular to AgentViewKit:
 
-- A run of the integration package (`swift test --package-path IntegrationTests`, see "Test tiers") writes the page again. The root `swift test` does not. `ReviewGalleryScreenTests` builds it with EditorKit's `ReviewGallery` helper (`ReviewGallery(package: "AgentViewKit").record(_:snapshotRoots:)` of `EditorTestSupport`), and `ReviewGalleryPathTests` pins the path. AgentViewKit keeps no gallery code of its own.
-- The page shows the key screens first: the thread, the request deck, the banners, the sign-in prompt, the scrolled list, the attachment inspector and the gallery columns, each captured from a real window in Light and in Dark, with its dated note (`ReviewGalleryNotes`).
-- Then it shows every image that the snapshot suites generated in the run, under `IntegrationTests/.build/generated-images/__Snapshots__/**` (`GeneratedImages`), grouped by suite, with Light and Dark side by side. The page test generates them first (`GeneratedImages.generateAll()`), so the order of the suites does not matter. No reference image is stored and no test compares a capture with an earlier one.
-- The test fails when the page does not show a generated image or a key screen.
-
-## Test tiers
-
-The tests have two tiers, and a package boundary separates them (plan.md §11 decision 21), as in EditorKit and TestudoApp:
-
-| Tier | Package | Targets | Holds | Runs |
-| --- | --- | --- | --- | --- |
-| Unit | the root package | `AgentViewKitTests`, `AgentViewKitStyleTests` | the models, the commands, the wire and the scripted agents. No window, no hosting view, no capture. | `swift test`, on each change: the per-card gate. |
-| Integration | `IntegrationTests/`, which depends on the root package by path | `IntegrationTests` (no kit prefix: the folder, the nested package and its one test target have the same name) | each test that mounts a view in EditorKit's `HostedViewHarness`, an `NSHostingView` or a window, the snapshot images of real windows and the review gallery. | `swift test --package-path IntegrationTests`, once per batch, and in the integration job of CI (`integration-package-path`). |
-
-```mermaid
-flowchart LR
-  Kit[AgentViewKit + AgentViewKitStyle] --> Support[AgentViewKitTestSupport + AgentViewKitDemoSupport]
-  Support --> Unit[root Tests/: unit tiers]
-  Support --> Integration[IntegrationTests/: hosted and capture tiers]
-  Kit --> Unit
-  Kit --> Integration
-```
-
-- A test target of the root package cannot be a dependency, so a fixture that both tiers use lives once in `Sources/AgentViewKitTestSupport`, a test support product. `AgentViewKitDemoSupport` is a product for the same reason. No host of the kit links either one.
-- The layout follows EditorTestSupport's DocC article "Integration tests". `AgentViewKitTestSupport` holds the agent fixtures and re-exports EditorTestSupport (`@_exported import EditorTestSupport`), so both tiers read the generic helpers through it. AgentViewKit keeps no copy of a generic helper: the recorders, the clock, the temporary folder, the window undo checks and the shared harness checks come from EditorTestSupport.
-- A helper that only the integration tests use lives in the integration target.
-- A hosted suite runs under `.hostedSerially`, which holds only the key window gate of the test process. A test whose effects reach past its process (real input events, the shared defaults, the shared pasteboard, the workspace) runs under `.machineSerially` instead, which first holds the shared UI test lock of the Mac. No AgentViewKit test needs it today: each pasteboard test uses an isolated pasteboard, and no test posts a window server event, writes the shared defaults or opens a file with the workspace.
-- The integration package names the root package after the folder of the checkout, because SwiftPM names a path dependency after its directory: `AgentViewKit` in a clone, the folder name in a git worktree.
+- `AgentViewKitDemoSupport` is a library product beside `AgentViewKitTestSupport`, because a test target of the root package cannot be a dependency and the demo app, `IntegrationTests/` and `ScreenshotTests/` all use the scripted agents. No host of the kit links either one.
+- The failed turn with its sign-in card is the one fixture of both nested packages: `IntegrationTests/Tests/IntegrationTests/Helpers/FailedTurnFixtures.swift`, with a symlink in `ScreenshotTests/Tests/ScreenshotTests`.
+- The gallery shows the key screens of `ReviewGalleryScreen` with the dated notes of `ReviewGalleryNotes`, then the images of `HostedSnapshotTests` and `GlassSnapshotTests`. The page test records those images first, so the order of the suites does not matter.
+- No AgentViewKit test needs `.machineSerially`: each pasteboard test uses an isolated pasteboard, and no test posts a window server event, writes the shared defaults or opens a file with the workspace.
 
 ## Allowed build warning
 
