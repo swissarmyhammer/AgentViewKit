@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorTestSupport
 import EditorTheme
 import Foundation
@@ -103,7 +104,8 @@ import Textual
 
   /// The citation parser over the math parser, with the pill digits in the
   /// system face.
-  static let parser = CitationMarkdownParser(base: MathMarkdownParser(), digitFace: .system)
+  static let parser = CitationMarkdownParser(
+    base: MathMarkdownParser(), digitFace: .system, padding: InlineCitationPadding(style: .default))
 
   @Test func theParserMakesEachMarkerAPillWithTheCitationLink() throws {
     let input = "Claim" + CitationMarkers.marker(number: 2) + " **bold**"
@@ -126,7 +128,7 @@ import Textual
 
   @Test func theParserKeepsATextWithNoMarker() throws {
     let base = MathMarkdownParser()
-    let parser = CitationMarkdownParser(base: base, digitFace: .system)
+    let parser = CitationMarkdownParser(base: base, digitFace: .system, padding: InlineCitationPadding(style: .default))
 
     #expect(try parser.attributedString(for: "Some *text*") == base.attributedString(for: "Some *text*"))
   }
@@ -136,11 +138,39 @@ import Textual
   @Test func thePillTakesItsWidthFromTheDigitsOfTheUIFace() {
     let index = 1000
     let textFontSize: CGFloat = 13
-    let system = InlineCitationMetrics(index: index, textFontSize: textFontSize, face: .system)
+    let padding = InlineCitationPadding(style: .default)
+    let system = InlineCitationMetrics(index: index, textFontSize: textFontSize, face: .system, padding: padding)
     let family = InlineCitationMetrics(
-      index: index, textFontSize: textFontSize, face: FontFace(family: UIFamilyTheme.family))
+      index: index, textFontSize: textFontSize, face: FontFace(family: UIFamilyTheme.family), padding: padding)
 
     #expect(family.size.width != system.size.width)
+  }
+
+  /// The metrics of a one-digit pill at the body size, with `style`.
+  ///
+  /// - Parameter style: The style that gives the padding of the pill.
+  /// - Returns: The metrics.
+  static func metrics(style: EditorStyle) -> InlineCitationMetrics {
+    InlineCitationMetrics(index: 1, textFontSize: 13, face: .system, padding: InlineCitationPadding(style: style))
+  }
+
+  @Test func theHeightOfThePillFollowsTheChipPaddingRatioOfTheStyle() {
+    var taller = EditorStyle.default
+    taller.chip.paddingRatio *= 4
+
+    #expect(Self.metrics(style: taller).size.height > Self.metrics(style: .default).size.height)
+  }
+
+  @Test func theWidthOfAPillWithManyDigitsFollowsTheSpacingOfTheStyle() {
+    var wider = EditorStyle.default
+    wider.spacing.xs *= 4
+    let index = 1000
+    let width = { (style: EditorStyle) in
+      InlineCitationMetrics(index: index, textFontSize: 13, face: .system, padding: InlineCitationPadding(style: style))
+        .size.width
+    }
+
+    #expect(width(wider) > width(.default))
   }
 
   // MARK: - URL
