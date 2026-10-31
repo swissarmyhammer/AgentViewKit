@@ -3,8 +3,17 @@ import EditorSwiftUI
 import EditorTheme
 import SwiftUI
 
-/// The bar of one status message: a symbol, a title, an explanation, and one
-/// optional button with a symbol and a text.
+/// The bar of one status message: a title line, and an explanation below it.
+///
+/// The title line holds the symbol, the title, and one optional button with a
+/// symbol and a text, at the end of the line. The symbol and the button are
+/// centered on the title. The explanation stands below that line, under the
+/// title and not under the symbol, and wraps at the width of the bar, so its
+/// length never moves the symbol or the button down the bar. With no
+/// explanation, the bar is only its title line (``StatusTitleLayout``).
+///
+/// Each message has a title, a few words that stand alone on the title line.
+/// A longer text is the explanation.
 ///
 /// The bar is content, so it has no fill and no glass. A separator stroke
 /// marks its edge (`.inlineEdge(radius:)`, D113). Its button takes its look
@@ -14,8 +23,9 @@ import SwiftUI
 /// gives the button more, such as the focus scope of a bar control, sets its
 /// own style with ``SwiftUI/View/statusBarActionStyle(_:)``.
 ///
-/// The text of the bar has the ``Message/identifier`` of its message. The
-/// accessibility label of the bar is the title.
+/// The text of the bar has the ``Message/identifier`` of its message. It is one
+/// accessibility element, the title, with the label of the title and the
+/// explanation. The accessibility label of the bar is the title.
 ///
 /// A bar is dismissible when its action is
 /// ``Action/makeDismiss(identifier:perform:)``, as the bar of a notice is. Its
@@ -229,27 +239,15 @@ public struct StatusBar: View {
   }
 
   public var body: some View {
-    HStack(spacing: editorStyle.spacing.m) {
+    StatusTitleLayout(
+      title: message.title, explanation: message.explanation, textLabel: message.textLabel,
+      identifier: message.identifier
+    ) {
       StatusSymbolImage(name: message.symbolName, color: Self.symbolColor(for: message, in: editorTheme))
         .liveSymbolEffect(isActive: message.isOngoing)
         .help(message.symbolHelp ?? "")
         .accessibilityHidden(true)
-      VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
-        Text(message.title)
-          .font(editorTheme.font(for: .ui, style: .headline))
-        if !message.explanation.isEmpty {
-          Text(message.explanation)
-            .font(editorTheme.font(for: .ui, style: .callout))
-            .foregroundStyle(.secondary)
-            .textSelection(.enabled)
-        }
-      }
-      // A selectable text leaves a combined element, so the text is one
-      // element with an explicit label.
-      .accessibilityElement(children: .ignore)
-      .accessibilityLabel(message.textLabel)
-      .accessibilityIdentifier(message.identifier)
-      Spacer(minLength: editorStyle.spacing.s)
+    } action: {
       if let action {
         actionButton(action)
       }
@@ -304,6 +302,24 @@ private struct BarIdentifier: ViewModifier {
   StatusBar(message: StylePreviewFixtures.longStatusMessage, action: StylePreviewFixtures.statusAction(isEnabled: true))
     .frame(width: StylePreviewFixtures.narrowWidth)
     .padding()
+}
+
+#Preview("Short title, long explanation and a button") {
+  StatusBar(
+    message: StylePreviewFixtures.longExplanationStatusMessage,
+    action: StylePreviewFixtures.statusAction(isEnabled: true)
+  )
+  .frame(width: StylePreviewFixtures.narrowWidth)
+  .padding()
+}
+
+#Preview("Only a title line") {
+  VStack(alignment: .leading) {
+    StatusBar(message: StylePreviewFixtures.titleOnlyStatusMessage, action: nil)
+    StatusBar(
+      message: StylePreviewFixtures.titleOnlyStatusMessage, action: StylePreviewFixtures.statusAction(isEnabled: true))
+  }
+  .padding()
 }
 
 #Preview("Bar with its buttons") {

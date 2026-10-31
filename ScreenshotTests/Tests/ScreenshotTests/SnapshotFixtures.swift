@@ -52,6 +52,9 @@ enum SnapshotFixtures {
   /// The height of the image of a banner of one line, in points.
   static let bannerHeight: CGFloat = 90
 
+  /// The height of the image of the title lines of the bars, in points.
+  static let titleLineBarsHeight: CGFloat = 520
+
   /// The height of the image of the code block, in points.
   static let codeBlockHeight: CGFloat = 150
 
@@ -69,6 +72,9 @@ enum SnapshotFixtures {
 
   /// The size of the image of a card or a banner, in points.
   static let cardSize = CGSize(width: narrowWidth, height: cardHeight)
+
+  /// The size of the image of the title lines of the bars, in points.
+  static let titleLineBarsSize = CGSize(width: narrowWidth, height: titleLineBarsHeight)
 
   /// The size of the image of a banner of one line, in points.
   static let bannerSize = CGSize(width: narrowWidth, height: bannerHeight)
@@ -152,6 +158,22 @@ enum SnapshotFixtures {
     let session = permissionSession
     let request = try #require(session.pendingPermissions.first)
     return PermissionView(request: request, session: session)
+  }
+
+  /// The bars of each shape of the title line: a long title and a long
+  /// explanation, a short title and a long explanation, only a title, each with
+  /// a button, and the dismissible notice of a request that the agent withdrew.
+  /// The stack spaces the bars as the top bar of a thread does.
+  static var titleLineBars: some View {
+    let style = EditorStyle.default
+    let action = PreviewFixtures.statusAction(isEnabled: true)
+    return VStack(spacing: style.tile.margin) {
+      StatusBar(message: PreviewFixtures.longStatusMessage, action: action)
+      StatusBar(message: PreviewFixtures.longExplanationStatusMessage, action: action)
+      StatusBar(message: PreviewFixtures.titleOnlyStatusMessage, action: action)
+      WithdrawnNoticeRow(notice: PreviewFixtures.withdrawnNotice, dismiss: {})
+    }
+    .padding(style.tile.margin)
   }
 
   /// A code-built session model that holds one warning notice with a

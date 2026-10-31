@@ -2481,6 +2481,16 @@
         }
       }
     },
+    "The request was withdrawn" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The request was withdrawn"
+          }
+        }
+      }
+    },
     "The session is closed" : {
       "localizations" : {
         "en" : {

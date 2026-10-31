@@ -93,6 +93,18 @@ enum StylePreviewFixtures {
       """,
     symbolName: SharedSymbol.error, identifier: "preview-status-long", severity: .failure)
 
+  /// A message with a short title and a long explanation, so that the
+  /// explanation wraps below the title line in ``narrowWidth``.
+  static let longExplanationStatusMessage = StatusBar.Message(
+    title: "The board did not load",
+    explanation: longStatusMessage.explanation,
+    symbolName: SharedSymbol.error, identifier: "preview-status-long-explanation", severity: .failure)
+
+  /// A message with a title and no explanation.
+  static let titleOnlyStatusMessage = StatusBar.Message(
+    title: "The board is read-only", explanation: "",
+    symbolName: SharedSymbol.information, identifier: "preview-status-title-only", severity: .information)
+
   /// Makes the Reload button of a bar. A press does nothing.
   ///
   /// - Parameter isEnabled: Whether the button takes a press.

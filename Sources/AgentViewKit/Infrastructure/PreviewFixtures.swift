@@ -392,6 +392,17 @@ enum PreviewFixtures {
     symbolName: SharedSymbol.error,
     identifier: "preview-status-long", severity: .failure)
 
+  /// A failure message with a short title and the long explanation of
+  /// ``longStatusMessage``, so that the explanation wraps below the title line.
+  static let longExplanationStatusMessage = StatusBar.Message(
+    title: "The agent stopped", explanation: longStatusMessage.explanation, symbolName: SharedSymbol.error,
+    identifier: "preview-status-long-explanation", severity: .failure)
+
+  /// A message with a title and no explanation.
+  static let titleOnlyStatusMessage = StatusBar.Message(
+    title: "The agent stopped", explanation: "", symbolName: SharedSymbol.error,
+    identifier: "preview-status-title-only", severity: .failure)
+
   /// The width of a narrow column, in points. A status bar or a sign-in card
   /// in this column wraps its long texts, such as ``longStatusMessage`` and
   /// the name of ``longNameAuthMethod``.

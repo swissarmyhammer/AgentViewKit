@@ -1,31 +1,30 @@
 import AgentViewKit
-import EditorSwiftUI
-import EditorTheme
 import SwiftUI
 
-/// The text of a failed request of a demo tab, in the error color of the
-/// EditorKit theme.
+/// The bar of a failed request of a demo tab: a ``StatusBar`` with a failure
+/// message, in the one banner layout of the kit.
 ///
-/// The text is ``DemoFailureText/text(of:)``: the localized description of
-/// the error when it has one, so that the user reads the message of the
-/// error and not the name of its case.
+/// The explanation is ``DemoFailureText/text(of:)``: the localized description
+/// of the error when it has one, so that the user reads the message of the
+/// error and not the name of its case. The text of the error can be long, so
+/// the title line holds a short title of its own.
 struct DemoFailureLabel: View {
-  /// The symbol of the label.
-  static let symbol = "xmark.octagon.fill"
+  /// The title line of the bar.
+  static let title = "The request failed"
 
   /// The error of the request.
   let error: any Error
 
-  /// The accessibility identifier of the label.
+  /// The accessibility identifier of the text of the bar.
   let identifier: String
 
-  /// The EditorKit theme. The label uses its error color.
-  @Environment(\.editorTheme) private var editorTheme
-
   var body: some View {
-    Label(DemoFailureText.text(of: error), systemImage: Self.symbol)
-      .foregroundStyle(editorTheme.severityError)
-      .padding()
-      .accessibilityIdentifier(identifier)
+    StatusBar(
+      message: StatusBar.Message(
+        title: Self.title, explanation: DemoFailureText.text(of: error), symbolName: SharedSymbol.error,
+        identifier: identifier, severity: .failure),
+      action: nil
+    )
+    .padding()
   }
 }

@@ -23,9 +23,9 @@ import EditorStyle
   /// - The top bar of the thread starts one small spacing above the
   ///   ``AgentInfoHeader``, the padding of its glass container; the element of
   ///   the header is its glass, with the inset of the header in it. The bar
-  ///   ends below the text of the notice by the tile padding of the row and
-  ///   the tile margin that the bar gives the ``SessionNoticeBanner``
-  ///   (^rgsq3k4).
+  ///   ends below the title line of the notice by its explanation, the tile
+  ///   padding of the row and the tile margin that the bar gives the
+  ///   ``SessionNoticeBanner`` (^rgsq3k4).
   /// - The floating controls end one medium spacing above the bottom edge
   ///   of the list, their outer padding, which is out of their element.
   /// - A bar of the host is an element with ``hostBarIdentifier``. With no
@@ -98,11 +98,16 @@ import EditorStyle
     static func topBarHeight(in harness: HostedViewHarness<some View>, session: ScriptedSession) throws -> CGFloat {
       let style = EditorStyle.default
       let header = try #require(harness.frame(identifier: AgentInfoHeader.identifier))
-      let notice = try #require(harness.frame(identifier: ThreadTopBarHostedTests.noticeIdentifier(of: session)))
-      // Below the text of the notice: the padding of its tile, and then the
-      // margin around the notice banners. The y axis of the screen goes up.
-      let belowNotice = style.tile.padding + style.tile.margin
-      return (header.maxY + aboveHeader) - (notice.minY - belowNotice)
+      let notice = try #require(session.model.notices.first)
+      let title = try #require(harness.frame(identifier: ThreadTopBarHostedTests.noticeIdentifier(of: session)))
+      let dismiss = try #require(harness.frame(identifier: SessionNoticeBanner.dismissIdentifier(for: notice.id)))
+      // Below the title line of the notice: its explanation, the padding of
+      // its tile, and then the margin around the notice banners. The y axis of
+      // the screen goes up.
+      let belowTitleLine =
+        ThreadTopBarHostedTests.explanationHeight(of: CompactionAndNoticeHostedTests.noticeDescription)
+        + style.tile.padding + style.tile.margin
+      return (header.maxY + aboveHeader) - (min(title.minY, dismiss.minY) - belowTitleLine)
     }
 
     /// The space of the top bar above the ``AgentInfoHeader``: the padding of
