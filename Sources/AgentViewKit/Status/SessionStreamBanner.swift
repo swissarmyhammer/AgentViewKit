@@ -65,9 +65,6 @@ public struct SessionStreamBanner: View {
   /// The accessibility identifier of the Reload button.
   public static let reloadIdentifier = "session-stream-reload"
 
-  /// The symbol of the Reload button.
-  static let reloadSymbol = SharedSymbol.reload
-
   /// The accessibility identifier of the text of the partial-history note.
   public static let partialHistoryIdentifier = "session-stream-partial-history"
 
@@ -109,17 +106,6 @@ public struct SessionStreamBanner: View {
 
     /// The button of the banner, or `nil` for no button.
     let action: StatusBar.Action?
-  }
-
-  /// How far one reload that the Reload button started got.
-  private enum ReloadPhase: Equatable {
-    /// The reload runs.
-    case reloading
-
-    /// The reload failed.
-    ///
-    /// - Parameter errorDescription: The localized description of its error.
-    case failed(errorDescription: String)
   }
 
   /// One reload that the Reload button started, with the scope that it
@@ -193,7 +179,7 @@ public struct SessionStreamBanner: View {
   private var shownBars: [Bar] {
     guard !session.isClosed else { return [Bar(message: Self.closedMessage, action: nil)] }
     let replaying = session.isReplaying
-    let canReload = !replaying && reloadPhase != .reloading
+    let canReload = (reloadPhase ?? .idle).canReload(isLoading: replaying)
     let rows: [(isShown: Bool, bar: Bar)] = [
       (replaying, Bar(message: Self.replayingMessage, action: nil)),
       (session.hasMissedUpdates, Bar(message: missedUpdatesBarMessage, action: makeReloadAction(isEnabled: canReload))),
@@ -223,11 +209,8 @@ public struct SessionStreamBanner: View {
   ///   the agent cannot resume sessions, or the session model has no `cwd`.
   private func makeReloadAction(isEnabled: Bool) -> StatusBar.Action? {
     guard let connection, connection.canResumeSessions, let cwd = session.cwd else { return nil }
-    return StatusBar.Action(
-      title: String(localized: "Reload", bundle: .module), systemImage: Self.reloadSymbol,
-      identifier: Self.reloadIdentifier,
-      isEnabled: isEnabled
-    ) { [session, reportRequestStart, reload = $reload] in
+    return .reload(identifier: Self.reloadIdentifier, isEnabled: isEnabled) {
+      [session, reportRequestStart, reload = $reload] in
       let request = ResumeSessionRequest.makeAgentViewKitRequest(
         sessionId: session.sessionId,
         cwd: cwd,
@@ -245,7 +228,7 @@ public struct SessionStreamBanner: View {
   /// its outcome with ``record(_:in:of:)``.
   ///
   /// A success records no reload. A failure records
-  /// ``ReloadPhase/failed(errorDescription:)`` with the localized
+  /// ``ReloadPhase/failed(_:)`` with the localized
   /// description of the error, and throws the error again, so that the
   /// session model also adds an error entry to the transcript.
   ///
@@ -263,7 +246,7 @@ public struct SessionStreamBanner: View {
       _ = try await connection.resumeSession(request)
       record(nil, in: reload, of: scope)
     } catch {
-      record(.failed(errorDescription: error.localizedDescription), in: reload, of: scope)
+      record(.failed(error.localizedDescription), in: reload, of: scope)
       throw error
     }
   }
@@ -304,13 +287,8 @@ extension SessionStreamBanner {
 
   /// The text of the missed-updates banner: a state that needs care, so a
   /// warning, as on the stream banner of KanbanViewKit.
-  static let missedUpdatesMessage = StatusBar.Message(
-    title: String(localized: "Updates are missing", bundle: .module),
-    explanation: String(
-      localized: "The connection did not keep all updates of this session. Reload the history from the agent.",
-      bundle: .module),
-    symbolName: SharedSymbol.warning,
-    identifier: missedUpdatesIdentifier, severity: .warning)
+  static let missedUpdatesMessage = makeMissedUpdatesContent(reloadPhase: .idle)
+    .message(identifier: missedUpdatesIdentifier)
 
   /// Makes the text of the reload-failed banner: the transcript still lacks
   /// updates, because the last reload failed.
@@ -319,11 +297,20 @@ extension SessionStreamBanner {
   ///   the reload.
   /// - Returns: The text, a failure whose explanation tells the error.
   static func makeReloadFailedMessage(errorDescription: String) -> StatusBar.Message {
-    StatusBar.Message(
-      title: String(localized: "Updates are still missing", bundle: .module),
-      explanation: String(localized: "The reload failed: \(errorDescription)", bundle: .module),
-      symbolName: SharedSymbol.error,
-      identifier: reloadFailedIdentifier, severity: .failure)
+    makeMissedUpdatesContent(reloadPhase: .failed(errorDescription)).message(identifier: reloadFailedIdentifier)
+  }
+
+  /// Makes the shared shape of the banner of the missed updates. An agent
+  /// session has no error of the stream to tell.
+  ///
+  /// - Parameter reloadPhase: How far the reload of the banner got.
+  /// - Returns: The content, with the explanation of a session.
+  private static func makeMissedUpdatesContent(reloadPhase: ReloadPhase) -> StreamBannerContent {
+    StreamBannerContent(
+      streamError: nil, reloadPhase: reloadPhase,
+      missedUpdatesExplanation: String(
+        localized: "The connection did not keep all updates of this session. Reload the history from the agent.",
+        bundle: .module))
   }
 
   /// The text of the partial-history note.

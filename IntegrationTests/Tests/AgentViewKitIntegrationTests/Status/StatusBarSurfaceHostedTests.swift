@@ -21,7 +21,7 @@ import Testing
     StatusBar(
       message: SessionStreamBanner.missedUpdatesMessage,
       action: StatusBar.Action(
-        title: "Reload", systemImage: SessionStreamBanner.reloadSymbol,
+        title: "Reload", systemImage: SharedSymbol.reload,
         identifier: SessionStreamBanner.reloadIdentifier, isEnabled: true, perform: {}))
   }
 

@@ -1251,16 +1251,6 @@
         }
       }
     },
-    "Reload" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reload"
-          }
-        }
-      }
-    },
     "Remove" : {
       "localizations" : {
         "en" : {
@@ -2371,16 +2361,6 @@
         }
       }
     },
-    "The reload failed: %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The reload failed: %@"
-          }
-        }
-      }
-    },
     "The response ended, but the model wrote no text. Send the request again." : {
       "localizations" : {
         "en" : {
@@ -2897,26 +2877,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Unknown status: %@"
-          }
-        }
-      }
-    },
-    "Updates are missing" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Updates are missing"
-          }
-        }
-      }
-    },
-    "Updates are still missing" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Updates are still missing"
           }
         }
       }

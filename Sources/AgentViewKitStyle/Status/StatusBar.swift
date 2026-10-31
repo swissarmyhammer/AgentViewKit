@@ -182,6 +182,9 @@ public struct StatusBar: View {
   /// The button of the bar, or `nil` for no button.
   let action: Action?
 
+  /// The accessibility identifier of the whole bar, or `nil` for none.
+  let identifier: String?
+
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
   @Environment(\.statusBarActionStyle) private var actionStyle
@@ -191,9 +194,12 @@ public struct StatusBar: View {
   /// - Parameters:
   ///   - message: The text of the bar.
   ///   - action: The button of the bar, or `nil` for no button.
-  public init(message: Message, action: Action?) {
+  ///   - identifier: The accessibility identifier of the whole bar, or `nil`
+  ///     for none. The ``Message/identifier`` of the message names its text.
+  public init(message: Message, action: Action?, identifier: String? = nil) {
     self.message = message
     self.action = action
+    self.identifier = identifier
   }
 
   /// The color of the symbol of `message`.
@@ -243,6 +249,7 @@ public struct StatusBar: View {
     .inlineEdge(radius: editorStyle.radii.l)
     .accessibilityElement(children: .contain)
     .accessibilityLabel(message.title)
+    .modifier(BarIdentifier(identifier: identifier))
   }
 
   /// The button of `action`, in the style of the environment, or in
@@ -257,6 +264,20 @@ public struct StatusBar: View {
       actionStyle.makeBody(configuration: configuration)
     } else {
       GlassStatusBarActionStyle().makeBody(configuration: configuration)
+    }
+  }
+}
+
+/// The accessibility identifier of a bar, when it has one.
+private struct BarIdentifier: ViewModifier {
+  /// The identifier, or `nil` for none.
+  let identifier: String?
+
+  func body(content: Content) -> some View {
+    if let identifier {
+      content.accessibilityIdentifier(identifier)
+    } else {
+      content
     }
   }
 }

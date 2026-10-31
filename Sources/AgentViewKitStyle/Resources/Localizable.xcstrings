@@ -91,6 +91,26 @@
         }
       }
     },
+    "Reads the latest state again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reads the latest state again."
+          }
+        }
+      }
+    },
+    "Reload" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reload"
+          }
+        }
+      }
+    },
     "Renamed" : {
       "localizations" : {
         "en" : {
@@ -107,6 +127,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Text"
+          }
+        }
+      }
+    },
+    "The reload failed: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The reload failed: %@"
+          }
+        }
+      }
+    },
+    "The updates stopped with an error" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The updates stopped with an error"
+          }
+        }
+      }
+    },
+    "Updates are missing" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Updates are missing"
+          }
+        }
+      }
+    },
+    "Updates are still missing" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Updates are still missing"
           }
         }
       }
