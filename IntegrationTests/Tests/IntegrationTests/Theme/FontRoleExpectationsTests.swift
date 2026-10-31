@@ -37,7 +37,7 @@ import Testing
   }
 
   @Test func aTextThatIgnoresTheThemeFails() throws {
-    let fixed = Text(Self.text).accessibilityIdentifier(Self.identifier)
+    let fixed = Text(Self.text).font(.body).accessibilityIdentifier(Self.identifier)
 
     try withKnownIssue {
       try FontRoleExpectations.expectText(of: fixed, identifier: Self.identifier, drawsIn: .ui)
