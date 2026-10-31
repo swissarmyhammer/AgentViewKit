@@ -191,12 +191,34 @@ extension SessionModel {
   ) {
     report?(method)
     Task { @MainActor in
-      do {
-        try await send()
-      } catch {
-        sessionRequestLogger.error("\(method, privacy: .public) failed: \(String(describing: error), privacy: .public)")
-        appendError(reporting: error)
-      }
+      // `sendRequest` records the failure, so the task has nothing left to do with it.
+      try? await sendRequest(method, send)
+    }
+  }
+
+  /// Sends one request of the session, and returns when it ends.
+  ///
+  /// A failure goes to the log and adds an error entry to the transcript with
+  /// `appendError(reporting:)`, as in ``startRequest(_:reporting:_:)``, and the
+  /// function throws it again for a caller that also tracks the request.
+  ///
+  /// - Parameters:
+  ///   - method: The ACP method of the request, for the log and the report.
+  ///   - report: The report that gets `method` in the same step, before the
+  ///     request starts, or `nil`.
+  ///   - send: The call that sends the request.
+  /// - Throws: The error of `send`.
+  func sendRequest(
+    _ method: String, reporting report: ObservationReport<String>? = nil,
+    _ send: @MainActor () async throws -> Void
+  ) async throws {
+    report?(method)
+    do {
+      try await send()
+    } catch {
+      sessionRequestLogger.error("\(method, privacy: .public) failed: \(String(describing: error), privacy: .public)")
+      appendError(reporting: error)
+      throw error
     }
   }
 }

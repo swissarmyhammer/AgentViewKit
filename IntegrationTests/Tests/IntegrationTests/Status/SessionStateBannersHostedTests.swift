@@ -229,8 +229,9 @@
     /// Waits for the missed-updates banner, presses Reload, and waits until
     /// the failure of the resume is in the transcript.
     ///
-    /// The banner records the failure before the session model adds the
-    /// error entry, so the banner shows the failure when the entry is there.
+    /// The banner records the failure in the same step as the session model
+    /// adds the error entry, so the banner shows the failure when the entry is
+    /// there.
     ///
     /// - Parameters:
     ///   - session: An overflowing session whose agent fails `session/resume`.

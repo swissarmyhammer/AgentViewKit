@@ -1,4 +1,5 @@
 import AgentViewKitStyle
+import Foundation
 import SwiftUI
 import Testing
 
@@ -69,7 +70,7 @@ import Testing
   }
 
   @Test func aReloadThatRunsKeepsTheTextOfTheStream() {
-    #expect(Self.content(.endedClean, .reloading) == Self.content(.endedClean))
+    #expect(Self.content(.endedClean, .reloading(id: UUID())) == Self.content(.endedClean))
   }
 
   @Test func theMessageCarriesTheContentAndTheIdentifier() throws {
@@ -99,7 +100,7 @@ import Testing
   }
 
   @Test func aReloadThatRunsCannotReload() {
-    #expect(!ReloadPhase.reloading.canReload(isLoading: false))
+    #expect(!ReloadPhase.reloading(id: UUID()).canReload(isLoading: false))
   }
 
   @Test func aLoadingModelCannotReload() {
@@ -169,9 +170,9 @@ import Testing
 
     action.perform()
 
-    #expect(phase == .reloading)
+    #expect(!phase.canReload(isLoading: false))
     opening.finish()
-    while phase == .reloading { await Task.yield() }
+    while !phase.canReload(isLoading: false) { await Task.yield() }
     #expect(phase == .idle)
   }
 
@@ -182,5 +183,104 @@ import Testing
     action.perform()
 
     #expect(started)
+  }
+}
+
+/// Checks which reload may write the phase of the host, with no view.
+@Suite @MainActor struct StatusBarReloadEpisodeTests {
+  /// The error of a ``HeldReload``.
+  struct HeldFailure: LocalizedError {
+    /// The text of the error.
+    let errorDescription: String?
+  }
+
+  /// One reload that stays in flight until the test ends it with a failure.
+  @MainActor final class HeldReload {
+    /// The text of the error that the reload ends with.
+    let message: String
+
+    /// Holds the reload until ``opening`` finishes.
+    private let gate: AsyncStream<Void>
+
+    /// Lets the reload go on.
+    private let opening: AsyncStream<Void>.Continuation
+
+    /// Whether the work of the reload came to its end.
+    private var hasEnded = false
+
+    /// Makes a reload that fails with `message`.
+    ///
+    /// - Parameter message: The text of the error.
+    init(failingWith message: String) {
+      self.message = message
+      (gate, opening) = AsyncStream.makeStream(of: Void.self)
+    }
+
+    /// The work of the reload.
+    ///
+    /// - Throws: ``HeldFailure`` with ``message``, when ``fail()`` lets it go on.
+    func run() async throws {
+      for await _ in gate {}
+      hasEnded = true
+      throw HeldFailure(errorDescription: message)
+    }
+
+    /// Ends the reload, and returns once it threw: the action handles the
+    /// outcome in the same step as the throw.
+    func fail() async {
+      opening.finish()
+      while !hasEnded { await Task.yield() }
+    }
+  }
+
+  /// The phase of a host, which a test reads and resets.
+  @MainActor final class Host {
+    /// The phase that the Reload button moves.
+    var phase = ReloadPhase.idle
+
+    /// Presses a Reload button that runs `reload` and moves ``phase``.
+    ///
+    /// - Parameter reload: The reload of the press.
+    func press(_ reload: HeldReload) {
+      let binding = Binding(get: { self.phase }, set: { self.phase = $0 })
+      StatusBar.Action.reload(identifier: "r", isEnabled: true, phase: binding, perform: reload.run).perform()
+    }
+  }
+
+  @Test func aResetDropsTheLateFailureOfAReloadInFlight() async {
+    let host = Host()
+    let first = HeldReload(failingWith: "first")
+    host.press(first)
+
+    host.phase = .idle
+    await first.fail()
+
+    #expect(host.phase == .idle)
+  }
+
+  @Test func aLateFailureLeavesTheSecondPressInItsReload() async {
+    let host = Host()
+    let first = HeldReload(failingWith: "first")
+    host.press(first)
+    host.phase = .idle
+    host.press(HeldReload(failingWith: "second"))
+
+    await first.fail()
+
+    #expect(!host.phase.canReload(isLoading: false))
+  }
+
+  @Test func theNewestReloadStillWritesItsOutcome() async {
+    let host = Host()
+    let first = HeldReload(failingWith: "first")
+    let second = HeldReload(failingWith: "second")
+    host.press(first)
+    host.phase = .idle
+    host.press(second)
+    await first.fail()
+
+    await second.fail()
+
+    #expect(host.phase == .failed(second.message))
   }
 }

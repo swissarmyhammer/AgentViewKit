@@ -3,12 +3,21 @@ import OSLog
 import SwiftUI
 
 /// How far the reload that a Reload button started got.
+///
+/// The phase names the reload that owns it, so only the newest reload of the
+/// current episode writes its outcome: a reload ends in the phase only while
+/// the phase is still ``reloading(id:)`` with the id of that reload. A host
+/// ends an episode by writing ``idle``, for example when its banner goes away.
+/// That write is the whole reset: each reload that is in flight then ends with
+/// no effect, and so does the first reload after a second press.
 public enum ReloadPhase: Equatable, Sendable {
   /// No reload runs, and the last reload did not fail.
   case idle
 
   /// A reload runs.
-  case reloading
+  ///
+  /// - Parameter id: The identity of the reload, which no other press shares.
+  case reloading(id: UUID)
 
   /// The last reload failed.
   ///
@@ -20,7 +29,27 @@ public enum ReloadPhase: Equatable, Sendable {
   /// - Parameter isLoading: Whether the model reads its data by another way.
   /// - Returns: `false` while a reload runs or while the model loads.
   public func canReload(isLoading: Bool) -> Bool {
-    self != .reloading && !isLoading
+    if case .reloading = self { return false }
+    return !isLoading
+  }
+
+  /// Moves on to a new reload, which takes the phase from any earlier one.
+  ///
+  /// - Returns: The identity of the new reload, for ``endReload(_:in:)``.
+  mutating func startReload() -> UUID {
+    let id = UUID()
+    self = .reloading(id: id)
+    return id
+  }
+
+  /// Writes the outcome of a reload, while the phase is still that reload.
+  ///
+  /// - Parameters:
+  ///   - id: The identity of the reload.
+  ///   - outcome: The phase that the reload ended in.
+  mutating func endReload(_ id: UUID, in outcome: ReloadPhase) {
+    guard self == .reloading(id: id) else { return }
+    self = outcome
   }
 
   /// Runs `reload`, and gives the phase that it ends in.
@@ -191,7 +220,9 @@ extension StatusBar.Action {
   ///     reload runs or the model loads.
   ///   - phase: The phase of the host, which the reload moves on and in which
   ///     a thrown error lands, or `nil` for a host that records its own state:
-  ///     then a thrown error only goes to the log.
+  ///     then a thrown error only goes to the log. The outcome lands only while
+  ///     the phase is still this reload, so the host writes
+  ///     ``ReloadPhase/idle`` to drop each reload in flight.
   ///   - perform: The work of the reload.
   /// - Returns: The button, with the ``SharedSymbol/reload`` symbol.
   public static func reload(
@@ -202,26 +233,33 @@ extension StatusBar.Action {
       title: String(localized: "Reload", bundle: .module), systemImage: SharedSymbol.reload, identifier: identifier,
       isEnabled: isEnabled, hint: String(localized: "Reads the latest state again.", bundle: .module)
     ) {
-      phase?.wrappedValue = .reloading
-      Task.immediate { await finishReload(perform, recordingIn: phase) }
+      guard let phase else {
+        Task.immediate { await logFailure(of: perform) }
+        return
+      }
+      let id = phase.wrappedValue.startReload()
+      Task.immediate { await finishReload(id, perform, recordingIn: phase) }
     }
   }
 
   /// Runs the work of a reload and records the phase that it ends in.
   ///
   /// - Parameters:
+  ///   - id: The identity of the reload.
   ///   - perform: The work of the reload.
-  ///   - phase: The phase of the host, or `nil`.
+  ///   - phase: The phase of the host.
   private static func finishReload(
-    _ perform: @MainActor () async throws -> Void, recordingIn phase: Binding<ReloadPhase>?
+    _ id: UUID, _ perform: @MainActor () async throws -> Void, recordingIn phase: Binding<ReloadPhase>
   ) async {
     let outcome = await ReloadPhase.outcome(of: perform)
-    guard let phase else {
-      if case .failed(let message) = outcome {
-        logger.error("A reload failed with no phase to record it: \(message, privacy: .public)")
-      }
-      return
-    }
-    phase.wrappedValue = outcome
+    phase.wrappedValue.endReload(id, in: outcome)
+  }
+
+  /// Runs the work of a reload for a host with no phase, and logs a failure.
+  ///
+  /// - Parameter perform: The work of the reload.
+  private static func logFailure(of perform: @MainActor () async throws -> Void) async {
+    guard case .failed(let message) = await ReloadPhase.outcome(of: perform) else { return }
+    logger.error("A reload failed with no phase to record it: \(message, privacy: .public)")
   }
 }
