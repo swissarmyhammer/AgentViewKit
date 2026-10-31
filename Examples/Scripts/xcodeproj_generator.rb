@@ -11,7 +11,7 @@
 # - The application `<AppName>`. It compiles `<AppName>/` (the `@main` type and the scene),
 #   `<AppName>Feature/` (the views), and each shared source directory that the example names.
 #   An Xcode target can link a package PRODUCT only. A shared directory, such as
-#   `Sources/DemoSupport`, is a package target that is not a product, so its files compile
+#   `Sources/AgentViewKitDemoSupport`, is a package target that is not a product, so its files compile
 #   into the application module. The bundle of the application also holds each resource
 #   directory that the example names, as it is.
 # - The UI test bundle `<AppName>UITests`. It compiles `Tests/` and tests the application

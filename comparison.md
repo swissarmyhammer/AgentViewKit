@@ -869,7 +869,7 @@ binding rule: no copy of model data.
 - **Why:** The web kits show a live example for each component. Previews
   speed up design work and catch layout bugs. The fixtures use the real
   models, so they keep the binding rule.
-- **File:** new `Sources/DemoSupport/Fixtures/` (or a new
+- **File:** new `Sources/AgentViewKitDemoSupport/Fixtures/` (or a new
   `AgentViewKitPreviews` target), and `#Preview` blocks in each view file.
 
 ### 5.16 Hit-area and density
@@ -917,7 +917,7 @@ This section records how the views get their data (review of 2026-10-11). Paths 
 
 ### Result
 
-- No view reads a FoundationModels `Transcript`. `Package.swift` forbids FoundationModels imports. `ThreadExporter` reads `[TranscriptEntry]` of the ACP client. `DemoSupport` holds ACP agents only. There is one source of truth: the FoundationModelsACPClient models.
+- No view reads a FoundationModels `Transcript`. `Package.swift` forbids FoundationModels imports. `ThreadExporter` reads `[TranscriptEntry]` of the ACP client. `AgentViewKitDemoSupport` holds ACP agents only. There is one source of truth: the FoundationModelsACPClient models.
 - The legacy designs are gone: the Router, the structured items, the `schemaName` catalog, `AgentViewKitACP` and the kit copies of the ACP value types.
 - The problems are smaller. Different views read the same concept in different ways. Some helpers calculate again the state that the client already has. Some APIs are not used or are only partly connected.
 

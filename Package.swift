@@ -21,9 +21,11 @@
 // (plan.md §1).
 //
 // Two more library products are test support only: `AgentViewKitTestSupport`
-// and `DemoSupport`. The nested `IntegrationTests/` package links them by
-// path, because a test target of this package cannot be a dependency. No host
-// of the kit links them (plan.md §11 decision 1).
+// and `AgentViewKitDemoSupport`. The nested `IntegrationTests/` package links
+// them by path, because a test target of this package cannot be a dependency.
+// No host of the kit links them (plan.md §11 decision 1). Each target name
+// starts with `AgentViewKit`, because SwiftPM needs a target name to be unique
+// in the whole package graph, and a host may link more than one view kit.
 //
 // The tiers of the tests (plan.md §11 decision 21). `swift test` here runs
 // the unit tests only: no test of this package mounts a view in a window or a
@@ -84,10 +86,11 @@ let acpProducts: [Target.Dependency] = [
   .product(name: "FoundationModelsACPClient", package: "FoundationModelsACPClient"),
 ]
 
-/// The agent product of the demo app. Only the demo-only target `DemoSupport`
-/// links it: the ACP tab runs FoundationModelsACPAgent in the process of the
-/// app with the live model, and the Gallery tab runs it over the recorded
-/// sessions with the stub model. The kit target does not import it.
+/// The agent product of the demo app. Only the demo-only target
+/// `AgentViewKitDemoSupport` links it: the ACP tab runs
+/// FoundationModelsACPAgent in the process of the app with the live model,
+/// and the Gallery tab runs it over the recorded sessions with the stub model.
+/// The kit target does not import it.
 let demoAgentProducts: [Target.Dependency] = [
   .product(name: "FoundationModelsACPAgent", package: "FoundationModelsACPAgent")
 ]
@@ -131,7 +134,7 @@ let package = Package(
     .library(name: "AgentViewKitStyle", targets: ["AgentViewKitStyle"]),
     // Test support only, for the nested IntegrationTests package.
     .library(name: "AgentViewKitTestSupport", targets: ["AgentViewKitTestSupport"]),
-    .library(name: "DemoSupport", targets: ["DemoSupport"]),
+    .library(name: "AgentViewKitDemoSupport", targets: ["AgentViewKitDemoSupport"]),
   ],
   dependencies: [
     // The in-family packages use the SSH URL and `branch: "main"`, as each
@@ -140,7 +143,8 @@ let package = Package(
     .package(url: "git@github.com:swissarmyhammer/FoundationModelsACP.git", branch: "main"),
     .package(url: "git@github.com:swissarmyhammer/FoundationModelsACPClient.git", branch: "main"),
     // The agent of the ACP tab and of the Gallery tab of the demo app. Only
-    // `DemoSupport` links it, so a host of the kit does not build it.
+    // `AgentViewKitDemoSupport` links it, so a host of the kit does not build
+    // it.
     .package(url: "git@github.com:swissarmyhammer/FoundationModelsACPAgent.git", branch: "main"),
     // Textual is a 0.x package, so the pin is exact.
     .package(url: "https://github.com/gonzalezreal/textual", exact: "0.5.0"),
@@ -179,8 +183,9 @@ let package = Package(
       swiftSettings: mainActorIsolated
     ),
     // The agent-specific test helpers: the recording fakes, and the session
-    // model over the scripted agent of `DemoSupport`. The generic helpers,
-    // such as the hosted view harness, are EditorKit's `EditorTestSupport`.
+    // model over the scripted agent of `AgentViewKitDemoSupport`. The generic
+    // helpers, such as the hosted view harness, are EditorKit's
+    // `EditorTestSupport`.
     // Each test target that links a package target links it too. It is a
     // test support product, so that the IntegrationTests package and the
     // unit tests share one copy of each fixture; no host of the kit links it.
@@ -189,7 +194,7 @@ let package = Package(
     // which the review gallery writes.
     .target(
       name: "AgentViewKitTestSupport",
-      dependencies: ["AgentViewKit", "DemoSupport"] + acpProducts + styleTestSupportProducts,
+      dependencies: ["AgentViewKit", "AgentViewKitDemoSupport"] + acpProducts + styleTestSupportProducts,
       swiftSettings: mainActorIsolated
     ),
     // The scripted in-memory ACP agent, the agent starter of the demo app
@@ -201,7 +206,7 @@ let package = Package(
     // FoundationModelsACPAgent for the agent of the ACP tab and of the
     // Gallery tab, which runs in the process of the app.
     .target(
-      name: "DemoSupport",
+      name: "AgentViewKitDemoSupport",
       dependencies: ["AgentViewKit"] + acpProducts + demoAgentProducts,
       swiftSettings: mainActorIsolated
     ),
@@ -213,7 +218,7 @@ let package = Package(
         "AgentViewKitTestSupport",
         // The scripted wire agent and the in-memory demo agent of the ACP
         // tests.
-        "DemoSupport",
+        "AgentViewKitDemoSupport",
       ]
         + acpProducts + editorKitTestSupportProducts,
       swiftSettings: mainActorIsolated

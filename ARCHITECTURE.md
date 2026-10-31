@@ -21,7 +21,7 @@ The package has two library products:
 | `AgentViewKitStyle` | `Sources/AgentViewKitStyle` | EditorKit only: `EditorStyle`, `EditorTheme`, `EditorSwiftUI`, `EditorDiff`, `EditorCommands` | Each view kit. Its dependency closure holds no ACP package, no Textual and no math engine. |
 | `AgentViewKit` | `Sources/AgentViewKit` | `AgentViewKitStyle`, EditorKit, FoundationModelsACP, FoundationModelsACPClient, Textual, swiftui-math | An ACP client app: the agent thread views and the ACP helpers. |
 
-Two more library products, `AgentViewKitTestSupport` and `DemoSupport`, are test support for the nested `IntegrationTests/` package (see "Test tiers"). No host of the kit links them.
+Two more library products, `AgentViewKitTestSupport` and `AgentViewKitDemoSupport`, are test support for the nested `IntegrationTests/` package (see "Test tiers"). No host of the kit links them.
 
 ```mermaid
 flowchart LR
@@ -69,14 +69,14 @@ The tests have two tiers, and a package boundary separates them (plan.md §11 de
 
 ```mermaid
 flowchart LR
-  Kit[AgentViewKit + AgentViewKitStyle] --> Support[AgentViewKitTestSupport + DemoSupport]
+  Kit[AgentViewKit + AgentViewKitStyle] --> Support[AgentViewKitTestSupport + AgentViewKitDemoSupport]
   Support --> Unit[root Tests/: unit tiers]
   Support --> Integration[IntegrationTests/: hosted and capture tiers]
   Kit --> Unit
   Kit --> Integration
 ```
 
-- A test target of the root package cannot be a dependency, so a fixture that both tiers use lives once in `Sources/AgentViewKitTestSupport`, a test support product. `DemoSupport` is a product for the same reason. No host of the kit links either one.
+- A test target of the root package cannot be a dependency, so a fixture that both tiers use lives once in `Sources/AgentViewKitTestSupport`, a test support product. `AgentViewKitDemoSupport` is a product for the same reason. No host of the kit links either one.
 - The layout follows EditorTestSupport's DocC article "Integration tests". `AgentViewKitTestSupport` holds the agent fixtures and re-exports EditorTestSupport (`@_exported import EditorTestSupport`), so both tiers read the generic helpers through it. AgentViewKit keeps no copy of a generic helper: the recorders, the clock, the temporary folder, the window undo checks and the shared harness checks come from EditorTestSupport.
 - A helper that only the integration tests use lives in the integration target.
 - A hosted suite runs under `.hostedSerially`, which holds only the key window gate of the test process. A test whose effects reach past its process (real input events, the shared defaults, the shared pasteboard, the workspace) runs under `.machineSerially` instead, which first holds the shared UI test lock of the Mac. No AgentViewKit test needs it today: each pasteboard test uses an isolated pasteboard, and no test posts a window server event, writes the shared defaults or opens a file with the workspace.

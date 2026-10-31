@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import DemoSupport
+@testable import AgentViewKitDemoSupport
 
 /// The tests of the launch arguments of the demo app.
 struct DemoLaunchOptionsTests {

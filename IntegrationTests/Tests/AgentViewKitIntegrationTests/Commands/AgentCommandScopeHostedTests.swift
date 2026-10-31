@@ -1,7 +1,7 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
-import DemoSupport
+import AgentViewKitDemoSupport
 import EditorCommands
 import EditorCommandsUI
 import EditorTestSupport

@@ -559,7 +559,7 @@ two tabs:
   `DefaultTheme.dark`), the appearance, the density, and the text size.
 
 The launch arguments are in
-[`Sources/DemoSupport/DemoLaunchOptions.swift`](Sources/DemoSupport/DemoLaunchOptions.swift):
+[`Sources/AgentViewKitDemoSupport/DemoLaunchOptions.swift`](Sources/AgentViewKitDemoSupport/DemoLaunchOptions.swift):
 
 - `--in-memory-agent`: the ACP tab runs the scripted in-memory agent in place of FoundationModelsACPAgent, so that no model loads. The UI tests use this argument.
 - `--cwd <path>`: the working directory of each session of the ACP tab. The default is the home directory.

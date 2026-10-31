@@ -1,7 +1,7 @@
 import SwiftUI
 import Testing
 
-@testable import DemoSupport
+@testable import AgentViewKitDemoSupport
 
 /// The tests of ``DemoStartPhase``: the state of the start of a demo tab, and
 /// the start that each tab runs one time.

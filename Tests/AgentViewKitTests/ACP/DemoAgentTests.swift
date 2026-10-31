@@ -6,7 +6,7 @@ import FoundationModelsACP
 import FoundationModelsACPClient
 import Testing
 
-@testable import DemoSupport
+@testable import AgentViewKitDemoSupport
 
 /// Tests of ``DemoAgent``: the demo app starts its agent and binds its views
 /// to the `ConnectionModel` and the `SessionModel` objects of the client.

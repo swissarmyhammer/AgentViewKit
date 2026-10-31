@@ -1,10 +1,10 @@
 import AgentViewKit
-import DemoSupport
+import AgentViewKitDemoSupport
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
 
-/// A `SessionModel` over a ``DemoSupport/ScriptedWireAgent``, for the view
+/// A `SessionModel` over a ``AgentViewKitDemoSupport/ScriptedWireAgent``, for the view
 /// tests (plan.md §3.2).
 ///
 /// ``open(bufferLimits:additionalDirectories:terminalAuthRunner:coalescingCadence:configure:now:)``
@@ -248,7 +248,7 @@ public final class ScriptedSession {
 
   /// A `session/update` notification frame from the agent to the client.
   /// The frame comes from
-  /// ``DemoSupport/ScriptedWireAgent/makeSessionUpdateFrame(params:)``.
+  /// ``AgentViewKitDemoSupport/ScriptedWireAgent/makeSessionUpdateFrame(params:)``.
   ///
   /// - Parameters:
   ///   - sessionId: The `sessionId` member of the params. The default is

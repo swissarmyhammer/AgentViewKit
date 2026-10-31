@@ -1,5 +1,5 @@
 import AgentViewKitTestSupport
-import DemoSupport
+import AgentViewKitDemoSupport
 import EditorCommandsUI
 import EditorTestSupport
 import FoundationModelsACP

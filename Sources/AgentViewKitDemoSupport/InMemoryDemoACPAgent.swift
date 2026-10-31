@@ -321,7 +321,7 @@ public actor InMemoryDemoACPAgent: Agent {
   private static let rejectedSignInDetail = "The in-memory demo agent rejects each sign-in."
 
   /// The log of the agent.
-  private static let logger = Logger(subsystem: "DemoSupport", category: "InMemoryDemoACPAgent")
+  private static let logger = Logger(subsystem: "AgentViewKitDemoSupport", category: "InMemoryDemoACPAgent")
 
   /// The `session/update` notifications of the work of one prompt.
   ///
