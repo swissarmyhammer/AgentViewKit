@@ -103,8 +103,7 @@ import Testing
   func click(_ identifier: String) async throws {
     let frame = try #require(harness.frame(identifier: identifier))
     let point = harness.window.convertPoint(fromScreen: NSPoint(x: frame.midX, y: frame.midY))
-    await QueuedClicks.click(at: point, in: harness.window)
-    harness.render()
+    try await harness.sendClick(atWindowPoint: point)
   }
 
   /// The frame of the header of `section`, or `nil` when it does not show.

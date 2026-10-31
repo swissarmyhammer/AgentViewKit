@@ -95,18 +95,6 @@ import Testing
     return NSPoint(x: row.minX + inset, y: harness.window.frame.height - row.midY)
   }
 
-  /// Sends one press and release of the mouse for each number in
-  /// `clickCounts`, at `point`, through the event queue of the app.
-  ///
-  /// - Parameters:
-  ///   - point: The point, in window coordinates.
-  ///   - clickCounts: The click count of each press, such as `[1, 2]` for a
-  ///     double click.
-  func click(at point: NSPoint, clickCounts: [Int] = [1]) async {
-    await QueuedClicks.click(at: point, clickCounts: clickCounts, in: harness.window)
-    harness.render()
-  }
-
   /// The scope among the tab and the rows that holds the first responder of
   /// the window.
   ///
@@ -126,7 +114,7 @@ import Testing
     let bed = try await OpenBed(trigger: .click)
     defer { bed.harness.close() }
 
-    await bed.click(at: try bed.textCenter(ofRow: 1))
+    try await bed.harness.sendClick(atWindowPoint: bed.textCenter(ofRow: 1))
 
     #expect(bed.opened.values == [OpenBed.ids[1]])
   }
@@ -135,7 +123,7 @@ import Testing
     let bed = try await OpenBed(trigger: .click)
     defer { bed.harness.close() }
 
-    await bed.click(at: try bed.paddingPoint(ofRow: 0))
+    try await bed.harness.sendClick(atWindowPoint: bed.paddingPoint(ofRow: 0))
 
     #expect(bed.opened.values == [OpenBed.ids[0]])
   }
@@ -144,7 +132,7 @@ import Testing
     let bed = try await OpenBed(trigger: .click)
     defer { bed.harness.close() }
 
-    await bed.click(at: try bed.textCenter(ofRow: 0), clickCounts: [1, 2])
+    try await bed.harness.sendClick(atWindowPoint: bed.textCenter(ofRow: 0), clickCounts: [1, 2])
 
     #expect(bed.opened.values == [OpenBed.ids[0]])
   }
@@ -153,7 +141,7 @@ import Testing
     let bed = try await OpenBed(trigger: .click)
     defer { bed.harness.close() }
 
-    await bed.click(at: try bed.textCenter(ofRow: 0))
+    try await bed.harness.sendClick(atWindowPoint: bed.textCenter(ofRow: 0))
 
     #expect(bed.focusedScope() == OpenBed.tabPath)
   }
@@ -164,7 +152,7 @@ import Testing
     let bed = try await OpenBed(trigger: .click)
     defer { bed.harness.close() }
 
-    await bed.click(at: try bed.textCenter(ofRow: 0), clickCounts: [1, 2])
+    try await bed.harness.sendClick(atWindowPoint: bed.textCenter(ofRow: 0), clickCounts: [1, 2])
 
     #expect(bed.focusedScope() == OpenBed.tabPath)
   }
@@ -173,7 +161,7 @@ import Testing
     let bed = try await OpenBed(trigger: .click, movesFocusOnOpen: false)
     defer { bed.harness.close() }
 
-    await bed.click(at: try bed.textCenter(ofRow: 0))
+    try await bed.harness.sendClick(atWindowPoint: bed.textCenter(ofRow: 0))
 
     #expect(bed.focusedScope() != OpenBed.rowPath(0))
   }
@@ -205,7 +193,7 @@ import Testing
     let bed = try await OpenBed(trigger: .doubleClick)
     defer { bed.harness.close() }
 
-    await bed.click(at: try bed.textCenter(ofRow: 0))
+    try await bed.harness.sendClick(atWindowPoint: bed.textCenter(ofRow: 0))
 
     #expect(bed.opened.values.isEmpty)
     #expect(bed.focusedScope() == OpenBed.rowPath(0))
@@ -216,7 +204,7 @@ import Testing
     let bed = try await OpenBed(trigger: .doubleClick)
     defer { bed.harness.close() }
 
-    await bed.click(at: try bed.textCenter(ofRow: 0), clickCounts: [1, 2])
+    try await bed.harness.sendClick(atWindowPoint: bed.textCenter(ofRow: 0), clickCounts: [1, 2])
 
     #expect(bed.opened.values == [OpenBed.ids[0]])
   }
