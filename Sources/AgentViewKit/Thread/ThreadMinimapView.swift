@@ -114,7 +114,9 @@ public struct ThreadMinimapView: View {
   /// ``SwiftUI/View/threadMinimap(session:anchors:proxy:minimumItemCount:minimumWidth:)``.
   public static let defaultMinimumWidth: CGFloat = 480
 
-  /// The width of the rail, in points.
+  /// The width of the rail, in points at the default theme font. The rail
+  /// shows no text, but it stands beside the transcript, so it keeps its
+  /// proportion to that text.
   static let railWidth: CGFloat = 12
 
   /// The smallest height of one tick, in points.
@@ -159,6 +161,7 @@ public struct ThreadMinimapView: View {
   let minimumItemCount: Int
 
   @Environment(\.editorTheme) private var editorTheme
+  @ThemeFontScale(.display) private var fontScale
 
   /// Makes the rail of the transcript of a session model.
   ///
@@ -260,7 +263,7 @@ public struct ThreadMinimapView: View {
       }
       .accessibilityHidden(true)
     }
-    .frame(width: Self.railWidth)
+    .frame(width: Self.railWidth * fontScale)
     .frame(maxHeight: .infinity)
     .accessibilityElement(children: .contain)
   }

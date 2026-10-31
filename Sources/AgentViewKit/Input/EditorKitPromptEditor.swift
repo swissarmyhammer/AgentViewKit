@@ -52,10 +52,11 @@ public struct EditorKitPromptEditor: View {
   /// ``PromptInputView``.
   public static let identifier = "prompt-editor"
 
-  /// The smallest height of the editor, in points.
+  /// The smallest height of the editor, in points at the default theme font.
   static let minimumHeight: CGFloat = 36
 
-  /// The largest height of the editor, in points. Longer text scrolls.
+  /// The largest height of the editor, in points at the default theme font.
+  /// Longer text scrolls.
   static let maximumHeight: CGFloat = 200
 
   /// The accessibility identifier of the completion list.
@@ -74,10 +75,11 @@ public struct EditorKitPromptEditor: View {
     String(localized: "No commands", bundle: .module)
   }
 
-  /// The largest height of the completion list, in points.
+  /// The largest height of the completion list, in points at the default theme
+  /// font.
   static let completionListMaximumHeight: CGFloat = 160
 
-  /// The width of the completion list, in points.
+  /// The width of the completion list, in points at the default theme font.
   static let completionListWidth: CGFloat = 280
 
   /// The text that ends an accepted directory, so that the list goes on into
@@ -94,6 +96,12 @@ public struct EditorKitPromptEditor: View {
   @Environment(\.composerCompletionRoutes) private var routes
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
+
+  /// The scale of the editor, whose text is in the display font.
+  @ThemeFontScale(.display) private var editorFontScale
+
+  /// The scale of the completion list, whose rows are in the ui font.
+  @ThemeFontScale(.ui) private var completionFontScale
 
   /// The model and the completion engine of the editor.
   @State private var session: PromptEditorSession
@@ -146,7 +154,7 @@ public struct EditorKitPromptEditor: View {
     // The prompt is text that a person types, so it draws in the display
     // font of the theme and not in the code font of an `EditorView`.
     .editorFontRole(.display)
-    .frame(minHeight: Self.minimumHeight, maxHeight: Self.maximumHeight)
+    .frame(minHeight: Self.minimumHeight * editorFontScale, maxHeight: Self.maximumHeight * editorFontScale)
     .fixedSize(horizontal: false, vertical: true)
     // The probe finds the caret of the text view, so that the menu starts at
     // the caret.
@@ -157,7 +165,7 @@ public struct EditorKitPromptEditor: View {
       menu(completion, model: model).map { content in
         PromptEditorMenu(
           anchor: anchor, caretOffset: session.caretLocator.caretOffset() ?? 0,
-          width: Self.completionListWidth, content: content)
+          width: Self.completionListWidth * completionFontScale, content: content)
       }
     }
     .onChange(of: context.text.wrappedValue, initial: true) { _, text in
@@ -201,8 +209,8 @@ public struct EditorKitPromptEditor: View {
       onCommit: { item in accept(item, in: model) }
     )
     .scrollContentMargins(\.spacing.xs)
-    .frame(width: Self.completionListWidth)
-    .frame(maxHeight: Self.completionListMaximumHeight)
+    .frame(width: Self.completionListWidth * completionFontScale)
+    .frame(maxHeight: Self.completionListMaximumHeight * completionFontScale)
     .fixedSize(horizontal: false, vertical: true)
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier(Self.completionListIdentifier)
@@ -216,7 +224,7 @@ public struct EditorKitPromptEditor: View {
       .foregroundStyle(.secondary)
       .padding(.horizontal, editorStyle.spacing.s)
       .padding(.vertical, editorStyle.spacing.xs)
-      .frame(width: Self.completionListWidth, alignment: .leading)
+      .frame(width: Self.completionListWidth * completionFontScale, alignment: .leading)
       .accessibilityIdentifier(Self.noCommandsIdentifier)
   }
 

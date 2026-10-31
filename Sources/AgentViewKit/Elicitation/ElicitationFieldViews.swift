@@ -176,13 +176,16 @@ public struct ElicitationTextField: View {
   /// The largest `maxLength` of a one-line input.
   public static let multiLineThreshold = 200
 
-  /// The smallest height of a multi-line input, in points.
+  /// The smallest height of a multi-line input, in points at the default theme
+  /// font.
   static let multiLineMinimumHeight: CGFloat = 60
 
   /// The context of the field.
   let context: ElicitationFieldContext
   /// The model that the host gives, or `nil` when the view keeps its own.
   let suppliedModel: EditorModel?
+
+  @ThemeFontScale(.display) private var fontScale
 
   /// The model that the view keeps when the host gives no model.
   @State private var ownModel = OwnModelSlot(editable: true)
@@ -267,7 +270,7 @@ public struct ElicitationTextField: View {
         // An answer is text that a person types, so it draws in the display
         // font of the theme, as the one-line `SingleLineField` does.
         .editorFontRole(.display)
-        .frame(minHeight: Self.multiLineMinimumHeight)
+        .frame(minHeight: Self.multiLineMinimumHeight * fontScale)
     } else {
       SingleLineField(model: model, id: context.identifier)
         .onFieldSubmit { _ in returnAction?() }
@@ -300,13 +303,15 @@ public struct ElicitationNumberField: View {
   /// The step of the stepper.
   public static let step: Double = 1
 
-  /// The largest width of the number input of the stepper, in points.
+  /// The largest width of the number input of the stepper, in points at the
+  /// default theme font.
   static let numberInputMaximumWidth: CGFloat = 160
 
   /// The context of the field.
   let context: ElicitationFieldContext
 
   @Environment(\.editorStyle) private var editorStyle
+  @ThemeFontScale(.display) private var fontScale
 
   /// The model of the text of the number input.
   @State private var inputModel = OwnModelSlot(editable: true)
@@ -343,7 +348,7 @@ public struct ElicitationNumberField: View {
       } else {
         HStack(spacing: editorStyle.spacing.xs) {
           numberInput(number, integer: integer)
-            .frame(maxWidth: Self.numberInputMaximumWidth)
+            .frame(maxWidth: Self.numberInputMaximumWidth * fontScale)
           Stepper(
             context.schema.title,
             value: number,

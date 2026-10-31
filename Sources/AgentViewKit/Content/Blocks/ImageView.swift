@@ -1,6 +1,7 @@
 import AppKit
 import EditorCommandsUI
 import EditorStyle
+import EditorTheme
 import FoundationModelsACP
 import OSLog
 import SwiftUI
@@ -48,6 +49,7 @@ public struct ImageView: View {
 
   @Environment(\.attachmentSelect) private var selectForInspector
   @Environment(\.themeSecondary) private var themeSecondary
+  @ThemeFontScale(.display) private var fontScale
 
   /// The report that gets the file name of each image that a tap starts to
   /// write, or `nil`.
@@ -77,7 +79,7 @@ public struct ImageView: View {
       Image(nsImage: nsImage)
         .resizable()
         .scaledToFit()
-        .frame(maxHeight: PreviewLayout.maximumPreviewHeight)
+        .frame(maxHeight: PreviewLayout.maximumPreviewHeight * fontScale)
         .accessibilityLabel(name)
         .modifier(InspectorSelectable(file: file, corners: Self.corners) { select(data: data) })
         .accessibilityIdentifier(Self.imageIdentifier)

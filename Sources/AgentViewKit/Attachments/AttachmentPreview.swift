@@ -1,10 +1,12 @@
 import AVKit
+import EditorTheme
 import QuickLookThumbnailing
 import SwiftUI
 import Textual
 import UniformTypeIdentifiers
 
-/// The sizes of the default attachment and content block views.
+/// The sizes of the default attachment and content block views, at the default
+/// theme font. A view scales each one with its ``ThemeFontScale``.
 enum PreviewLayout {
   /// The largest height of an image or a document thumbnail, in points.
   static let maximumPreviewHeight: CGFloat = 240
@@ -60,7 +62,8 @@ struct AttachmentPreviewLoader {
   /// be read.
   let text: @MainActor (URL) async -> String?
 
-  /// Makes the thumbnail of a document at the scale of a display.
+  /// Makes the thumbnail of a document at a scale: the scale of the display,
+  /// times the scale of the theme font of the preview.
   let thumbnail: @MainActor (URL, CGFloat) async -> PreviewLoadState<NSImage>
 
   /// Makes the player of an audio or a movie file.
@@ -121,13 +124,15 @@ private struct ImagePreview: View {
   /// The image file.
   let attachment: Attachment
 
+  @ThemeFontScale(.display) private var fontScale
+
   var body: some View {
     AsyncImage(url: attachment.url) { phase in
       LoadStateView(attachment: attachment, state: Self.state(of: phase)) { image in
         image
           .resizable()
           .scaledToFit()
-          .frame(maxHeight: PreviewLayout.maximumPreviewHeight)
+          .frame(maxHeight: PreviewLayout.maximumPreviewHeight * fontScale)
           .accessibilityLabel(attachment.name)
       }
     }
@@ -161,17 +166,18 @@ private struct ThumbnailPreview: View {
   @State private var state: PreviewLoadState<NSImage> = .loading
   @Environment(\.displayScale) private var displayScale
   @Environment(\.attachmentPreviewLoader) private var loader
+  @ThemeFontScale(.display) private var fontScale
 
   var body: some View {
     LoadStateView(attachment: attachment, state: state) { image in
       Image(nsImage: image)
         .resizable()
         .scaledToFit()
-        .frame(maxHeight: PreviewLayout.maximumPreviewHeight)
+        .frame(maxHeight: PreviewLayout.maximumPreviewHeight * fontScale)
         .accessibilityLabel(attachment.name)
     }
     .task(id: attachment.url) {
-      state = await loader.thumbnail(attachment.url, displayScale)
+      state = await loader.thumbnail(attachment.url, displayScale * fontScale)
     }
   }
 
@@ -180,7 +186,7 @@ private struct ThumbnailPreview: View {
   ///
   /// - Parameters:
   ///   - url: The location of the file.
-  ///   - scale: The scale of the display.
+  ///   - scale: The scale of the bitmap over ``PreviewLayout/thumbnailSize``.
   /// - Returns: The thumbnail, or ``PreviewLoadState/failed`` when QuickLook
   ///   cannot make one.
   static func thumbnail(of url: URL, scale: CGFloat) async -> PreviewLoadState<NSImage> {
@@ -286,15 +292,30 @@ struct MediaPlayerPreview: View {
   /// The media file.
   let url: URL
 
-  /// The height of the player.
+  /// The height of the player at the default theme font.
   let height: CGFloat
 
   @State private var player: AVPlayer?
   @Environment(\.attachmentPreviewLoader) private var loader
+  @ThemeFontScale(.display) private var fontScale
+
+  /// The height of a player under a theme font.
+  ///
+  /// The system draws the controls of a player, and they do not shrink with
+  /// the theme font. So a smaller font keeps the height, and a larger font
+  /// scales it, so that the player keeps its place among the text.
+  ///
+  /// - Parameters:
+  ///   - height: The height at the default theme font.
+  ///   - fontScale: The ``ThemeFontScale`` of the player.
+  /// - Returns: The height of the frame of the player.
+  static func frameHeight(_ height: CGFloat, fontScale: CGFloat) -> CGFloat {
+    height * max(fontScale, 1)
+  }
 
   var body: some View {
     VideoPlayer(player: player)
-      .frame(height: height)
+      .frame(height: Self.frameHeight(height, fontScale: fontScale))
       .task(id: url) {
         player = loader.player(url)
       }
