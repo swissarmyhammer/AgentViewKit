@@ -18,9 +18,10 @@ import SwiftUI
 /// accessibility label of the bar is the title.
 ///
 /// A bar is dismissible when its action is
-/// ``Action/makeDismiss(identifier:perform:)``, as the bar of a notice is. A
-/// kit that shows the button with its symbol only sets `.labelStyle(.iconOnly)`
-/// on the bar.
+/// ``Action/makeDismiss(identifier:perform:)``, as the bar of a notice is. Its
+/// button shows only its symbol, and its title is the tooltip and the
+/// accessibility label. The bar has no outer padding: the layout that holds it
+/// gives the space around it (`style.md`, rule 10).
 ///
 /// The symbol takes its color from the ``Message/severity`` of the message:
 /// the error, warning or information color of the EditorKit theme, the status
@@ -137,6 +138,10 @@ public struct StatusBar: View {
     /// The accessibility hint of the button, or `nil` for no hint.
     public let hint: String?
 
+    /// Whether the button shows only its symbol. Its title is then the tooltip
+    /// and the accessibility label.
+    public let isIconOnly: Bool
+
     /// The closure that a press calls.
     public let perform: () -> Void
 
@@ -149,16 +154,19 @@ public struct StatusBar: View {
     ///   - identifier: The accessibility identifier of the button.
     ///   - isEnabled: Whether the button takes a press.
     ///   - hint: The accessibility hint of the button, or `nil` for no hint.
+    ///   - isIconOnly: Whether the button shows only its symbol. The default
+    ///     is `false`.
     ///   - perform: The closure that a press calls.
     public init(
       title: String, systemImage: String, identifier: String, isEnabled: Bool, hint: String? = nil,
-      perform: @escaping () -> Void
+      isIconOnly: Bool = false, perform: @escaping () -> Void
     ) {
       self.title = title
       self.systemImage = systemImage
       self.identifier = identifier
       self.isEnabled = isEnabled
       self.hint = hint
+      self.isIconOnly = isIconOnly
       self.perform = perform
     }
 
@@ -168,11 +176,12 @@ public struct StatusBar: View {
     /// - Parameters:
     ///   - identifier: The accessibility identifier of the button.
     ///   - perform: The closure that a press calls: it removes the bar.
-    /// - Returns: The button, with the ``SharedSymbol/dismiss`` symbol.
+    /// - Returns: The button, which shows only the ``SharedSymbol/dismiss``
+    ///   symbol.
     public static func makeDismiss(identifier: String, perform: @escaping () -> Void) -> Action {
       Action(
         title: String(localized: "Dismiss", bundle: .module), systemImage: SharedSymbol.dismiss,
-        identifier: identifier, isEnabled: true, perform: perform)
+        identifier: identifier, isEnabled: true, isIconOnly: true, perform: perform)
     }
   }
 

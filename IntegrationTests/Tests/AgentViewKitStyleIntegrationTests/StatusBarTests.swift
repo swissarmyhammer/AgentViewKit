@@ -110,6 +110,17 @@ import Testing
     #expect(stack.height == 2 * one.height + EditorStyle.default.controlSpacing)
   }
 
+  @Test func theDismissButtonShowsOnlyItsSymbol() {
+    let titled = StatusBar.Action(
+      title: "Dismiss", systemImage: SharedSymbol.dismiss, identifier: "dismiss", isEnabled: true, perform: {})
+    let dismiss = StatusBar.Action.makeDismiss(identifier: "dismiss", perform: {})
+
+    let iconOnly = StyleViewHost.fittingSize(of: StatusBar(message: Self.message(.neutral), action: dismiss))
+    let withTitle = StyleViewHost.fittingSize(of: StatusBar(message: Self.message(.neutral), action: titled))
+
+    #expect(iconOnly.width < withTitle.width)
+  }
+
   @Test func theDefaultStyleShowsTheButton() {
     let withButton = StyleViewHost.fittingSize(of: StatusBar(message: Self.message(.neutral), action: Self.action()))
     let without = StyleViewHost.fittingSize(of: StatusBar(message: Self.message(.neutral), action: nil))
