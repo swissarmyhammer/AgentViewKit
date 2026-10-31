@@ -206,7 +206,7 @@ public struct SessionListView: View {
   /// The search field is a kit one-line field (``AgentOneLineField``). The
   /// search sends no request, so Return in the field submits nothing.
   private var header: some View {
-    HStack {
+    ControlStack(.horizontal) {
       AgentOneLineField(
         model: searchModel, identifier: Self.searchIdentifier,
         placeholder: String(localized: "Search", bundle: .module))
@@ -326,7 +326,7 @@ public struct SessionListView: View {
   private func row(for info: SessionInfo) -> some View {
     let otherSession = otherOpenSession(for: info.sessionId)
     let openQuestions = Self.openQuestionsLabel(of: otherSession)
-    return HStack {
+    return ControlStack(.horizontal) {
       summary(of: info)
         .accessibilityElement(children: .combine)
         .accessibilityLabel { label in

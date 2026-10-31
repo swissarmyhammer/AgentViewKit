@@ -516,7 +516,7 @@ private struct DeckHeader: View {
       if layout.showsHeader {
         position
       }
-      Spacer()
+      Spacer(minLength: 0)
       if layout.moreCount > 0 {
         Text(String(localized: "+\(layout.moreCount)", bundle: .module))
           .monospacedDigit()

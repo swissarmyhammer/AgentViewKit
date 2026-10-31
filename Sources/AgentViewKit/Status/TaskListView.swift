@@ -168,7 +168,7 @@ public struct TaskListView: View {
   /// `planId` changes this view in place.
   public var body: some View {
     let key = entry.id.rowKey
-    VStack(alignment: .leading, spacing: headerGap) {
+    VStack(alignment: .leading, spacing: editorStyle.spacing.m) {
       if let unknown = entry.unknownContent {
         JSONDisclosure(
           id: key,
@@ -180,7 +180,9 @@ public struct TaskListView: View {
         Text(TaskListView.headerText(for: entry.entries))
           .font(editorTheme.font(for: .ui, style: .headline))
           .accessibilityIdentifier(TaskListView.planIdentifier(row: key))
-        VStack(alignment: .leading, spacing: entryGap) {
+        // An entry has no padding of its own (^rgsq3k4), so the stack spaces
+        // the entries.
+        VStack(alignment: .leading, spacing: editorStyle.spacing.l) {
           ForEach(Array(entry.entries.enumerated()), id: \.offset) { index, item in
             PlanEntryRow(entry: item)
               .accessibilityIdentifier(TaskListView.entryIdentifier(row: key, index: index))
@@ -189,26 +191,14 @@ public struct TaskListView: View {
       }
     }
   }
-
-  /// The space between the header and the first entry: the extra small
-  /// spacing step and the row padding of the style.
-  ///
-  /// An entry has no padding of its own (^rgsq3k4), so the stacks give the
-  /// row padding that each entry had above and below it.
-  private var headerGap: CGFloat {
-    editorStyle.spacing.xs + editorStyle.rowPadding
-  }
-
-  /// The space between two entries: the row padding below the first entry,
-  /// the extra small spacing step, and the row padding above the second
-  /// entry.
-  private var entryGap: CGFloat {
-    editorStyle.rowPadding + editorStyle.spacing.xs + editorStyle.rowPadding
-  }
 }
 
 /// One entry in ``TaskListView``.
 private struct PlanEntryRow: View {
+  /// The width of the column of the status symbol, in points. Each status
+  /// symbol stands in one column, so the text of the entries lines up.
+  private static let statusSymbolWidth: CGFloat = 16
+
   /// The ACP entry to show.
   let entry: FoundationModelsACP.PlanEntry
 
@@ -218,7 +208,7 @@ private struct PlanEntryRow: View {
   var body: some View {
     HStack(spacing: editorStyle.spacing.s) {
       statusSymbol
-        .frame(width: editorStyle.spacing.l)
+        .frame(width: Self.statusSymbolWidth)
         .help(TaskListView.statusLabel(entry.status))
       Text(entry.content)
         .strikethrough(entry.status == .cancelled)

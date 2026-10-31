@@ -1,4 +1,5 @@
 import EditorCommandsUI
+import EditorStyle
 import FoundationModelsACPClient
 import OSLog
 import SwiftUI
@@ -143,7 +144,7 @@ public struct MessageActions: View {
   }
 
   public var body: some View {
-    HStack {
+    ControlStack(.horizontal) {
       ForEach(actionsToShow, id: \.self) { action in
         Button(action.title, systemImage: action.systemImage) { perform(action) }
           .help(action.title)

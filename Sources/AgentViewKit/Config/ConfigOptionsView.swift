@@ -1,4 +1,5 @@
 import EditorCommandsUI
+import EditorStyle
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
@@ -346,7 +347,7 @@ struct ConfigOptionControl: View {
     current: SessionConfigValueId,
     selection: Binding<SessionConfigValueId>
   ) -> some View {
-    VStack(alignment: .leading) {
+    ControlStack(alignment: .leading) {
       Text(option.name)
       ForEach(groups, id: \.groupId) { group in
         let groupSelection = Binding<SessionConfigValueId?>(
