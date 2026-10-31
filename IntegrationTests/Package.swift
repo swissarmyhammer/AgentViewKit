@@ -24,13 +24,14 @@ let rootProducts: [Target.Dependency] = [
   .product(name: "AgentViewKitDemoSupport", package: rootPackageName),
 ]
 
-/// The EditorKit products that the hosted and capture tests import: the
-/// views, the commands, the style and the theme of the kit, and the hosted
-/// window, capture and review gallery helpers of `EditorTestSupport`.
+/// The EditorKit products that the hosted tests import: the views, the
+/// commands, the style and the theme of the kit, and the hosted window helpers
+/// of `EditorTestSupport`.
 let editorKitProducts: [Target.Dependency] = [
   .product(name: "EditorSwiftUI", package: "EditorKit"),
   .product(name: "EditorTheme", package: "EditorKit"),
   .product(name: "EditorStyle", package: "EditorKit"),
+  .product(name: "EditorDiff", package: "EditorKit"),
   .product(name: "EditorCommands", package: "EditorKit"),
   .product(name: "EditorCommandsUI", package: "EditorKit"),
   .product(name: "EditorComplete", package: "EditorKit"),
@@ -55,10 +56,11 @@ let acpProducts: [Target.Dependency] = [
 ///   the commands, the wire and the scripted agents, with no window, no hosting
 ///   view and no capture. It is the per-card gate and the TDD loop.
 /// - `swift test --package-path IntegrationTests` runs the integration tests:
-///   each test that mounts a view in a window or a hosting view, each capture
-///   of a real window, the snapshot and pixel tests, the focus rings, and the
-///   review gallery (`~/Library/Caches/AgentViewKit/screenshot-check/`). Use
-///   `--filter` to run one test. It runs once per batch, at the end.
+///   each test that mounts a view in a window or a hosting view, with no
+///   capture. Use `--filter` to run one test. It runs once per batch, at the
+///   end.
+/// - `swift test --package-path ScreenshotTests` runs the review gallery,
+///   locally and never in CI.
 ///
 /// The shared `swift-ci` workflow builds this package in its unit job on every
 /// run, and runs it in its integration job. `.github/workflows/ci.yml` sets
@@ -67,7 +69,7 @@ let acpProducts: [Target.Dependency] = [
 /// Its `.build` is its own: `swift package clean --package-path
 /// IntegrationTests` cleans it, a clean at the root does not.
 let package = Package(
-  name: "AgentViewKitIntegrationTests",
+  name: "IntegrationTests",
   // The same floor as the root package.
   platforms: [
     .macOS("27.0")
@@ -83,29 +85,14 @@ let package = Package(
     .package(url: "https://github.com/gonzalezreal/textual", exact: "0.5.0"),
   ],
   targets: [
-    // The kit's hosted, snapshot, pixel, focus-ring and gallery tests: each
-    // one mounts a view in EditorKit's `HostedViewHarness` or `CaptureWindow`,
-    // or captures the real window from the window server.
+    // The hosted tests: each one mounts a view in EditorKit's
+    // `HostedViewHarness`. No file of `Style/` imports the style
+    // library with `@testable`, so each of those tests reads only what a host
+    // of the product reads.
     .testTarget(
-      name: "AgentViewKitIntegrationTests",
+      name: "IntegrationTests",
       dependencies: rootProducts + editorKitProducts + acpProducts + [
         .product(name: "Textual", package: "textual")
-      ],
-      swiftSettings: mainActorIsolated
-    ),
-    // The hosted tests of the public API of the style library. No file
-    // imports it with `@testable`, so each test reads only what a host of the
-    // product reads. It links no ACP product and no target of the kit.
-    .testTarget(
-      name: "AgentViewKitStyleIntegrationTests",
-      dependencies: [
-        .product(name: "AgentViewKitStyle", package: rootPackageName),
-        .product(name: "EditorStyle", package: "EditorKit"),
-        .product(name: "EditorTheme", package: "EditorKit"),
-        .product(name: "EditorSwiftUI", package: "EditorKit"),
-        .product(name: "EditorDiff", package: "EditorKit"),
-        .product(name: "EditorCommands", package: "EditorKit"),
-        .product(name: "EditorTestSupport", package: "EditorKit"),
       ],
       swiftSettings: mainActorIsolated
     ),

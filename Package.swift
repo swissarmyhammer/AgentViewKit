@@ -29,9 +29,10 @@
 //
 // The tiers of the tests (plan.md §11 decision 21). `swift test` here runs
 // the unit tests only: no test of this package mounts a view in a window or a
-// hosting view, or captures a window. The hosted, snapshot, pixel, focus-ring
-// and review gallery tests are in the nested package, and run with
-// `swift test --package-path IntegrationTests`.
+// hosting view, or captures a window. The hosted tests are in a nested
+// package, and run with `swift test --package-path IntegrationTests`. The
+// review gallery is in another, and runs locally with
+// `swift test --package-path ScreenshotTests`.
 
 import PackageDescription
 
@@ -187,11 +188,8 @@ let package = Package(
     // helpers, such as the hosted view harness, are EditorKit's
     // `EditorTestSupport`.
     // Each test target that links a package target links it too. It is a
-    // test support product, so that the IntegrationTests package and the
-    // unit tests share one copy of each fixture; no host of the kit links it.
-    // It links EditorTestSupport for the capture of a real window
-    // (`CapturedImage`) and the looks of a screenshot (`ReviewAppearance`),
-    // which the review gallery writes.
+    // test support product, so that the nested packages and the unit tests
+    // share one copy of each fixture; no host of the kit links it.
     .target(
       name: "AgentViewKitTestSupport",
       dependencies: ["AgentViewKit", "AgentViewKitDemoSupport"] + acpProducts + styleTestSupportProducts,

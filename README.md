@@ -598,21 +598,23 @@ time. While another run holds the lock, the script waits and names the holder.
 
 ```bash
 swift test                                    # the unit tests: no window, no capture
-swift test --package-path IntegrationTests    # the hosted, snapshot, pixel and review gallery tests
+swift test --package-path IntegrationTests    # the hosted tests: no capture
+swift test --package-path ScreenshotTests     # the review gallery: local only
 Scripts/test-examples.sh                      # the demo UI tests
 ```
 
-The tests have two tiers, and the package boundary separates them. `swift
-test` at the root runs the unit tests only: the models, the commands, the
-wire and the scripted agents. No test of the root package mounts a view in a
-window or a hosting view, or captures a window. Run it on each change. No
-test reads the source or the docs of the package as text: review holds the
-rules of EditorKit `style.md`. The nested `IntegrationTests/` package
-holds each test that mounts a view in EditorKit's `HostedViewHarness`, each
-capture of a real window, the snapshot and pixel tests, the focus rings and
-the review gallery. It depends on the root package by path, has its own
-`.build`, and runs once per batch of work, and in the integration job of CI.
-Use `--filter` to run one of its tests.
+The tiers follow EditorKit's
+[View kit conventions](../EditorKit/ARCHITECTURE.md#view-kit-conventions).
+`swift test` at the root runs the unit tests only: the models, the commands,
+the wire and the scripted agents, with no window and no capture. Run it on each
+change. No test reads the source or the docs of the package as text: review
+holds the rules of EditorKit `style.md`. The nested `IntegrationTests/` package
+holds each test that mounts a view in EditorKit's `HostedViewHarness`, and runs
+once per batch of work and in the integration job of CI. It captures nothing
+and needs no Screen Recording permission. The nested `ScreenshotTests/` package
+holds the review gallery. It runs locally, and no CI job runs it. Each nested
+package depends on the root package by path and has its own `.build`. Use
+`--filter` to run one test.
 
 ### The test rule
 
@@ -630,56 +632,36 @@ real input event or a write to the shared defaults, runs under
 Mac. A wait has no time limit, so each hosted wait must be for an event that
 is certain to come.
 
-### Snapshot images
+### The review gallery
 
-The snapshot tests and the pixel tests capture the real views of the kit in
-a real window on the screen, from the window server, with ScreenCaptureKit
-(EditorKit `CapturedImage`, `style.md` rule 9). No test draws a view with a
-renderer of its own: no `ImageRenderer`, no `cacheDisplay` and no layer-tree
-renderer. The window is the key window, with no activation of the test
-process, and the capture shows what the app shows: the AppKit views, Liquid
-Glass and the scroll edge effect. Each view has fixed data and fixed dates, at
-two pixels for each point, in sRGB, and two images, Light and Dark; no test
-flips a system setting. These tests are in the `IntegrationTests/` package.
-The images are generated in
-`IntegrationTests/.build/generated-images/__Snapshots__/`, as
-`<name>-light.png` and `<name>-dark.png`, for the review gallery:
+Each run of `swift test --package-path ScreenshotTests` writes the review
+gallery, `~/Library/Caches/AgentViewKit/screenshot-check/index.html`, with
+EditorKit's `ReviewGallery` helper (EditorKit `style.md` "Review gallery"):
+first the key screens of the kit, in light and dark, with dated notes, then
+these images, grouped by suite, light and dark side by side:
 
-- `HostedSnapshotTests/`: each view of the kit, such as the thread, the
+- `HostedSnapshotTests`: each view of the kit, such as the thread, the
   composer, the cards and the banners.
-- `GlassSnapshotTests/`: the glass parts over the text of a transcript: the
+- `GlassSnapshotTests`: the glass parts over the text of a transcript: the
   thread header, the composer, the request deck in the bar and the floating
   controls.
 
-A capture holds the key window gate of its process (EditorKit
-`KeyWindowGate`), so no two captures or hosted tests of the process make a
-window key at once; it waits on no other run of the Mac. The process that
-runs `swift test --package-path IntegrationTests` needs the Screen Recording
-permission: allow the terminal or Xcode that runs it in System Settings ›
-Privacy & Security › Screen & System Audio Recording. Without it, each
-capture fails with `WindowCaptureError.screenRecordingNotAllowed`, which names
-the process; no test skips. The root `swift test` captures nothing, so it
-needs no permission.
+Each image is a capture of the real view in a real key window, from the window
+server, with no activation of the test process: it shows what the app shows,
+with the AppKit views, Liquid Glass and the scroll edge effect. Each view has
+fixed data and fixed dates, and no test flips a system setting. The user
+reviews the page. There is no manual check.
 
-When the look of a view changes, its test fails, and it writes
-`<name>-<look>.actual.png` and `<name>-<look>.diff.png` to
-`.build/snapshots/<suite>/`. The difference image shows each pixel that
-changed in magenta. The test also attaches the two images.
+The process that runs the package needs the Screen Recording permission: allow
+the terminal or Xcode that runs it in System Settings › Privacy & Security ›
+Screen & System Audio Recording. Without it, each capture fails with
+`WindowCaptureError.screenRecordingNotAllowed`, which names the process; no
+test skips. The other tiers capture nothing, so they need no permission.
 
-Each run of the integration package also writes the review gallery,
-`~/Library/Caches/AgentViewKit/screenshot-check/index.html`, with EditorKit's
-`ReviewGallery` helper (EditorKit `style.md` "Review gallery"): first the key
-screens of the kit, in light and dark, with dated notes, then every image that
-the snapshot suites generated in the run (`IntegrationTests/.build/generated-images/__Snapshots__/`),
-grouped by suite, light and dark side by side. A generated image that the page
-does not show fails the run. The user reviews that page. There is no manual
-check and no comparison with Finder or System Settings.
-
-An integration run only generates images. No reference image is stored in the
-repository, nothing records a reference, and no test compares a capture with an
-earlier one. The tests that stay check a property of one capture: the focus ring,
-the contrast of text and glyphs, the glass showing the backdrop, and the colors of
-the theme roles.
+No reference image is stored in the repository, and no test compares a capture
+with an earlier one. No test reads or measures the pixels of a capture: a
+capture exists only so that a person can look at it. Hosted tests check layout,
+focus and state without capturing.
 
 ## Design documents
 
