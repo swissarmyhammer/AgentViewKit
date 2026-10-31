@@ -1,5 +1,3 @@
-import EditorSwiftUI
-import EditorTheme
 import Observation
 import Quartz
 import SwiftUI
@@ -187,14 +185,8 @@ public struct AttachmentInspector: View {
     AttachmentActions.identifiers(prefix: identifierPrefix)
   }
 
-  /// The height of the preview row, in points. A row of a scrolling form
-  /// has no height to fill, so the preview has a fixed height.
-  static let previewHeight: CGFloat = 240
-
   /// The file to show.
   let attachment: Attachment
-
-  @Environment(\.editorTheme) private var editorTheme
 
   /// Makes the inspector content for a file.
   ///
@@ -204,25 +196,14 @@ public struct AttachmentInspector: View {
   }
 
   public var body: some View {
-    Form {
-      Section {
-        Text(attachment.name)
-          .font(editorTheme.font(for: .ui, style: .headline))
-          .lineLimit(1)
-          .truncationMode(.middle)
-          .accessibilityIdentifier(Self.nameIdentifier)
-        AttachmentActions(attachment: attachment, identifierPrefix: Self.identifierPrefix)
-      }
+    InspectorForm(name: attachment.name, nameIdentifier: Self.nameIdentifier) {
+      AttachmentActions(attachment: attachment, identifierPrefix: Self.identifierPrefix)
+    } content: {
       Section {
         QuickLookPreview(url: attachment.url)
-          .frame(maxWidth: .infinity)
-          .frame(height: Self.previewHeight)
+          .inspectorPreviewFrame()
       }
     }
-    .formStyle(.grouped)
-    // A grouped form draws an opaque background of its own. A kit view is
-    // transparent, so the background of the host shows around the rows.
-    .scrollContentBackground(.hidden)
     .accessibilityIdentifier(Self.formIdentifier)
     .agentAttachmentScope(attachment)
   }

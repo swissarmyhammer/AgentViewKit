@@ -52,6 +52,8 @@ inspector of its file with ``SwiftUI/View/toolCallLocationChipStyle(_:)``.
 
 ### Rows
 
+- ``InspectorForm``
+- ``SwiftUI/View/inspectorPreviewFrame()``
 - ``InspectorActionRow``
 - ``CompletionRow``
 
