@@ -19,18 +19,31 @@ extension View {
   ///   - isShowing: Whether the view shows the highlight.
   /// - Returns: The view, with the edge.
   public func changeHighlightEdge(radius: EditorStyle.Radius, isShowing: Bool) -> some View {
-    modifier(ChangeHighlightEdge(radius: radius, isShowing: isShowing))
+    changeHighlightEdge(corners: .rounded(radius), isShowing: isShowing)
+  }
+
+  /// Marks this view as just changed, with an edge in the change color of the
+  /// theme, on the corners of its surface, such as ``SurfaceCorners/card``.
+  ///
+  /// The edge is the edge of ``changeHighlightEdge(radius:isShowing:)``.
+  ///
+  /// - Parameters:
+  ///   - corners: The corners of the surface of the view.
+  ///   - isShowing: Whether the view shows the highlight.
+  /// - Returns: The view, with the edge.
+  public func changeHighlightEdge(corners: SurfaceCorners, isShowing: Bool) -> some View {
+    modifier(ChangeHighlightEdge(corners: corners, isShowing: isShowing))
   }
 }
 
-/// The edge of ``SwiftUI/View/changeHighlightEdge(radius:isShowing:)``.
+/// The edge of ``SwiftUI/View/changeHighlightEdge(corners:isShowing:)``.
 struct ChangeHighlightEdge: ViewModifier {
   /// The width of the edge, in points: twice the hairline `.separator` edge of a
   /// card or a tile, so the highlight reads on that edge.
   static let width: CGFloat = 2
 
-  /// The radius step of the shape of the view.
-  let radius: EditorStyle.Radius
+  /// The corners of the surface of the view.
+  let corners: SurfaceCorners
 
   /// Whether the view shows the highlight.
   let isShowing: Bool
@@ -38,6 +51,14 @@ struct ChangeHighlightEdge: ViewModifier {
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+  /// The corner radius of the edge in `style`.
+  ///
+  /// - Parameter style: The shared style that gives the radius scale.
+  /// - Returns: The radius of ``corners``.
+  func radius(in style: EditorStyle) -> CGFloat {
+    corners.radius(in: style)
+  }
 
   /// The animation that fades the edge in and out.
   ///
@@ -49,7 +70,7 @@ struct ChangeHighlightEdge: ViewModifier {
 
   func body(content: Content) -> some View {
     content.overlay {
-      EditorSurface.shape(radius: editorStyle.radii[radius])
+      EditorSurface.shape(radius: radius(in: editorStyle))
         .stroke(editorTheme.diffChangedBackground, lineWidth: Self.width)
         .opacity(isShowing ? 1 : 0)
         .animation(Self.animation(reduceMotion: reduceMotion), value: isShowing)
@@ -64,7 +85,7 @@ struct ChangeHighlightEdge: ViewModifier {
     ForEach([true, false], id: \.self) { isShowing in
       Text(verbatim: StylePreviewFixtures.fileName)
         .contentTile()
-        .changeHighlightEdge(radius: .large, isShowing: isShowing)
+        .changeHighlightEdge(corners: .card, isShowing: isShowing)
     }
   }
   .padding()

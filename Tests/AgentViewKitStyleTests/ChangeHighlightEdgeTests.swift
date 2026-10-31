@@ -1,3 +1,4 @@
+import EditorStyle
 import Testing
 
 @testable import AgentViewKitStyle
@@ -10,5 +11,17 @@ import Testing
 
   @Test func theEdgeFadesWithoutReduceMotion() {
     #expect(ChangeHighlightEdge.animation(reduceMotion: false) != nil)
+  }
+
+  @Test func theEdgeOfACardHasTheRadiusOfACard() {
+    let edge = ChangeHighlightEdge(corners: .card, isShowing: true)
+
+    #expect(edge.radius(in: .default) == SurfaceCorners.card.radius(in: .default))
+  }
+
+  @Test func theEdgeOfSquareCornersHasNoRadius() {
+    let edge = ChangeHighlightEdge(corners: .square, isShowing: true)
+
+    #expect(edge.radius(in: .default) == .zero)
   }
 }
