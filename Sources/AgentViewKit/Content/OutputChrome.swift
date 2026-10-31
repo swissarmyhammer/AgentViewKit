@@ -23,6 +23,7 @@ struct OutputCapRow: View {
 
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.themeSecondary) private var themeSecondary
 
   var body: some View {
     HStack(spacing: editorStyle.spacing.s) {
@@ -32,7 +33,7 @@ struct OutputCapRow: View {
           bundle: .module)
       )
         .font(editorTheme.font(for: .ui, style: .caption))
-        .foregroundStyle(.secondary)
+        .foregroundStyle(themeSecondary)
         .accessibilityIdentifier(capIdentifier)
       Spacer(minLength: editorStyle.spacing.s)
       Button(
@@ -57,16 +58,17 @@ struct OutputExitLabel: View {
   /// The SF Symbol name of the label.
   let symbolName: String
   /// The outcome of the command, or `nil` when it is not known. The label
-  /// uses the secondary color for an unknown outcome.
+  /// uses `\.themeSecondary` for an unknown outcome.
   let outcome: CommandOutputView.ExitOutcome?
   /// The accessibility identifier of the label.
   let identifier: String
 
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.themeSecondary) private var themeSecondary
 
   var body: some View {
     StatusCaptionLabel(
-      title: text, symbolName: symbolName, color: outcome.map(editorTheme.statusColor(for:)) ?? Color.secondary
+      title: text, symbolName: symbolName, color: outcome.map(editorTheme.statusColor(for:)) ?? themeSecondary
     )
     .frame(maxWidth: .infinity, alignment: .leading)
     .accessibilityElement(children: .ignore)

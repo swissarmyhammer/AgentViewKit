@@ -411,6 +411,7 @@ private struct ToolCallHeader: View {
 
   @Environment(\.toolCallConnectionState) private var connectionState
   @Environment(\.editorStyle) private var editorStyle
+  @Environment(\.themeSecondary) private var themeSecondary
 
   var body: some View {
     let id = entry.id.rowKey
@@ -441,7 +442,7 @@ private struct ToolCallHeader: View {
       Image(systemName: ToolKindSymbol.name(for: entry.shownKind))
         .symbolRenderingMode(.hierarchical)
         .fontWeight(editorStyle.symbolWeight)
-        .foregroundStyle(.secondary)
+        .foregroundStyle(themeSecondary)
       Text(ToolCallView.displayTitle(entry.shownTitle))
         .lineLimit(1)
         .truncationMode(.middle)
@@ -450,7 +451,7 @@ private struct ToolCallHeader: View {
       Image(systemName: SharedSymbol.disclosure)
         .symbolRenderingMode(.hierarchical)
         .fontWeight(editorStyle.symbolWeight)
-        .foregroundStyle(.secondary)
+        .foregroundStyle(themeSecondary)
         .rotationEffect(expanded ? ReasoningView.expandedChevronAngle : .zero)
     }
     .contentShape(Rectangle())
@@ -654,14 +655,29 @@ struct ToolCallBody: View, Equatable {
     case .diff(let diff):
       DiffView(diff: diff)
     case .terminal(let terminalID):
-      Label(
-        String(localized: "Terminal \(terminalID)", bundle: .module),
-        systemImage: SharedSymbol.terminal
-      )
-        .foregroundStyle(.secondary)
+      ToolCallTerminalLabel(terminalID: terminalID)
     case .unknown(let kind, let raw):
       UnknownItemView(kind: kind, raw: raw, id: partID)
     }
+  }
+}
+
+/// The label of a terminal part of a ``ToolCallBody``.
+///
+/// ``ToolCallBody`` has no environment property, so the label reads the
+/// secondary text of the theme in a view of its own.
+private struct ToolCallTerminalLabel: View {
+  /// The identifier of the terminal.
+  let terminalID: String
+
+  @Environment(\.themeSecondary) private var themeSecondary
+
+  var body: some View {
+    Label(
+      String(localized: "Terminal \(terminalID)", bundle: .module),
+      systemImage: SharedSymbol.terminal
+    )
+    .foregroundStyle(themeSecondary)
   }
 }
 
@@ -697,6 +713,7 @@ private struct ToolCallWaitingStatus: View {
 
   @Environment(\.sessionModel) private var session
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.themeSecondary) private var themeSecondary
 
   var body: some View {
     if let session {
@@ -706,7 +723,7 @@ private struct ToolCallWaitingStatus: View {
         let text = String(localized: "Waiting for \(host)", bundle: .module)
         Label(text, systemImage: ToolCallView.urlWaitingSymbol)
           .font(editorTheme.font(for: .ui, style: .callout))
-          .foregroundStyle(.secondary)
+          .foregroundStyle(themeSecondary)
           .accessibilityElement(children: .ignore)
           .accessibilityLabel(text)
           .accessibilityIdentifier(ToolCallView.waitingIdentifier(for: entry.id.rowKey))

@@ -89,7 +89,7 @@ extension ElicitationHeader {
 ///
 /// The line shows ``ElicitationHeader/whoAsks(agentPath:source:rootLabel:)``
 /// in one line, with the middle truncated, in the `ui` font role of the
-/// EditorKit theme at the callout text style, and in the secondary style. The
+/// EditorKit theme at the callout text style, and in `\.placedSecondary`. The
 /// text is selectable. VoiceOver reads the line as one element with the label
 /// of
 /// ``ElicitationHeader/whoAsksAccessibilityLabel(agentPath:source:rootLabel:)``
@@ -104,6 +104,7 @@ struct ElicitationWhoAsksLine: View {
 
   @Environment(\.elicitationRootAgentLabel) private var rootLabel
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.placedSecondary) private var placedSecondary
 
   var body: some View {
     if let text = ElicitationHeader.whoAsks(agentPath: agentPath, source: source, rootLabel: rootLabel),
@@ -112,7 +113,7 @@ struct ElicitationWhoAsksLine: View {
     {
       Text(text)
         .font(editorTheme.font(for: .ui, style: .callout))
-        .foregroundStyle(.secondary)
+        .foregroundStyle(placedSecondary)
         .lineLimit(1)
         .truncationMode(.middle)
         .textSelection(.enabled)

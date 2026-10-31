@@ -23,6 +23,7 @@ struct ElicitationTabChip: View {
 
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.placedSecondary) private var placedSecondary
 
   var body: some View {
     let schema = field.schema
@@ -30,7 +31,7 @@ struct ElicitationTabChip: View {
     Button(action: select) {
       HStack(spacing: editorStyle.spacing.xs) {
         Image(systemName: answered ? ElicitationLayout.answeredSymbol : ElicitationLayout.notAnsweredSymbol)
-          .foregroundStyle(answered ? editorTheme.statusSucceeded : .secondary)
+          .foregroundStyle(answered ? AnyShapeStyle(editorTheme.statusSucceeded) : placedSecondary)
         Text(schema.title)
         if schema.required {
           Text(verbatim: "*")

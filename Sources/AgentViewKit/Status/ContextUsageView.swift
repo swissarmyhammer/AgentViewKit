@@ -28,6 +28,7 @@ public struct ContextUsageView: View {
 
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.placedSecondary) private var placedSecondary
 
   /// The caption of the token counts of the ring.
   private static var tokensCaption: String { String(localized: "tokens", bundle: .module) }
@@ -62,7 +63,7 @@ public struct ContextUsageView: View {
         if let cost = usage.cost {
           Text(Self.costText(for: cost))
             .monospacedDigit()
-            .foregroundStyle(.secondary)
+            .foregroundStyle(placedSecondary)
             .accessibilityIdentifier(Self.costIdentifier)
         }
       }

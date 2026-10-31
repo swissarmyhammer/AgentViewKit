@@ -204,6 +204,8 @@ private struct PlanEntryRow: View {
 
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.themeForeground) private var themeForeground
+  @Environment(\.themeSecondary) private var themeSecondary
 
   var body: some View {
     HStack(spacing: editorStyle.spacing.s) {
@@ -212,7 +214,7 @@ private struct PlanEntryRow: View {
         .help(TaskListView.statusLabel(entry.status))
       Text(entry.content)
         .strikethrough(entry.status == .cancelled)
-        .foregroundStyle(entry.status == .cancelled ? .secondary : .primary)
+        .foregroundStyle(entry.status == .cancelled ? themeSecondary : themeForeground)
       Spacer(minLength: editorStyle.spacing.s)
       StatusSymbolImage(
         name: TaskListView.prioritySymbol(entry.priority),

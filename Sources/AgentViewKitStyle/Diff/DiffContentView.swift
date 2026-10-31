@@ -1,4 +1,5 @@
 import EditorDiff
+import EditorStyle
 import EditorSwiftUI
 import SwiftUI
 
@@ -12,7 +13,7 @@ import SwiftUI
 /// ^8q34yt8). The side-by-side layout keeps one row for each line already. The
 /// EditorKit `DiffView` reads the EditorKit theme of the environment.
 ///
-/// The note is a label in the `ui` font role and the `.secondary` style, for a
+/// The note is a label in the `ui` font role and `\.themeSecondary`, for a
 /// patch that a kit cannot read, a binary file or a diff that failed to load.
 /// VoiceOver reads the note as its text.
 ///
@@ -31,6 +32,7 @@ public struct DiffContentView: View {
   private let content: Content
 
   @Environment(\.diffLayout) private var layout
+  @Environment(\.themeSecondary) private var themeSecondary
 
   /// Makes the view of a parsed patch.
   ///
@@ -57,7 +59,7 @@ public struct DiffContentView: View {
         .diffWrapMode(.none)
     case .note(let text, let systemImage, let identifier):
       Label(text, systemImage: systemImage)
-        .foregroundStyle(.secondary)
+        .foregroundStyle(themeSecondary)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(text)
         .accessibilityIdentifier(identifier)

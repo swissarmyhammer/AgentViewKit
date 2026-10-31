@@ -462,6 +462,7 @@ public struct ElicitationHeader: View {
 
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.placedSecondary) private var placedSecondary
 
   /// Makes the default header.
   ///
@@ -484,7 +485,7 @@ public struct ElicitationHeader: View {
         .font(editorTheme.font(for: .ui, style: .headline))
       ElicitationWhoAsksLine(agentPath: request.agentPath, source: request.source)
       Text(request.request.message)
-        .foregroundStyle(.secondary)
+        .foregroundStyle(placedSecondary)
         .textSelection(.enabled)
     }
     .frame(maxWidth: .infinity, alignment: .leading)

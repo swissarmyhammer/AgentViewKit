@@ -10,9 +10,9 @@ import Testing
 ///
 /// The accent of the EditorKit theme is only for the selection and the focus
 /// (card ^y2mrfxt). A message tick and the band of the rows in view are
-/// neither, so a user tick is `.primary`, an agent tick is `.secondary`, and
-/// the band is `.primary`. The tests give ``DistinctRolesTheme``, which has a
-/// different color for each role.
+/// neither, so a user tick is the foreground of the theme, an agent tick is its
+/// secondary foreground, and the band is its foreground. The tests give
+/// ``DistinctRolesTheme``, which has a different color for each role.
 @Suite @MainActor struct ThreadMinimapTickColorTests {
   /// A theme with a different color for each role.
   static let theme = DistinctRolesTheme()
@@ -27,19 +27,19 @@ import Testing
     return try #require(entry)
   }
 
-  @Test func aUserMessageTickIsPrimary() throws {
+  @Test func aUserMessageTickIsTheEditorForeground() throws {
     let entry = try Self.previewEntry { if case .userMessage = $0 { true } else { false } }
 
-    #expect(ThreadMinimapView.tint(of: entry, in: Self.theme) == Color.primary)
+    #expect(ThreadMinimapView.tint(of: entry, in: Self.theme) == Self.theme.editorForeground)
   }
 
-  @Test func anAgentMessageTickIsSecondary() throws {
+  @Test func anAgentMessageTickIsTheSecondaryForeground() throws {
     let entry = try Self.previewEntry { if case .agentMessage = $0 { true } else { false } }
 
-    #expect(ThreadMinimapView.tint(of: entry, in: Self.theme) == Color.secondary)
+    #expect(ThreadMinimapView.tint(of: entry, in: Self.theme) == Self.theme.secondaryForeground)
   }
 
-  @Test func theViewportBandIsPrimaryAndNotTheAccent() {
-    #expect(ThreadMinimapView.bandColor == Color.primary)
+  @Test func theViewportBandIsTheEditorForegroundAndNotTheAccent() {
+    #expect(ThreadMinimapView.bandColor(in: Self.theme) == Self.theme.editorForeground)
   }
 }

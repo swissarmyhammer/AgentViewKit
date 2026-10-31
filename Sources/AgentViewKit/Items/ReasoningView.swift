@@ -152,6 +152,7 @@ struct ReasoningBlock<Content: View>: View {
 
   @Environment(\.expandedBlocksStore) private var environmentStore
   @Environment(\.editorStyle) private var editorStyle
+  @Environment(\.themeSecondary) private var themeSecondary
 
   var body: some View {
     let store = environmentStore ?? ownStore
@@ -162,7 +163,7 @@ struct ReasoningBlock<Content: View>: View {
     } body: {
       if expanded {
         content()
-          .foregroundStyle(.secondary)
+          .foregroundStyle(themeSecondary)
           .contentContainer(identifier: ReasoningView.bodyIdentifier(for: id))
       }
     }
@@ -217,7 +218,7 @@ struct ReasoningBlock<Content: View>: View {
   /// - Returns: "Thought for D", or "Thought" with no shown duration.
   private func title(duration: TimeInterval?) -> some View {
     Text(ReasoningView.completedTitle(duration: duration))
-      .foregroundStyle(.secondary)
+      .foregroundStyle(themeSecondary)
       .accessibilityIdentifier(ReasoningView.titleIdentifier(for: id))
   }
 }

@@ -160,6 +160,7 @@ public struct AgentAuthView: View {
   @Environment(\.agentReconnect) private var reconnect
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.placedSecondary) private var placedSecondary
 
   /// Makes the card.
   ///
@@ -297,7 +298,7 @@ public struct AgentAuthView: View {
         if let description = row.description {
           Text(description)
             .font(editorTheme.font(for: .ui, style: .callout))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(placedSecondary)
         }
       }
       Spacer(minLength: editorStyle.spacing.s)

@@ -1,5 +1,6 @@
 import AppKit
 import EditorCommandsUI
+import EditorStyle
 import FoundationModelsACP
 import OSLog
 import SwiftUI
@@ -46,6 +47,7 @@ public struct ImageView: View {
   let image: FoundationModelsACP.ImageContent
 
   @Environment(\.attachmentSelect) private var selectForInspector
+  @Environment(\.themeSecondary) private var themeSecondary
 
   /// The report that gets the file name of each image that a tap starts to
   /// write, or `nil`.
@@ -83,7 +85,7 @@ public struct ImageView: View {
         .task(id: file.url) { await Self.writeFile(of: data, named: file.name) }
     } else {
       Label(name, systemImage: SharedSymbol.imageFailure)
-        .foregroundStyle(.secondary)
+        .foregroundStyle(themeSecondary)
         .accessibilityIdentifier(Self.placeholderIdentifier)
     }
   }

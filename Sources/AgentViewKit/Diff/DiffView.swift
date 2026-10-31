@@ -80,6 +80,7 @@ public struct DiffView: View {
   @Environment(\.diffActions) private var environmentActions
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.themeSecondary) private var themeSecondary
 
   /// Makes a diff view.
   ///
@@ -225,7 +226,7 @@ public struct DiffView: View {
       } else {
         Text("The agent sent no patch text for these changes.", bundle: .module)
           .font(editorTheme.font(for: .ui, style: .caption))
-          .foregroundStyle(.secondary)
+          .foregroundStyle(themeSecondary)
           .accessibilityIdentifier(Self.noPatchIdentifier)
       }
     }
@@ -285,7 +286,7 @@ public struct DiffView: View {
       HStack(spacing: editorStyle.spacing.s) {
         Text(verbatim: hunk.header)
           .font(editorTheme.codeFont)
-          .foregroundStyle(.secondary)
+          .foregroundStyle(themeSecondary)
           .lineLimit(1)
           .truncationMode(.tail)
         Spacer(minLength: editorStyle.spacing.s)

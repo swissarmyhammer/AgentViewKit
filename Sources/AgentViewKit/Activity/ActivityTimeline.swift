@@ -208,6 +208,7 @@ private struct ActivityEntryRow: View {
 
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.themeSecondary) private var themeSecondary
 
   var body: some View {
     let key = entry.id.rowKey
@@ -248,13 +249,13 @@ private struct ActivityEntryRow: View {
     case .thought(let thought):
       Appearance(
         title: ReasoningView.completedTitle(duration: thought.duration), symbolName: Self.thoughtSymbolName,
-        tint: Color.secondary)
+        tint: themeSecondary)
     case .toolCall(let toolCall):
       toolCallAppearance(toolCall)
     case .terminal(let terminal):
       Appearance(
         title: terminal.command ?? String(localized: "Terminal", bundle: .module),
-        symbolName: SharedSymbol.terminal, tint: Color.secondary)
+        symbolName: SharedSymbol.terminal, tint: themeSecondary)
     case .error(let error):
       errorAppearance(ErrorView.content(code: error.code.wireValue, message: error.message))
     }
@@ -270,7 +271,7 @@ private struct ActivityEntryRow: View {
     Appearance(
       title: ToolCallView.displayTitle(toolCall.shownTitle),
       symbolName: ToolKindSymbol.name(for: toolCall.shownKind),
-      tint: Color.secondary,
+      tint: themeSecondary,
       status: toolCall.shownStatus)
   }
 

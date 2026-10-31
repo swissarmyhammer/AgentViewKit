@@ -42,6 +42,7 @@ public struct CodeBlockView: View {
 
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.themeSecondary) private var themeSecondary
   @Environment(\.pasteboard) private var pasteboard
 
   /// Makes a code block that keeps its own model.
@@ -100,7 +101,7 @@ public struct CodeBlockView: View {
     HStack(spacing: editorStyle.spacing.s) {
       Text(filename ?? language ?? Self.plainTextName)
         .font(editorTheme.font(for: .ui, style: .caption))
-        .foregroundStyle(.secondary)
+        .foregroundStyle(themeSecondary)
         .lineLimit(1)
         .truncationMode(.middle)
       Spacer(minLength: editorStyle.spacing.s)

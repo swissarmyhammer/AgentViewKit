@@ -116,6 +116,7 @@ struct ElicitationFieldChrome<Control: View>: View {
 
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.placedSecondary) private var placedSecondary
 
   /// Makes the chrome.
   ///
@@ -142,7 +143,7 @@ struct ElicitationFieldChrome<Control: View>: View {
       if let description = schema.description {
         Text(description)
           .font(editorTheme.font(for: .ui, style: .caption))
-          .foregroundStyle(.secondary)
+          .foregroundStyle(placedSecondary)
       }
       control
       if !context.validation.errors.isEmpty {

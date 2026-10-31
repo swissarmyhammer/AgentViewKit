@@ -510,6 +510,7 @@ private struct DeckHeader: View {
 
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.placedSecondary) private var placedSecondary
 
   var body: some View {
     HStack(spacing: editorStyle.spacing.s) {
@@ -520,7 +521,7 @@ private struct DeckHeader: View {
       if layout.moreCount > 0 {
         Text(String(localized: "+\(layout.moreCount)", bundle: .module))
           .monospacedDigit()
-          .foregroundStyle(.secondary)
+          .foregroundStyle(placedSecondary)
           .accessibilityIdentifier(RequestDeck.moreIdentifier)
           // The label of "k of N" reads the count.
           .accessibilityHidden(true)
@@ -528,7 +529,7 @@ private struct DeckHeader: View {
       if waitingCount > 0 {
         Text(String(localized: "\(waitingCount) waiting", bundle: .module))
           .monospacedDigit()
-          .foregroundStyle(.secondary)
+          .foregroundStyle(placedSecondary)
           .accessibilityIdentifier(RequestDeck.waitingIdentifier)
       }
     }

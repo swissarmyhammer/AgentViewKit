@@ -1,4 +1,5 @@
 import EditorCommandsUI
+import EditorStyle
 import FoundationModelsACP
 import SwiftUI
 
@@ -23,6 +24,7 @@ public struct AudioPlayerView: View {
   let audio: FoundationModelsACP.AudioContent
 
   @Environment(\.audioFileReport) private var reportFile
+  @Environment(\.themeSecondary) private var themeSecondary
 
   /// Makes the view of an ACP sound of a transcript entry.
   ///
@@ -67,7 +69,7 @@ public struct AudioPlayerView: View {
         String(localized: "The audio cannot play", bundle: .module),
         systemImage: SharedSymbol.audioFailure
       )
-        .foregroundStyle(.secondary)
+        .foregroundStyle(themeSecondary)
         .accessibilityIdentifier(Self.failureIdentifier)
     }
   }

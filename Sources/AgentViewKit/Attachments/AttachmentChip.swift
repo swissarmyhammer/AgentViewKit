@@ -29,6 +29,7 @@ public struct AttachmentChip: View {
 
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.placedSecondary) private var placedSecondary
 
   /// Makes the chip of a file.
   ///
@@ -58,7 +59,7 @@ public struct AttachmentChip: View {
         if let sizeText = Self.sizeText(attachment.size) {
           Text(sizeText)
             .font(editorTheme.font(for: .ui, style: .caption))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(placedSecondary)
         }
       }
     }

@@ -24,6 +24,7 @@ public struct ConnectionRow: View {
 
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.themeSecondary) private var themeSecondary
 
   /// Makes a row.
   ///
@@ -58,7 +59,7 @@ public struct ConnectionRow: View {
         if let transport = server.transport {
           Text(Self.label(for: transport))
             .font(editorTheme.font(for: .ui, style: .caption))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(themeSecondary)
             .accessibilityIdentifier(Self.transportIdentifier(for: server.name))
         }
       }

@@ -21,6 +21,7 @@ public struct ConnectionStatusChip: View {
 
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.themeSecondary) private var themeSecondary
 
   /// Makes a chip.
   ///
@@ -67,7 +68,7 @@ public struct ConnectionStatusChip: View {
         .foregroundStyle(color(for: status))
       Text(label)
         .font(editorTheme.font(for: .ui, style: .caption))
-        .foregroundStyle(.secondary)
+        .foregroundStyle(themeSecondary)
         .lineLimit(1)
     }
     .help(reason ?? label)

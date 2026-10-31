@@ -40,6 +40,7 @@ public struct ErrorView: View {
 
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.themeSecondary) private var themeSecondary
 
   /// Makes the card of an error entry of a `SessionModel`.
   ///
@@ -79,7 +80,7 @@ public struct ErrorView: View {
       if let data = entry.data?.prettyPrinted {
         Text(data)
           .font(editorTheme.codeFont)
-          .foregroundStyle(.secondary)
+          .foregroundStyle(themeSecondary)
           .textSelection(.enabled)
           .accessibilityIdentifier(Self.dataIdentifier)
       }

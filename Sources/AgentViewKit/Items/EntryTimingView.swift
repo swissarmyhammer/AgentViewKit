@@ -1,5 +1,4 @@
 import EditorStyle
-import EditorSwiftUI
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -22,8 +21,8 @@ import SwiftUI
 /// and an ``AgentThreadView`` with ``SwiftUI/View/transcriptTiming(_:)``.
 ///
 /// The view has no style of its own. The time is chrome, so it draws in the
-/// root font of the theme, its text uses the
-/// secondary level of the foreground, and its spacing and symbol weight come
+/// root font of the theme, its text uses `\.themeSecondary`, and its spacing
+/// and symbol weight come
 /// from the shared style (`\.editorStyle`). The system formatters write the time and the
 /// duration in the locale of the environment.
 ///
@@ -57,6 +56,7 @@ public struct EntryTimingView: View, PrefixedAccessibilityIdentifier {
 
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.locale) private var locale
+  @Environment(\.themeSecondary) private var themeSecondary
 
   /// Makes the time view of a transcript entry.
   ///
@@ -184,7 +184,7 @@ public struct EntryTimingView: View, PrefixedAccessibilityIdentifier {
         Text(Self.durationText(for: shown, width: .abbreviated, locale: locale))
       }
     }
-    .foregroundStyle(.secondary)
+    .foregroundStyle(themeSecondary)
     .accessibilityElement(children: .ignore)
     .accessibilityLabel(Self.accessibilityLabel(startedAt: startedAt, duration: duration, locale: locale))
     .accessibilityIdentifier(Self.identifier(for: entry.rowKey))
