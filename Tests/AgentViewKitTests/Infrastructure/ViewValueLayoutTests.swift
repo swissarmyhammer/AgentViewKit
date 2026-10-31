@@ -32,7 +32,7 @@ import Testing
   }
 
   @Test func theSpacingStepsHaveNoPaddingByte() {
-    StoredLayout<EditorStyle.Spacing>(\.xs, \.s, \.m, \.l).expectNoPaddingByte()
+    StoredLayout<EditorStyle.Spacing>(\.xs, \.s, \.m, \.l, \.xl).expectNoPaddingByte()
   }
 
   @Test func theCornerRadiiHaveNoPaddingByte() {
