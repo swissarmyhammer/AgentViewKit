@@ -1,6 +1,7 @@
 #if DEBUG
   @testable import AgentViewKit
   import AgentViewKitTestSupport
+  import AppKit
   import EditorCommands
   import EditorCommandsUI
   import EditorStyle
@@ -186,15 +187,30 @@
         PromptInputHost(model: PromptInputHostedTestModel())
       }
       defer { harness.close() }
-      let pinnedInset = try ThreadBarInsetHostedTests.listScrollView(in: harness).contentInsets.bottom
+      let pinnedInset = try Self.listScrollView(in: harness).contentInsets.bottom
 
       try Self.scrollUpByCommand(session, anchors: anchors, system: system, harness: harness)
       try #require(harness.element(identifier: ScrollToBottomPill.identifier) != nil)
 
-      let unpinnedInset = try ThreadBarInsetHostedTests.listScrollView(in: harness).contentInsets.bottom
+      let unpinnedInset = try Self.listScrollView(in: harness).contentInsets.bottom
       #expect(
-        abs(unpinnedInset - pinnedInset) <= ThreadBarInsetHostedTests.insetTolerance,
+        abs(unpinnedInset - pinnedInset) <= Self.insetTolerance,
         "bottom inset \(unpinnedInset) with the pill, \(pinnedInset) without it")
+    }
+
+    /// The largest change of the bottom inset, in points, that a test counts
+    /// as no change.
+    static let insetTolerance: CGFloat = 1
+
+    /// The `NSScrollView` of the list in `harness`.
+    ///
+    /// - Parameter harness: The harness that shows the thread.
+    /// - Returns: The scroll view whose frame holds the part of the list in
+    ///   view.
+    /// - Throws: An issue when the list or its scroll view is not there.
+    static func listScrollView(in harness: HostedViewHarness<some View>) throws -> NSScrollView {
+      let visiblePart = try #require(harness.frame(identifier: ConversationLayout.listIdentifier))
+      return try #require(views(ofType: NSScrollView.self, in: harness.hostingView).first { harness.screenFrame(of: $0).contains(visiblePart) })
     }
 
     /// Gives the list the scroll to the bottom that the manager sent after an

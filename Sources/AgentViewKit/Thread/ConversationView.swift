@@ -277,8 +277,7 @@ public struct ConversationView<EmptyState: View>: View {
         // The list keeps the inset of its rows in its content, and gives no
         // content margin (^rgsq3k4): SwiftUI gives a content margin to the
         // AppKit scroll view as `contentInsets`, and the content insets of
-        // the list are the heights of the bars above and below it
-        // (ThreadBarInsetHostedTests).
+        // the list are the heights of the bars above and below it.
         .padding(editorStyle.rowPadding)
         // The target of a scroll to the bottom near the end of the content
         // (`scrollToBottom()`).
