@@ -163,8 +163,22 @@ import EditorStyle
       let insets = scrollView.contentInsets
 
       #expect(abs(insets.top - barsAbove) <= insetTolerance, "top inset \(insets.top), bars above \(barsAbove)")
-      #expect(abs(insets.bottom - barBelow) <= insetTolerance, "bottom inset \(insets.bottom), bar below \(barBelow)")
+      #expect(
+        abs(insets.bottom - barBelow) <= insetTolerance,
+        "bottom inset \(insets.bottom), bar below \(barBelow), list \(list), controls \(controls), in the bar: \(framesInTheBar(of: harness))"
+      )
       try expectTheHeaderBelowTheHostBars(in: harness)
+    }
+
+    /// The frame of each element with an identifier in the floating controls
+    /// of `harness`, for the message of a failed check.
+    ///
+    /// - Parameter harness: The harness that shows the thread.
+    /// - Returns: One "identifier frame" text for each element.
+    static func framesInTheBar(of harness: HostedViewHarness<some View>) -> [String] {
+      harness.elements(under: AgentThreadLayout.floatingControlsIdentifier).compactMap(\.identifier).map { identifier in
+        "\(identifier) \(harness.frame(identifier: identifier).map(String.init(describing:)) ?? "no frame")"
+      }
     }
 
     /// Mounts `content` in a harness, makes one render pass, and expects the
