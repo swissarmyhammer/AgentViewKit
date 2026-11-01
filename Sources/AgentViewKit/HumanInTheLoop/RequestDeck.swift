@@ -128,7 +128,9 @@ import SwiftUI
 /// ^k06v4gt).
 ///
 /// In both places, each card has no fill, and the separator stroke of the
-/// content edge marks it (`.inlineEdge(radius:)`, D113).
+/// content edge marks it (`.inlineEdge(radius:)`, D113). The one exception
+/// is a lone card on the glass of the deck: the glass already marks the card,
+/// so the card draws no edge (``RequestDeckPlace/drawsCardEdge(cardCount:)``).
 /// The front card does not hide the cards behind it. Thus a card behind the
 /// front card shows only the top edge of its stroke, and not its content.
 ///
@@ -384,7 +386,7 @@ private struct DeckCards: View {
             DeckCard(
               source: source, request: request,
               role: waitingIDs.contains(request.id) ? .waiting : layout.role(of: request.id),
-              edgeStep: edgeStep, keyboardFocus: $keyboardFocus)
+              cardCount: cards.count, edgeStep: edgeStep, keyboardFocus: $keyboardFocus)
           }
         }
       }
@@ -462,6 +464,18 @@ nonisolated enum RequestDeckPlace: Equatable, Sendable {
   ///     above the buttons.
   init(declared: RequestDeckPlace?, isInFloatingGlassContainer: Bool) {
     self = declared ?? RequestDeckPlace(isInFloatingGlassContainer: isInFloatingGlassContainer)
+  }
+
+  /// Whether each card of a deck in this place draws the content edge.
+  ///
+  /// On the glass of the deck, the edge of a lone card would be a border just
+  /// inside the rim of the glass. With more cards, the edges tell the cards
+  /// apart. In content, the edge is the only mark of the card.
+  ///
+  /// - Parameter cardCount: The number of the pending and the waiting cards.
+  /// - Returns: `false` for a lone card in the bar, or else `true`.
+  func drawsCardEdge(cardCount: Int) -> Bool {
+    self != .bar || cardCount > 1
   }
 }
 
@@ -605,6 +619,9 @@ private struct DeckCard: View {
   /// The place of the card in the deck.
   let role: DeckCardRole
 
+  /// The number of the pending and the waiting cards of the deck.
+  let cardCount: Int
+
   /// The height of the top edge of one card behind the front card, which
   /// ``DeckStackLayout`` uses.
   let edgeStep: CGFloat
@@ -616,6 +633,10 @@ private struct DeckCard: View {
   /// The shared style that gives the radius of the edge of the card.
   @Environment(\.editorStyle) private var editorStyle
 
+  /// The glass namespace of the `FloatingGlassContainer` above the deck, or
+  /// `nil` out of a container.
+  @Environment(\.floatingGlassNamespace) private var glassNamespace
+
   /// Whether `.focusEffectDisabled()` above the deck is off, so the ring shows.
   @Environment(\.isFocusEffectEnabled) private var isFocusEffectEnabled
 
@@ -625,6 +646,8 @@ private struct DeckCard: View {
   var body: some View {
     let identifier = RequestDeck.identifier(for: request.id.uuidString)
     let showsWhole = role.showsWhole
+    let drawsEdge = RequestDeckPlace(isInFloatingGlassContainer: glassNamespace != nil)
+      .drawsCardEdge(cardCount: cardCount)
     // The card has no fill (D113), so the front card does not hide the cards
     // behind it. An edge card thus hides its content, and the band shows only
     // the top edge of its stroke above the front card.
@@ -633,7 +656,13 @@ private struct DeckCard: View {
       .focused(keyboardFocus, equals: request.id)
       .frame(maxHeight: .infinity, alignment: .top)
       .opacity(showsWhole ? 1 : 0)
-      .inlineEdge(radius: editorStyle.radii.l)
+      // The edge fades, so a second card that arrives does not change the
+      // identity of the card, and the card keeps its state.
+      .background {
+        Color.clear
+          .inlineEdge(radius: editorStyle.radii.l)
+          .opacity(drawsEdge ? 1 : 0)
+      }
       .mask { DeckCardBand(role: role, edgeStep: edgeStep) }
       // The ring is above the mask: the mask is the frame of the card plus
       // 1 pt, and it would cut the outer 2 pt of the ring.

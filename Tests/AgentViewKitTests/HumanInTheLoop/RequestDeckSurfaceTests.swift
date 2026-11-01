@@ -93,6 +93,19 @@ struct RequestDeckSurfaceTests {
     #expect(RequestDeckPlace.content.style(of: action) == style)
   }
 
+  @Test func aLoneCardOnTheGlassOfTheDeckDrawsNoEdge() {
+    #expect(!RequestDeckPlace.bar.drawsCardEdge(cardCount: 1))
+  }
+
+  @Test func withMoreCardsOnTheGlassOfTheDeckEachCardDrawsItsEdge() {
+    #expect(RequestDeckPlace.bar.drawsCardEdge(cardCount: 2))
+  }
+
+  @Test(arguments: [1, 2])
+  func inContentEachCardDrawsItsEdge(cardCount: Int) {
+    #expect(RequestDeckPlace.content.drawsCardEdge(cardCount: cardCount))
+  }
+
   @Test func anEdgeCardShowsOnlyItsTopBandAndTheOutsetOfItsStroke() {
     let band = DeckCardBand(role: .edge(depth: Self.edgeDepth), edgeStep: Self.edgeStep)
     let outset = DeckCardBand.strokeOutset
