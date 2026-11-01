@@ -10,7 +10,7 @@ import SwiftUI
 /// (elicitation-plan.md §4, task 40).
 ///
 /// The badge shows the count as a number in a capsule. The number has the
-/// `.secondary` style and the capsule has the `.quaternary` fill, as the other
+/// `.secondary` style and the capsule has the quaternary `\.themeFill`, as the other
 /// chips of the kit. The number is inset in the capsule by the steps of the
 /// style, as in the other chips: the small step on the leading and the
 /// trailing edge, and the extra small step on the top and the bottom edge.
@@ -63,6 +63,7 @@ public struct PendingRequestCountBadge: View {
 
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.themeFill) private var themeFill
 
   /// Makes the badge of a session.
   ///
@@ -80,7 +81,7 @@ public struct PendingRequestCountBadge: View {
         .foregroundStyle(.secondary)
         .padding(.horizontal, editorStyle.spacing.s)
         .padding(.vertical, editorStyle.spacing.xs)
-        .background(.quaternary, in: Capsule())
+        .background(themeFill.quaternary, in: Capsule())
         .accessibilityIdentifier(Self.identifier(for: session.sessionId))
         .accessibilityHidden(true)
     }

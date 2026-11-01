@@ -31,6 +31,7 @@ public struct AttachmentChip: View {
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
   @Environment(\.placedSecondary) private var placedSecondary
+  @Environment(\.themeFill) private var themeFill
   @ThemeFontScale(.ui) private var fontScale
 
   /// Makes the chip of a file.
@@ -67,7 +68,7 @@ public struct AttachmentChip: View {
     }
     .padding(.horizontal, editorStyle.spacing.m)
     .padding(.vertical, editorStyle.spacing.xs)
-    .background(.quaternary, in: EditorSurface.shape(radius: Self.corners.radius(in: editorStyle)))
+    .background(themeFill.quaternary, in: EditorSurface.shape(radius: Self.corners.radius(in: editorStyle)))
     .agentAttachmentScope(attachment, focusRingCorners: Self.corners)
     .preference(key: AttachmentSurfaceCornersKey.self, value: Self.corners)
   }

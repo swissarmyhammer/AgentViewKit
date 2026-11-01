@@ -131,6 +131,7 @@ public struct ToolCallLocationChip: View {
 
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.themeFill) private var themeFill
 
   /// Makes the chip of a location.
   ///
@@ -147,7 +148,7 @@ public struct ToolCallLocationChip: View {
       .padding(.horizontal, editorStyle.spacing.s)
       .padding(.vertical, editorStyle.spacing.xs)
       .background(
-        .quaternary, in: EditorSurface.shape(radius: ToolCallLocationChips.corners.radius(in: editorStyle)))
+        themeFill.quaternary, in: EditorSurface.shape(radius: ToolCallLocationChips.corners.radius(in: editorStyle)))
       .help(location.fullText)
       .accessibilityElement(children: .ignore)
       .accessibilityLabel(location.fullText)
