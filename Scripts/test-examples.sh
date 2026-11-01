@@ -10,11 +10,10 @@
 #   3. runs the UI tests of the scheme with `xcodebuild -scheme <AppName> test`.
 #
 # The UI tests bring the app to the front, so step 3 holds EditorKit's UI test gate of the
-# Mac through `ui-test-gate`, then the shared swissarmyhammer UI test lock
-# (`Scripts/ui-test-lock.sh`), as the UI test runs of Testudo and EditorKit do. While another
-# run holds either, the script waits and names the holder. Steps 1 and 2 launch no app, so
-# they run outside both. The script releases them when step 3 ends, and at exit, SIGINT or
-# SIGTERM.
+# Mac through `ui-test-gate`, as the UI test runs of Testudo and EditorKit do. While another
+# run holds the gate, the script waits and names the holder, and the wait has a limit. Steps
+# 1 and 2 launch no app, so they run outside the gate. The gate goes when step 3 ends, and at
+# exit, SIGINT or SIGTERM.
 #
 # The UI tests drive the app through XCUIApplication. The process that runs this script must
 # have the Accessibility and the Automation permissions, and a user session must be logged in.
@@ -56,22 +55,23 @@ readonly TEST_TIMEOUT="${EXAMPLE_TEST_TIMEOUT:-900}"
 # The time, in seconds, that a process has to end after SIGTERM. Then it gets SIGKILL.
 readonly STOP_GRACE_SECONDS=10
 
+# The longest wait for the UI test gate, in seconds. It is the default of `ui-test-gate`,
+# and this script passes it so that the time limit of the gate step can count it.
+readonly GATE_WAIT_SECONDS=2400
+
+# The time that this process gives its processes to end after SIGTERM, in seconds. The step
+# of the gate raises it, because the script under the gate needs time to stop its own step.
+stop_grace_seconds="$STOP_GRACE_SECONDS"
+
 # The exit status of a step that its time limit stopped. GNU `timeout` uses the same value.
 readonly LIMIT_STATUS=124
 
 # The exit status of the script when it gets SIGINT, SIGTERM or SIGHUP during a step.
 readonly INTERRUPTED_STATUS=130
 
-# The exit status of the script when it gets SIGTERM while it holds the UI test lock and
-# runs no step. The lock code exits with INTERRUPTED_STATUS on SIGINT.
-readonly TERMINATED_STATUS=143
-
 # The exit status of `ui-test-gate` when its wait for the gate ran out and the command did not
 # run.
 readonly GATE_TIMEOUT_STATUS=75
-
-# shellcheck source=Scripts/ui-test-lock.sh
-. "$REPO_ROOT/Scripts/ui-test-lock.sh"
 
 # The time limit of the command of the self-test, in seconds.
 readonly SELF_TEST_LIMIT=1
@@ -88,11 +88,28 @@ require_xcodeproj_gem() {
     fi
 }
 
-# Writes the process id of each process in a process group, one on each line.
+# Tells whether a process runs. A process that ended and waits for its parent does not run.
+#
+# Arguments: the process id.
+is_running() {
+    local state
+    state="$(ps -o stat= -p "$1" 2>/dev/null || true)"
+    case "$state" in
+        "" | Z*) return 1 ;;
+        *) return 0 ;;
+    esac
+}
+
+# Writes the process id of each running process in a process group, one on each line.
 #
 # Arguments: the process group id.
 processes_in_group() {
-    pgrep -g "$1" || true
+    local pid
+    for pid in $(pgrep -g "$1" || true); do
+        if is_running "$pid"; then
+            echo "$pid"
+        fi
+    done
 }
 
 # Writes the process id of each process of this user whose command line starts with a path
@@ -111,7 +128,7 @@ processes_under() {
 }
 
 # Stops a set of processes. Each process gets SIGTERM. Each process that is alive after
-# STOP_GRACE_SECONDS gets SIGKILL.
+# `stop_grace_seconds` gets SIGKILL.
 #
 # Arguments: a command that writes the process ids, and its arguments. The function runs the
 # command again each second to find the processes that are still alive.
@@ -125,7 +142,7 @@ stop_processes() {
     ps -o pid= -o command= -p "$(echo $pids | tr ' ' ',')" >&2 || true
     # shellcheck disable=SC2086
     kill -TERM $pids 2>/dev/null || true
-    while [ "$waited" -lt "$STOP_GRACE_SECONDS" ]; do
+    while [ "$waited" -lt "$stop_grace_seconds" ]; do
         sleep 1
         waited=$((waited + 1))
         pids="$("$@")"
@@ -176,8 +193,8 @@ start_in_new_group() {
 # The command runs in its own process group (see `start_in_new_group`), so that the limit
 # stops each process that the command started, and no other process. macOS ships no
 # `timeout` command. A process group that is not in the foreground does not get the SIGINT
-# of the terminal, so the function sends SIGINT, SIGTERM and SIGHUP of the script on to the
-# group.
+# of the terminal, so on SIGINT, SIGTERM or SIGHUP of the script the function stops the group
+# as the limit does: SIGTERM, then SIGKILL for each process that stays alive.
 #
 # Arguments: the time limit in seconds, then the command and its arguments.
 # Returns: LIMIT_STATUS when the limit stopped the command, else the status of the command.
@@ -189,7 +206,7 @@ run_with_limit() {
     command_pid=$!
     watch_limit "$limit" "$command_pid" &
     watchdog_pid=$!
-    trap 'kill -TERM -- "-$command_pid" "$watchdog_pid" 2>/dev/null; exit "$INTERRUPTED_STATUS"' INT TERM HUP
+    trap 'kill -TERM "$watchdog_pid" 2>/dev/null; stop_processes processes_in_group "$command_pid"; exit "$INTERRUPTED_STATUS"' INT TERM HUP
 
     wait "$command_pid" || status=$?
     kill -TERM "$watchdog_pid" 2>/dev/null || true
@@ -278,9 +295,11 @@ run_example() {
 # `ui-test-gate` command holds exclusive. The app comes to the front and takes keys, so no
 # hosted test, capture or UI class of any run makes a window key during the step.
 #
-# The gate comes before the lock (EditorKit `Scripts/with-ui-test-lock.sh`), and it runs a
-# command, not a shell function. So the gate runs this script again with `--ui-tests`. The
-# time limit of the step thus starts after the wait for the gate.
+# The gate runs a command, not a shell function. So the gate runs this script again with
+# `--ui-tests`. The time limit of the step thus starts after the wait for the gate.
+#
+# `run_with_limit` hands a signal of this script on to the gate, which hands it on to the
+# script under it. Its limit is a last resort: the wait, the step and the stop of the step.
 #
 # Arguments: the name of the example, its project, its results directory, then its
 # DerivedData directory.
@@ -288,36 +307,31 @@ run_example() {
 run_ui_tests() {
     run_with_limit "$BUILD_TIMEOUT" swift build --package-path "$REPO_ROOT" --product ui-test-gate || return 1
     local status=0
-    swift run --skip-build --package-path "$REPO_ROOT" ui-test-gate -- \
+    local limit=$((GATE_WAIT_SECONDS + TEST_TIMEOUT + 3 * STOP_GRACE_SECONDS))
+    stop_grace_seconds=$((2 * STOP_GRACE_SECONDS))
+    run_with_limit "$limit" swift run --skip-build --package-path "$REPO_ROOT" ui-test-gate \
+        --timeout "$GATE_WAIT_SECONDS" -- \
         "$REPO_ROOT/Scripts/test-examples.sh" --ui-tests "$@" || status=$?
+    stop_grace_seconds="$STOP_GRACE_SECONDS"
     if [ "$status" -eq "$GATE_TIMEOUT_STATUS" ]; then
         echo "The wait for the UI test gate ran out, so the UI tests did not run." >&2
     fi
     return "$status"
 }
 
-# Runs the UI tests of one example while it holds the shared UI test lock. The lock
-# waits while another run holds it.
-#
-# `run_with_limit` puts its own INT and TERM traps in place of the traps of the lock, and
-# then clears them. Its traps exit the script, and the EXIT trap of the lock then releases
-# the lock. So the function releases the lock itself, as soon as the step ends.
+# Runs the UI tests of one example. The script runs this under the UI test gate.
 #
 # Arguments: the name of the example, its project, its results directory, then its
 # DerivedData directory.
-# Returns: non-zero when the lock cannot be taken, else the status of the step.
+# Returns: the status of the step.
 run_ui_tests_under_gate() {
     local app_name="$1"
     local project="$2"
     local results="$3"
     local derived_data="$4"
-    local status=0
-    acquire_ui_test_lock "$UI_TEST_LOCK" "$UI_TEST_LOCK_POLL_SECONDS" || return 1
     run_xcodebuild "$TEST_TIMEOUT" "$derived_data" -project "$project" -scheme "$app_name" \
         -destination 'platform=macOS' \
-        -resultBundlePath "$results/$app_name-test.xcresult" test || status=$?
-    release_ui_test_lock "$UI_TEST_LOCK"
-    return "$status"
+        -resultBundlePath "$results/$app_name-test.xcresult" test
 }
 
 # Starts a `sleep` process outside the process group of the script, as launchd starts an app.
@@ -329,18 +343,6 @@ start_detached_sleep() {
     local path="$1"
     start_in_new_group "$path" sleep "$SELF_TEST_SLEEP" </dev/null >/dev/null 2>&1
     echo "$!"
-}
-
-# Tells whether a process runs. A process that ended and waits for its parent does not run.
-#
-# Arguments: the process id.
-is_running() {
-    local state
-    state="$(ps -o stat= -p "$1" 2>/dev/null || true)"
-    case "$state" in
-        "" | Z*) return 1 ;;
-        *) return 0 ;;
-    esac
 }
 
 # Writes one result line of the self-test. Returns non-zero when the check failed.
@@ -387,14 +389,16 @@ stop_self_test_processes() {
 # Then it runs the command with the time limit SELF_TEST_LIMIT. The limit must stop the
 # command, its child, the fake app and the fake runner. The process outside the directory
 # must stay alive, because the script stops only the processes that it started or that run
-# from the DerivedData directory of the example.
+# from the DerivedData directory of the example. Then a signal stops a step with a process
+# that ignores SIGTERM, and that process must not stay alive.
 self_test() {
     local products child_pid_file status=0 failed=0
-    local app_pid runner_pid outside_pid child_pid
+    local app_pid runner_pid outside_pid child_pid stepper_pid stubborn_pid stubborn_pid_file
     trap stop_self_test_processes EXIT
     self_test_work="$(mktemp -d)"
     products="$self_test_work/DerivedData/Build/Products/Debug"
     child_pid_file="$self_test_work/child.pid"
+    stubborn_pid_file="$self_test_work/stubborn.pid"
     app_pid="$(start_detached_sleep "$products/AgentViewKitDemo.app/Contents/MacOS/AgentViewKitDemo")"
     runner_pid="$(start_detached_sleep \
         "$products/AgentViewKitDemoUITests-Runner.app/Contents/MacOS/AgentViewKitDemoUITests-Runner")"
@@ -419,6 +423,31 @@ self_test() {
     check_process_state stopped "$app_pid" "the app under test" || failed=1
     check_process_state stopped "$runner_pid" "the UI test runner" || failed=1
     check_process_state running "$outside_pid" "the process outside DerivedData" || failed=1
+
+    # The inner `bash` expands "$1" and "$2" (its own arguments), so the quotes are single. It
+    # ignores SIGTERM, so only SIGKILL can stop it, and its first `sleep` lets the trap of
+    # `run_with_limit` go in place before the test sends the signal.
+    # shellcheck disable=SC2016
+    (run_with_limit "$SELF_TEST_SLEEP" bash -c \
+        'trap "" TERM; sleep 1; echo "$$" >"$2"; while :; do sleep "$1"; done' \
+        self-test-stubborn "$SELF_TEST_LIMIT" "$stubborn_pid_file") &
+    stepper_pid=$!
+    while [ ! -s "$stubborn_pid_file" ]; do
+        sleep 1
+    done
+    stubborn_pid="$(cat "$stubborn_pid_file")"
+    self_test_pids="$self_test_pids $stubborn_pid"
+    kill -TERM "$stepper_pid"
+    status=0
+    wait "$stepper_pid" || status=$?
+
+    if [ "$status" -eq "$INTERRUPTED_STATUS" ]; then
+        echo "ok: the signal ended the step with the status $INTERRUPTED_STATUS"
+    else
+        echo "not ok: the signal ended the step with status $status, expected $INTERRUPTED_STATUS"
+        failed=1
+    fi
+    check_process_state stopped "$stubborn_pid" "the process that ignores SIGTERM" || failed=1
 
     if [ "$failed" -ne 0 ]; then
         echo "FAIL self-test"
