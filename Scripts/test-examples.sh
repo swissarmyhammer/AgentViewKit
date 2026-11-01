@@ -227,7 +227,8 @@ run_example_step() {
 # Runs `xcodebuild` for one example, with a time limit.
 #
 # EditorKit and Textual use Swift macros. A build with no person to approve them must skip
-# the macro and the plugin validation.
+# the macro and the plugin validation. The SwiftPM prebuilts stay off: on Xcode 27.2 the
+# prebuilt swift-syntax fails with `SDK does not match`.
 #
 # Arguments: the time limit in seconds, the DerivedData directory, then the other arguments
 # of xcodebuild.
@@ -236,7 +237,8 @@ run_xcodebuild() {
     local derived_data="$2"
     shift 2
     run_example_step "$limit" "$derived_data" xcodebuild -skipMacroValidation \
-        -skipPackagePluginValidation -derivedDataPath "$derived_data" "$@"
+        -skipPackagePluginValidation -IDEPackageEnablePrebuilts=NO \
+        -derivedDataPath "$derived_data" "$@"
 }
 
 # Makes the project of one example again, builds it, and runs its UI tests.
