@@ -87,4 +87,36 @@ import Testing
 
     #expect(!made.isClosed)
   }
+
+  // MARK: - Wire rules
+
+  @Test func theHelpersSendATraceThatFollowsTheWireRules() async throws {
+    let session = try await Self.openChain()
+    defer { session.close() }
+    try await session.sendChildPermissionRequest(child: Self.grandchild, id: 1)
+    try await session.sendChildState(.idle(IdleStateUpdate(stopReason: .endTurn)), child: Self.grandchild)
+
+    #expect(SubagentWireTraceValidator().validate(session.childWire.trace).isEmpty)
+  }
+
+  @Test func aRequestForAChildWithNoCurrentSnapshotIsRefused() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    try await session.announceChild(Self.child, state: nil)
+
+    await #expect(throws: ScriptedChildError.childNotConfirmed(Self.child)) {
+      try await session.sendChildPermissionRequest(child: Self.child, id: 1)
+    }
+  }
+
+  @Test func theFinalToolCallUpdateOfAChildThatHasNoSnapshotIsRefused() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let call = ToolCallId(rawValue: "call-1")
+    try await session.sendAgentToolCall(call, child: Self.child)
+
+    await #expect(throws: ScriptedChildError.childNotConfirmed(Self.child)) {
+      try await session.sendAgentToolCallResult(call, child: Self.child)
+    }
+  }
 }

@@ -112,6 +112,10 @@ public final class ScriptedSession {
   /// The model of the session that the agent opened.
   public let model: SessionModel
 
+  /// The wire messages that the helpers for child sessions sent, in wire
+  /// order, and the rules that they keep.
+  public internal(set) var childWire = ScriptedChildWire()
+
   /// Makes the helper from its connected parts.
   ///
   /// - Parameters:

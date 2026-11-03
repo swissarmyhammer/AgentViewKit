@@ -24,6 +24,7 @@ extension ScriptedSession {
   ///   - sessionId: The session whose stream carries the update.
   /// - Throws: The error of the encoder or of the transport.
   public func send(update: SessionUpdate, in sessionId: SessionId) async throws {
+    childWire.record(update, in: sessionId)
     try await agent.send(
       Self.sessionUpdateFrame(sessionId: .string(sessionId.rawValue), update: JSONValue(encoding: update)))
   }
@@ -87,6 +88,7 @@ extension ScriptedSession {
   ///   - child: The id of the child.
   /// - Throws: The error of the encoder or of the transport.
   public func sendChildState(_ state: StateUpdate, child: SessionId) async throws {
+    try childWire.requireConfirmed(child)
     try await send(update: .stateUpdate(state), in: child)
   }
 
@@ -98,6 +100,7 @@ extension ScriptedSession {
   ///   - child: The id of the child.
   /// - Throws: The error of the encoder or of the transport.
   public func sendChildMessage(_ text: String, messageID: String, child: SessionId) async throws {
+    try childWire.requireConfirmed(child)
     try await send(update: BackgroundRunScript.makeChunkUpdate(messageID: messageID, text: text), in: child)
   }
 
@@ -108,6 +111,8 @@ extension ScriptedSession {
   ///   - id: The JSON-RPC id of the request.
   /// - Throws: The error of the transport.
   public func sendChildPermissionRequest(child: SessionId, id: Int) async throws {
+    try childWire.requireConfirmed(child)
+    childWire.record(request: Self.permissionMethod, id: id, session: child)
     try await sendRequest(
       Self.permissionMethod, id: id, params: Self.makePermissionParams(sessionId: child.rawValue))
   }
@@ -119,6 +124,8 @@ extension ScriptedSession {
   ///   - id: The JSON-RPC id of the request.
   /// - Throws: The error of the transport.
   public func sendChildElicitation(child: SessionId, id: Int) async throws {
+    try childWire.requireConfirmed(child)
+    childWire.record(request: Self.elicitationMethod, id: id, session: child)
     try await sendRequest(
       Self.elicitationMethod, id: id, params: Self.makeFormElicitationParams(sessionId: child.rawValue))
   }
@@ -155,6 +162,7 @@ extension ScriptedSession {
   public func sendAgentToolCallResult(
     _ toolCallId: ToolCallId, status: ToolCallStatus = .completed, child: SessionId?, in parent: SessionId? = nil
   ) async throws {
+    if let child { try childWire.requireConfirmed(child) }
     try await send(
       update: .toolCallUpdate(
         ToolCallUpdate(
@@ -173,4 +181,43 @@ extension ScriptedSession {
 public enum ScriptedChildError: Error, Equatable {
   /// The model did not make the announced child.
   case notAnnounced(SessionId)
+
+  /// A helper tried to send an update or a request for a child that has no
+  /// current snapshot yet. The wire rules allow neither: a child is announced,
+  /// and has a current snapshot, before any request for it and before the
+  /// final update of its tool call.
+  case childNotConfirmed(SessionId)
+}
+
+/// The wire messages of the helpers for child sessions, and the rules that the
+/// helpers keep.
+///
+/// The helpers record each message that they send, so a test can check the
+/// trace with `SubagentWireTraceValidator`. They also refuse to send a request
+/// for a child, or the final update of the tool call of a child, before the
+/// child has a current snapshot (``ScriptedChildError/childNotConfirmed(_:)``).
+public struct ScriptedChildWire {
+  /// The messages, in wire order.
+  public private(set) var trace: [WireTraceEvent] = []
+
+  /// The children that a snapshot with a state announced.
+  private var confirmed: Set<SessionId> = []
+
+  /// Records an update, and notes a child that the update confirms.
+  mutating func record(_ update: SessionUpdate, in session: SessionId) {
+    trace.append(.update(sessionId: session, update: update))
+    if case .subagentUpdate(let announced) = update, case .value = announced.state {
+      confirmed.insert(announced.sessionId)
+    }
+  }
+
+  /// Records a request of a session.
+  mutating func record(request method: String, id: Int, session: SessionId) {
+    trace.append(.agentRequest(id: .number(Double(id)), method: method, sessionId: session))
+  }
+
+  /// Throws unless a child has a current snapshot.
+  func requireConfirmed(_ child: SessionId) throws {
+    guard confirmed.contains(child) else { throw ScriptedChildError.childNotConfirmed(child) }
+  }
 }

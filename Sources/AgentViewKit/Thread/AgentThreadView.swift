@@ -3,6 +3,7 @@ import EditorCommandsUI
 import EditorStyle
 import FoundationModelsACP
 import FoundationModelsACPClient
+import OSLog
 import SwiftUI
 
 /// The view of the transcript of a `SessionModel` (plan.md §3.2, §3.6,
@@ -132,16 +133,22 @@ import SwiftUI
 ///   A scope around the thread view, the deck and the prompt editor gives
 ///   one mover to the three.
 public struct AgentThreadView<Composer: View>: View {
+  /// The log of the view.
+  private static var logger: Logger { Logger(subsystem: "AgentViewKit", category: "AgentThreadView") }
+
   /// The session model that the host gave: the root of the tree that the
   /// view can show. The view shows this session at first, and again after a
   /// resume.
   let root: SessionModel
 
-  /// The session that the user chose in the header, a banner or a tool row,
-  /// or `nil` for the root. Which session a window shows is state of the
-  /// view and not of the model, so two windows can show different sessions
-  /// of one connection.
-  @State private var chosen: SessionModel?
+  /// The session that the user chose in the header, a banner or a tool row.
+  /// Which session a window shows is state of the view and not of the model,
+  /// so two windows can show different sessions of one connection. The value
+  /// keeps ids, and looks them up in the live tree (``SessionFocus``).
+  @State private var focus = SessionFocus()
+
+  /// The scroll position of each session that the view showed.
+  @State private var anchorStore = SessionAnchorStore()
 
   /// Whether the list of Jump to Session shows.
   @State private var isJumpPresented = false
@@ -168,9 +175,6 @@ public struct AgentThreadView<Composer: View>: View {
   /// none.
   @State private var ownInspectorSelection = InspectorSelection()
 
-  /// The scroll anchors of the list that the view makes when no manager is
-  /// given. The agent commands use them to jump and to scroll.
-  @State private var ownAnchors = ScrollAnchorManager()
 
   @Environment(\.expandedBlocksStore) private var hostExpandedBlocks
   @Environment(\.inspectorSelection) private var hostInspectorSelection
@@ -240,7 +244,12 @@ public struct AgentThreadView<Composer: View>: View {
   /// the root. A chosen session that the client removed gives way to its
   /// nearest ancestor that is still open, so the view is never empty.
   private var session: SessionModel {
-    (chosen ?? root).nearestOpenSession
+    focus.resolve(in: root)
+  }
+
+  /// Shows the root again when a replay ends, as after a resume.
+  private func replayDidChange() {
+    if !root.isReplaying { focus.resumeEnded() }
   }
 
   /// Shows another session of the tree of the root.
@@ -248,8 +257,11 @@ public struct AgentThreadView<Composer: View>: View {
   /// - Parameter id: The id of the session. An id that the tree does not hold
   ///   changes nothing.
   private func show(_ id: SessionId) {
-    guard let found = root.session(withId: id), !found.isClosed else { return }
-    chosen = found
+    guard let found = root.session(withId: id), !found.isClosed else {
+      Self.logger.info("A request to show the session \(id.rawValue, privacy: .public) found no open session in the tree.")
+      return
+    }
+    focus.choose(found)
   }
 
   /// The name of the agent, for the paths of the jump list, or `nil`.
@@ -260,7 +272,7 @@ public struct AgentThreadView<Composer: View>: View {
 
   /// The manager of the scroll position that the view uses.
   private var anchors: ScrollAnchorManager {
-    hostAnchors ?? ownAnchors
+    hostAnchors ?? anchorStore.anchors(for: session.sessionId)
   }
 
   public var body: some View {
@@ -350,8 +362,8 @@ public struct AgentThreadView<Composer: View>: View {
     .background { SessionAnnouncementObserver(session: session) }
     // After a resume the view shows the root: a child that needs the user
     // shows through its mark and the jump of the banner.
-    .onChange(of: root.isReplaying) { if !root.isReplaying { chosen = nil } }
-    .onChange(of: root.sessionId) { chosen = nil }
+    .onChange(of: root.isReplaying) { replayDidChange() }
+    .onChange(of: root.sessionId) { focus.resumeEnded() }
     .environment(\.openSession, show)
     .agentCommandScope(
       session: session, anchors: anchors,
@@ -431,7 +443,7 @@ public struct AgentThreadView<Composer: View>: View {
           AgentLoginPrompt(session: session, connection: connection)
         }
         composer
-          .disabled(session.workState == .unknown && session.parent != nil)
+          .disabled(!SessionControls.composerEnabled(for: session))
           .environment(\.sessionModel, session)
           .environment(\.connectionModel, connection ?? hostConnection)
       }
@@ -485,6 +497,26 @@ public struct AgentThreadView<Composer: View>: View {
     } catch {
       session.appendError(reporting: error)
     }
+  }
+}
+
+/// The scroll position of each session that a thread view showed, so that a
+/// switch to a child and back keeps the place of each. The unsent draft is
+/// the draft of the session model, which the model keeps for each session.
+@MainActor
+final class SessionAnchorStore {
+  /// The manager of each session id.
+  private var managers: [SessionId: ScrollAnchorManager] = [:]
+
+  /// The manager of a session, made at the first request.
+  ///
+  /// - Parameter id: The id of the session.
+  /// - Returns: The manager.
+  func anchors(for id: SessionId) -> ScrollAnchorManager {
+    if let existing = managers[id] { return existing }
+    let made = ScrollAnchorManager()
+    managers[id] = made
+    return made
   }
 }
 

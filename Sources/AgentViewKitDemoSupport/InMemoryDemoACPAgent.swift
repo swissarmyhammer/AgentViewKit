@@ -231,11 +231,15 @@ public actor InMemoryDemoACPAgent: Agent {
     }
     let senders = try session.requests.map(Self.makeSender)
     let childHistory = try session.childUpdates.map(Self.notification)
+    let current = try session.beforeResponse.map(Self.notification)
     let snapshots = try session.currentSnapshots.map(Self.notification)
     if replayingHistory {
       for notification in history + childHistory {
         try await connection.sessionUpdate(notification)
       }
+    }
+    for notification in current {
+      try await connection.sessionUpdate(notification)
     }
     try sendAfterResponse(senders, of: sessionId, afterSending: snapshots)
   }

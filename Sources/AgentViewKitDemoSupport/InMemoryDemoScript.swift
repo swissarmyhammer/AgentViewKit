@@ -38,6 +38,11 @@ nonisolated public struct InMemoryDemoScript: Sendable {
   /// child and a grandchild.
   public static let nested = InMemoryDemoScript(signIn: .notAdvertised, sessions: [DemoNestedSession.session])
 
+  /// The nested session with no current snapshot of its children: after the
+  /// response, each child stays unconfirmed.
+  public static let nestedUnconfirmed = InMemoryDemoScript(
+    signIn: .notAdvertised, sessions: [DemoNestedSession.unconfirmedSession])
+
   /// One sign-in method that the agent rejects, and no scripted session.
   public static let rejectedSignIn = InMemoryDemoScript(signIn: .rejected, sessions: [])
 

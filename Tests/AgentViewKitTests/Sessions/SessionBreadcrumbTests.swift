@@ -71,10 +71,11 @@ import Testing
     #expect(BreadcrumbSegment.segments(of: path, collapsed: true).count == 2)
   }
 
-  @Test func theHeaderLabelNamesTheAgentAndThePath() {
-    #expect(AgentInfoHeader.label(agent: "Agent", path: []) == "Agent")
-    #expect(AgentInfoHeader.label(agent: "Agent", path: ["Reviewer", "Linter"]).contains("Reviewer"))
-    #expect(AgentInfoHeader.label(agent: "Agent", path: ["Reviewer", "Linter"]).hasSuffix("Linter"))
+  @Test func theHeaderLabelReadsThePathOneNameAfterTheOther() {
+    #expect(AgentInfoHeader.label(agent: "Agent", path: []) == "Path: Agent")
+    #expect(
+      AgentInfoHeader.label(agent: "Agent", path: ["Reviewer", "Linter"])
+        == "Path: Agent, then Reviewer, then Linter")
   }
 
   // MARK: - Dropdowns
@@ -84,7 +85,7 @@ import Testing
     defer { session.close() }
     let child = try #require(session.session(Self.reviewer))
 
-    let labels = child.siblings.map(SessionStateText.choiceLabel(for:))
+    let labels = child.siblings.map { SessionStateText.choiceLabel(for: $0) }
 
     #expect(labels == ["Reviewer, In progress", "Second, In progress"])
   }
@@ -95,9 +96,9 @@ import Testing
     let other = try #require(session.session(Self.second))
     try await session.sendInOrder([.permission(id: 1, sessionId: Self.second)], to: other)
 
-    let labels = try #require(session.session(Self.reviewer)).siblings.map(SessionStateText.choiceLabel(for:))
+    let labels = try #require(session.session(Self.reviewer)).siblings.map { SessionStateText.choiceLabel(for: $0) }
 
-    #expect(labels.last == "Second, In progress, 1 open question")
+    #expect(labels.last == "Second, In progress, 1 open question, needs your attention")
   }
 
   // MARK: - Marks
@@ -157,9 +158,9 @@ import Testing
   }
 
   @Test func aChildThatFailedToRestoreShowsItsReason() {
-    let message = UnconfirmedSessionBanner.message(failure: "The log is gone.")
+    let message = UnconfirmedSessionBanner.message(for: .failedToRestore(reason: "The log is gone."))
 
-    #expect(message.explanation == "The log is gone.")
+    #expect(message?.explanation == "The log is gone.")
   }
 
   // MARK: - Tool row link
@@ -176,5 +177,92 @@ import Testing
     }.first
 
     #expect(entry?.childSession === child)
+  }
+}
+
+/// The status texts, the controls and the menus of the tree.
+@Suite @MainActor struct SessionStatusTests {
+  @Test func aRootSessionHasAKnownStatus() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+
+    #expect(SessionStatus.of(session.model).isUnknown == false)
+    #expect(SessionControls.composerEnabled(for: session.model))
+  }
+
+  @Test func aConfirmedChildHasAKnownStateAndNoComposer() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let child = try await session.announceChild(SessionId(rawValue: "c"))
+
+    #expect(SessionStatus.of(child) == .known(.running))
+    #expect(!SessionControls.composerEnabled(for: child))
+  }
+
+  @Test func theFourStatusesReadDifferently() {
+    let texts = [
+      SessionStatus.unconfirmed.text, SessionStatus.failedToRestore(reason: "gone").text,
+      SessionStatus.stateOmitted.text, SessionStatus.known(.idle(stopReason: nil, error: nil)).text,
+    ]
+
+    #expect(Set(texts).count == 4)
+    #expect(texts[1].contains("gone"))
+  }
+
+  @Test func theBannerSaysEachStatusInItsOwnWords() {
+    let unconfirmed = UnconfirmedSessionBanner.message(for: .unconfirmed)
+    let omitted = UnconfirmedSessionBanner.message(for: .stateOmitted)
+
+    #expect(unconfirmed?.title != omitted?.title)
+    #expect(UnconfirmedSessionBanner.message(for: .known(.running)) == nil)
+  }
+
+  @Test func theChildrenMenuListsTheFirstOnesAndCountsTheRest() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    for index in 0..<5 { try await session.announceChild(SessionId(rawValue: "c\(index)")) }
+    let entries = session.model.children.map(\.pathEntry)
+
+    let split = ChildrenMenu.split(entries, limit: 3)
+
+    #expect(split.listed.count == 3)
+    #expect(split.more == 2)
+    #expect(ChildrenMenu.split(entries).more == 0)
+  }
+
+  @Test func aMarkShowsTheShownSessionAndTheSessionsThatNeedTheUser() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let child = try await session.announceChild(SessionId(rawValue: "c"))
+    try await session.sendInOrder([.permission(id: 1, sessionId: child.sessionId)], to: child)
+
+    #expect(SessionBreadcrumb.mark(of: child.pathEntry, isCurrent: true) == "checkmark")
+    #expect(SessionBreadcrumb.mark(of: child.pathEntry, isCurrent: false) == SharedSymbol.warning)
+  }
+
+  @Test func theBannerFindsAWaitingSiblingAndAWaitingAncestor() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let first = try await session.announceChild(SessionId(rawValue: "first"))
+    let second = try await session.announceChild(SessionId(rawValue: "second"))
+    try await session.sendInOrder([.permission(id: 1, sessionId: second.sessionId)], to: second)
+
+    #expect(first.waitingElsewhere?.sessionId == second.sessionId)
+    #expect(second.waitingElsewhere == nil)
+  }
+
+  @Test func theBannerFindsAWaitingAncestor() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let child = try await session.announceChild(SessionId(rawValue: "child"))
+    try await session.sendInOrder([.permission(id: 1)], to: session.model)
+
+    #expect(child.waitingElsewhere?.sessionId == session.model.sessionId)
+  }
+
+  @Test func anAgentsCallThatEndedShowsTheFinishedLabel() {
+    #expect(ToolCallChildLink.isFinishedAgentCall(name: "agents", status: .completed))
+    #expect(!ToolCallChildLink.isFinishedAgentCall(name: "agents", status: .inProgress))
+    #expect(!ToolCallChildLink.isFinishedAgentCall(name: "shell", status: .completed))
   }
 }

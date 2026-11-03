@@ -54,19 +54,34 @@ extension SessionModel {
   /// that needs attention through one of its own descendants.
   var waitingDescendant: SessionPathEntry? {
     let all = descendants
-    return all.first { $0.pendingRequestCount > 0 || $0.workState == .requiresAction }
-      ?? all.first(where: \.needsAttention)
+    return all.first { $0.waitsItself } ?? all.first(where: \.needsAttention)
+  }
+
+  /// The session of the tree that waits for the user and that is not this
+  /// session: a descendant first, then an ancestor, nearest first, then a
+  /// sibling.
+  ///
+  /// The banner of the shown session uses it, so a question in any other part
+  /// of the tree has a jump.
+  var waitingElsewhere: SessionPathEntry? {
+    if let below = waitingDescendant { return below }
+    if let above = ancestors.reversed().first(where: \.waitsItself) { return above }
+    return siblings.first { $0.sessionId != sessionId && ($0.waitsItself || $0.needsAttention) }
   }
 }
 
 /// The text of a path of titles, such as "Agent, Reviewer, and Linter".
 enum SessionPathText {
-  /// The list of the titles of a path.
+  /// The separator of the spoken path.
+  static let spokenSeparator = ", then "
+
+  /// The spoken form of a path, one name after the other.
   ///
   /// - Parameter titles: The titles, from the root.
-  /// - Returns: The titles as one list.
+  /// - Returns: Text such as "Path: Agent, then Reviewer, then Linter".
   static func label(_ titles: [String]) -> String {
-    titles.formatted(.list(type: .and, width: .narrow))
+    let path = titles.joined(separator: spokenSeparator)
+    return String(localized: "Path: \(path)", bundle: .module)
   }
 }
 
@@ -91,11 +106,22 @@ enum SessionStateText {
   ///
   /// - Parameter entry: The path entry of the session.
   /// - Returns: Text such as "Reviewer, In progress, 1 open question".
-  static func choiceLabel(for entry: SessionPathEntry) -> String {
-    var parts = [entry.title, text(for: entry.workState)]
+  static func choiceLabel(for entry: SessionPathEntry, model: SessionModel? = nil) -> String {
+    let state = model.map { SessionStatus.of($0).text } ?? text(for: entry.workState)
+    var parts = [entry.title, state]
     if entry.pendingRequestCount > 0 {
       parts.append(PendingRequestCountBadge.openQuestionsLabel(count: entry.pendingRequestCount))
     }
+    if entry.needsAttention { parts.append(String(localized: "needs your attention", bundle: .module)) }
     return parts.joined(separator: ", ")
+  }
+}
+
+extension SessionPathEntry {
+  /// Whether the session itself waits for the user: it has an open request,
+  /// or its state is `requires_action`. The `needsAttention` flag also counts
+  /// the descendants of the session.
+  var waitsItself: Bool {
+    pendingRequestCount > 0 || workState == .requiresAction
   }
 }

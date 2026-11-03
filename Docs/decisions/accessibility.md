@@ -195,3 +195,26 @@ announcement.
 ## Dynamic Type
 
 See `dynamic-type.md`.
+
+## Session path in the header
+
+Decided on 2026-11-03 with the sub-agent sessions (see
+`Docs/decisions/sub-agent-sessions.md`).
+
+- The header is one element when it shows the agent alone. With a session, it
+  is a container, so each dropdown stays reachable with VoiceOver. Its label
+  reads the path one name after the other: "Path: Agent, then Reviewer, then
+  Linter". Its value is the version line.
+- Each crumb is a menu with the label "title, state" and the note "needs your
+  attention" when the session or one below it needs the user. The mark is never
+  the only sign: the label says it too. Each menu has the hint "Shows the
+  sessions at this level." The choice for the shown session has the selected
+  trait.
+- The "..." menu of the collapsed middle crumbs has the label "More of the
+  path". The menu of the children has the label "Children, N", with a note
+  when a child needs the user.
+- The banner of a waiting session names its path, and its Show button has an
+  identifier of its own. A child with an unknown state has a banner with its
+  own words for a child that waits for its first snapshot, a child that failed
+  to restore (with the reason), and a child that has no state.
+- Each session command has a title for the menus and the palette.

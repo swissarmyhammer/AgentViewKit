@@ -14,11 +14,15 @@ import Testing
 
   /// Resumes the nested session from the start, and waits until the agent
   /// sent its request after the result.
-  static func resumeNested() async throws -> (DemoAgent, SessionModel) {
-    let agent = try await DemoAgent.makeInProcess(script: .nested)
+  static func resumeNested(
+    script: InMemoryDemoScript = .nested, waitsForTheRequest: Bool = true
+  ) async throws -> (DemoAgent, SessionModel) {
+    let agent = try await DemoAgent.makeInProcess(script: script)
     let request = ResumeSessionRequest(
       cwd: agent.workingDirectory, sessionId: root, replayFrom: .start(ReplayFromStart()))
     let session = try await agent.connection.resumeSession(request)
+    // A script with no request has nothing to wait for.
+    guard waitsForTheRequest else { return (agent, session) }
     await ObservationWait.until {
       session.children.first?.children.first?.pendingRequestCount == 1
     }
@@ -78,6 +82,55 @@ import Testing
 
     #expect(child.isWorkStateConfirmed)
     #expect(grandchild.isWorkStateConfirmed)
+    await agent.stop()
+  }
+
+  // MARK: - Wire order
+
+  @Test func theNestedScriptFollowsTheWireRulesOfSubagentSessions() throws {
+    let trace = try DemoNestedSession.session.wireTrace()
+
+    #expect(SubagentWireTraceValidator().validate(trace).isEmpty)
+  }
+
+  @Test func theUnconfirmedScriptFollowsTheWireRulesToo() throws {
+    let trace = try DemoNestedSession.unconfirmedSession.wireTrace()
+
+    #expect(SubagentWireTraceValidator().validate(trace).isEmpty)
+  }
+
+  @Test func theSnapshotAfterTheResponseKeepsTheTitleAndGivesTheCapabilities() async throws {
+    let (agent, session) = try await Self.resumeNested()
+
+    let child = try #require(session.children.first)
+
+    #expect(child.displayTitle == DemoNestedSession.childTitle)
+    #expect(child.capabilities?.cancel != nil)
+    await agent.stop()
+  }
+
+  // MARK: - A child that failed to restore, and an unconfirmed child
+
+  @Test func aChildThatFailedToRestoreIsUnknownWithItsReasonAndSoIsItsChild() async throws {
+    let (agent, session) = try await Self.resumeNested()
+
+    let failed = try #require(session.children.last)
+    let failedChild = try #require(failed.children.first)
+
+    #expect(failed.displayTitle == DemoNestedSession.failedChildTitle)
+    #expect(failed.workState == .unknown)
+    #expect(failed.restoreFailure == DemoNestedSession.failedChildReason)
+    #expect(failedChild.workState == .unknown)
+    #expect(failedChild.restoreFailure == DemoNestedSession.ancestorReason)
+    await agent.stop()
+  }
+
+  @Test func aChildWithNoCurrentSnapshotStaysUnconfirmedAfterTheResponse() async throws {
+    let (agent, session) = try await Self.resumeNested(script: .nestedUnconfirmed, waitsForTheRequest: false)
+    let child = try #require(session.children.first)
+
+    #expect(!child.isWorkStateConfirmed)
+    #expect(child.workState == .unknown)
     await agent.stop()
   }
 }

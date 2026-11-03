@@ -810,6 +810,26 @@ struct ToolCallChildLink: View {
   /// - Returns: The identifier.
   static func identifier(for id: String) -> String { "tool-call-open-session-" + id }
 
+  /// The accessibility identifier of the label of a finished call.
+  ///
+  /// - Parameter id: The text identity of the call.
+  /// - Returns: The identifier.
+  static func finishedIdentifier(for id: String) -> String { "tool-call-finished-" + id }
+
+  /// Tells if a call is an `agents` call that ended.
+  ///
+  /// - Parameters:
+  ///   - name: The tool name of the call, or `nil`.
+  ///   - status: The status of the call.
+  /// - Returns: `true` for a completed, failed or cancelled `agents` call.
+  static func isFinishedAgentCall(name: String?, status: FoundationModelsACP.ToolCallStatus?) -> Bool {
+    guard name == "agents" else { return false }
+    switch status {
+    case .completed, .failed, .cancelled: return true
+    default: return false
+    }
+  }
+
   /// The tool call entry.
   let entry: ToolCallEntry
 
@@ -818,13 +838,19 @@ struct ToolCallChildLink: View {
   var body: some View {
     // The status is read so that a change of the call draws the link again:
     // the client sets `childSession` when it reads the link.
-    let _ = entry.status
+    let status = entry.status
     if let child = entry.childSession, !child.isClosed, let openSession {
       Button(String(localized: "Open session", bundle: .module), systemImage: SharedSymbol.disclosure) {
         openSession(child.sessionId)
       }
       .accessibilityIdentifier(Self.identifier(for: entry.id.rowKey))
       .accessibilityHint(child.displayTitle)
+    } else if Self.isFinishedAgentCall(name: entry.name, status: status), openSession != nil {
+      // The client removed the child. The row stays as history, with a short
+      // label in place of the vanished button; the result is in the content.
+      Text(String(localized: "Finished", bundle: .module))
+        .foregroundStyle(.secondary)
+        .accessibilityIdentifier(Self.finishedIdentifier(for: entry.id.rowKey))
     }
   }
 }

@@ -44,14 +44,14 @@ public struct WaitingDescendantBanner: View {
   ///   explanation.
   static func message(for entry: SessionPathEntry) -> StatusBar.Message {
     StatusBar.Message(
-      title: String(localized: "A sub-session needs you", bundle: .module),
-      explanation: SessionPathText.label(entry.path),
+      title: String(localized: "Another session needs you", bundle: .module),
+      explanation: entry.path.joined(separator: SessionJumpList.pathSeparator),
       symbolName: SharedSymbol.warning, identifier: identifier, severity: .warning)
   }
 
   /// The bar for the descendant that waits, or nothing.
   public var body: some View {
-    if let entry = session.waitingDescendant {
+    if let entry = session.waitingElsewhere {
       StatusBar(
         message: Self.message(for: entry),
         action: StatusBar.Action(
@@ -88,26 +88,33 @@ public struct UnconfirmedSessionBanner: View {
 
   /// The text of the banner.
   ///
-  /// - Parameter failure: The reason that the restore failed, or `nil` for a
-  ///   child that waits for its first snapshot.
-  /// - Returns: The message.
-  static func message(failure: String?) -> StatusBar.Message {
-    if let failure {
+  /// - Parameter status: The status of the session.
+  /// - Returns: The message, or `nil` when the state is known.
+  static func message(for status: SessionStatus) -> StatusBar.Message? {
+    switch status {
+    case .known: return nil
+    case .failedToRestore(let reason):
       return StatusBar.Message(
-        title: String(localized: "This sub-session did not restore", bundle: .module), explanation: failure,
+        title: String(localized: "This sub-session did not restore", bundle: .module), explanation: reason,
         symbolName: SharedSymbol.warning, identifier: identifier, severity: .warning)
+    case .unconfirmed:
+      return StatusBar.Message(
+        title: String(localized: "The state of this sub-session is not known yet", bundle: .module),
+        explanation: String(
+          localized: "The agent has not sent the current state after the resume.", bundle: .module),
+        symbolName: SharedSymbol.information, identifier: identifier, severity: .information)
+    case .stateOmitted:
+      return StatusBar.Message(
+        title: String(localized: "The agent gave no state for this sub-session", bundle: .module),
+        explanation: String(localized: "The state stays unknown.", bundle: .module),
+        symbolName: SharedSymbol.information, identifier: identifier, severity: .information)
     }
-    return StatusBar.Message(
-      title: String(localized: "The state of this sub-session is not known yet", bundle: .module),
-      explanation: String(
-        localized: "The controls stay off until the agent sends the current state.", bundle: .module),
-      symbolName: SharedSymbol.information, identifier: identifier, severity: .information)
   }
 
   /// The bar for an unconfirmed child, or nothing.
   public var body: some View {
-    if session.parent != nil, session.workState == .unknown {
-      StatusBar(message: Self.message(failure: session.restoreFailure), action: nil)
+    if session.parent != nil, let message = Self.message(for: SessionStatus.of(session)) {
+      StatusBar(message: message, action: nil)
     }
   }
 }
