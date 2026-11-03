@@ -1,6 +1,14 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m6htcypmmrrfkatb14p3361c
+  text: |-
+    finish — stuck
+    - evidence: FoundationModelsACPAgent announces live child runs only. It does not replay child history from a recording.
+    - next: Wait for the agent session to say that replay exists. Then add the recording and enable RecordedNestedResumeTests.
+  timestamp: 2026-11-03T23:02:39.060764+00:00
 position_column: todo
 position_ordinal: '8380'
 title: 'Nested recording: resume of a recording with agentSpawn shows the tree'
