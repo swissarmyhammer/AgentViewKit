@@ -64,3 +64,88 @@ import Testing
     #expect(SessionBreadcrumb.overflowIdentifier == "session-crumb-overflow")
   }
 }
+
+/// The labels and the menus for a long path and for many children, with no
+/// window.
+@Suite @MainActor struct LargeSessionTreeAccessibilityTests {
+  /// A chain of five sessions below the root.
+  static func openChainOfFive() async throws -> (ScriptedSession, [SessionId]) {
+    let session = try await ScriptedSession.open()
+    var ids: [SessionId] = []
+    var parent = session.model.sessionId
+    for index in 1...5 {
+      let id = SessionId(rawValue: "level-\(index)")
+      try await session.announceChild(id, title: "Level \(index)", in: parent)
+      ids.append(id)
+      parent = id
+    }
+    return (session, ids)
+  }
+
+  @Test func theLabelOfAPathOfFiveCrumbsReadsEachNameInOrder() async throws {
+    let (session, ids) = try await Self.openChainOfFive()
+    defer { session.close() }
+    let deepest = try #require(session.session(ids[4]))
+    let titles = deepest.pathModels.map(\.displayTitle)
+
+    let label = AgentInfoHeader.label(agent: "Agent", path: titles)
+
+    #expect(titles.count == 6)
+    #expect(label.hasPrefix("Path: Agent, then "))
+    #expect(label.hasSuffix(", then Level 1, then Level 2, then Level 3, then Level 4, then Level 5"))
+  }
+
+  @Test func theCollapsedPathOfFiveCrumbsHoldsTheThreeMiddleCrumbsInTheDropdown() async throws {
+    let (session, ids) = try await Self.openChainOfFive()
+    defer { session.close() }
+    let path = try #require(session.session(ids[4])).pathModels
+
+    let segments = BreadcrumbSegment.segments(of: path, collapsed: true)
+
+    #expect(segments.count == 3)
+    guard case .overflow(let middle) = segments[1] else {
+      Issue.record("The middle of the path is one dropdown.")
+      return
+    }
+    #expect(middle.count == 4)
+    #expect(BreadcrumbCollapse.collapsedIndices(for: .collapsed, count: path.count) == 1..<5)
+  }
+
+  @Test func eachCrumbOfALongPathHasItsOwnLabel() async throws {
+    let (session, ids) = try await Self.openChainOfFive()
+    defer { session.close() }
+
+    let labels = try ids.map { SessionBreadcrumb.accessibilityLabel(for: try #require(session.session($0))) }
+
+    #expect(Set(labels).count == 5)
+    #expect(labels.first == "Level 1, In progress")
+  }
+
+  @Test func aMenuOfFortyChildrenListsTheFirstOnesAndNamesTheRest() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    for index in 1...40 {
+      try await session.announceChild(SessionId(rawValue: "child-\(index)"), title: "Child \(index)")
+    }
+    let entries = session.model.children.map(\.pathEntry)
+
+    let split = ChildrenMenu.split(entries)
+    let labels = split.listed.map { SessionStateText.choiceLabel(for: $0) }
+
+    #expect(entries.count == 40)
+    #expect(split.listed.count == ChildrenMenu.limit)
+    #expect(split.more == 40 - ChildrenMenu.limit)
+    #expect(labels.first == "Child 1, In progress")
+    #expect(Set(labels).count == ChildrenMenu.limit)
+  }
+
+  @Test func theJumpListFindsAChildThatTheMenuDoesNotList() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    for index in 1...40 { try await session.announceChild(SessionId(rawValue: "c\(index)"), title: "Child \(index)") }
+
+    let found = SessionJumpList.filter(session.model.jumpEntries, query: "child 40")
+
+    #expect(found.map(\.title) == ["Child 40"])
+  }
+}

@@ -454,6 +454,19 @@ The open-ended kinds take a key:
 A uniform type with no registration falls to the nearest supertype, and then
 to the file chip. Nothing is dropped.
 
+### Sub-agent sessions
+
+A sub-agent is a child session, and the model is parent and child all the way down; the kit has no rule for a number of levels. `AgentThreadView` shows the root session that you give it, and the user moves in the tree:
+
+- **The path.** `AgentInfoHeader` shows a crumb for each session from the root to the shown one. Each crumb is a dropdown with its siblings (title, state, open questions), and a mark when a session at or below it needs the user. A last dropdown lists the children of the shown session. When the path does not fit the width, the middle crumbs collapse into a "..." dropdown.
+- **Commands.** Go to Parent Session (⌃⌘←), Open Child Session (⌃⌘→), Previous and Next Sibling Session (⌃⌥⌘[ and ⌃⌥⌘]), and Jump to Session (⌃⌘O), a filtered list of the ancestors and descendants with their paths.
+- **Banners.** A banner tells when another session needs the user, with a button that jumps to it. A child with an unknown state, or one that failed to restore, has its own text, and a child has no composer.
+- **The view state.** Which session a window shows is state of the view. The root shows again after a resume, and a child that needs the user does not take the focus.
+- **The removal rule.** The client removes a finished child when the tool call that started it has a final status (the link is `_meta.sah.agentRun`). The `agents` tool row jumps to the child while it exists, and shows "Finished" after it. A shown child that the client removes gives way to its parent.
+- **The break of the API.** `sessionTitle` is gone from `AgentThreadView` and `AgentInfoHeader`: the header reads the session model.
+
+`DemoNestedSession` is a scripted session with a child that needs the user, a child that failed to restore and a child that finishes and disappears; the Gallery of the demo app lists it. See `Docs/decisions/sub-agent-sessions.md`.
+
 ## Components
 
 The list follows the inventory of [`plan.md`](plan.md) §9.
@@ -517,7 +530,7 @@ The list follows the inventory of [`plan.md`](plan.md) §9.
 **Connections and authorization**
 
 - `AgentConnectionBanner`: the banner of `ConnectionModel.state`.
-- `AgentInfoHeader`: the name and the version of the agent from its `initialize` answer, and the session title from the host after a chevron. VoiceOver reads it as one header element, "Agent, Session".
+- `AgentInfoHeader`: the name and the version of the agent from its `initialize` answer, and one crumb for each session of the path from the root to the shown session, each a dropdown of its siblings. VoiceOver reads the path, "Path: Agent, then Reviewer, then Linter".
 - `AgentAuthView`: the auth methods of an ACP agent, with sign-out.
 - `ConnectionsView`, `ConnectionRow`, `ConnectionStatusChip`: the MCP servers of a session, one row, and one status chip.
 - `AuthorizationPresenter`: opens an authorization URL in `ASWebAuthenticationSession`.

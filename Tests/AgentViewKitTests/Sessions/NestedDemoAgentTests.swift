@@ -5,6 +5,8 @@ import FoundationModelsACP
 import FoundationModelsACPClient
 import Testing
 
+@testable import AgentViewKit
+
 /// The nested demo agent gives the tree of a root, a child and a grandchild
 /// through the client model. The chain of three sessions is only a test size.
 @Suite @MainActor struct NestedDemoAgentTests {
@@ -131,6 +133,32 @@ import Testing
 
     #expect(!child.isWorkStateConfirmed)
     #expect(child.workState == .unknown)
+    await agent.stop()
+  }
+
+  // MARK: - The finished child and the replay
+
+  @Test func theChildThatFinishesIsRemovedAtTheFinalToolCallUpdate() async throws {
+    let (agent, session) = try await Self.resumeNested()
+
+    #expect(!session.children.contains { $0.sessionId.rawValue == DemoNestedSession.finishedChildId })
+    #expect(session.children.map(\.sessionId.rawValue).contains(DemoNestedSession.childId))
+    await agent.stop()
+  }
+
+  @Test func aReplayRaisesNoAttentionMark() async throws {
+    let (agent, session) = try await Self.resumeNested(script: .nestedUnconfirmed, waitsForTheRequest: false)
+
+    #expect(!session.needsAttention)
+    #expect(session.descendants.allSatisfy { !$0.needsAttention })
+    await agent.stop()
+  }
+
+  @Test func aChildThatNeedsTheUserDoesNotTakeTheFocusAfterAResume() async throws {
+    let (agent, session) = try await Self.resumeNested()
+
+    #expect(session.needsAttention)
+    #expect(SessionFocus().resolve(in: session) === session)
     await agent.stop()
   }
 }

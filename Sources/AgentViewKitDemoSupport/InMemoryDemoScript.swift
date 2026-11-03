@@ -27,9 +27,11 @@ nonisolated public struct InMemoryDemoScript: Sendable {
   /// and no scripted session.
   public static let standard = InMemoryDemoScript(signIn: .accepted, sessions: [])
 
-  /// The script of the Gallery tab: no sign-in, and each session of
-  /// ``DemoGallery``.
-  public static let gallery = InMemoryDemoScript(signIn: .notAdvertised, sessions: DemoGallery.sessions)
+  /// The script of the Gallery tab: no sign-in, each session of
+  /// ``DemoGallery``, and the nested session of ``DemoNestedSession``, with
+  /// children that wait, that failed to restore and that finish.
+  public static let gallery = InMemoryDemoScript(
+    signIn: .notAdvertised, sessions: DemoGallery.sessions + [DemoNestedSession.session])
 
   /// No sign-in, and no scripted session.
   public static let noSignIn = InMemoryDemoScript(signIn: .notAdvertised, sessions: [])
