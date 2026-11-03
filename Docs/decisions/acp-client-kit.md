@@ -66,6 +66,8 @@ The owner made these decisions on 2026-10-02:
   swiftui-math renders math. They stay as UI dependencies.
 - **Remove branches, checkpoints, subagents and compaction markers now.** ACP
   has no producer for them. Add them again when ACP gives a producer.
+  On 2026-11-03 the owner reversed the removal of subagents. See
+  `Docs/decisions/sub-agent-sessions.md`.
 - **No trace context now.** The kit does not send `_meta.traceparent`.
 
 The owner also decided on 2026-10-04 to show the `CompactionEntry` rows and
