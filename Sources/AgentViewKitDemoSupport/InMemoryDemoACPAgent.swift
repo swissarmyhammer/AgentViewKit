@@ -230,12 +230,14 @@ public actor InMemoryDemoACPAgent: Agent {
       UpdateSessionNotification(sessionId: sessionId, update: try Self.decoded(text: text))
     }
     let senders = try session.requests.map(Self.makeSender)
+    let childHistory = try session.childUpdates.map(Self.notification)
+    let snapshots = try session.currentSnapshots.map(Self.notification)
     if replayingHistory {
-      for notification in history {
+      for notification in history + childHistory {
         try await connection.sessionUpdate(notification)
       }
     }
-    try sendAfterResponse(senders, of: sessionId)
+    try sendAfterResponse(senders, of: sessionId, afterSending: snapshots)
   }
 
   /// Sends requests of a session at one time after the response to the
@@ -246,11 +248,23 @@ public actor InMemoryDemoACPAgent: Agent {
   ///   - sessionId: The session of the requests.
   /// - Throws: `RequestError.internalError` after the release of the
   ///   connection.
-  private func sendAfterResponse(_ senders: [RequestSender], of sessionId: SessionId) throws {
+  private func sendAfterResponse(
+    _ senders: [RequestSender], of sessionId: SessionId, afterSending snapshots: [UpdateSessionNotification] = []
+  ) throws {
     let connection = try openConnection()
     connection.afterRespondingToCurrentRequest {
-      await self.startRequests(senders, of: sessionId, over: connection)
+      await self.startRequests(senders, of: sessionId, over: connection, afterSending: snapshots)
     }
+  }
+
+  /// Makes the notification of an update of a scripted session.
+  ///
+  /// - Parameter update: The update and the session of its stream.
+  /// - Returns: The notification.
+  /// - Throws: `DecodingError` when the update is not valid.
+  private static func notification(_ update: DemoStreamUpdate) throws -> UpdateSessionNotification {
+    UpdateSessionNotification(
+      sessionId: SessionId(rawValue: update.sessionId), update: try decoded(text: update.update))
   }
 
   /// Starts the task that sends the requests of a scripted session, and
@@ -261,9 +275,19 @@ public actor InMemoryDemoACPAgent: Agent {
   ///   - sessionId: The session of the requests.
   ///   - connection: The connection of the requests.
   private func startRequests(
-    _ senders: [RequestSender], of sessionId: SessionId, over connection: AgentSideConnection
+    _ senders: [RequestSender], of sessionId: SessionId, over connection: AgentSideConnection,
+    afterSending snapshots: [UpdateSessionNotification]
   ) {
-    let task = Task { await Self.send(senders, over: connection) }
+    let task = Task {
+      for snapshot in snapshots {
+        do {
+          try await connection.sessionUpdate(snapshot)
+        } catch {
+          Self.logger.info("A snapshot of a scripted session ended with an error: \(error, privacy: .public)")
+        }
+      }
+      await Self.send(senders, over: connection)
+    }
     requestTasks[sessionId, default: []].append(task)
   }
 

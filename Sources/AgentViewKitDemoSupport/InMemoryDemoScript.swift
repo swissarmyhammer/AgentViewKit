@@ -34,6 +34,10 @@ nonisolated public struct InMemoryDemoScript: Sendable {
   /// No sign-in, and no scripted session.
   public static let noSignIn = InMemoryDemoScript(signIn: .notAdvertised, sessions: [])
 
+  /// No sign-in, and the nested session of ``DemoNestedSession``: a root, a
+  /// child and a grandchild.
+  public static let nested = InMemoryDemoScript(signIn: .notAdvertised, sessions: [DemoNestedSession.session])
+
   /// One sign-in method that the agent rejects, and no scripted session.
   public static let rejectedSignIn = InMemoryDemoScript(signIn: .rejected, sessions: [])
 
