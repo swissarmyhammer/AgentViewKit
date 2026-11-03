@@ -49,6 +49,7 @@ public nonisolated enum ToolStatusSymbol {
     switch status {
     case .pending: ItemStatus.pending.systemImage
     case .inProgress: ItemStatus.inProgress.systemImage
+    case .paused: SharedSymbol.stalled
     case .completed: ItemStatus.completed.systemImage
     case .failed: SharedSymbol.error
     case .cancelled: ItemStatus.cancelled.systemImage
@@ -69,6 +70,7 @@ public nonisolated enum ToolStatusSymbol {
     switch status {
     case .pending: WorkStatusLabel.pending
     case .inProgress: WorkStatusLabel.inProgress
+    case .paused: WorkStatusLabel.paused
     case .completed: WorkStatusLabel.completed
     case .failed: WorkStatusLabel.failed
     case .cancelled: WorkStatusLabel.cancelled
@@ -81,11 +83,12 @@ public nonisolated enum ToolStatusSymbol {
   /// runs.
   ///
   /// - Parameter status: The ACP progress of the call.
-  /// - Returns: `true` for `pending` and `inProgress`.
+  /// - Returns: `true` for `pending` and `inProgress`. A paused call is not
+  ///   live: it does not run, and it did not end.
   public static func isLive(_ status: FoundationModelsACP.ToolCallStatus) -> Bool {
     switch status {
     case .pending, .inProgress: true
-    case .completed, .failed, .cancelled, .unknown: false
+    case .paused, .completed, .failed, .cancelled, .unknown: false
     }
   }
 }

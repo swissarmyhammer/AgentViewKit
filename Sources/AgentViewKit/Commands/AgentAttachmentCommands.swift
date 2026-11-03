@@ -123,7 +123,7 @@ public nonisolated enum AgentAttachmentVerb: String, CaseIterable, Sendable {
 /// weakly, so a registry that outlives the view does not keep the target.
 /// The command reads the ``Attachment`` of the nearest attachment scope with
 /// `@FromTarget`, and runs the verb on it with the service of the target.
-nonisolated struct AgentAttachmentCommand: Command {
+nonisolated struct AgentAttachmentCommand: EditorCommands.Command {
   /// The verb of the command.
   let verb: AgentAttachmentVerb
 

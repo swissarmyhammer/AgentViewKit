@@ -394,7 +394,7 @@ public struct ThreadMinimapView: View {
     case .pending, .inProgress: .live
     case .failed, .unknown(ToolStatusSymbol.lostWireValue): .failure
     case .cancelled: .cancelled
-    case .completed, .unknown: .plain
+    case .completed, .paused, .unknown: .plain
     }
   }
 
@@ -407,7 +407,7 @@ public struct ThreadMinimapView: View {
     switch entry {
     case .toolCall(let toolCall): tickMark(for: toolCall.shownStatus)
     case .error: .failure
-    case .userMessage, .agentMessage, .thought, .terminal, .plan, .unknown, .compaction: .plain
+    case .userMessage, .agentMessage, .thought, .terminal, .plan, .unknown, .compaction, .sessionMessage: .plain
     }
   }
 
@@ -439,7 +439,7 @@ public struct ThreadMinimapView: View {
     switch entry {
     case .toolCall(let toolCall): ToolStatusSymbol.label(for: toolCall.shownStatus)
     case .error: String(localized: "Error", bundle: .module)
-    case .userMessage, .agentMessage, .thought, .terminal, .plan, .unknown, .compaction: nil
+    case .userMessage, .agentMessage, .thought, .terminal, .plan, .unknown, .compaction, .sessionMessage: nil
     }
   }
 
@@ -460,7 +460,7 @@ public struct ThreadMinimapView: View {
   static func tint(of entry: TranscriptEntry, in theme: any EditorTheme.Theme) -> Color {
     return switch entry {
     case .userMessage: theme.editorForeground
-    case .agentMessage, .thought, .terminal, .plan: theme.secondaryForeground
+    case .agentMessage, .thought, .terminal, .plan, .sessionMessage: theme.secondaryForeground
     case .toolCall(let toolCall): theme.statusColor(for: toolCall.shownStatus)
     case .error: theme.severityError
     case .unknown, .compaction:

@@ -12,6 +12,9 @@ nonisolated enum WorkStatusLabel {
   /// The name of work that runs now.
   static var inProgress: String { String(localized: "In progress", bundle: .module) }
 
+  /// The name of work that is paused. It did not end, and it does not run now.
+  static var paused: String { String(localized: "Paused", bundle: .module) }
+
   /// The name of work that completed.
   static var completed: String { String(localized: "Completed", bundle: .module) }
 

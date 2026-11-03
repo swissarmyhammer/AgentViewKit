@@ -616,7 +616,7 @@ struct ToolCallBody: View, Equatable {
       .filter { _, location in !diffFiles.contains { $0.hasPath(location.path.rawValue) } }
       .map { index, location in
         ToolCallLocationChips.Location(
-          path: location.path.rawValue, line: location.line,
+          path: location.path.rawValue, line: location.line.map { Int($0.rawValue) },
           identifier: ToolCallView.locationIdentifier(for: id, index: index))
       }
   }

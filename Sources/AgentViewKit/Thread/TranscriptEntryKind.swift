@@ -16,6 +16,7 @@ extension TranscriptEntry {
     case .unknown(let object): object
     case .compaction(let object): object
     case .error(let object): object
+    case .sessionMessage(let object): object
     }
   }
 
@@ -23,7 +24,7 @@ extension TranscriptEntry {
   ///
   /// ``ThreadMinimapView`` puts this name in its tick identifiers. The
   /// values are `user-message`, `agent-message`, `thought`, `tool-call`,
-  /// `terminal`, `plan`, `unknown`, `compaction` and `error`.
+  /// `terminal`, `plan`, `unknown`, `compaction`, `error` and `session-message`.
   var kindName: String {
     switch self {
     case .userMessage: "user-message"
@@ -35,6 +36,7 @@ extension TranscriptEntry {
     case .unknown: "unknown"
     case .compaction: "compaction"
     case .error: "error"
+    case .sessionMessage: "session-message"
     }
   }
 

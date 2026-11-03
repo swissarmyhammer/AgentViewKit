@@ -10,10 +10,10 @@ import SwiftUI
 /// the cases), and otherwise the default view of the case. The override gets
 /// the entry object, so it reads the model directly. A user message, an agent
 /// message, a thought, a tool call, a terminal, a plan, an unknown update, a
-/// compaction and an error show by default in ``UserMessageView``,
+/// compaction, an error and a session message show by default in ``UserMessageView``,
 /// ``AssistantMessageView``, ``ReasoningView``, ``ToolCallView``,
 /// ``TerminalView``, ``TaskListView``, ``UnknownItemView``,
-/// ``CompactionEntryView`` and ``ErrorView``. The row itself reads nothing of
+/// ``CompactionEntryView``, ``ErrorView`` and ``SessionMessageView``. The row itself reads nothing of
 /// the entry: the item view reads the content, so a streamed chunk evaluates
 /// the item view and not the row.
 ///
@@ -147,6 +147,8 @@ public struct ItemRow: View, Equatable {
       OverridableItemView(\.errorViewOverride, entry: error) { ErrorView(entry: $0) }
     case .compaction(let compaction):
       OverridableItemView(\.compactionEntryViewOverride, entry: compaction) { CompactionEntryView(entry: $0) }
+    case .sessionMessage(let message):
+      OverridableItemView(\.sessionMessageViewOverride, entry: message) { SessionMessageView(entry: $0) }
     }
   }
 }

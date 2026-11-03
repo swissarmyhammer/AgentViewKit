@@ -10,14 +10,19 @@ import Testing
 @testable import AgentViewKit
 
 @Suite @MainActor struct SlashCommandSourceTests {
-  /// The commands of the session.
-  static let commands = [
-    AvailableCommand(
+  /// The slash commands of the session.
+  static let wire = [
+    Command(
       description: "Compact the thread", name: "compact",
       input: .text(TextCommandInput(hint: "instructions"))),
-    AvailableCommand(description: "Show the context", name: "context"),
-    AvailableCommand(description: "Make a plan", name: "plan"),
+    Command(description: "Show the context", name: "context"),
+    Command(description: "Make a plan", name: "plan"),
   ]
+
+  /// The available commands of the session: the slash commands, and a command
+  /// of a kind that the kit does not know.
+  static let commands =
+    wire.map(AvailableCommand.command) + [.unknown("macro", .object([:]))]
 
   /// A fixture with the slash source over ``commands``.
   static func fixture(_ text: String) -> CompletionFixture {
@@ -57,7 +62,7 @@ import Testing
   }
 
   @Test func theRowShowsTheInputHintAsTheDetail() {
-    let row = SlashCommandSource.completion(for: Self.commands[0])
+    let row = SlashCommandSource.completion(for: Self.wire[0])
 
     #expect(row.label == "/compact")
     #expect(row.detail == "instructions")
@@ -69,6 +74,13 @@ import Testing
     let matches = SlashCommandSource.matches(of: "PL", in: Self.commands)
 
     #expect(matches.map(\.name) == ["plan"])
+  }
+
+  @Test func aCommandOfAnUnknownKindIsNotListed() async {
+    let labels = await Self.fixture("/").query()
+
+    #expect(!labels.contains { $0.contains("macro") })
+    #expect(SlashCommandSource.matches(of: "", in: Self.commands).count == Self.wire.count)
   }
 
   @Test func theSourceOwnsTheSlashOpening() {

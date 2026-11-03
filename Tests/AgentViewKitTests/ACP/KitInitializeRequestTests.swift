@@ -90,7 +90,7 @@ struct KitInitializeRequestTests {
 
   @Test func aTerminalAuthRunnerAddsOnlyTerminalAuthToTheInteractiveCapabilities() {
     var expected = Self.interactiveCapabilities
-    expected.auth = AuthCapabilities(terminal: TerminalAuthCapabilities())
+    expected.auth = ClientAuthCapabilities(terminal: TerminalAuthCapabilities())
 
     let request = InitializeRequest.makeAgentViewKitRequest(
       info: ScriptedSession.clientInfo,

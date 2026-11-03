@@ -32,6 +32,7 @@ nonisolated extension SessionEntry.ID {
     case .terminal(let id): "terminal-\(id.rawValue)"
     case .plan(let id): "plan-\(id.rawValue)"
     case .compaction(let id): "compaction-\(id.rawValue)"
+    case .sessionMessage(let id): "session-message-\(id.rawValue)"
     case .unidentified(let position): "entry-\(position)"
     }
   }

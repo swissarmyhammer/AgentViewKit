@@ -184,7 +184,7 @@ public enum ThreadAccessibility {
     switch status {
     case .completed, .failed, .cancelled: true
     case .unknown(let wireValue): wireValue == ToolStatusSymbol.lostWireValue
-    case .pending, .inProgress: false
+    case .pending, .inProgress, .paused: false
     }
   }
 

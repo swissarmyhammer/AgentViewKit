@@ -43,14 +43,22 @@ public struct ContextUsageView: View {
     self.style = style
   }
 
+  /// The length of an ISO 4217 currency code.
+  private static let currencyCodeLength = 3
+
   /// The text of the cost label.
   ///
   /// - Parameters:
   ///   - cost: The cost.
   ///   - locale: The locale of the currency format.
-  /// - Returns: The amount in its currency, such as `$1.25`.
+  /// - Returns: The amount in its currency, such as `$1.25`. A unit that is not
+  ///   a currency code gives the amount and the unit, such as `12 credits`.
   public static func costText(for cost: Cost, locale: Locale = .current) -> String {
-    cost.amount.formatted(.currency(code: cost.currency).locale(locale))
+    let isCurrencyCode = cost.currency.count == Self.currencyCodeLength && cost.currency.allSatisfy { $0.isASCII && $0.isUppercase }
+    guard isCurrencyCode else {
+      return "\(cost.amount.formatted(.number.locale(locale))) \(cost.currency)"
+    }
+    return cost.amount.formatted(.currency(code: cost.currency).locale(locale))
   }
 
   public var body: some View {
@@ -60,7 +68,7 @@ public struct ContextUsageView: View {
           numerator: usage.used, denominator: usage.size, caption: Self.tokensCaption, style: style)
         .accessibilityLabel(String(localized: "Context used", bundle: .module))
         .accessibilityIdentifier(Self.usageIdentifier)
-        if let cost = usage.cost {
+        if case .value(let cost) = usage.cost {
           Text(Self.costText(for: cost))
             .monospacedDigit()
             .foregroundStyle(placedSecondary)

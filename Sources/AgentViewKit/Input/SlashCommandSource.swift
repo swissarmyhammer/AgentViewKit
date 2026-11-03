@@ -71,9 +71,19 @@ public nonisolated struct SlashCommandSource: EditorExtensions.CompletionSource 
   ///   - query: The text after the `/`.
   ///   - commands: The commands to filter.
   /// - Returns: The matching commands, in their order.
-  static func matches(of query: String, in commands: [AvailableCommand]) -> [AvailableCommand] {
+  static func matches(of query: String, in commands: [AvailableCommand]) -> [Command] {
     let query = query.lowercased()
-    return commands.filter { $0.name.lowercased().hasPrefix(query) }
+    return commands.compactMap(Self.command(of:)).filter { $0.name.lowercased().hasPrefix(query) }
+  }
+
+  /// The slash command of an available command.
+  ///
+  /// - Parameter available: The available command.
+  /// - Returns: The command, or `nil` for a kind of command that the kit does
+  ///   not know.
+  static func command(of available: AvailableCommand) -> Command? {
+    guard case .command(let command) = available else { return nil }
+    return command
   }
 
   /// The completion row of one command.
@@ -81,7 +91,7 @@ public nonisolated struct SlashCommandSource: EditorExtensions.CompletionSource 
   /// - Parameter command: The command.
   /// - Returns: A row with the `/` name as the label, the input hint as the
   ///   detail, and the description as the documentation.
-  static func completion(for command: AvailableCommand) -> Completion {
+  static func completion(for command: Command) -> Completion {
     let name = trigger + command.name
     return Completion(
       label: name, insert: .text(name + " "), kind: .function, detail: inputHint(of: command),
@@ -93,7 +103,7 @@ public nonisolated struct SlashCommandSource: EditorExtensions.CompletionSource 
   /// - Parameter command: The command.
   /// - Returns: The hint of a `text` input, or `nil` for a command with no
   ///   input or with an input type that the kit does not know.
-  static func inputHint(of command: AvailableCommand) -> String? {
+  static func inputHint(of command: Command) -> String? {
     guard case .text(let input) = command.input else { return nil }
     return input.hint
   }

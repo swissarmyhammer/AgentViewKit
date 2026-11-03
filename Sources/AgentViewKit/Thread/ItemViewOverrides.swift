@@ -42,6 +42,9 @@ extension EnvironmentValues {
 
   /// The override of the view of a `CompactionEntry`.
   @Entry public var compactionEntryViewOverride: ItemViewRenderer<CompactionEntry>? = nil
+
+  /// The override of the view of a `SessionMessageEntry`.
+  @Entry public var sessionMessageViewOverride: ItemViewRenderer<SessionMessageEntry>? = nil
 }
 
 extension View {
@@ -137,6 +140,16 @@ extension View {
     @ViewBuilder _ content: @escaping @MainActor (CompactionEntry) -> Content
   ) -> some View {
     itemViewOverride(\.compactionEntryViewOverride, content)
+  }
+
+  /// Replaces the view of each session message entry in this view.
+  ///
+  /// - Parameter content: The function that makes the view of an entry.
+  /// - Returns: A view that gives the override to its subtree.
+  public func sessionMessageView<Content: View>(
+    @ViewBuilder _ content: @escaping @MainActor (SessionMessageEntry) -> Content
+  ) -> some View {
+    itemViewOverride(\.sessionMessageViewOverride, content)
   }
 
   /// Sets one item view override for this view and each view in it.

@@ -651,6 +651,16 @@
         }
       }
     },
+    "From %@ to %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From %1$@ to %2$@"
+          }
+        }
+      }
+    },
     "Hide Terminal" : {
       "localizations" : {
         "en" : {
@@ -1097,6 +1107,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Output"
+          }
+        }
+      }
+    },
+    "Paused" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paused"
           }
         }
       }
@@ -2997,6 +3017,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "You said"
+          }
+        }
+      }
+    },
+    "another session" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "another session"
           }
         }
       }

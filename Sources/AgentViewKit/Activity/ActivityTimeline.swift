@@ -149,14 +149,14 @@ private enum TimelineEntry: Identifiable {
   ///
   /// - Parameter entry: The transcript entry.
   /// - Returns: `nil` for a user message, an agent message, a plan, an
-  ///   unknown update and a compaction, which have no row.
+  ///   unknown update, a compaction and a session message, which have no row.
   init?(entry: TranscriptEntry) {
     switch entry {
     case .thought(let thought): self = .thought(thought)
     case .toolCall(let toolCall): self = .toolCall(toolCall)
     case .terminal(let terminal): self = .terminal(terminal)
     case .error(let error): self = .error(error)
-    case .userMessage, .agentMessage, .plan, .unknown, .compaction: return nil
+    case .userMessage, .agentMessage, .plan, .unknown, .compaction, .sessionMessage: return nil
     }
   }
 

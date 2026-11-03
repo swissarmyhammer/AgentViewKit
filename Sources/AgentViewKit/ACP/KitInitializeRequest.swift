@@ -48,7 +48,7 @@ extension InitializeRequest {
   ) -> InitializeRequest {
     var capabilities = ClientCapabilities.agentViewKit
     if terminalAuthRunner != nil {
-      capabilities.auth = AuthCapabilities(terminal: TerminalAuthCapabilities())
+      capabilities.auth = ClientAuthCapabilities(terminal: TerminalAuthCapabilities())
     }
     return InitializeRequest(
       info: info,

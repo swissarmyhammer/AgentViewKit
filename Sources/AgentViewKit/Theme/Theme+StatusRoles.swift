@@ -19,15 +19,15 @@ nonisolated extension EditorTheme.Theme {
   /// - Returns: `statusRunning` for a call that runs, `statusSucceeded` for
   ///   a completed call, `statusFailed` for a failed call or a call whose
   ///   result is lost (``ToolStatusSymbol/lostWireValue``), `statusCancelled`
-  ///   for a cancelled call, and `statusPending` for a pending call or a
-  ///   status that the kit does not know.
+  ///   for a cancelled call, and `statusPending` for a pending call, a paused
+  ///   call, or a status that the kit does not know.
   public func statusColor(for status: FoundationModelsACP.ToolCallStatus) -> Color {
     switch status {
     case .inProgress: statusRunning
     case .completed: statusSucceeded
     case .failed, .unknown(ToolStatusSymbol.lostWireValue): statusFailed
     case .cancelled: statusCancelled
-    case .pending, .unknown: statusPending
+    case .pending, .paused, .unknown: statusPending
     }
   }
 

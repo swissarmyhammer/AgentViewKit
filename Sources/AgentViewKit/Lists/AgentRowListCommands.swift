@@ -102,7 +102,7 @@ final class AgentRowListTarget: NavScroller {
 /// row, or in a list whose rows do not open, it is unavailable, and Return
 /// goes on to `nav.drillIn`. The command holds its target weakly, so a
 /// registry that outlives the list does not keep the target.
-nonisolated struct AgentRowListOpenCommand: Command {
+nonisolated struct AgentRowListOpenCommand: EditorCommands.Command {
   /// The id of the command.
   static let commandID: CommandID = "agentRowList.open"
 

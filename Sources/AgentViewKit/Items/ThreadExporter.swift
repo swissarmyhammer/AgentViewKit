@@ -82,7 +82,7 @@ public enum ThreadExporter {
     switch entry {
     case .userMessage(let user): (.user, user.content)
     case .agentMessage(let agent): (.assistant, agent.content)
-    case .thought, .toolCall, .terminal, .plan, .unknown, .compaction, .error: nil
+    case .thought, .toolCall, .terminal, .plan, .unknown, .compaction, .error, .sessionMessage: nil
     }
   }
 

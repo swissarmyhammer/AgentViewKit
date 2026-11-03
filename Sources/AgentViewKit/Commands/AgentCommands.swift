@@ -171,7 +171,7 @@ public nonisolated enum AgentCommandPayload {
 /// The command reads the item of its invocation path with `@FromTarget`: the
 /// live `TranscriptEntry` that a message scope gives, and the live
 /// `PendingPermissionRequest` that a request scope gives.
-nonisolated struct AgentCommand: Command {
+nonisolated struct AgentCommand: EditorCommands.Command {
   /// The verb of the command.
   let verb: AgentCommandVerb
 

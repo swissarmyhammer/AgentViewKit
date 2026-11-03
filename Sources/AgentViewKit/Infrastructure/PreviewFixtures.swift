@@ -182,7 +182,7 @@ enum PreviewFixtures {
       message: message,
       mode: .form(
         ElicitationFormMode(
-          requestedSchema: ElicitationSchema(properties: .object(properties), required: required),
+          requestedSchema: ElicitationSchema(properties: .object(properties), type: .object, required: required),
           scope: .session(elicitationScope))),
       meta: WhoAsks.short.meta)
   }
