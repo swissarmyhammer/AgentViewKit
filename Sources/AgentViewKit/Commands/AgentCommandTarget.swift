@@ -29,6 +29,31 @@ struct AgentComposerHook {
   let focus: @MainActor () -> Bool
 }
 
+/// The calls that the thread view gives to the session commands.
+///
+/// Which session a window shows is state of the view, so the commands do not
+/// change a model: they ask the view to show another session.
+///
+/// The type is a class, so a mount can tell whether the target still holds
+/// the navigation that the mount gave.
+final class AgentSessionNavigation {
+  /// Shows the session with an id.
+  let show: (SessionId) -> Void
+
+  /// Opens the list that lets the user jump to a session.
+  let presentJump: () -> Void
+
+  /// Makes the navigation.
+  ///
+  /// - Parameters:
+  ///   - show: Shows the session with an id.
+  ///   - presentJump: Opens the list that lets the user jump to a session.
+  init(show: @escaping (SessionId) -> Void, presentJump: @escaping () -> Void) {
+    self.show = show
+    self.presentJump = presentJump
+  }
+}
+
 /// The live objects that the agent commands act on (plan.md §4.1).
 ///
 /// An ``AgentCommandScope`` owns one target and keeps its values current.
@@ -89,6 +114,10 @@ final class AgentCommandTarget {
 
   /// The hook of the composer, or `nil` when no composer is in the scope.
   var composer: AgentComposerHook?
+
+  /// The calls of the thread view that show another session, or `nil` when no
+  /// thread view gave them.
+  var navigation: AgentSessionNavigation?
 
   /// The command system that the scope registered the commands in.
   var system: CommandSystem?
@@ -174,6 +203,8 @@ final class AgentCommandTarget {
     case .toggleExpandAll: expandedBlocks != nil && !session.transcript.isEmpty
     case .scrollToBottom: anchors != nil && !session.transcript.isEmpty
     case .focusComposer: composer != nil
+    case .goToParent, .openChild, .nextSibling, .previousSibling, .jumpToSession:
+      navigation != nil && canNavigate(verb, payload: payload, in: session)
     }
   }
 
@@ -197,6 +228,11 @@ final class AgentCommandTarget {
     case .toggleExpandAll: String(localized: "The thread has no items.", bundle: .module)
     case .scrollToBottom: String(localized: "The thread list is not shown.", bundle: .module)
     case .focusComposer: String(localized: "The composer is not shown.", bundle: .module)
+    case .goToParent: String(localized: "This session has no parent.", bundle: .module)
+    case .openChild: String(localized: "This session has no child.", bundle: .module)
+    case .nextSibling: String(localized: "No session is after this session.", bundle: .module)
+    case .previousSibling: String(localized: "No session is before this session.", bundle: .module)
+    case .jumpToSession: String(localized: "No other session is in the tree.", bundle: .module)
     }
   }
 
@@ -274,8 +310,83 @@ final class AgentCommandTarget {
     case .toggleExpandAll: toggleExpandAll(session)
     case .scrollToBottom: anchors?.pinToBottom()
     case .focusComposer: return composer?.focus() ?? false
+    case .goToParent: show(session.parent?.sessionId)
+    case .openChild: show(childToShow(payload: payload, in: session)?.sessionId)
+    case .nextSibling: show(sibling(offset: 1, of: session)?.sessionId)
+    case .previousSibling: show(sibling(offset: -1, of: session)?.sessionId)
+    case .jumpToSession: jumpToSession(payload: payload, in: session)
     }
     return true
+  }
+
+  // MARK: - Sessions
+
+  /// Tells if a session verb has a session to show.
+  private func canNavigate(_ verb: AgentCommandVerb, payload: CommandPayload?, in session: SessionModel) -> Bool {
+    switch verb {
+    case .goToParent: session.parent != nil
+    case .openChild: childToShow(payload: payload, in: session) != nil
+    case .nextSibling: sibling(offset: 1, of: session) != nil
+    case .previousSibling: sibling(offset: -1, of: session) != nil
+    default: !jumpEntries(of: session).isEmpty
+    }
+  }
+
+  /// Asks the view to show a session.
+  ///
+  /// - Parameter id: The id of the session, or `nil` to show nothing.
+  private func show(_ id: SessionId?) {
+    guard let id else { return }
+    navigation?.show(id)
+  }
+
+  /// The child that Open Child Session shows: the child of the payload, or
+  /// the first child that is not closed.
+  ///
+  /// - Parameters:
+  ///   - payload: The payload of the dispatch, or `nil`.
+  ///   - session: The shown session.
+  /// - Returns: The child, or `nil` when the session has none.
+  private func childToShow(payload: CommandPayload?, in session: SessionModel) -> SessionModel? {
+    if let raw = AgentCommandPayload.string(AgentCommandPayload.sessionKey, in: payload) {
+      return session.children.first { $0.sessionId.rawValue == raw && !$0.isClosed }
+    }
+    return session.children.first { !$0.isClosed }
+  }
+
+  /// The sibling after or before a session, in announce order. The move does
+  /// not wrap.
+  ///
+  /// - Parameters:
+  ///   - offset: `1` for the next sibling, `-1` for the previous sibling.
+  ///   - session: The shown session.
+  /// - Returns: The sibling, or `nil` at the end of the siblings.
+  private func sibling(offset: Int, of session: SessionModel) -> SessionPathEntry? {
+    let siblings = session.siblings
+    guard let index = siblings.firstIndex(where: { $0.sessionId == session.sessionId }),
+      siblings.indices.contains(index + offset)
+    else { return nil }
+    return siblings[index + offset]
+  }
+
+  /// The sessions that Jump to Session lists: the descendants and the
+  /// ancestors of the shown session, with the path of each.
+  ///
+  /// - Parameter session: The shown session.
+  /// - Returns: The entries, the ancestors first.
+  func jumpEntries(of session: SessionModel) -> [SessionPathEntry] {
+    session.jumpEntries
+  }
+
+  /// Shows the session of the payload, or opens the list of the sessions.
+  private func jumpToSession(payload: CommandPayload?, in session: SessionModel) {
+    if let raw = AgentCommandPayload.string(AgentCommandPayload.sessionKey, in: payload) {
+      if let found = jumpEntries(of: session).first(where: { $0.sessionId.rawValue == raw }) {
+        navigation?.show(found.sessionId)
+      }
+    } else {
+      navigation?.presentJump()
+    }
   }
 
   // MARK: - Send and cancel

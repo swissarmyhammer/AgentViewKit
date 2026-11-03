@@ -104,7 +104,9 @@ struct SessionBreadcrumb: View {
     dropdown(
       choices: session.siblings, label: { crumbLabel(session) },
       accessibilityLabel: Self.accessibilityLabel(for: session),
-      identifier: Self.crumbIdentifier(for: session.sessionId))
+      identifier: Self.crumbIdentifier(for: session.sessionId)
+    )
+    .modifier(crumbScope(session.sessionId))
   }
 
   /// The "..." dropdown of the middle crumbs that do not fit.
@@ -138,6 +140,15 @@ struct SessionBreadcrumb: View {
     .fixedSize()
     .accessibilityLabel(accessibilityLabel)
     .accessibilityIdentifier(identifier)
+  }
+
+  /// The scope of the crumb of a session, so the crumb takes the keyboard
+  /// focus and is a target of the EditorKit jump and navigation.
+  ///
+  /// - Parameter id: The id of the session.
+  /// - Returns: The scope modifier.
+  private func crumbScope(_ id: SessionId) -> AgentControlScope {
+    AgentControlScope(segment: AgentScopeKind.crumb(id), corners: .capsule, yieldsToHostScope: false)
   }
 
   /// The VoiceOver label of a crumb: the title, the state, and a note when

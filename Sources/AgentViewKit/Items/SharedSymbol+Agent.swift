@@ -136,6 +136,21 @@ nonisolated extension SharedSymbol {
   /// thread.
   static let expandAll = "arrow.up.left.and.arrow.down.right"
 
+  /// The symbol of Go to Parent Session.
+  static let parentSession = "arrow.up.backward"
+
+  /// The symbol of Open Child Session.
+  static let childSession = "arrow.down.forward"
+
+  /// The symbol of Previous Sibling Session.
+  static let previousSibling = "chevron.backward"
+
+  /// The symbol of Next Sibling Session.
+  static let nextSibling = "chevron.forward"
+
+  /// The symbol of Jump to Session.
+  static let jumpToSession = "magnifyingglass"
+
   /// The symbol of the command that moves the focus to the composer.
   static let focusComposer = "character.cursor.ibeam"
 

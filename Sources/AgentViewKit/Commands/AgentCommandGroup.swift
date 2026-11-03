@@ -13,7 +13,7 @@ import SwiftUI
 /// | --- | --- |
 /// | ``compose`` | Send Message, Focus Composer |
 /// | ``control`` | Stop, Approve Request, Reject Request |
-/// | ``navigate`` | Next Prompt, Previous Prompt, Next Request, Previous Request, Scroll to Bottom, Expand or Collapse All |
+/// | ``navigate`` | Next Prompt, Previous Prompt, Next Request, Previous Request, Scroll to Bottom, Expand or Collapse All, Go to Parent Session, Open Child Session, Next Sibling Session, Previous Sibling Session, Jump to Session |
 /// | ``clipboard`` | Copy Message, Copy Thread |
 /// | ``attachment`` | Open, Reveal in Finder, Share, Save, Quick Look (``AgentAttachmentVerb``) |
 ///
@@ -63,7 +63,8 @@ nonisolated extension AgentCommandVerb {
     switch self {
     case .send, .focusComposer: .compose
     case .cancel, .approvePending, .rejectPending: .control
-    case .jumpToNext, .jumpToPrevious, .nextRequest, .previousRequest, .scrollToBottom, .toggleExpandAll:
+    case .jumpToNext, .jumpToPrevious, .nextRequest, .previousRequest, .scrollToBottom, .toggleExpandAll,
+      .goToParent, .openChild, .nextSibling, .previousSibling, .jumpToSession:
       .navigate
     case .copyMessage, .copyThread: .clipboard
     }

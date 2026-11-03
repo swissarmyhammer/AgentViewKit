@@ -12,6 +12,11 @@ import EditorCommands
 /// | Control-Command-Down Arrow | `nextItem` | ``AgentCommandVerb/jumpToNext`` |
 /// | Control-Command-[ | `previousWaiting` | ``AgentCommandVerb/previousRequest`` |
 /// | Control-Command-] | `nextWaiting` | ``AgentCommandVerb/nextRequest`` |
+/// | Control-Command-Left Arrow | | ``AgentCommandVerb/goToParent`` |
+/// | Control-Command-Right Arrow | | ``AgentCommandVerb/openChild`` |
+/// | Control-Option-Command-[ | | ``AgentCommandVerb/previousSibling`` |
+/// | Control-Option-Command-] | | ``AgentCommandVerb/nextSibling`` |
+/// | Control-Command-O | | ``AgentCommandVerb/jumpToSession`` |
 ///
 /// The keys follow the one key table of EditorKit, AgentViewKit and
 /// KanbanViewKit (D137): a Mac key keeps its Mac meaning, and each kit command
@@ -38,6 +43,22 @@ public nonisolated enum AgentKeymap {
   /// of the system Edit menu and of the text views.
   public static let controlShiftCommandC: KeyChord = "⌃⇧⌘C"
 
+  /// The chord of Go to Parent Session: Control-Command-Left Arrow.
+  public static let parentSession = KeyChord("⌃⌘" + KeyChord.leftArrow.rawValue)
+
+  /// The chord of Open Child Session: Control-Command-Right Arrow.
+  public static let childSession = KeyChord("⌃⌘" + KeyChord.rightArrow.rawValue)
+
+  /// The chord of Previous Sibling Session: Control-Option-Command-[.
+  public static let previousSibling: KeyChord = "⌃⌥⌘["
+
+  /// The chord of Next Sibling Session: Control-Option-Command-].
+  public static let nextSibling: KeyChord = "⌃⌥⌘]"
+
+  /// The chord of Jump to Session: Control-Command-O ("open quickly"). The
+  /// EditorKit jump keeps Control-Command-J.
+  public static let jumpToSession: KeyChord = "⌃⌘O"
+
   /// The default chords of each verb that has keys. The first chord is the
   /// chord that a menu shows.
   public static let defaultChords: [AgentCommandVerb: [KeyChord]] = [
@@ -49,6 +70,11 @@ public nonisolated enum AgentKeymap {
     .jumpToNext: [StandardChords.nextItem],
     .previousRequest: [StandardChords.previousWaiting],
     .nextRequest: [StandardChords.nextWaiting],
+    .goToParent: [parentSession],
+    .openChild: [childSession],
+    .previousSibling: [previousSibling],
+    .nextSibling: [nextSibling],
+    .jumpToSession: [jumpToSession],
   ]
 
   /// The default keymap: each chord of ``defaultChords`` bound to the

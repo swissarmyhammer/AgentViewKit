@@ -43,6 +43,12 @@ extension SessionModel {
     return current
   }
 
+  /// The sessions that Jump to Session lists: the ancestors and the
+  /// descendants of this session, the ancestors first.
+  var jumpEntries: [SessionPathEntry] {
+    ancestors + descendants
+  }
+
   /// The descendant that the user is asked to handle first: the first
   /// descendant that itself waits for the user, or else the first descendant
   /// that needs attention through one of its own descendants.

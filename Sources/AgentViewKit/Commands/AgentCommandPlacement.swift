@@ -68,11 +68,24 @@ nonisolated extension AgentScopeKind {
   /// or the composer editor (`agentControlScope(_:corners:)`).
   public static let control = "agentControl"
 
+  /// The kind of the scope of one crumb of the path in the header. The crumbs
+  /// take the keyboard focus, and the `nav.*` commands of the host move
+  /// between them.
+  public static let crumb = "agentCrumb"
+
   /// The kinds of the item scopes in a thread.
   ///
   /// An attachment is an item, so the context menu of an attachment in a
   /// message shows the attachment verbs and not the verbs of the message.
   static let items: Set<String> = [message, request, toolCall, attachment]
+
+  /// The segment of the scope of the crumb of a session.
+  ///
+  /// - Parameter id: The id of the session.
+  /// - Returns: The segment `agentCrumb:<sessionId>`.
+  static func crumb(_ id: SessionId) -> FocusSegment {
+    FocusSegment(kind: crumb, id: id.rawValue)
+  }
 
   /// The segment of the scope of a message row.
   ///
@@ -127,7 +140,7 @@ nonisolated extension AgentCommandVerb {
   /// | Menu | Verbs |
   /// | --- | --- |
   /// | ``EditorCommands/MenuPath/session`` | Send Message, Stop, Focus Composer, Approve Request, Reject Request, Copy Thread |
-  /// | View | Next Prompt, Previous Prompt, Next Request, Previous Request, Expand or Collapse All, Scroll to Bottom |
+  /// | View | Next Prompt, Previous Prompt, Next Request, Previous Request, Expand or Collapse All, Scroll to Bottom, Go to Parent Session, Open Child Session, Previous Sibling Session, Next Sibling Session, Jump to Session |
   /// | Edit | Copy Message |
   ///
   /// EditorKit puts the rows of the Edit path right after the Cut, Copy and
@@ -147,6 +160,11 @@ nonisolated extension AgentCommandVerb {
     case .toggleExpandAll: MenuPlacement(path: .view, group: "agentThread", order: 0)
     case .scrollToBottom: MenuPlacement(path: .view, group: "agentThread", order: 1)
     case .copyMessage: MenuPlacement(path: .edit, group: "agentClipboard", order: 0)
+    case .goToParent: MenuPlacement(path: .view, group: "agentSessions", order: 0)
+    case .openChild: MenuPlacement(path: .view, group: "agentSessions", order: 1)
+    case .previousSibling: MenuPlacement(path: .view, group: "agentSessions", order: 2)
+    case .nextSibling: MenuPlacement(path: .view, group: "agentSessions", order: 3)
+    case .jumpToSession: MenuPlacement(path: .view, group: "agentSessions", order: 4)
     }
   }
 
@@ -183,6 +201,11 @@ nonisolated extension AgentCommandVerb {
     case .toggleExpandAll: SharedSymbol.expandAll
     case .scrollToBottom: SharedSymbol.scrollToBottom
     case .focusComposer: SharedSymbol.focusComposer
+    case .goToParent: SharedSymbol.parentSession
+    case .openChild: SharedSymbol.childSession
+    case .previousSibling: SharedSymbol.previousSibling
+    case .nextSibling: SharedSymbol.nextSibling
+    case .jumpToSession: SharedSymbol.jumpToSession
     }
   }
 

@@ -62,6 +62,28 @@ public nonisolated enum AgentCommandVerb: String, CaseIterable, Sendable {
   /// Moves the keyboard focus to the composer.
   case focusComposer
 
+  /// Shows the parent of the shown session. It is not available at a root
+  /// session.
+  case goToParent
+
+  /// Shows a child of the shown session: the child of the payload, or the
+  /// first child that is open. It is not available when the session has no
+  /// child.
+  case openChild
+
+  /// Shows the next sibling of the shown session, in announce order. It is
+  /// not available at the last sibling.
+  case nextSibling
+
+  /// Shows the previous sibling of the shown session, in announce order. It
+  /// is not available at the first sibling.
+  case previousSibling
+
+  /// Shows a session that the user picks from the list of the descendants
+  /// and the ancestors of the shown session, with the path of each. With the
+  /// session of the payload, it shows that session at once.
+  case jumpToSession
+
   /// The start of the id of each verb.
   public static let idPrefix = "agent."
 
@@ -86,6 +108,11 @@ public nonisolated enum AgentCommandVerb: String, CaseIterable, Sendable {
     case .toggleExpandAll: String(localized: "Expand or Collapse All", bundle: .module)
     case .scrollToBottom: String(localized: "Scroll to Bottom", bundle: .module)
     case .focusComposer: String(localized: "Focus Composer", bundle: .module)
+    case .goToParent: String(localized: "Go to Parent Session", bundle: .module)
+    case .openChild: String(localized: "Open Child Session", bundle: .module)
+    case .nextSibling: String(localized: "Next Sibling Session", bundle: .module)
+    case .previousSibling: String(localized: "Previous Sibling Session", bundle: .module)
+    case .jumpToSession: String(localized: "Jump to Session…", bundle: .module)
     }
   }
 
@@ -116,6 +143,11 @@ public nonisolated enum AgentCommandPayload {
   /// The key of the raw identifier of the permission option to select. For
   /// a session model, the value is the `optionId` of the ACP option.
   public static let optionKey = "option"
+
+  /// The key of the id of the session that ``AgentCommandVerb/openChild``
+  /// and ``AgentCommandVerb/jumpToSession`` show. The value is the raw
+  /// `sessionId`.
+  public static let sessionKey = "session"
 
   /// The key of the comment of a permission answer.
   public static let commentKey = "comment"
@@ -149,6 +181,14 @@ public nonisolated enum AgentCommandPayload {
     ]
     values[commentKey] = comment
     return CommandPayload(values: values)
+  }
+
+  /// The payload that names a session to show.
+  ///
+  /// - Parameter session: The id of the session.
+  /// - Returns: The payload.
+  public static func session(_ session: SessionId) -> CommandPayload {
+    CommandPayload(values: [sessionKey: session.rawValue])
   }
 
   /// The string value of `key` in `payload`, or `nil`.

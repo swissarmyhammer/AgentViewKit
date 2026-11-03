@@ -39,6 +39,9 @@ struct AgentCommandScope: ViewModifier {
   /// The scroll anchors of the thread list, or `nil`.
   let anchors: ScrollAnchorManager?
 
+  /// The calls that show another session, or `nil` outside a thread view.
+  var navigation: AgentSessionNavigation?
+
   @Environment(\.commandSystem) private var ambientSystem
   @Environment(\.commandScopePath) private var parentPath
   @Environment(\.agentCommandTarget) private var enclosingTarget
@@ -64,7 +67,8 @@ struct AgentCommandScope: ViewModifier {
     if let enclosingTarget, enclosingSegment == segment {
       content.background(
         AgentCommandMount(
-          target: enclosingTarget, scope: nil, anchors: anchors, expandedBlocks: expandedBlocks))
+          target: enclosingTarget, scope: nil, anchors: anchors, expandedBlocks: expandedBlocks,
+          navigation: navigation))
     } else {
       let path = parentPath?.appending(segment) ?? .root(segment)
       let system = ambientSystem ?? standaloneSystem
@@ -77,7 +81,8 @@ struct AgentCommandScope: ViewModifier {
         .environment(\.agentCommandSystem, system)
         .background(
           AgentCommandMount(
-            target: ownTarget, scope: scope, anchors: anchors, expandedBlocks: expandedBlocks))
+            target: ownTarget, scope: scope, anchors: anchors, expandedBlocks: expandedBlocks,
+            navigation: navigation))
         .commandScope(segment: segment, subject: session)
         .commandSystem(system)
     }
@@ -110,8 +115,10 @@ extension View {
   ///   - session: The session model that the commands act on.
   ///   - anchors: The scroll anchors of the thread list.
   /// - Returns: A view in the scope of the commands.
-  func agentCommandScope(session: SessionModel, anchors: ScrollAnchorManager) -> some View {
-    modifier(AgentCommandScope(session: session, anchors: anchors))
+  func agentCommandScope(
+    session: SessionModel, anchors: ScrollAnchorManager, navigation: AgentSessionNavigation? = nil
+  ) -> some View {
+    modifier(AgentCommandScope(session: session, anchors: anchors, navigation: navigation))
   }
 }
 
@@ -260,6 +267,9 @@ struct AgentCommandMount: NSViewRepresentable {
   /// The store of the expanded items to add, or `nil`.
   let expandedBlocks: ExpandedBlocksStore?
 
+  /// The calls that show another session, or `nil`.
+  var navigation: AgentSessionNavigation?
+
   /// The values that the teardown needs.
   final class Coordinator {
     /// The target of the mount.
@@ -270,6 +280,8 @@ struct AgentCommandMount: NSViewRepresentable {
     weak var anchors: ScrollAnchorManager?
     /// The store that the mount added.
     weak var expandedBlocks: ExpandedBlocksStore?
+    /// The session navigation that the mount gave to the target.
+    var navigation: AgentSessionNavigation?
 
     /// Makes a coordinator for `target`.
     ///
@@ -310,6 +322,9 @@ struct AgentCommandMount: NSViewRepresentable {
     if let store = coordinator.expandedBlocks, target.expandedBlocks === store {
       target.expandedBlocks = nil
     }
+    if let navigation = coordinator.navigation, target.navigation === navigation {
+      target.navigation = nil
+    }
   }
 
   /// Registers the owned scope through the ``AgentScopeMount`` of
@@ -347,6 +362,10 @@ struct AgentCommandMount: NSViewRepresentable {
     if let expandedBlocks {
       target.expandedBlocks = expandedBlocks
       coordinator.expandedBlocks = expandedBlocks
+    }
+    if let navigation {
+      target.navigation = navigation
+      coordinator.navigation = navigation
     }
   }
 }

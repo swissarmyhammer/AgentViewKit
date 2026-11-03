@@ -25,6 +25,7 @@ import Testing
   /// The verbs of the View menu.
   static let viewMenuVerbs: Set<AgentCommandVerb> = [
     .jumpToNext, .jumpToPrevious, .nextRequest, .previousRequest, .toggleExpandAll, .scrollToBottom,
+    .goToParent, .openChild, .nextSibling, .previousSibling, .jumpToSession,
   ]
 
   /// The verbs of the Edit menu.

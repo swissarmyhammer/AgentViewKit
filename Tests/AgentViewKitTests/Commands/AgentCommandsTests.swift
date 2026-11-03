@@ -28,7 +28,7 @@ final class CallCounter {
   static let message = "Hello"
 
   /// The number of verbs of the kit.
-  static let verbCount = 13
+  static let verbCount = 18
 
   /// The number of turns that ``sendTurns(to:)`` sends.
   static let turnCount = 3
@@ -150,7 +150,7 @@ final class CallCounter {
 
   // MARK: - Registration
 
-  @Test func theScopeListsTheThirteenCommands() async throws {
+  @Test func theScopeListsEachCommandOfTheKit() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let fixture = Self.makeFixture(session: session.model)
@@ -392,10 +392,12 @@ final class CallCounter {
         == .command(AgentCommandVerb.cancel.id, scope: fixture.path))
   }
 
-  @Test func theDefaultKeymapBindsTheNineChords() {
+  @Test func theDefaultKeymapBindsTheChordsOfEachVerb() {
     let expected: [(String, AgentCommandVerb)] = [
       ("⌘↩", .send), ("⌘.", .cancel), ("⎋", .cancel), ("⌃⌘C", .copyThread), ("⌃⇧⌘C", .copyMessage),
       ("⌃⌘↑", .jumpToPrevious), ("⌃⌘↓", .jumpToNext), ("⌃⌘[", .previousRequest), ("⌃⌘]", .nextRequest),
+      ("⌃⌘←", .goToParent), ("⌃⌘→", .openChild), ("⌃⌥⌘[", .previousSibling), ("⌃⌥⌘]", .nextSibling),
+      ("⌃⌘O", .jumpToSession),
     ]
 
     #expect(AgentKeymap.sortedChords.count == expected.count)

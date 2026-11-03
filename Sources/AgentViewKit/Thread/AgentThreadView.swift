@@ -143,6 +143,9 @@ public struct AgentThreadView<Composer: View>: View {
   /// of one connection.
   @State private var chosen: SessionModel?
 
+  /// Whether the list of Jump to Session shows.
+  @State private var isJumpPresented = false
+
   /// The connection model that closes the session when the view goes away,
   /// and that the Reload button of the missed-updates banner resumes the
   /// session on, or `nil`.
@@ -249,6 +252,12 @@ public struct AgentThreadView<Composer: View>: View {
     chosen = found
   }
 
+  /// The name of the agent, for the paths of the jump list, or `nil`.
+  private var agentName: String? {
+    let info = (connection ?? hostConnection)?.initializeResponse?.info
+    return info.map { $0.title ?? $0.name }
+  }
+
   /// The manager of the scroll position that the view uses.
   private var anchors: ScrollAnchorManager {
     hostAnchors ?? ownAnchors
@@ -344,7 +353,16 @@ public struct AgentThreadView<Composer: View>: View {
     .onChange(of: root.isReplaying) { if !root.isReplaying { chosen = nil } }
     .onChange(of: root.sessionId) { chosen = nil }
     .environment(\.openSession, show)
-    .agentCommandScope(session: session, anchors: anchors)
+    .agentCommandScope(
+      session: session, anchors: anchors,
+      navigation: AgentSessionNavigation(show: show, presentJump: { isJumpPresented = true })
+    )
+    .sheet(isPresented: $isJumpPresented) {
+      SessionJumpList(agent: agentName, entries: session.jumpEntries) { id in
+        isJumpPresented = false
+        show(id)
+      }
+    }
     .onDisappear(perform: closeWhenSupported)
   }
 

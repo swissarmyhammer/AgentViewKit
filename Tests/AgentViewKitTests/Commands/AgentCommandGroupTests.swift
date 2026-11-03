@@ -19,6 +19,7 @@ import Testing
     .control: [.cancel, .approvePending, .rejectPending],
     .navigate: [
       .jumpToNext, .jumpToPrevious, .nextRequest, .previousRequest, .scrollToBottom, .toggleExpandAll,
+      .goToParent, .openChild, .nextSibling, .previousSibling, .jumpToSession,
     ],
     .clipboard: [.copyMessage, .copyThread],
     // The attachment verbs are of their own type; see
