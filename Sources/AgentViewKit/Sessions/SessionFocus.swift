@@ -32,7 +32,7 @@ struct SessionFocus: Equatable {
   ///
   /// - Parameter session: The chosen session.
   mutating func choose(_ session: SessionModel) {
-    path = session.pathModels.map(\.sessionId)
+    path = session.path.map(\.sessionId)
   }
 
   /// Shows the root again, as after a resume.

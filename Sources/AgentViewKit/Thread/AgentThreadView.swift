@@ -247,11 +247,6 @@ public struct AgentThreadView<Composer: View>: View {
     focus.resolve(in: root)
   }
 
-  /// Shows the root again when a replay ends, as after a resume.
-  private func replayDidChange() {
-    if !root.isReplaying { focus.resumeEnded() }
-  }
-
   /// Shows another session of the tree of the root.
   ///
   /// - Parameter id: The id of the session. An id that the tree does not hold
@@ -362,7 +357,7 @@ public struct AgentThreadView<Composer: View>: View {
     .background { SessionAnnouncementObserver(session: session) }
     // After a resume the view shows the root: a child that needs the user
     // shows through its mark and the jump of the banner.
-    .onChange(of: root.isReplaying) { replayDidChange() }
+    .onChange(of: root.replayEndCount) { focus.resumeEnded() }
     .onChange(of: root.sessionId) { focus.resumeEnded() }
     .environment(\.openSession, show)
     .agentCommandScope(
@@ -443,7 +438,7 @@ public struct AgentThreadView<Composer: View>: View {
           AgentLoginPrompt(session: session, connection: connection)
         }
         composer
-          .disabled(!SessionControls.composerEnabled(for: session))
+          .disabled(!session.canPrompt)
           .environment(\.sessionModel, session)
           .environment(\.connectionModel, connection ?? hostConnection)
       }

@@ -836,8 +836,6 @@ struct ToolCallChildLink: View {
   @Environment(\.openSession) private var openSession
 
   var body: some View {
-    // The status is read so that a change of the call draws the link again:
-    // the client sets `childSession` when it reads the link.
     let status = entry.status
     if let child = entry.childSession, !child.isClosed, let openSession {
       Button(String(localized: "Open session", bundle: .module), systemImage: SharedSymbol.disclosure) {

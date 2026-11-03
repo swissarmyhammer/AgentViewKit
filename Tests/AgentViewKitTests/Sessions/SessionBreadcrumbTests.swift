@@ -30,7 +30,7 @@ import Testing
     let session = try await Self.openTree()
     defer { session.close() }
 
-    let path = try #require(session.session(Self.linter)).pathModels
+    let path = try #require(session.session(Self.linter)).path
 
     #expect(path.map(\.sessionId) == [session.model.sessionId, Self.reviewer, Self.linter])
   }
@@ -38,7 +38,7 @@ import Testing
   @Test func theFullPathHasOneCrumbForEachSession() async throws {
     let session = try await Self.openTree()
     defer { session.close() }
-    let path = try #require(session.session(Self.linter)).pathModels
+    let path = try #require(session.session(Self.linter)).path
 
     let segments = BreadcrumbSegment.segments(of: path, collapsed: false)
 
@@ -48,7 +48,7 @@ import Testing
   @Test func theCollapsedPathHoldsTheMiddleCrumbsInOneDropdown() async throws {
     let session = try await Self.openTree()
     defer { session.close() }
-    let path = try #require(session.session(Self.linter)).pathModels
+    let path = try #require(session.session(Self.linter)).path
 
     let segments = BreadcrumbSegment.segments(of: path, collapsed: true)
 
@@ -66,7 +66,7 @@ import Testing
   @Test func aPathWithNoMiddleCrumbHasNothingToCollapse() async throws {
     let session = try await Self.openTree()
     defer { session.close() }
-    let path = try #require(session.session(Self.reviewer)).pathModels
+    let path = try #require(session.session(Self.reviewer)).path
 
     #expect(BreadcrumbSegment.segments(of: path, collapsed: true).count == 2)
   }
@@ -128,12 +128,13 @@ import Testing
     let call = ToolCallId(rawValue: "call-1")
     try await session.sendAgentToolCall(call, child: Self.reviewer)
     let child = try await session.announceChild(Self.reviewer, startedBy: call)
-    #expect(child.nearestOpenSession === child)
+    #expect(child.nearestOpenAncestor === session.model)
 
     try await session.sendAgentToolCallResult(call, child: Self.reviewer)
     await ObservationWait.until { child.isClosed }
 
-    #expect(child.nearestOpenSession === session.model)
+    #expect(child.isClosed)
+    #expect(SessionFocus().resolve(in: session.model) === session.model)
   }
 
   // MARK: - Banner jump
@@ -158,7 +159,7 @@ import Testing
   }
 
   @Test func aChildThatFailedToRestoreShowsItsReason() {
-    let message = UnconfirmedSessionBanner.message(for: .failedToRestore(reason: "The log is gone."))
+    let message = UnconfirmedSessionBanner.message(for: .restoreFailed(reason: "The log is gone."))
 
     #expect(message?.explanation == "The log is gone.")
   }
@@ -182,12 +183,12 @@ import Testing
 
 /// The status texts, the controls and the menus of the tree.
 @Suite @MainActor struct SessionStatusTests {
-  @Test func aRootSessionHasAKnownStatus() async throws {
+  @Test func aRootSessionIsNeverUnconfirmed() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
 
-    #expect(SessionStatus.of(session.model).isUnknown == false)
-    #expect(SessionControls.composerEnabled(for: session.model))
+    #expect(session.model.status != .unconfirmed)
+    #expect(session.model.canPrompt)
   }
 
   @Test func aConfirmedChildHasAKnownStateAndNoComposer() async throws {
@@ -195,14 +196,14 @@ import Testing
     defer { session.close() }
     let child = try await session.announceChild(SessionId(rawValue: "c"))
 
-    #expect(SessionStatus.of(child) == .known(.running))
-    #expect(!SessionControls.composerEnabled(for: child))
+    #expect(child.status == .running)
+    #expect(!child.canPrompt)
   }
 
   @Test func theFourStatusesReadDifferently() {
     let texts = [
-      SessionStatus.unconfirmed.text, SessionStatus.failedToRestore(reason: "gone").text,
-      SessionStatus.stateOmitted.text, SessionStatus.known(.idle(stopReason: nil, error: nil)).text,
+      SessionStatus.unconfirmed.text, SessionStatus.restoreFailed(reason: "gone").text,
+      SessionStatus.unknown.text, SessionStatus.idle(stopReason: nil, error: nil).text,
     ]
 
     #expect(Set(texts).count == 4)
@@ -211,10 +212,10 @@ import Testing
 
   @Test func theBannerSaysEachStatusInItsOwnWords() {
     let unconfirmed = UnconfirmedSessionBanner.message(for: .unconfirmed)
-    let omitted = UnconfirmedSessionBanner.message(for: .stateOmitted)
+    let omitted = UnconfirmedSessionBanner.message(for: .unknown)
 
     #expect(unconfirmed?.title != omitted?.title)
-    #expect(UnconfirmedSessionBanner.message(for: .known(.running)) == nil)
+    #expect(UnconfirmedSessionBanner.message(for: .running) == nil)
   }
 
   @Test func theChildrenMenuListsTheFirstOnesAndCountsTheRest() async throws {

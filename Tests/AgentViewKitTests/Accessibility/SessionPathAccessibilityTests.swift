@@ -24,7 +24,7 @@ import Testing
   @Test func theHeaderLabelReadsTheWholePath() async throws {
     let session = try await Self.openChain()
     defer { session.close() }
-    let titles = try #require(session.session(Self.grandchild)).pathModels.map(\.displayTitle)
+    let titles = try #require(session.session(Self.grandchild)).path.map(\.displayTitle)
 
     let label = AgentInfoHeader.label(agent: "Agent", path: titles)
 
@@ -86,7 +86,7 @@ import Testing
     let (session, ids) = try await Self.openChainOfFive()
     defer { session.close() }
     let last = try #require(session.session(ids[4]))
-    let titles = last.pathModels.map(\.displayTitle)
+    let titles = last.path.map(\.displayTitle)
 
     let label = AgentInfoHeader.label(agent: "Agent", path: titles)
 
@@ -98,7 +98,7 @@ import Testing
   @Test func theCollapsedPathOfFiveCrumbsHoldsTheThreeMiddleCrumbsInTheDropdown() async throws {
     let (session, ids) = try await Self.openChainOfFive()
     defer { session.close() }
-    let path = try #require(session.session(ids[4])).pathModels
+    let path = try #require(session.session(ids[4])).path
 
     let segments = BreadcrumbSegment.segments(of: path, collapsed: true)
 

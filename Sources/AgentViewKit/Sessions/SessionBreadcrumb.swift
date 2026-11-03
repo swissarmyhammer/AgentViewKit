@@ -171,8 +171,7 @@ struct SessionBreadcrumb: View {
   ///   - entry: The session of the choice.
   ///   - isCurrent: Whether the choice is the shown session.
   private func choiceButton(_ entry: SessionPathEntry, isCurrent: Bool) -> some View {
-    let model = path.first?.session(withId: entry.sessionId)
-    let text = SessionStateText.choiceLabel(for: entry, model: model)
+    let text = SessionStateText.choiceLabel(for: entry)
     let symbol = Self.mark(of: entry, isCurrent: isCurrent)
     return Button {
       select(entry.sessionId)
@@ -226,7 +225,7 @@ struct SessionBreadcrumb: View {
   /// - Parameter session: The session of the crumb.
   /// - Returns: Text such as "Linter, Waiting for you, needs your attention".
   static func accessibilityLabel(for session: SessionModel) -> String {
-    var parts = [session.displayTitle, SessionStatus.of(session).text]
+    var parts = [session.displayTitle, session.status.text]
     if session.needsAttention { parts.append(String(localized: "needs your attention", bundle: .module)) }
     return parts.joined(separator: ", ")
   }

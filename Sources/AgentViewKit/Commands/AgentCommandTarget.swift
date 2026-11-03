@@ -271,7 +271,7 @@ final class AgentCommandTarget {
   static func canCancel(_ session: SessionModel) -> Bool {
     // A child can cancel only when the client knows its state and its
     // capabilities offer a cancel.
-    if session.parent != nil, !SessionControls.childCanCancel(session) { return false }
+    guard session.canCancel else { return false }
     guard !isActive(session.agentState) else { return true }
     guard case .idle = session.agentState else { return false }
     return hasPendingRequests(session)

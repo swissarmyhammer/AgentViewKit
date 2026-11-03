@@ -92,28 +92,32 @@ public struct UnconfirmedSessionBanner: View {
   /// - Returns: The message, or `nil` when the state is known.
   static func message(for status: SessionStatus) -> StatusBar.Message? {
     switch status {
-    case .known: return nil
-    case .failedToRestore(let reason):
+    case .running, .requiresAction, .idle: return nil
+    case .restoreFailed(let reason):
       return StatusBar.Message(
         title: String(localized: "This sub-session did not restore", bundle: .module), explanation: reason,
         symbolName: SharedSymbol.warning, identifier: identifier, severity: .warning)
     case .unconfirmed:
-      return StatusBar.Message(
+      return information(
         title: String(localized: "The state of this sub-session is not known yet", bundle: .module),
-        explanation: String(
-          localized: "The agent has not sent the current state after the resume.", bundle: .module),
-        symbolName: SharedSymbol.information, identifier: identifier, severity: .information)
-    case .stateOmitted:
-      return StatusBar.Message(
+        explanation: String(localized: "The agent has not sent the current state after the resume.", bundle: .module))
+    case .unknown:
+      return information(
         title: String(localized: "The agent gave no state for this sub-session", bundle: .module),
-        explanation: String(localized: "The state stays unknown.", bundle: .module),
-        symbolName: SharedSymbol.information, identifier: identifier, severity: .information)
+        explanation: String(localized: "The state stays unknown.", bundle: .module))
     }
+  }
+
+  /// A neutral message of the banner.
+  private static func information(title: String, explanation: String) -> StatusBar.Message {
+    StatusBar.Message(
+      title: title, explanation: explanation, symbolName: SharedSymbol.information, identifier: identifier,
+      severity: .information)
   }
 
   /// The bar for an unconfirmed child, or nothing.
   public var body: some View {
-    if session.parent != nil, let message = Self.message(for: SessionStatus.of(session)) {
+    if session.parent != nil, let message = Self.message(for: session.status) {
       StatusBar(message: message, action: nil)
     }
   }
