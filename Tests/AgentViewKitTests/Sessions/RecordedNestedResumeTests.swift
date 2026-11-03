@@ -9,24 +9,24 @@ import Testing
 /// The test is off until FoundationModelsACPAgent replays the child history of
 /// a recorded session that has `agentSpawn` records (the Router records), and
 /// the demo app has such a recording. Turn it on then, and it must pass with no
-/// change to the checks: the tree under the resumed root has a child, and a
-/// child of that child, as the recording holds.
+/// change to the checks: the tree under the resumed root has a child that has a
+/// child, as the recording holds.
 @Suite @MainActor struct RecordedNestedResumeTests {
   @Test(.disabled("Waits for the Agent package to replay child sessions from a recording with agentSpawn."))
   func aResumeOfANestedRecordingShowsTheTree() async throws {
     let scenario = try await RecordedSessionsScenario.start()
     defer { Task { await scenario.stop() } }
 
-    var depth = 0
+    var hasChildOfChild = false
     try await RecordedSessionsScenario.resumeEachSessionFromTheStart(of: scenario.agent) { _, session in
-      depth = max(depth, Self.levels(below: session))
+      if Self.hasChildOfChild(session) { hasChildOfChild = true }
     }
 
-    #expect(depth >= 2)
+    #expect(hasChildOfChild)
   }
 
-  /// The number of levels below a session: zero for a session with no child.
-  private static func levels(below session: SessionModel) -> Int {
-    1 + (session.children.map(levels(below:)).max() ?? -1)
+  /// Tells if a session of the tree has a child that has a child.
+  private static func hasChildOfChild(_ session: SessionModel) -> Bool {
+    session.children.contains { !$0.children.isEmpty || hasChildOfChild($0) }
   }
 }

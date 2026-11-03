@@ -456,7 +456,7 @@ to the file chip. Nothing is dropped.
 
 ### Sub-agent sessions
 
-A sub-agent is a child session, and the model is parent and child all the way down; the kit has no rule for a number of levels. `AgentThreadView` shows the root session that you give it, and the user moves in the tree:
+A sub-agent is a child session, a root is a session with no parent, and the model is parent and child all the way down; the kit has no rule for a number of levels. `AgentThreadView` shows the root session that you give it, and the user moves in the tree:
 
 - **The path.** `AgentInfoHeader` shows a crumb for each session from the root to the shown one. Each crumb is a dropdown with its siblings (title, state, open questions), and a mark when a session at or below it needs the user. A last dropdown lists the children of the shown session. When the path does not fit the width, the middle crumbs collapse into a "..." dropdown.
 - **Commands.** Go to Parent Session (⌃⌘←), Open Child Session (⌃⌘→), Previous and Next Sibling Session (⌃⌥⌘[ and ⌃⌥⌘]), and Jump to Session (⌃⌘O), a filtered list of the ancestors and descendants with their paths.

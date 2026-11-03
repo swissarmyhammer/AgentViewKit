@@ -43,7 +43,7 @@ struct SessionFocus: Equatable {
   /// The session to show now.
   ///
   /// - Parameter root: The live root of the tree.
-  /// - Returns: The deepest session of the chosen path that the live tree
+  /// - Returns: The last session of the chosen path that the live tree
   ///   still holds and that is open, or the root.
   func resolve(in root: SessionModel) -> SessionModel {
     for id in path.reversed() {

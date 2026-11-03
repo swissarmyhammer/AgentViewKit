@@ -4,8 +4,8 @@ Show a session and its child sessions, and move between them.
 
 ## Overview
 
-A sub-agent is a child session. The model is parent and child all the way
-down: a child can have children, and each rule here holds at each level. The
+A sub-agent is a child session. A root is a session with no parent. The model
+is parent and child all the way down: a child can have children, and each rule here holds at each level. The
 kit has no rule for a number of levels. The tree comes from
 `FoundationModelsACPClient` (`SessionModel.parent`, `children`, `ancestors`,
 `siblings`, `descendants`, `needsAttention`), and the views read it. The kit
@@ -25,8 +25,8 @@ when the session, or a session below it, needs the user. A last dropdown lists
 the children of the shown session, with a limit and a count of the others.
 
 When the path does not fit the width of the bar, the middle crumbs collapse into
-one "..." dropdown. The agent keeps its place. This is a rule of the width and
-not of the depth.
+one "..." dropdown. The agent keeps its place. This is a rule of the width of
+the bar and not of the number of sessions in the path.
 
 ### Commands and jump
 

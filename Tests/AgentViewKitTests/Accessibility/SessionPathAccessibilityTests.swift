@@ -85,8 +85,8 @@ import Testing
   @Test func theLabelOfAPathOfFiveCrumbsReadsEachNameInOrder() async throws {
     let (session, ids) = try await Self.openChainOfFive()
     defer { session.close() }
-    let deepest = try #require(session.session(ids[4]))
-    let titles = deepest.pathModels.map(\.displayTitle)
+    let last = try #require(session.session(ids[4]))
+    let titles = last.pathModels.map(\.displayTitle)
 
     let label = AgentInfoHeader.label(agent: "Agent", path: titles)
 
