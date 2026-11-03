@@ -1,8 +1,8 @@
 ---
 assignees:
 - claude-code
-position_column: todo
-position_ordinal: '8180'
+position_column: done
+position_ordinal: ffffff9480
 title: 'Nested session fixtures: ScriptedSession helpers, nested demo agent, nested recording'
 ---
 ## What
