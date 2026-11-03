@@ -571,6 +571,7 @@ struct ToolCallBody: View, Equatable {
     let locations = Self.chipLocations(entry.locations, notShownBy: parts, id: id)
     let showsCommandOutput = entry.shownKind == .execute && !parts.contains(where: \.isTerminal)
     return VStack(alignment: .leading, spacing: editorStyle.tile.gap) {
+      ToolCallChildLink(entry: entry)
       if !locations.isEmpty {
         ToolCallLocationChips(locations: locations)
           .toolCallLocationChipStyle(AgentLocationChipStyle())
@@ -791,5 +792,39 @@ private struct ToolCallWaitingStatus: View {
 #Preview("Tool call") {
   if let entry = PreviewFixtures.firstEntry(in: .previewSample, as: ToolCallEntry.self) {
     ToolCallView(entry: entry)
+  }
+}
+
+
+/// The link of an `agents` tool call to its child session.
+///
+/// While the child session exists, the row shows an "Open session" button that
+/// shows the child in the nearest ``AgentThreadView``. After the client
+/// removed the child, the row stays as history and shows no button. The view
+/// shows nothing for a call that has no child, and nothing outside a thread
+/// view.
+struct ToolCallChildLink: View {
+  /// The accessibility identifier of the button of a call.
+  ///
+  /// - Parameter id: The text identity of the call.
+  /// - Returns: The identifier.
+  static func identifier(for id: String) -> String { "tool-call-open-session-" + id }
+
+  /// The tool call entry.
+  let entry: ToolCallEntry
+
+  @Environment(\.openSession) private var openSession
+
+  var body: some View {
+    // The status is read so that a change of the call draws the link again:
+    // the client sets `childSession` when it reads the link.
+    let _ = entry.status
+    if let child = entry.childSession, !child.isClosed, let openSession {
+      Button(String(localized: "Open session", bundle: .module), systemImage: SharedSymbol.disclosure) {
+        openSession(child.sessionId)
+      }
+      .accessibilityIdentifier(Self.identifier(for: entry.id.rowKey))
+      .accessibilityHint(child.displayTitle)
+    }
   }
 }

@@ -1,12 +1,15 @@
 import EditorStyle
 import EditorSwiftUI
 import EditorTheme
+import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 
 /// The header that names the agent of a `ConnectionModel` (plan.md §3.3
-/// "Initialize and auth", §3.8 "Connection banner"), and the session after
-/// it, as an "Agent › Session" breadcrumb (^2sg9taf).
+/// "Initialize and auth", §3.8 "Connection banner"), and the path to the
+/// shown session after it, as an "Agent › Session › Child" breadcrumb
+/// (^2sg9taf). The model is parent and child all the way down: the path has
+/// one crumb for each session from the root to the shown session.
 ///
 /// The body reads `ConnectionModel.initializeResponse` directly, and keeps no
 /// copy of it. The agent sends its name and its version in the `info` member
@@ -20,10 +23,14 @@ import SwiftUI
 ///
 /// The header follows the path control of the macOS HIG. The first segment
 /// is the agent: its symbol, its name and its version line. When the host
-/// gives a session title, a chevron in the `.secondary` style follows, and
-/// then the title, in the foreground of the glass. With no session title, the header
-/// shows the agent alone. Each text has one line, and the agent segment has
-/// the higher layout priority, so a long session title truncates first. The
+/// gives a session, a chevron in the `.secondary` style and a crumb follow
+/// for each session on the path from the root to it. Each crumb is a
+/// dropdown with the siblings at its level (``SessionBreadcrumb``). With no
+/// session, the header shows the agent alone. Each text has one line. When
+/// the path does not fit the width, the middle crumbs collapse into one "..."
+/// dropdown. That is a rule of the width, and not of the number of sessions.
+/// The agent segment has the higher layout priority, so a long title
+/// truncates first. The
 /// segments are text with no glass and no fill of their own: the one glass
 /// is the surface that the host of the header gives, such as the floating
 /// glass in the top bar of ``AgentThreadView``.
@@ -33,8 +40,10 @@ import SwiftUI
 /// ``AgentThreadView`` does with the spacing steps of the style.
 ///
 /// VoiceOver reads the header as one header element with the identifier
-/// ``identifier``. Its label is "Agent, Session", or the name of the agent
-/// alone, and its value is the version line.
+/// ``identifier``. Its label names the path, such as "Agent, Reviewer,
+/// Linter", or the name of the agent alone, and its value is the version
+/// line. With a session, the header is a container, so each dropdown stays
+/// reachable.
 ///
 /// The symbol and the chevron are each a ``DecorativeSymbolImage``: they have
 /// the `.secondary` style, not the accent of the EditorKit theme (D113 answer
@@ -49,61 +58,72 @@ public struct AgentInfoHeader: View {
   /// The connection model whose agent info the header shows.
   let connection: ConnectionModel
 
-  /// The title of the session that the header shows after the agent, or
-  /// `nil` for the agent alone.
-  let sessionTitle: String?
+  /// The session that the header shows after the agent, or `nil` for the
+  /// agent alone.
+  let session: SessionModel?
+
+  /// Called with the id of the session that the user chooses in a dropdown.
+  let select: (SessionId) -> Void
 
   /// Makes the header of the agent of a connection model.
   ///
   /// - Parameters:
   ///   - connection: The connection model of the agent.
-  ///   - sessionTitle: The title of the session that the header shows after
-  ///     the agent, such as the title of a tab, or `nil` for the agent alone.
-  public init(connection: ConnectionModel, sessionTitle: String? = nil) {
+  ///   - session: The session that the header shows after the agent, or
+  ///     `nil` for the agent alone. The crumbs are its ancestors and the
+  ///     session itself. The header reads the model and keeps no copy.
+  ///   - select: Called with the id of the session that the user chooses in
+  ///     a dropdown. Which session a window shows is the state of the view,
+  ///     so the host changes it. The default does nothing.
+  public init(
+    connection: ConnectionModel, session: SessionModel? = nil, select: @escaping (SessionId) -> Void = { _ in }
+  ) {
     self.connection = connection
-    self.sessionTitle = sessionTitle
+    self.session = session
+    self.select = select
   }
 
   public var body: some View {
     if let info = connection.initializeResponse?.info {
       let agent = info.title ?? info.name
-      AgentBreadcrumb(agent: agent, version: info.version, sessionTitle: sessionTitle)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Self.label(agent: agent, sessionTitle: sessionTitle))
+      let path = session?.pathModels ?? []
+      AgentBreadcrumb(agent: agent, version: info.version, path: path, select: select)
+        .accessibilityElement(children: path.isEmpty ? .ignore : .contain)
+        .accessibilityLabel(Self.label(agent: agent, path: path.map(\.displayTitle)))
         .accessibilityValue(AgentBreadcrumb.versionLine(of: info.version))
         .accessibilityAddTraits(.isHeader)
         .accessibilityIdentifier(Self.identifier)
     }
   }
 
-  /// The VoiceOver label of the header: "Agent, Session", or the name of the
-  /// agent alone.
+  /// The VoiceOver label of the header: the agent and the titles of the path,
+  /// such as "Agent, Reviewer, Linter", or the name of the agent alone.
   ///
   /// - Parameters:
   ///   - agent: The name of the agent.
-  ///   - sessionTitle: The title of the session, or `nil`.
+  ///   - path: The titles of the sessions from the root to the shown session.
   /// - Returns: The label.
-  static func label(agent: String, sessionTitle: String?) -> String {
-    guard let sessionTitle else { return agent }
-    return String(localized: "\(agent), \(sessionTitle)", bundle: .module)
+  static func label(agent: String, path: [String]) -> String {
+    SessionPathText.label([agent] + path)
   }
 }
 
-/// The segments of an ``AgentInfoHeader``: the agent, and the session after
-/// a chevron when the host gives a session title.
+/// The segments of an ``AgentInfoHeader``: the agent, and the crumbs of the
+/// path after it.
+///
+/// The row tries the full path first, then the path with the middle crumbs
+/// collapsed, and last the collapsed path with truncated text, whatever fits
+/// the width first (`ViewThatFits`).
 ///
 /// The row has no accessibility element of its own. The header makes it one
-/// element, so only a test that shows the row alone reads the frames of the
-/// segments, with ``agentIdentifier`` and ``sessionIdentifier``.
+/// element (or one container, with a path), so only a test that shows the row
+/// alone reads the frames of the segments, with ``agentIdentifier``.
 struct AgentBreadcrumb: View {
   /// The accessibility identifier of the name of the agent.
   static let agentIdentifier = "agent-info-agent"
 
-  /// The accessibility identifier of the session title.
-  static let sessionIdentifier = "agent-info-session"
-
-  /// The layout priority of the agent segment over the session segment, so
-  /// that the session title truncates first.
+  /// The layout priority of the agent segment over the crumbs, so that the
+  /// crumbs truncate first.
   static let agentPriority: Double = 1
 
   /// The name of the agent.
@@ -112,24 +132,30 @@ struct AgentBreadcrumb: View {
   /// The version of the agent.
   let version: String
 
-  /// The title of the session, or `nil` for the agent alone.
-  let sessionTitle: String?
+  /// The sessions from the root to the shown session, or none for the agent
+  /// alone.
+  let path: [SessionModel]
+
+  /// Called with the id of the session that the user chooses.
+  let select: (SessionId) -> Void
 
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
+    ViewThatFits(in: .horizontal) {
+      row(collapsed: false).fixedSize(horizontal: true, vertical: false)
+      row(collapsed: true).fixedSize(horizontal: true, vertical: false)
+      row(collapsed: true)
+    }
+  }
+
+  /// The row of the agent and the crumbs.
+  private func row(collapsed: Bool) -> some View {
     HStack(alignment: .firstTextBaseline, spacing: editorStyle.spacing.s) {
       agentSegment
         .layoutPriority(Self.agentPriority)
-      if let sessionTitle {
-        DecorativeSymbolImage(name: SharedSymbol.disclosure)
-          .imageScale(.small)
-        Text(sessionTitle)
-          .font(editorTheme.font(for: .ui, style: .headline))
-          .lineLimit(1)
-          .accessibilityIdentifier(Self.sessionIdentifier)
-      }
+      SessionBreadcrumb(path: path, collapsed: collapsed, select: select)
       Spacer(minLength: editorStyle.spacing.s)
     }
   }
@@ -165,5 +191,5 @@ struct AgentBreadcrumb: View {
 }
 
 #Preview("Agent › Session header") {
-  AgentInfoHeader(connection: .previewSample, sessionTitle: "AgentViewKit")
+  AgentInfoHeader(connection: .previewSample, session: ConnectionModel.previewSample.openSessions.first)
 }

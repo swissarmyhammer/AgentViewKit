@@ -1,3 +1,4 @@
+import AgentViewKit
 import EditorTestSupport
 import Foundation
 import FoundationModelsACP
@@ -33,13 +34,7 @@ extension ScriptedSession {
   /// - Returns: The session model: the scripted session, or a descendant of
   ///   it. `nil` when the tree has no such session.
   public func session(_ sessionId: SessionId) -> SessionModel? {
-    Self.find(sessionId, under: model)
-  }
-
-  /// Finds a session in the tree under a session, depth first.
-  private static func find(_ sessionId: SessionId, under session: SessionModel) -> SessionModel? {
-    if session.sessionId == sessionId { return session }
-    return session.children.lazy.compactMap { find(sessionId, under: $0) }.first
+    model.session(withId: sessionId)
   }
 
   /// Announces a child session in the stream of its parent, and waits until

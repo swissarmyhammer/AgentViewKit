@@ -181,6 +181,16 @@
         }
       }
     },
+    "A sub-session needs you" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A sub-session needs you"
+          }
+        }
+      }
+    },
     "Accept" : {
       "localizations" : {
         "en" : {
@@ -701,6 +711,16 @@
         }
       }
     },
+    "Idle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Idle"
+          }
+        }
+      }
+    },
     "In progress" : {
       "localizations" : {
         "en" : {
@@ -837,6 +857,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Model Settings"
+          }
+        }
+      }
+    },
+    "More of the path" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More of the path"
           }
         }
       }
@@ -1087,6 +1117,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Open in Browser"
+          }
+        }
+      }
+    },
+    "Open session" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open session"
           }
         }
       }
@@ -1597,6 +1637,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Share"
+          }
+        }
+      }
+    },
+    "Show" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show"
           }
         }
       }
@@ -2221,6 +2271,16 @@
         }
       }
     },
+    "The controls stay off until the agent sends the current state." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The controls stay off until the agent sends the current state."
+          }
+        }
+      }
+    },
     "The file does not exist." : {
       "localizations" : {
         "en" : {
@@ -2531,6 +2591,16 @@
         }
       }
     },
+    "The state of this sub-session is not known yet" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The state of this sub-session is not known yet"
+          }
+        }
+      }
+    },
     "The text does not match the necessary pattern." : {
       "localizations" : {
         "en" : {
@@ -2741,6 +2811,16 @@
         }
       }
     },
+    "This sub-session did not restore" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This sub-session did not restore"
+          }
+        }
+      }
+    },
     "Thought" : {
       "localizations" : {
         "en" : {
@@ -2861,6 +2941,16 @@
         }
       }
     },
+    "Unknown" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown"
+          }
+        }
+      }
+    },
     "Unknown item: %@" : {
       "localizations" : {
         "en" : {
@@ -2971,6 +3061,16 @@
         }
       }
     },
+    "Waiting for you" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for you"
+          }
+        }
+      }
+    },
     "Waiting for your answer" : {
       "localizations" : {
         "en" : {
@@ -3027,6 +3127,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "another session"
+          }
+        }
+      }
+    },
+    "needs your attention" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "needs your attention"
           }
         }
       }
