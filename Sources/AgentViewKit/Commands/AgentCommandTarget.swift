@@ -365,7 +365,7 @@ final class AgentCommandTarget {
   ///   - session: The shown session.
   /// - Returns: The sibling, or `nil` at the end of the siblings.
   private func sibling(offset: Int, of session: SessionModel) -> SessionPathEntry? {
-    let siblings = session.siblings
+    let siblings = session.siblingsIncludingSelf
     guard let index = siblings.firstIndex(where: { $0.sessionId == session.sessionId }),
       siblings.indices.contains(index + offset)
     else { return nil }

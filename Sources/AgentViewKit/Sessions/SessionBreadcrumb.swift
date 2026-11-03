@@ -120,7 +120,7 @@ struct SessionBreadcrumb: View {
   /// The dropdown of the siblings of a session.
   private func crumb(_ session: SessionModel) -> some View {
     dropdown(
-      choices: session.siblings, current: session.sessionId, label: { crumbLabel(session) },
+      choices: session.siblingsIncludingSelf, current: session.sessionId, label: { crumbLabel(session) },
       accessibilityLabel: Self.accessibilityLabel(for: session),
       identifier: Self.crumbIdentifier(for: session.sessionId)
     )

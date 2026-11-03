@@ -85,7 +85,7 @@ import Testing
     defer { session.close() }
     let child = try #require(session.session(Self.reviewer))
 
-    let labels = child.siblings.map { SessionStateText.choiceLabel(for: $0) }
+    let labels = child.siblingsIncludingSelf.map { SessionStateText.choiceLabel(for: $0) }
 
     #expect(labels == ["Reviewer, In progress", "Second, In progress"])
   }
@@ -96,7 +96,7 @@ import Testing
     let other = try #require(session.session(Self.second))
     try await session.sendInOrder([.permission(id: 1, sessionId: Self.second)], to: other)
 
-    let labels = try #require(session.session(Self.reviewer)).siblings.map { SessionStateText.choiceLabel(for: $0) }
+    let labels = try #require(session.session(Self.reviewer)).siblingsIncludingSelf.map { SessionStateText.choiceLabel(for: $0) }
 
     #expect(labels.last == "Second, In progress, 1 open question, needs your attention")
   }

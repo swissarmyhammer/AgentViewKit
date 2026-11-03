@@ -8,7 +8,7 @@ A sub-agent is a child session. A root is a session with no parent. The model
 is parent and child all the way down: a child can have children, and each rule here holds at each level. The
 kit has no rule for a number of levels. The tree comes from
 `FoundationModelsACPClient` (`SessionModel.parent`, `children`, `ancestors`,
-`siblings`, `descendants`, `needsAttention`), and the views read it. The kit
+`siblingsIncludingSelf`, `descendants`, `needsAttention`), and the views read it. The kit
 keeps no copy.
 
 Which session a window shows is state of the view, not of the model, so two
