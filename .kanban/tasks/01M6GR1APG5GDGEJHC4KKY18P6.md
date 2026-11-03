@@ -3,8 +3,8 @@ assignees:
 - claude-code
 depends_on:
 - 01M6GR0P93GSSX2D63SJ6RGWZ3
-position_column: todo
-position_ordinal: '8280'
+position_column: done
+position_ordinal: ffffff9080
 title: 'Breadcrumb in AgentInfoHeader: sibling dropdowns, needsAttention marks, banner jump'
 ---
 ## What

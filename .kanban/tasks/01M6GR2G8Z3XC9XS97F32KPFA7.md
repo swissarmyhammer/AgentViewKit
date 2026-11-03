@@ -21,8 +21,8 @@ comments:
     13 new generated types: not used, no compile break.
     Client changes: Command name clash with EditorCommands.Command fixed by naming EditorCommands.Command at 3 struct declarations. New TranscriptEntry.sessionMessage: new SessionMessageView (sender, recipient, content); the activity timeline and the exporter give it no row. Build needs the Agent package alpha.13 changes, which were still uncommitted in its working tree (ACPEventTranslator, CommandRegistry); main at a794c58 does not compile with the new wire.
   timestamp: 2026-11-03T15:05:20.323803+00:00
-position_column: todo
-position_ordinal: '8580'
+position_column: done
+position_ordinal: ffffff9380
 title: Adopt the 13 wire breaks of the ACP schema re-vendor (alpha.13) in AgentViewKit
 ---
 ## What

@@ -3,8 +3,8 @@ assignees:
 - claude-code
 depends_on:
 - 01M6GR1RR24763YSQ7QRYZEW6G
-position_column: todo
-position_ordinal: '8480'
+position_column: done
+position_ordinal: ffffff9280
 title: Accessibility and acceptance tests for nested sessions
 ---
 ## What

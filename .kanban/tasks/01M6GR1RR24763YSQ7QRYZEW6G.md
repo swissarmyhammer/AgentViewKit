@@ -3,8 +3,8 @@ assignees:
 - claude-code
 depends_on:
 - 01M6GR1APG5GDGEJHC4KKY18P6
-position_column: todo
-position_ordinal: '8380'
+position_column: done
+position_ordinal: ffffff9180
 title: 'EditorKit commands and jump over descendants: parent, child, siblings, quick-open'
 ---
 ## What
