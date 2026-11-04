@@ -67,7 +67,11 @@ public final class ScrollAnchorManager {
   @ObservationIgnored public var onScroll: (ScrollAnchorTarget) -> Void
 
   /// The identifier of the last item in the list, or `nil` for an empty list.
-  @ObservationIgnored private var lastItemID: String?
+  ///
+  /// The value is the last item that ``noteAppended(ids:)`` or
+  /// ``noteLastItemChanged(to:)`` gave. The list reads it to tell whether
+  /// the manager already knows the last item of the transcript.
+  @ObservationIgnored private(set) var lastItemID: String?
 
   /// The item of the last jump, until the next report of new rows, or `nil`
   /// when the manager does not wait for the rows of a jump.
