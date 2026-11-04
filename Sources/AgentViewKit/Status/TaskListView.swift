@@ -80,22 +80,6 @@ public struct TaskListView: View {
 
   // MARK: - Labels
 
-  /// The name of a status, for the entry label and the help tag of the
-  /// status symbol.
-  ///
-  /// - Parameter status: The ACP status of an entry.
-  /// - Returns: The name of the status. An unknown status gives its wire
-  ///   string.
-  public static func statusLabel(_ status: FoundationModelsACP.PlanEntryStatus) -> String {
-    switch status {
-    case .pending: WorkStatusLabel.pending
-    case .inProgress: WorkStatusLabel.inProgress
-    case .completed: WorkStatusLabel.completed
-    case .cancelled: WorkStatusLabel.cancelled
-    case .unknown(let wireValue): WorkStatusLabel.unknown(for: wireValue)
-    }
-  }
-
   /// The SF Symbol name of a priority. Each priority has a different symbol,
   /// so that the priority does not show with color only.
   ///
@@ -133,7 +117,7 @@ public struct TaskListView: View {
   ///   holds it.
   /// - Returns: The text, the status, and the priority, separated by commas.
   public static func entryLabel(_ entry: FoundationModelsACP.PlanEntry) -> String {
-    "\(entry.content), \(statusLabel(entry.status)), \(priorityLabel(entry.priority))"
+    "\(entry.content), \(EditorStatus(entry.status).summary), \(priorityLabel(entry.priority))"
   }
 
   /// The header text of the ACP entries of a plan.
@@ -195,7 +179,7 @@ private struct PlanEntryRow: View {
     HStack(spacing: editorStyle.spacing.s) {
       statusSymbol
         .frame(width: Self.statusSymbolWidth)
-        .help(TaskListView.statusLabel(entry.status))
+        .help(EditorStatus(entry.status).summary)
       Text(entry.content)
         .strikethrough(entry.status == .cancelled)
         .foregroundStyle(entry.status == .cancelled ? themeSecondary : themeForeground)
@@ -208,12 +192,13 @@ private struct PlanEntryRow: View {
     .accessibilityAddTraits(.isStaticText)
   }
 
-  /// The symbol of the status: the EditorKit status symbol of the ACP status
-  /// (`EditorSymbol.Status`). An entry in progress shows its symbol with the
-  /// live symbol effect, as a running tool call does. Under Reduce Motion,
-  /// the symbol does not move.
+  /// The symbol of the status: the symbol of the EditorKit status token of
+  /// the ACP status (`EditorStatus`), in its tone. An entry in progress shows
+  /// its symbol with the live symbol effect, as a running tool call does.
+  /// Under Reduce Motion, the symbol does not move.
   private var statusSymbol: some View {
-    EditorSymbolImage(.status(.init(entry.status)), isLive: entry.status == .inProgress)
+    let status = EditorStatus(entry.status)
+    return EditorSymbolImage(systemName: status.systemImage, tone: status.tone, isLive: status.isLive)
   }
 }
 

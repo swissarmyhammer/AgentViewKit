@@ -11,7 +11,7 @@ import Testing
 /// different concepts do not share a symbol.
 ///
 /// Each test reads the symbol names from the views of the kit: the banners,
-/// the stop reasons, the plan and its priorities, the MCP server chip, the
+/// the stop reasons, the plan and its priorities, the MCP server status, the
 /// diff, the command output, the message actions, the send state, the tool
 /// rows, the error card, the time of an entry, the permission options, the
 /// action buttons and the buttons that answer a request.
@@ -154,13 +154,13 @@ import Testing
     return priorities.map { Use(concept: $1, place: "priority \($0)", name: TaskListView.prioritySymbol($0)) }
   }
 
-  /// The symbols of the status chip of an MCP server.
-  static func connectionChipUses() -> [Use] {
+  /// The symbols of the status of an MCP server.
+  static func connectionStatusUses() -> [Use] {
     let statuses: [(MCPServerStatus, Concept)] = [
       (.notReported, .unknown), (.connecting, .inProgress), (.connected, .completed),
       (.failed(reason: nil), .error), (.closed, .disconnected),
     ]
-    return statuses.map { Use(concept: $1, place: "MCP chip \($0)", name: ConnectionStatusChip.symbolName(for: $0)) }
+    return statuses.map { Use(concept: $1, place: "MCP status \($0)", name: EditorStatus($0).systemImage) }
   }
 
   /// The symbols of the file operations of a diff.
@@ -288,7 +288,7 @@ import Testing
   /// Each use that the tests read.
   static func allUses() throws -> [Use] {
     toolUses() + (try stateBannerUses()) + stopReasonUses() + otherBannerUses() + planUses() + priorityUses()
-      + connectionChipUses() + diffUses() + commandOutputUses() + messageActionUses() + sendStateUses() + cardUses()
+      + connectionStatusUses() + diffUses() + commandOutputUses() + messageActionUses() + sendStateUses() + cardUses()
       + permissionOptionUses() + actionButtonUses() + requestButtonUses() + usageRingUses()
   }
 
@@ -340,6 +340,6 @@ import Testing
   }
 
   @Test func eachMCPServerStatusShowsADifferentSymbol() {
-    NameChecks.expectDistinctNames(Self.connectionChipUses().map(\.name))
+    NameChecks.expectDistinctNames(Self.connectionStatusUses().map(\.name))
   }
 }

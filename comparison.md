@@ -115,7 +115,7 @@ The AgentViewKit paths are relative to `Sources/AgentViewKit/`.
 | Capability | AgentViewKit | Vercel AI Elements | assistant-ui | CopilotKit |
 |---|---|---|---|---|
 | Default tool call row | ✓ `ToolCallView` (`Items/ToolCallView.swift`) | ✓ `Tool`, `ToolHeader`, `ToolInput`, `ToolOutput` | ✓ `ToolFallback`, tool call element | ✓ `CopilotChatToolCallsView` |
-| Tool status states | ✓ `ToolStatusSymbol`, `WorkStatusLabel` | ✓ 7 states incl. `approval-requested` | ✓ running, requires-action, incomplete, complete | ✓ inProgress, executing, complete |
+| Tool status states | ✓ EditorKit's `EditorStatus` (`Theme/EditorStatus+ACP.swift`) | ✓ 7 states incl. `approval-requested` | ✓ running, requires-action, incomplete, complete | ✓ inProgress, executing, complete |
 | Tool UI registry by name | ✓ `.toolCallView(named:)` (`Thread/Registries.swift`) | ✗ (switch on `part.type`) | ✓ `defineToolkit`, `Tools({ toolkit })` | ✓ `useRenderTool` |
 | Wildcard tool renderer | ✓ `.toolCallView { }` (`Thread/ItemViewOverrides.swift`) | ✗ | ✓ `tools.Fallback`, `Override` | ✓ `useRenderTool("*")` |
 | Tool group (consecutive calls) | ✗ | ✗ | ✓ tool group, tool timeline elements | ✗ |
@@ -256,7 +256,7 @@ The AgentViewKit paths are relative to `Sources/AgentViewKit/`.
 |---|---|---|---|---|
 | Connection state banner | ✓ `AgentConnectionBanner` (`Connections/`) | ✗ | ✗ | ✗ |
 | Agent sign-in / sign-out | ✓ `AgentAuthView` | ✗ | partial: Assistant Cloud auth | ✗ |
-| MCP server status | ✓ `ConnectionsView`, `ConnectionRow`, `ConnectionStatusChip` | ✗ | partial: user-managed MCP servers page | ✗ |
+| MCP server status | ✓ `ConnectionsView`, `ConnectionRow`, EditorKit's `EditorStatusLabel` | ✗ | partial: user-managed MCP servers page | ✗ |
 | Web authorization session | ✓ `AuthorizationPresenter` | ✗ | ✗ | ✗ |
 | Agent identity | ✓ `AgentInfoHeader` | partial: `Agent` | ✗ | ✗ |
 
@@ -783,7 +783,7 @@ binding rule: no copy of model data.
   `.agentSymbolEffect(_:)` that does the same for SF Symbol effects.
 - **Where:** all views that animate. At this time only `ShimmerView` and
   `ToolCallView` read `accessibilityReduceMotion`. `ThreadMinimapView`,
-  `ScrollToBottomPill`, `StatusBar`, `ConnectionStatusChip`, `ReasoningView`
+  `ScrollToBottomPill`, `StatusBar`, `ReasoningView`
   and the glass morph in `PromptInputView` must use it.
 - **Why:** `plan.md` §6: "Respect Reduce Motion: no glass morphing, no
   streaming animation."

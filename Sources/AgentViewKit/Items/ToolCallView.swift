@@ -14,8 +14,8 @@ extension EnvironmentValues {
   /// The function that gives the server status of a tool call that waits
   /// for an MCP server (plan.md §12).
   ///
-  /// ``ToolCallView`` shows a ``ConnectionStatusChip`` when the function
-  /// gives a status. The value is `nil` until a host sets a function with
+  /// ``ToolCallView`` shows the status of the server, as EditorKit's
+  /// `EditorStatusLabel`, when the function gives a status. The value is `nil` until a host sets a function with
   /// ``SwiftUI/View/toolCallConnectionState(_:)``.
   @Entry public var toolCallConnectionState: ToolCallConnectionStateProvider? = nil
 }
@@ -25,11 +25,11 @@ extension View {
   /// this view.
   ///
   /// Give the status of the server from `SessionModel.mcpServers` for a call
-  /// that waits for that server. ``ToolCallView`` then shows a
-  /// ``ConnectionStatusChip`` in its row. Give `nil` for each other call.
+  /// that waits for that server. ``ToolCallView`` then shows the status of
+  /// the server in its row. Give `nil` for each other call.
   ///
   /// - Parameter provider: The function that gives the server status of a
-  ///   tool call, or `nil` for no chip.
+  ///   tool call, or `nil` for no server status.
   /// - Returns: A view that gives `provider` to its subtree.
   public func toolCallConnectionState(_ provider: ToolCallConnectionStateProvider?) -> some View {
     environment(\.toolCallConnectionState, provider)
@@ -40,8 +40,9 @@ extension View {
 /// "Tool call view", §5, §9 C).
 ///
 /// The view shows a `ToolCallEntry` of a `SessionModel`. It uses the ACP kind
-/// and status types, and draws each kind and status as its EditorKit symbol
-/// (`EditorSymbol`). See ``ToolStatusSymbol``.
+/// and status types, and draws each kind as its EditorKit symbol
+/// (`EditorSymbol`) and each status as its EditorKit status token
+/// (`EditorStatus`).
 ///
 /// The row shows the symbol of the kind, the `title` as the label, and a
 /// status symbol:
@@ -51,10 +52,11 @@ extension View {
 /// - The status symbol changes with the replace transition, and it bounces
 ///   when the call completes.
 /// - A failed, cancelled, lost, or unknown call shows its own symbol and
-///   label. See ``ToolStatusSymbol``.
+///   label. See ``ToolStatusSymbol`` for the lost status.
 ///
-/// When the host gives a server status for the entry, the row also shows a
-/// ``ConnectionStatusChip``. See
+/// When the host gives a server status for the entry, the row also shows that
+/// status as EditorKit's `EditorStatusLabel`, with the identifier
+/// ``ConnectionRow/statusIdentifier(for:)``. See
 /// ``SwiftUI/View/toolCallConnectionState(_:)``.
 ///
 /// A press on the row expands the call. The expanded body shows the
@@ -298,11 +300,11 @@ public struct ToolCallView: View {
   ///   - title: The title of the call.
   ///   - status: The ACP progress of the call.
   /// - Returns: "<title>, <status>", such as "Read README.md, In progress".
+  ///   An unknown status gives its wire value after its label.
   public static func accessibilityLabel(
     title: String, status: FoundationModelsACP.ToolCallStatus
   ) -> String {
-    String(
-      localized: "\(displayTitle(title)), \(ToolStatusSymbol.label(for: status))", bundle: .module)
+    String(localized: "\(displayTitle(title)), \(EditorStatus(status).summary)", bundle: .module)
   }
 
   /// The title that the row shows.
@@ -398,7 +400,7 @@ private struct ToolCallLabel: ViewModifier {
 }
 
 /// The row of a ``ToolCallView``: the button that expands the call, and the
-/// connection chip.
+/// status of the MCP server the call waits for.
 ///
 /// The row reads the status of the entry. The ``BodyEvaluationCounter`` key of
 /// the row is ``ToolCallView/rowCounterKey(for:)``.
@@ -414,6 +416,7 @@ private struct ToolCallHeader: View {
 
   @Environment(\.toolCallConnectionState) private var connectionState
   @Environment(\.editorStyle) private var editorStyle
+  @Environment(\.editorTheme) private var editorTheme
   @Environment(\.themeSecondary) private var themeSecondary
 
   var body: some View {
@@ -434,7 +437,9 @@ private struct ToolCallHeader: View {
       )
       .accessibilityIdentifier(ToolCallView.toggleIdentifier(for: id))
       if let status = connectionState?(entry) {
-        ConnectionStatusChip(status: status)
+        EditorStatusLabel(EditorStatus(status))
+          .font(editorTheme.font(for: .ui, style: .caption))
+          .accessibilityIdentifier(ConnectionRow.statusIdentifier(for: status))
       }
     }
   }
@@ -466,7 +471,7 @@ private struct ToolCallHeader: View {
     return ToolStatusImage(status: status)
       .contentTransition(.symbolEffect(.replace))
       .symbolEffect(.bounce, value: status == .completed)
-      .liveSymbolEffect(isActive: ToolStatusSymbol.isLive(status))
+      .liveSymbolEffect(isActive: EditorStatus(status).isLive)
   }
 }
 

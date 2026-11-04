@@ -7,7 +7,8 @@ import SwiftUI
 /// One MCP server in ``ConnectionsView`` (plan.md §12).
 ///
 /// The row shows the `name` and the `transport` of an `MCPServerItem` of
-/// the client model, and a ``ConnectionStatusChip`` with its `status`. An
+/// the client model, and its `status` as EditorKit's `EditorStatusLabel`,
+/// with the identifier ``statusIdentifier(for:)``. An
 /// item with no `transport` has no transport text. The
 /// row reads the item in its body. Thus a status change of the item shows in
 /// this row with no other step.
@@ -18,6 +19,10 @@ public struct ConnectionRow: View {
   /// The start of the accessibility identifier of the transport text of each
   /// row.
   public static let transportIdentifierPrefix = "connection-transport-"
+
+  /// The start of the accessibility identifier of the status of each server,
+  /// in a row and in a ``ToolCallView`` that waits for the server.
+  public static let statusIdentifierPrefix = "connection-status-"
 
   /// The server to show, from `SessionModel.mcpServers`.
   let server: MCPServerItem
@@ -50,6 +55,31 @@ public struct ConnectionRow: View {
     AccessibilityIdentifier.make(prefix: transportIdentifierPrefix, value: name)
   }
 
+  /// The accessibility identifier of the status of a server.
+  ///
+  /// The reason of a failed status is not in the identifier.
+  ///
+  /// - Parameter status: The status of the server.
+  /// - Returns: `connection-status-<status>`, such as
+  ///   `connection-status-not-reported`.
+  public static func statusIdentifier(for status: MCPServerStatus) -> String {
+    AccessibilityIdentifier.make(prefix: statusIdentifierPrefix, value: statusIdentifierName(for: status))
+  }
+
+  /// The name of `status` in an accessibility identifier.
+  ///
+  /// - Parameter status: The status of the server.
+  /// - Returns: The name, such as `not-reported`.
+  private static func statusIdentifierName(for status: MCPServerStatus) -> String {
+    switch status {
+    case .notReported: "not-reported"
+    case .connecting: "connecting"
+    case .connected: "connected"
+    case .failed: "failed"
+    case .closed: "closed"
+    }
+  }
+
   public var body: some View {
     HStack(spacing: editorStyle.spacing.s) {
       VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
@@ -64,7 +94,9 @@ public struct ConnectionRow: View {
         }
       }
       Spacer(minLength: editorStyle.spacing.s)
-      ConnectionStatusChip(status: server.status)
+      EditorStatusLabel(EditorStatus(server.status))
+        .font(editorTheme.font(for: .ui, style: .caption))
+        .accessibilityIdentifier(Self.statusIdentifier(for: server.status))
     }
     .accessibilityElement(children: .contain)
     .accessibilityLabel(server.name)

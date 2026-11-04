@@ -437,7 +437,7 @@ public struct ThreadMinimapView: View {
   ///   entry, and `nil` for each other entry.
   private static func statusName(of entry: TranscriptEntry) -> String? {
     switch entry {
-    case .toolCall(let toolCall): ToolStatusSymbol.label(for: toolCall.shownStatus)
+    case .toolCall(let toolCall): EditorStatus(toolCall.shownStatus).summary
     case .error: String(localized: "Error", bundle: .module)
     case .userMessage, .agentMessage, .thought, .terminal, .plan, .unknown, .compaction, .sessionMessage: nil
     }

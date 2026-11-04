@@ -1,4 +1,5 @@
 import AgentViewKitTestSupport
+import EditorSwiftUI
 import Foundation
 import FoundationModelsACP
 import Testing
@@ -17,22 +18,22 @@ import Testing
 
   // MARK: - Statuses
 
-  @Test func eachStatusHasADistinctLabel() {
-    NameChecks.expectDistinctNames(Self.statuses.map(ToolStatusSymbol.label(for:)))
+  @Test func eachStatusHasADistinctText() {
+    NameChecks.expectDistinctNames(Self.statuses.map { EditorStatus($0).summary })
   }
 
-  @Test func theStatusLabelsAreTheExpectedText() {
+  @Test func theStatusTextsAreTheExpectedText() {
     let expected: [(FoundationModelsACP.ToolCallStatus, String)] = [
       (.pending, "Pending"),
       (.inProgress, "In progress"),
       (.completed, "Completed"),
       (.failed, "Failed"),
       (.cancelled, "Cancelled"),
-      (.unknown(Self.lostWireValue), "Result lost"),
-      (.unknown("custom_status"), "Unknown status: custom_status"),
+      (.unknown(Self.lostWireValue), "Lost"),
+      (.unknown("custom_status"), "Unknown: custom_status"),
     ]
-    for (status, label) in expected {
-      #expect(ToolStatusSymbol.label(for: status) == label)
+    for (status, text) in expected {
+      #expect(EditorStatus(status).summary == text)
     }
   }
 
@@ -45,12 +46,12 @@ import Testing
       (.unknown("other"), .unknown("other")),
     ]
     for (toolStatus, planStatus) in pairs {
-      #expect(ToolStatusSymbol.label(for: toolStatus) == TaskListView.statusLabel(planStatus))
+      #expect(EditorStatus(toolStatus).summary == EditorStatus(planStatus).summary)
     }
   }
 
   @Test func onlyPendingAndRunningCallsAreLive() {
-    let live = Self.statuses.filter(ToolStatusSymbol.isLive)
+    let live = Self.statuses.filter { EditorStatus($0).isLive }
     #expect(live == [.pending, .inProgress])
   }
 
@@ -62,7 +63,7 @@ import Testing
         == "Read README.md, In progress")
     #expect(
       ToolCallView.accessibilityLabel(title: "", status: .unknown(Self.lostWireValue))
-        == "Tool call, Result lost")
+        == "Tool call, Lost")
   }
 
   // MARK: - Command output

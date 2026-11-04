@@ -1,3 +1,4 @@
+import EditorSwiftUI
 import FoundationModelsACP
 import FoundationModelsACPClient
 
@@ -59,7 +60,7 @@ enum SessionStateText {
   /// - Returns: "In progress", "Waiting for you", "Idle", or "Unknown".
   static func text(for state: SessionWorkState) -> String {
     switch state {
-    case .running: WorkStatusLabel.inProgress
+    case .running: EditorStatus(EditorSymbol.Status.inProgress).label
     case .requiresAction: String(localized: "Waiting for you", bundle: .module)
     case .idle: String(localized: "Idle", bundle: .module)
     case .unknown: String(localized: "Unknown", bundle: .module)

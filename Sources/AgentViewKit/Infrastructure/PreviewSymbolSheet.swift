@@ -61,9 +61,10 @@ private struct StatusSymbolSheets: View {
   var body: some View {
     VStack(alignment: .leading, spacing: editorStyle.spacing.l) {
       PreviewSymbolSheet(
-        title: "Plan entry status", values: PreviewFixtures.planEntryStatuses, label: TaskListView.statusLabel
+        title: "Plan entry status", values: PreviewFixtures.planEntryStatuses, label: { EditorStatus($0).summary }
       ) { status in
-        EditorSymbolImage(.status(.init(status)))
+        let token = EditorStatus(status)
+        EditorSymbolImage(systemName: token.systemImage, tone: token.tone)
       }
       PreviewSymbolSheet(
         title: "Plan entry priority", values: PreviewFixtures.planEntryPriorities, label: TaskListView.priorityLabel

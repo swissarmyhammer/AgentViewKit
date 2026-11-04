@@ -101,6 +101,44 @@ import Testing
     #expect(harness.rowValue(row) == "Read Package.swift")
   }
 
+  @Test func theStatusRowOfAToolCallFollowsItsStatus() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    try await session.sendToolCallUpdate(title: Self.timedCallTitle, status: .inProgress)
+    let entry = try await Self.entry(ToolCallEntry.self, in: session)
+    let harness = Self.mount(entry)
+    defer { harness.close() }
+    let row = Self.row(of: entry, group: "tool-call", field: "status")
+    #expect(harness.rowValue(row) == EditorStatus(EditorSymbol.Status.inProgress).label)
+
+    try await session.sendToolCallUpdate(title: Self.timedCallTitle, status: .completed)
+    await harness.render { entry.shownStatus == .completed }
+
+    #expect(harness.rowValue(row) == EditorStatus(EditorSymbol.Status.completed).label)
+  }
+
+  @Test func theStatusRowOfAnMCPServerShowsTheReasonOfAFailure() async throws {
+    let session = try await MCPServersHostedTests.openSessionWithTwoServers()
+    defer { session.close() }
+    let model = session.model
+    let server = try #require(model.mcpServers.first { $0.name == MCPServersHostedTests.filesName })
+    let harness = Self.mount(server)
+    defer { harness.close() }
+    let row = Self.row(of: server, group: "server", field: "status")
+
+    try await session.sendUpdate(
+      MCPServersHostedTests.makeStatusUpdate(
+        name: MCPServersHostedTests.filesName, transport: MCPServersHostedTests.stdioTransport, status: "failed",
+        reason: MCPServersHostedTests.failureReason))
+    await harness.render {
+      MCPServersHostedTests.server(
+        MCPServersHostedTests.filesName, has: .failed(reason: MCPServersHostedTests.failureReason), in: model)
+    }
+
+    #expect(harness.rowValue(row) == EditorStatus(EditorSymbol.Status.failed).label)
+    #expect(harness.inspectorDriver.statusDetail(of: row) == MCPServersHostedTests.failureReason)
+  }
+
   @Test func theExitRowOfATerminalFollowsItsExit() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
@@ -165,7 +203,7 @@ import Testing
     try await session.sendUpdate(Self.planUpdate(status: "completed"))
     await harness.render { entry.entries.first?.status == .completed }
 
-    #expect(harness.rowValue(Self.row(of: entry, group: "plan", field: "steps")) == "\(WorkStatusLabel.completed): Read")
+    #expect(harness.rowValue(Self.row(of: entry, group: "plan", field: "steps")) == "\(EditorStatus(EditorSymbol.Status.completed).label): Read")
   }
 
   @Test func theContextRowOfASessionFollowsItsUsage() async throws {
@@ -259,7 +297,7 @@ import Testing
     let harness = Self.mount(entry)
     defer { harness.close() }
 
-    #expect(harness.rowValue(Self.row(of: entry, group: "message", field: "send-state")) == InspectionText.sendState(entry.sendState))
+    #expect(harness.rowValue(Self.row(of: entry, group: "message", field: "send-state")) == EditorStatus(entry.sendState).label)
   }
 
   @Test func aConnectionShowsItsState() {
@@ -269,7 +307,7 @@ import Testing
 
     #expect(
       harness.rowValue(Self.row(of: connection, group: "connection", field: "state"))
-        == InspectionText.connectionState(connection.state))
+        == EditorStatus(connection.state).label)
   }
 
   @Test func anMCPServerShowsItsTransport() throws {

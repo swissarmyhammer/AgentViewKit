@@ -86,8 +86,8 @@ import Testing
 
     #expect(
       Set(statuses.map(EditorSymbol.Status.init))
-        == [.pending, .inProgress, .completed, .failed, .cancelled, .lost, .unknown])
-    #expect(Set(statuses.map(ToolStatusSymbol.label(for:))).count == statuses.count)
+        == [.pending, .inProgress, .paused, .completed, .failed, .cancelled, .lost, .unknown])
+    #expect(Set(statuses.map { EditorStatus($0).summary }).count == statuses.count)
   }
 
   @Test func thePlanEntryStatusesShowEachStatusSymbolWithItsOwnLabel() {
@@ -95,7 +95,7 @@ import Testing
 
     #expect(
       Set(statuses.map(EditorSymbol.Status.init)) == [.pending, .inProgress, .completed, .cancelled, .unknown])
-    #expect(Set(statuses.map(TaskListView.statusLabel)).count == statuses.count)
+    #expect(Set(statuses.map { EditorStatus($0).summary }).count == statuses.count)
   }
 
   @Test func thePlanEntryPrioritiesShowEachPrioritySymbolWithItsOwnLabel() {

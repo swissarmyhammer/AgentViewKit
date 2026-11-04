@@ -1,5 +1,6 @@
 import EditorStyle
 import EditorSwiftUI
+import EditorTheme
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -42,43 +43,23 @@ public struct UserMessageView: View, PrefixedAccessibilityIdentifier {
   }
 
   @Environment(\.editorStyle) private var editorStyle
+  @Environment(\.editorTheme) private var editorTheme
 
   public var body: some View {
     VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
       TranscriptMessageView(entry: .user(entry))
-      SendStateLabel(state: entry.sendState)
-        .accessibilityIdentifier(Self.sendStateIdentifier(for: entry.id.rowKey))
+      sendStateLabel
     }
   }
 
-  /// The send state of a user message entry: pending, sent, or failed
-  /// (plan.md §3.2 "Prompt helper").
-  ///
-  /// The label is one accessibility element. Its label is the title of the
-  /// state.
-  struct SendStateLabel: View {
-    /// The send state to show.
-    let state: SendState
-
-
-    /// The text of a send state.
-    ///
-    /// - Parameter state: The send state.
-    /// - Returns: "Sending", "Sent", or "Not sent".
-    static func title(of state: SendState) -> String {
-      switch state {
-      case .pending: String(localized: "Sending", bundle: .module)
-      case .sent: String(localized: "Sent", bundle: .module)
-      case .failed: String(localized: "Not sent", bundle: .module)
-      }
-    }
-
-    var body: some View {
-      let symbol = EditorSymbol.status(.init(state))
-      return StatusCaptionLabel(title: Self.title(of: state), symbolName: symbol.systemImage, tone: symbol.tone)
-      .accessibilityElement(children: .ignore)
-      .accessibilityLabel(Self.title(of: state))
-    }
+  /// The send state of the entry: pending, sent, or failed (plan.md §3.2
+  /// "Prompt helper"), as EditorKit's `EditorStatusLabel` of its status
+  /// token. The label is one accessibility element. Its label is the label
+  /// of the state.
+  private var sendStateLabel: some View {
+    EditorStatusLabel(EditorStatus(entry.sendState))
+      .font(editorTheme.font(for: .ui, style: .caption))
+      .accessibilityIdentifier(Self.sendStateIdentifier(for: entry.id.rowKey))
   }
 }
 
@@ -86,4 +67,13 @@ public struct UserMessageView: View, PrefixedAccessibilityIdentifier {
   if let entry = PreviewFixtures.firstEntry(in: .previewSample, as: UserMessageEntry.self) {
     UserMessageView(entry: entry)
   }
+}
+
+#Preview("A pending, a sent and a failed message") {
+  VStack(alignment: .leading) {
+    ForEach([SendState.pending, .sent, .failed], id: \.self) { state in
+      EditorStatusLabel(EditorStatus(state))
+    }
+  }
+  .padding()
 }

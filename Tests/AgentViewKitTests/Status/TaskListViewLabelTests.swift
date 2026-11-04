@@ -1,7 +1,9 @@
-import AgentViewKit
 import AgentViewKitTestSupport
+import EditorSwiftUI
 import FoundationModelsACP
 import Testing
+
+@testable import AgentViewKit
 
 /// Tests of the labels of ``TaskListView``. The hosted tests of the plan rows
 /// of a session are in `SessionEntryRowsHostedTests`.
@@ -26,7 +28,7 @@ import Testing
 
   @Test func eachStatusAndPriorityHasADistinctLabel() {
     let statuses: [PlanEntryStatus] = [.pending, .inProgress, .completed, .cancelled, .unknown("paused")]
-    NameChecks.expectDistinctNames(statuses.map(TaskListView.statusLabel))
+    NameChecks.expectDistinctNames(statuses.map { EditorStatus($0).summary })
     let priorities: [PlanEntryPriority] = [.high, .medium, .low, .unknown("urgent")]
     NameChecks.expectDistinctNames(priorities.map(TaskListView.priorityLabel))
   }

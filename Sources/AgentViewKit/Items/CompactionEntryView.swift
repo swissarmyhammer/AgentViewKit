@@ -11,7 +11,8 @@ import SwiftUI
 /// A compaction changes only the model context of the agent. The transcript
 /// keeps the full history, so the row is a mark at the position where the
 /// compaction first appeared. The row shows that the agent compacted the
-/// context, and the status from the last `compaction_update`:
+/// context, and the status from the last `compaction_update`, as its
+/// EditorKit status token (`EditorStatus`):
 ///
 /// | Status | Text |
 /// |--------|------|
@@ -20,7 +21,7 @@ import SwiftUI
 /// | `failed` | Failed, with the reason when the agent gave one |
 /// | `cancelled` | Cancelled |
 /// | no update yet | No status yet |
-/// | other | Unknown status, with the wire value |
+/// | other | Unknown, with the wire value |
 ///
 /// Below the status, the row shows the ACP content blocks of the summary that
 /// the compaction keeps, as the entry holds them, through an
@@ -66,24 +67,6 @@ public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
     String(localized: "Context compaction", bundle: .module)
   }
 
-  /// The name of a compaction status.
-  ///
-  /// - Parameter status: The status of the compaction.
-  /// - Returns: The name of the status. The status of an entry with no
-  ///   `compaction_update` gives "No status yet", and a status that the kit
-  ///   does not know gives its wire value.
-  static func statusLabel(for status: CompactionStatus) -> String {
-    switch status {
-    case .inProgress: WorkStatusLabel.inProgress
-    case .completed: WorkStatusLabel.completed
-    case .failed: WorkStatusLabel.failed
-    case .cancelled: WorkStatusLabel.cancelled
-    case SessionEntry.Compaction.unreportedStatus:
-      String(localized: "No status yet", bundle: .module)
-    case .unknown(let wireValue): WorkStatusLabel.unknown(for: wireValue)
-    }
-  }
-
   public var body: some View {
     let key = entry.id.rowKey
     ContentTileStack {
@@ -104,19 +87,23 @@ public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
 
   /// The symbol, the title and the status of the row.
   ///
+  /// The status is the EditorKit status token of the compaction
+  /// (`EditorStatus`): the symbol of the compaction draws in its tone, live
+  /// while the compaction runs, and its label, with the wire value of a
+  /// status that the kit does not know, is the explanation.
+  ///
   /// - Parameter key: The row key of the entry.
   /// - Returns: The header.
   private func header(key: String) -> some View {
-    let status = entry.status
-    let statusText = Self.statusLabel(for: status)
+    let status = EditorStatus(entry.status)
     // The text is the element of the header. A container element here merges
     // into the element of an `ItemRow` and loses its identifier.
     return StatusTitleLayout(
-      title: Self.title, explanation: statusText,
-      textLabel: String(localized: "\(Self.title), \(statusText)", bundle: .module),
+      title: Self.title, explanation: status.summary,
+      textLabel: String(localized: "\(Self.title), \(status.summary)", bundle: .module),
       identifier: Self.identifier(for: key)
     ) {
-      EditorSymbolImage(systemName: Self.symbolName, tone: EditorSymbol.status(.init(status)).tone)
+      EditorSymbolImage(systemName: Self.symbolName, tone: status.tone, isLive: status.isLive)
         .accessibilityHidden(true)
     }
   }

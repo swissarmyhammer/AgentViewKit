@@ -5,8 +5,9 @@ extension View {
   /// identifier.
   ///
   /// The element ignores the accessibility of the children of this view. The
-  /// views of the kit that show a status with a value, such as
-  /// ``ConnectionStatusChip`` and ``ThreadMinimapView``, use this one rule.
+  /// views of the kit that show a value with a label, such as
+  /// ``ThreadMinimapView``, use this one rule. A status is EditorKit's
+  /// `EditorStatusLabel`, which is its own element.
   ///
   /// - Parameters:
   ///   - label: The label of the element.

@@ -23,9 +23,10 @@ The symbols of a tool kind, a file kind and a status are EditorKit's
 EditorKit's `EditorSymbolImage`, in a tone of the theme, with its live effect
 and its Reduce Motion rule. ``SharedSymbol`` keeps the names of the concepts
 that EditorKit does not hold, such as a warning notice or a Reload button.
-Its tool-kind and file names, ``StatusSymbolImage`` and
-``DiffFileChip/symbolName(for:)`` stay for the view kits that still read them,
-until those kits draw EditorKit's symbols.
+Its tool-kind and file names and ``DiffFileChip/symbolName(for:)`` stay for
+the view kits that still read them, until those kits draw EditorKit's symbols.
+A status, its symbol and its label, is EditorKit's `EditorStatus`, which
+EditorKit's `EditorStatusLabel` draws.
 
 A view of the library takes the behaviour of a kit through a style protocol
 of the environment, in the shape of `ButtonStyle`. AgentViewKit gives the
@@ -50,7 +51,6 @@ inspector of its file with ``SwiftUI/View/toolCallLocationChipStyle(_:)``.
 ### Symbols
 
 - ``SharedSymbol``
-- ``StatusSymbolImage``
 
 ### The status bar
 

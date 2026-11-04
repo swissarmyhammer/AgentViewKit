@@ -19,9 +19,6 @@ enum StylePreviewFixtures {
   /// in this column wraps.
   static let narrowWidth: CGFloat = 320
 
-  /// Each status of work, in the order of the cases.
-  static let itemStatuses = ItemStatus.allCases
-
   /// The titles of the sample chips of a flow layout.
   static let chipTitles = [
     "Package.swift", "Sources/Board/BoardColumn.swift", "README.md", "Tests/BoardTests/BoardColumnTests.swift",
