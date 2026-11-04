@@ -27,7 +27,7 @@
     static let locale = Locale(identifier: "en_US")
 
     /// The first time of the clock of each test.
-    static let start = Date(timeIntervalSinceReferenceDate: 800_000_000)
+    static let start = TimedSessionClock.start
 
     /// The time from the start of the agent message to the start of the
     /// thought, in seconds.

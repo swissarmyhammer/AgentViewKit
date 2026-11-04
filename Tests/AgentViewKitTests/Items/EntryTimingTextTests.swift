@@ -1,9 +1,11 @@
 @testable import AgentViewKit
+import AgentViewKitTestSupport
 import Foundation
 import Testing
 
-/// The text of the time of a transcript entry: the start time, the duration,
-/// the VoiceOver label, and the "Thought for N seconds" title of a thought.
+/// The text of the time of a transcript entry: the formats of the start time
+/// and the duration that EditorKit's `DateText` and `DurationText` show, the
+/// VoiceOver label, and the "Thought for N seconds" title of a thought.
 ///
 /// The texts come from the system formatters, so the tests give the English
 /// locale of the United States.
@@ -12,10 +14,10 @@ import Testing
   static let locale = Locale(identifier: "en_US")
 
   /// A start time of the tests.
-  static let start = Date(timeIntervalSinceReferenceDate: 800_000_000)
+  static let start = TimedSessionClock.start
 
   /// A duration of one minute and fifteen seconds.
-  static let minuteAndQuarter: TimeInterval = 75
+  static let minuteAndQuarter = TimedSessionClock.stepSeconds
 
   /// A duration of seven seconds.
   static let sevenSeconds: TimeInterval = 7
@@ -26,22 +28,19 @@ import Testing
   /// A duration that rounds to one second.
   static let almostOneSecond: TimeInterval = 0.6
 
-  @Test func theStartTextIsTheShortTimeOfTheDate() {
+  /// The text of ``start`` in the start format of the view.
+  static var startText: String {
+    EntryTimingView.startFormat.format(start, locale: locale)
+  }
+
+  @Test func theStartFormatIsTheShortTimeOfTheDate() {
     let expected = Self.start.formatted(Date.FormatStyle(date: .omitted, time: .shortened).locale(Self.locale))
 
-    #expect(EntryTimingView.startText(for: Self.start, locale: Self.locale) == expected)
+    #expect(Self.startText == expected)
   }
 
-  @Test func theShortDurationTextUsesAbbreviatedUnits() {
-    #expect(
-      EntryTimingView.durationText(for: Self.minuteAndQuarter, width: .abbreviated, locale: Self.locale)
-        == "1 min, 15 sec")
-  }
-
-  @Test func theLongDurationTextUsesWholeWords() {
-    #expect(
-      EntryTimingView.durationText(for: Self.minuteAndQuarter, width: .wide, locale: Self.locale)
-        == "1 minute, 15 seconds")
+  @Test func theDurationFormatShowsMinutesAndSeconds() {
+    #expect(EntryTimingView.durationFormat.locale(Self.locale).format(.seconds(Self.minuteAndQuarter)) == "1:15")
   }
 
   @Test func aDurationThatRoundsToZeroSecondsIsNotShown() {
@@ -60,7 +59,7 @@ import Testing
   }
 
   @Test func theLabelTellsTheStartAndTheDuration() {
-    let start = EntryTimingView.startText(for: Self.start, locale: Self.locale)
+    let start = Self.startText
 
     #expect(
       EntryTimingView.accessibilityLabel(startedAt: Self.start, duration: Self.sevenSeconds, locale: Self.locale)
@@ -68,7 +67,7 @@ import Testing
   }
 
   @Test func theLabelOfAnEntryWithNoShownDurationTellsOnlyTheStart() {
-    let start = EntryTimingView.startText(for: Self.start, locale: Self.locale)
+    let start = Self.startText
 
     #expect(
       EntryTimingView.accessibilityLabel(startedAt: Self.start, duration: Self.tooShort, locale: Self.locale)

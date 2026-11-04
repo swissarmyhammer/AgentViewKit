@@ -53,6 +53,18 @@ import Testing
     }
   }
 
+  /// The thread with the time of each row (`.transcriptTiming()`), over the
+  /// timed turn of ``TimingGalleryFixtures``: the start time of each entry in
+  /// EditorKit's `DateText`, the duration of each entry that ended in
+  /// `DurationText`, and the duration of the thought in its title.
+  @Test func theThreadWithTheTimeOfEachRow() async throws {
+    let session = try await TimingGalleryFixtures.openSession()
+    defer { session.close() }
+    let thread = AgentThreadView(session: session.model).transcriptTiming()
+
+    try await Self.generate(thread, named: "thread-timing", size: SnapshotFixtures.threadSize)
+  }
+
   /// The state banner with its Show Error button and the login card with its
   /// Sign In button, in the bottom bar of a thread at rest, below the
   /// transcript. The bar has no glass surface, so the buttons use the glass

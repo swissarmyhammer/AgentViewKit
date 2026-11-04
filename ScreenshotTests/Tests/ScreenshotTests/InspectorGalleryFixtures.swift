@@ -1,6 +1,7 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
 import EditorInspector
+import EditorTestSupport
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
@@ -41,18 +42,9 @@ struct InspectorGalleryFixtures {
     #"{"sessionUpdate": "x_index_update", "note": "second"}"#,
   ]
 
-  /// The longest wait for the entries of ``updates``, in seconds.
-  private static let settleSeconds = 10
-
-  /// The longest wait for the entries of ``updates``.
-  private static let settleLimit = Duration.seconds(settleSeconds)
-
   /// The number of entries of one kind that a subject shows: one, and a
   /// second beside it for the Mixed image.
   private static let pairCount = 2
-
-  /// The number of entries that ``updates`` make.
-  private static var entryCount: Int { updates.count }
 
   /// A `plan_update` of two steps.
   ///
@@ -81,15 +73,22 @@ struct InspectorGalleryFixtures {
 
   /// Opens the scripted session and sends ``updates``.
   ///
+  /// The connection model reads a `FixedClock` from
+  /// `TimedSessionClock.start` that moves `TimedSessionClock.stepSeconds`
+  /// after the model takes each update, so the Time group of each entry shows a known start
+  /// and end, and the duration row of each entry that ended.
+  ///
   /// - Returns: The fixtures, once each entry is in the transcript.
   /// - Throws: The error of the session or of the transport.
   static func open() async throws -> InspectorGalleryFixtures {
-    let session = try await ScriptedSession.open()
-    for update in updates {
-      try await session.sendUpdate(update)
-    }
+    let clock = FixedClock(start: TimedSessionClock.start)
+    let session = try await ScriptedSession.open(now: clock.now)
     let model = session.model
-    await ObservationWait.until(within: settleLimit) { model.transcript.count >= entryCount }
+    for (index, update) in updates.enumerated() {
+      try await session.sendUpdate(update)
+      await ObservationWait.until(within: TimingGalleryFixtures.settleLimit) { model.transcript.count > index }
+      clock.advance(by: TimedSessionClock.stepSeconds)
+    }
     return InspectorGalleryFixtures(session: session)
   }
 

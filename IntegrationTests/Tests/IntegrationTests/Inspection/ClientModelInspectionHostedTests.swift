@@ -1,6 +1,7 @@
 import AgentViewKitTestSupport
 import EditorInspector
 import EditorInspectorTestSupport
+import EditorSwiftUI
 import EditorTestSupport
 import FoundationModelsACP
 import FoundationModelsACPClient
@@ -36,6 +37,13 @@ import Testing
 
   /// The id of the agent message of the tests.
   static let messageID = "inspect-message"
+
+  /// A time from the start of a tool call to its completion that is
+  /// shorter than `EntryTimingView.shortestShownDuration`, in seconds.
+  static let tooShortSeconds: TimeInterval = 0.2
+
+  /// The title, and thus the `toolCallId`, of the timed tool call.
+  static let timedCallTitle = "Read README.md"
 
   /// Mounts an `InspectorView` of `object` and makes one render pass.
   ///
@@ -173,6 +181,49 @@ import Testing
     await harness.render { model.usage != nil }
 
     #expect(harness.rowValue(row) == "48")
+  }
+
+  @Test func theDurationRowOfAToolCallShowsTheTimeToItsCompletion() async throws {
+    let clock = FixedClock(start: TimedSessionClock.start)
+    let session = try await ScriptedSession.open(now: clock.now)
+    defer { session.close() }
+    try await session.sendToolCallUpdate(title: Self.timedCallTitle, status: .inProgress)
+    let entry = try await Self.entry(ToolCallEntry.self, in: session)
+    let harness = Self.mount(entry)
+    defer { harness.close() }
+    let row = Self.durationRow(of: entry)
+    #expect(harness.rowValue(row) == nil)
+
+    clock.advance(by: TimedSessionClock.stepSeconds)
+    try await session.sendToolCallUpdate(title: Self.timedCallTitle, status: .completed)
+    await harness.render { entry.timing.endedAt != nil }
+
+    let expected = EntryTimingView.durationFormat.format(.seconds(TimedSessionClock.stepSeconds))
+    #expect(harness.rowValue(row) == expected)
+  }
+
+  @Test func aToolCallThatEndsBeforeTheShortestShownDurationShowsNoDurationRow() async throws {
+    let clock = FixedClock(start: TimedSessionClock.start)
+    let session = try await ScriptedSession.open(now: clock.now)
+    defer { session.close() }
+    try await session.sendToolCallUpdate(title: Self.timedCallTitle, status: .inProgress)
+    let entry = try await Self.entry(ToolCallEntry.self, in: session)
+    let harness = Self.mount(entry)
+    defer { harness.close() }
+
+    clock.advance(by: Self.tooShortSeconds)
+    try await session.sendToolCallUpdate(title: Self.timedCallTitle, status: .completed)
+    await harness.render { entry.timing.endedAt != nil }
+
+    #expect(harness.rowValue(Self.durationRow(of: entry)) == nil)
+  }
+
+  /// The scheme id of the duration row of the Time group of `entry`.
+  ///
+  /// - Parameter entry: The inspected tool call.
+  /// - Returns: The id that the row carries.
+  static func durationRow(of entry: ToolCallEntry) -> String {
+    row(of: entry, group: "time", field: "duration")
   }
 
   /// A `plan_update` with one step, `Read`.
