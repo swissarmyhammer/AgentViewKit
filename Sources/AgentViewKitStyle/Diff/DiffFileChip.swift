@@ -56,6 +56,20 @@ public struct DiffFileChip: View {
     identifierPrefix + path
   }
 
+  /// The SF Symbol name of a file operation: the name of the EditorKit file
+  /// symbol of its kind (`EditorSymbol.FileKind.init(_:)`), so the name has
+  /// no second map.
+  ///
+  /// AgentViewKit draws the symbol of a change with `EditorSymbolImage` and
+  /// does not call this. It stays only for SnapshotViewKit, which reads the
+  /// name until it reads `EditorSymbol.FileKind` (SVK card ^4pb2kay).
+  ///
+  /// - Parameter operation: The change to the file.
+  /// - Returns: The SF Symbol name.
+  public static func symbolName(for operation: DiffSummary.Operation) -> String {
+    EditorSymbol.file(EditorSymbol.FileKind(operation)).systemImage
+  }
+
   /// The line counts of the file, when the diff has patch text.
   private var counts: DiffFileLabel.Counts? {
     hasPatch ? DiffFileLabel.Counts(added: file.added, removed: file.removed) : nil

@@ -77,6 +77,10 @@ import Testing
     #expect(EditorSymbol.FileKind(operation) == expected)
   }
 
+  @Test func theSymbolNameOfAFileChipIsTheEditorKitFileSymbol() {
+    #expect(DiffFileChip.symbolName(for: .renamed(from: "a")) == EditorSymbol.file(.renamed).systemImage)
+  }
+
   @Test func aBinaryFileOfAPatchHasTheBinaryOperation() {
     let files = DiffSummary.parse(
       gitPatch: """
