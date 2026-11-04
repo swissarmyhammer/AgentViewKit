@@ -22,6 +22,14 @@ Testudo's dockable panel shows several objects at once. Every AVK inspector has 
    - `ToolToggles` `.list` style (Sources/AgentViewKit/Input/ToolToggles.swift:107, a grouped Form of toggles).
    - Not inspectors, so left as they are: the Elicitation `#Preview` Forms (a request form, previews only) and the demo's `GalleryLookControls` (app chrome). Re-check this list with a grep for `Form {`, `.inspector(` and `LabeledContent` when the card starts.
 3. Conform the FoundationModelsACPClient models (SessionModel, ToolCallEntry, TerminalEntry, …) as `extension X: @retroactive Inspectable` in AVK.
+4. Add the inspector captures to the review gallery (below).
+
+## Review gallery (user rule, relayed by editorkit-b5)
+AVK keeps a screenshot of each inspector in its review gallery (~/Library/Caches/AgentViewKit/screenshot-check/index.html).
+- Subjects: AttachmentInspector in each of its modes (AttachmentInspectorMode); ConfigOptionsView; ToolToggles; an inspection of each ACPClient model (SessionModel, ToolCallEntry, TerminalEntry, …).
+- Each subject in: Light and Dark × narrow (~240 pt, Testudo's docked panel) and wide × one object, and several objects showing Mixed where the type allows it.
+- House rules: gallery images only, no reference PNGs or comparison; the capture package in ScreenshotTests/, run once per batch, local only, never CI; the real on-screen window via ScreenCaptureKit; no pixel or layout assertions.
+- Model: EK's `ScreenshotTests/Tests/ScreenshotTests/InspectorGallery.swift` (^tgdjf5g) once it lands.
 
 ## Acceptance Criteria
 - [ ] AVK builds against the EK EditorInspector SHA. No AVK copy of InspectorForm/InspectorActionRow/inspectorPreviewFrame is left, apart from a re-export if one is kept.
@@ -29,11 +37,12 @@ Testudo's dockable panel shows several objects at once. Every AVK inspector has 
 - [ ] No inspector-style Form is left in AVK outside EditorInspector (config options and tool toggles included, or a written reason on this card why one stays).
 - [ ] Each inspector works as panel content: host-owned scrolling, about 240 pt wide, several in one panel.
 - [ ] SessionModel, ToolCallEntry, TerminalEntry and the other ACPClient view models conform as `@retroactive Inspectable` in AVK.
-- [ ] Gallery screenshots of each inspector, light and dark, including the narrow panel width.
+- [ ] The review gallery has every subject above in the full Light/Dark × narrow/wide × one/several (Mixed) matrix.
 
 ## Tests
 - [ ] Hosted tests: each ACPClient conformance shows its fields and updates live when the model changes.
 - [ ] Hosted tests: config options and tool toggles still commit their changes through the new rows.
 - [ ] Existing attachment, config and tool toggle tests pass. Any change to their checks is written on the card.
+- [ ] One gallery capture run makes the inspector images.
 
 The SHA does not need relaying to KVK/SVK/Testudo; editorkit-b5 sends it to them.
