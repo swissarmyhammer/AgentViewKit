@@ -341,6 +341,16 @@
         }
       }
     },
+    "Attachment" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Attachment"
+          }
+        }
+      }
+    },
     "Audio" : {
       "localizations" : {
         "en" : {
@@ -387,6 +397,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Change the request and send it again."
+          }
+        }
+      }
+    },
+    "Changes" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Changes"
           }
         }
       }
@@ -1437,6 +1457,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Plan"
+          }
+        }
+      }
+    },
+    "Preview" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preview"
           }
         }
       }
@@ -2821,6 +2851,16 @@
         }
       }
     },
+    "The request was withdrawn" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The request was withdrawn"
+          }
+        }
+      }
+    },
     "The response ended, but the model wrote no text. Send the request again." : {
       "localizations" : {
         "en" : {
@@ -2937,16 +2977,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The response was cut off"
-          }
-        }
-      }
-    },
-    "The request was withdrawn" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The request was withdrawn"
           }
         }
       }

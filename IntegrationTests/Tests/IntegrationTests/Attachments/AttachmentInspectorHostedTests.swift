@@ -1,6 +1,7 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
+import EditorInspectorTestSupport
 import EditorTestSupport
 import Foundation
 import SwiftUI
@@ -111,12 +112,12 @@ import UniformTypeIdentifiers
     let selection = InspectorSelection()
     let harness = Self.mountChip(of: attachment, selection: selection)
     defer { harness.close() }
-    #expect(harness.element(identifier: AttachmentInspector.nameIdentifier) == nil)
+    #expect(Self.shownName(of: attachment, in: harness) == nil)
 
     try Self.pressChip(in: harness, selecting: attachment, in: selection)
     let content = try Self.mountInspectorContent(of: selection)
     defer { content.close() }
-    #expect(content.element(identifier: AttachmentInspector.nameIdentifier)?.label == "blob.bin")
+    #expect(Self.shownName(of: attachment, in: content) == "blob.bin")
     for identifier in AttachmentInspector.actionIdentifiers {
       #expect(content.element(identifier: identifier) != nil, "No action \(identifier).")
     }
@@ -139,13 +140,13 @@ import UniformTypeIdentifiers
       Text("host").attachmentInspector(selection: selection), size: Self.hostSize)
     defer { harness.close() }
     harness.render()
-    #expect(harness.element(identifier: AttachmentInspector.nameIdentifier) != nil)
+    #expect(Self.shownName(of: attachment, in: harness) != nil)
 
     selection.clear()
     harness.render()
 
     #expect(selection.attachment == nil)
-    #expect(harness.element(identifier: AttachmentInspector.nameIdentifier) == nil)
+    #expect(Self.shownName(of: attachment, in: harness) == nil)
   }
 
   /// A thread view of a session with a host selection shows no inspector
@@ -169,14 +170,14 @@ import UniformTypeIdentifiers
     defer { session.close() }
     let harness = Self.mountThreadView(of: session, selection: selection)
     defer { harness.close() }
-    #expect(harness.element(identifier: AttachmentInspector.nameIdentifier) == nil)
+    #expect(Self.shownName(of: attachment, in: harness) == nil)
 
     try Self.withoutAnimation { selection.select(attachment) }
 
     try #require(selection.attachment == attachment)
     let content = try Self.mountInspectorContent(of: selection)
     defer { content.close() }
-    #expect(content.element(identifier: AttachmentInspector.nameIdentifier)?.label == "notes.md")
+    #expect(Self.shownName(of: attachment, in: content) == "notes.md")
   }
 
   /// A press on a chip shows the inspector item of the AppKit split view, and
@@ -202,7 +203,7 @@ import UniformTypeIdentifiers
     await RunLoopBlockFence.afterPendingBlocks()
     harness.render()
 
-    try Self.requireInspectorItem(in: harness, showsTheNameOf: "blob.bin")
+    try Self.requireInspectorItem(in: harness, shows: attachment)
   }
 
   /// A host selection of a thread view shows the inspector item of the AppKit
@@ -235,7 +236,7 @@ import UniformTypeIdentifiers
     await RunLoopBlockFence.afterPendingBlocks()
     harness.render()
 
-    try Self.requireInspectorItem(in: harness, showsTheNameOf: "notes.md")
+    try Self.requireInspectorItem(in: harness, shows: attachment)
   }
 
   /// A thread view gives the selection of its host to its inspector, when the
@@ -448,17 +449,44 @@ import UniformTypeIdentifiers
   ///
   /// - Parameters:
   ///   - harness: The harness that shows the inspector.
-  ///   - name: The file name of the attachment.
+  ///   - attachment: The attachment that the inspector shows.
   /// - Throws: An issue when the window has no inspector item, or when the
   ///   item is collapsed.
   static func requireInspectorItem<Content: View>(
-    in harness: HostedViewHarness<Content>, showsTheNameOf name: String
+    in harness: HostedViewHarness<Content>, shows attachment: AgentViewKit.Attachment
   ) throws {
     let item = try #require(inspectorItem(in: harness))
     try #require(!item.isCollapsed)
-    #expect(harness.element(identifier: AttachmentInspector.nameIdentifier)?.label == name)
+    #expect(Self.shownName(of: attachment, in: harness) == attachment.name)
     for identifier in AttachmentInspector.actionIdentifiers {
       #expect(harness.element(identifier: identifier) != nil, "No action \(identifier).")
+    }
+  }
+
+  /// The name that the inspector of `attachment` shows in the window of
+  /// `harness`: the value of its name row, read by EditorKit's
+  /// `InspectorDriver` by its scheme id.
+  ///
+  /// - Parameters:
+  ///   - attachment: The attachment of the inspector.
+  ///   - harness: The harness that shows the inspector.
+  /// - Returns: The name, or `nil` when the window shows no inspector of the
+  ///   attachment.
+  static func shownName<Content: View>(
+    of attachment: AgentViewKit.Attachment, in harness: HostedViewHarness<Content>
+  ) -> String? {
+    harness.rowValue(AttachmentInspector.nameIdentifier(of: [attachment]))
+  }
+
+  /// Presses the button of each attachment verb, in order, through EditorKit's
+  /// `InspectorDriver`, by the title of the button.
+  ///
+  /// - Parameter harness: The harness that shows the inspector.
+  /// - Throws: The error of a press.
+  static func pressEachAction<Content: View>(in harness: HostedViewHarness<Content>) throws {
+    let driver = harness.inspectorDriver
+    for verb in AgentAttachmentVerb.allCases {
+      try driver.pressAction(verb.title)
     }
   }
 }

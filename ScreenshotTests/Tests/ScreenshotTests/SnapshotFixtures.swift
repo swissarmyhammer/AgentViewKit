@@ -64,6 +64,17 @@ enum SnapshotFixtures {
   /// The height of the image of the elicitation form, in points.
   static let elicitationHeight: CGFloat = 620
 
+  /// The height of the image of a diff: the file chips and the EditorKit
+  /// preview of the selected file at the default preview height, in points.
+  static let diffHeight: CGFloat = 340
+
+  /// The size of the image of a diff, in points.
+  static let diffSize = CGSize(width: narrowWidth, height: diffHeight)
+
+  /// A patch whose hunk header EditorKit cannot read, for the failure of the
+  /// diff preview.
+  static let unreadablePatch = "--- a/App.swift\n+++ b/App.swift\n@@ nothing @@\n+line\n"
+
   /// The size of the image of the thread, in points.
   static let threadSize = FailedTurnFixtures.threadSize
 
@@ -101,6 +112,10 @@ enum SnapshotFixtures {
 
   /// The name of the file that the attachment inspector shows.
   static let inspectorFileName = "answer.swift"
+
+  /// The name of the second file of the inspector of several files: a file
+  /// of another type, so its preview differs and the row reads "Mixed".
+  static let secondInspectorFileName = "notes.md"
 
   /// A session with a user message, an agent message with a code block, a
   /// tool call that completed, and a last agent message.

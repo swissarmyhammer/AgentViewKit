@@ -10,8 +10,9 @@ import Testing
 /// system margins, the look of the inspectors of Xcode and Icon Composer
 /// (^bkhgxs5).
 ///
-/// A grouped form on macOS is a scroll view, so its accessibility element is
-/// a scroll area. The section rows of the form sit inside the system margin,
+/// The form is EditorKit's `InspectorView`: the form identifier stands on
+/// its group, and its grouped form, a scroll view on macOS, is a scroll area
+/// under it. The section rows of the form sit inside the system margin,
 /// and a view that fills a row has the leading and trailing inset of the row
 /// content.
 @Suite(.serialized, .hostedSerially) @MainActor struct AttachmentInspectorFormHostedTests {
@@ -21,13 +22,14 @@ import Testing
   @Test func theContentOfTheInspectorIsAScrollingForm() throws {
     let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
-    let harness = try Self.mountInspector(in: directory)
+    let attachment = try Self.attachment(in: directory)
+    let harness = try Self.mountInspector(of: attachment)
     defer { harness.close() }
 
-    let form = try #require(harness.element(identifier: AttachmentInspector.formIdentifier))
-    #expect(form.role == NSAccessibility.Role.scrollArea.rawValue)
+    let roles = harness.elements(under: AttachmentInspector.formIdentifier).compactMap(\.role)
+    #expect(roles.contains(NSAccessibility.Role.scrollArea.rawValue))
     let inForm = Set(harness.elements(under: AttachmentInspector.formIdentifier).compactMap(\.identifier))
-    #expect(inForm.contains(AttachmentInspector.nameIdentifier))
+    #expect(inForm.contains(AttachmentInspector.nameIdentifier(of: [attachment])))
     for identifier in AttachmentInspector.actionIdentifiers {
       #expect(inForm.contains(identifier), "No action \(identifier) in the form.")
     }
@@ -39,11 +41,12 @@ import Testing
   @Test func thePreviewHasTheLeadingAndTrailingInsetOfTheSectionRows() throws {
     let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
-    let harness = try Self.mountInspector(in: directory)
+    let attachment = try Self.attachment(in: directory)
+    let harness = try Self.mountInspector(of: attachment)
     defer { harness.close() }
 
     let form = try #require(harness.frame(identifier: AttachmentInspector.formIdentifier))
-    let name = try #require(harness.frame(identifier: AttachmentInspector.nameIdentifier))
+    let name = try #require(harness.frame(identifier: AttachmentInspector.nameIdentifier(of: [attachment])))
     let previewView = try #require(views(ofType: QLPreviewView.self, in: harness.hostingView).first)
     let preview = harness.screenFrame(of: previewView)
 
@@ -53,20 +56,20 @@ import Testing
     #expect(form.maxX - preview.maxX == leadingInset)
   }
 
-  /// Mounts the inspector of a file in `directory` in a window of ``size``,
-  /// and makes one render pass.
+  /// Mounts the inspector of `attachment` in a window of ``size``, and makes
+  /// one render pass.
   ///
   /// The mount and the render pass are those of
   /// ``AttachmentInspectorHostedTests/mountInspectorContent(of:size:)``.
   ///
-  /// - Parameter directory: The directory of the file.
+  /// - Parameter attachment: The file of the inspector.
   /// - Returns: The harness of the inspector. The caller closes it.
-  /// - Throws: The error of the write of the file.
-  static func mountInspector(in directory: TemporaryFolder) throws
+  /// - Throws: An issue when the selection holds no attachment.
+  static func mountInspector(of attachment: AgentViewKit.Attachment) throws
     -> HostedViewHarness<AttachmentInspector>
   {
     try AttachmentInspectorHostedTests.mountInspectorContent(
-      of: InspectorSelection(attachment: attachment(in: directory)), size: size)
+      of: InspectorSelection(attachment: attachment), size: size)
   }
 
   /// Writes the file of the inspector to `directory`, and makes its

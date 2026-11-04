@@ -89,9 +89,10 @@ public nonisolated struct DiffAttachment: Sendable, Hashable {
 extension EnvironmentValues {
   /// The function that renders a diff in a ``DiffView``.
   ///
-  /// When the value is `nil`, ``DiffView`` uses the EditorKit diff view
-  /// (plan.md §4.1, decision 12). That view shows the selected file in the
-  /// ``diffLayout``, with the EditorKit theme of the environment. A host
+  /// When the value is `nil`, ``DiffView`` uses EditorKit's one-value
+  /// preview, a `PreviewField` (plan.md §4.1, decision 12). It shows the
+  /// selected file in the EditorKit diff view, inline, at the preview height
+  /// of the style, with the EditorKit theme of the environment. A host
   /// replaces it with ``SwiftUI/View/diffRenderer(_:)``.
   @Entry public var diffRenderer: DiffRenderer? = nil
 

@@ -1,6 +1,6 @@
 import EditorInspector
+import EditorSwiftUI
 import Observation
-import Quartz
 import SwiftUI
 
 /// The attachment that the trailing inspector shows (plan.md §3.6).
@@ -152,92 +152,158 @@ private nonisolated struct VerticalInsets: Equatable, Sendable {
   }
 }
 
-/// The inspector content for one file (plan.md §3.6, §9 F).
+/// The inspector content for one file or several (plan.md §3.6, §9 F).
 ///
-/// The view shows the file name, a live QuickLook preview, and the actions
-/// Open, Reveal in Finder, Share, Save, and pop-out Quick Look.
+/// The view is an EditorKit `InspectorView` of its files, built from
+/// EditorKit's field kinds only (^e4857xj). For one file it shows the file
+/// name in the name row, the actions Open, Reveal in Finder, Share, Save,
+/// and pop-out Quick Look in an EditorKit `InspectorActionRow` under the
+/// name, and EditorKit's one-value preview of the file, a live QuickLook
+/// preview at the preview height of the style, in its `.preview` row.
+/// Several files fold into one form: the header names the title and the
+/// count, the preview row reads "Mixed" when the files differ, and no action
+/// shows, because each action runs on one file.
 ///
-/// The view is a grouped form, as the inspectors of Xcode and Icon Composer
-/// are (^bkhgxs5): one section holds the name and the actions, and one more
-/// section holds the preview. The form has the system margins and row insets,
-/// and no padding of its own, so the preview has the same leading and
-/// trailing inset as the other rows. The form hides its own background, so
-/// the background of the host shows around the rows.
+/// The rows take EditorKit's scheme ids, which ``nameIdentifier(of:)`` and
+/// ``previewIdentifier(of:)`` give, such as
+/// `inspection:inspected-attachment/object:<id>/field:attachment.preview`. The form takes
+/// the ``formIdentifier``. It has the system margins and row insets, no
+/// padding of its own and no background, and it scrolls by itself unless
+/// the host owns the scrolling (`.inspectorScrolling(.host)`).
 ///
-/// The view is the scope of its attachment (`agentAttachment:<id>`, AVK-11).
-/// Each action button runs the ``AgentAttachmentVerb`` command of that scope,
-/// so the buttons, the context menu and the command palette run the same
-/// commands. This is true in the built-in inspector of an ``AgentThreadView``
-/// and in the inspector of a host
-/// (``AttachmentInspectorMode/host(_:)``).
+/// The view of one file is the scope of its attachment
+/// (`agentAttachment:<id>`, AVK-11). Each action button runs the
+/// ``AgentAttachmentVerb`` command of that scope, so the buttons, the
+/// context menu and the command palette run the same commands. This is true
+/// in the built-in inspector of an ``AgentThreadView`` and in the inspector
+/// of a host (``AttachmentInspectorMode/host(_:)``).
 public struct AttachmentInspector: View {
   /// The start of the accessibility identifier of each action.
   public static let identifierPrefix = "inspector"
 
-  /// The accessibility identifier of the file name.
-  public static let nameIdentifier = "inspector-name"
-
   /// The accessibility identifier of the grouped form that holds the name,
   /// the preview and the actions.
   public static let formIdentifier = "inspector-form"
+
+  /// The id of the `InspectorView`: the id of its inspection, which is the
+  /// first part of the scheme id of each row.
+  public static var viewIdentifier: String { inspection.id }
+
+  /// The group part of the scheme id of the preview row: the key that
+  /// EditorKit gives the one group of the inspection, named "Attachment".
+  static let groupIdentifier = "attachment"
+
+  /// The field part of the scheme id of the preview row.
+  static let previewFieldIdentifier = "preview"
+
+  /// The last part of the scheme id of the name row of a block.
+  private static let namePart = "name"
 
   /// The accessibility identifiers of the actions, in display order.
   public static var actionIdentifiers: [String] {
     AttachmentActions.identifiers(prefix: identifierPrefix)
   }
 
-  /// The file to show.
-  let attachment: Attachment
+  /// The inspection of the files: one group, named as the inspection, with
+  /// the preview of the file.
+  static var inspection: Inspection<InspectedAttachment> {
+    .named(FieldLabel(localized: "Attachment", bundle: .module), name: { $0.attachment.name }) {
+      Field(FieldLabel(localized: "Preview", bundle: .module)) { PreviewValue.file($0.attachment.url) }
+        .identifier(previewFieldIdentifier)
+    }
+  }
+
+  /// The files to show, in selection order.
+  let attachments: [Attachment]
+
+  /// The objects of the `InspectorView`, which follow ``attachments``.
+  @State private var files: [InspectedAttachment]
 
   /// Makes the inspector content for a file.
   ///
   /// - Parameter attachment: The file to show.
   public init(_ attachment: Attachment) {
-    self.attachment = attachment
+    self.init([attachment])
+  }
+
+  /// Makes the inspector content for several files, folded into one form.
+  ///
+  /// - Parameter attachments: The files to show, in selection order.
+  public init(_ attachments: [Attachment]) {
+    self.attachments = attachments
+    _files = State(initialValue: attachments.map(InspectedAttachment.init))
+  }
+
+  /// The scheme id of the name row of the inspector of `attachments`.
+  ///
+  /// - Parameter attachments: The files of the inspector, in selection order.
+  /// - Returns: `inspection:inspected-attachment/object:<id>/name`.
+  public static func nameIdentifier(of attachments: [Attachment]) -> String {
+    let block = InspectorScheme.blockIdentifier(view: viewIdentifier, object: objectIdentifier(of: attachments))
+    return InspectorScheme.identifier(of: namePart, inRow: block)
+  }
+
+  /// The scheme id of the preview row of the inspector of `attachments`.
+  ///
+  /// - Parameter attachments: The files of the inspector, in selection order.
+  /// - Returns: `inspection:inspected-attachment/object:<id>/field:attachment.preview`.
+  public static func previewIdentifier(of attachments: [Attachment]) -> String {
+    InspectorScheme.rowIdentifier(
+      view: viewIdentifier, object: objectIdentifier(of: attachments), group: groupIdentifier,
+      field: previewFieldIdentifier)
+  }
+
+  /// The object part of the scheme id of each row of the inspector of
+  /// `attachments`: the id of each file, joined.
+  ///
+  /// - Parameter attachments: The files of the inspector, in selection order.
+  /// - Returns: The object id.
+  private static func objectIdentifier(of attachments: [Attachment]) -> String {
+    InspectorScheme.objectID(of: attachments.map(InspectedAttachment.init), key: viewIdentifier)
+  }
+
+  /// The one file of the view, or `nil` for several.
+  private var soleAttachment: Attachment? {
+    attachments.count == 1 ? attachments.first : nil
   }
 
   public var body: some View {
-    InspectorForm(name: attachment.name, nameIdentifier: Self.nameIdentifier) {
-      AttachmentActions(attachment: attachment, identifierPrefix: Self.identifierPrefix)
-    } content: {
-      Section {
-        QuickLookPreview(url: attachment.url)
-          .inspectorPreviewFrame()
+    inspector
+      .accessibilityIdentifier(Self.formIdentifier)
+      .agentAttachmentScope(soleAttachment)
+      .onChange(of: attachments) {
+        files = attachments.map(InspectedAttachment.init)
       }
+  }
+
+  /// The `InspectorView` of the files, with the actions of the one file.
+  private var inspector: InspectorView {
+    let view = InspectorView(files, Self.inspection, id: Self.viewIdentifier)
+    guard let soleAttachment else { return view }
+    return view.actions {
+      AttachmentActions(attachment: soleAttachment, identifierPrefix: Self.identifierPrefix)
     }
-    .accessibilityIdentifier(Self.formIdentifier)
-    .agentAttachmentScope(attachment)
   }
 }
 
-/// A live `QLPreviewView` of a file.
+/// One file of an ``AttachmentInspector``, as an object of its EditorKit
+/// `InspectorView`.
 ///
-/// QuickLook can fail to make its view. Then this view is an empty view.
-private struct QuickLookPreview: NSViewRepresentable {
-  /// The file to show.
-  let url: URL
+/// Its id is the id of its attachment, so the scheme id of each row names
+/// the file from run to run.
+@Observable
+final class InspectedAttachment: Identifiable {
+  /// The file.
+  let attachment: Attachment
 
-  func makeNSView(context: Context) -> NSView {
-    guard let preview = QLPreviewView(frame: .zero, style: .normal) else {
-      return NSView()
-    }
-    preview.autostarts = true
-    // `dismantleNSView` closes the view. A second close, when the window
-    // closes, stops the process with a QuickLook assertion.
-    preview.shouldCloseWithWindow = false
-    preview.previewItem = url as NSURL
-    return preview
-  }
+  /// The id of the attachment.
+  var id: AttachmentID { attachment.id }
 
-  func updateNSView(_ view: NSView, context: Context) {
-    guard let preview = view as? QLPreviewView,
-      (preview.previewItem as? NSURL) != url as NSURL
-    else { return }
-    preview.previewItem = url as NSURL
-  }
-
-  static func dismantleNSView(_ view: NSView, coordinator: ()) {
-    (view as? QLPreviewView)?.close()
+  /// Makes the object of a file.
+  ///
+  /// - Parameter attachment: The file.
+  init(_ attachment: Attachment) {
+    self.attachment = attachment
   }
 }
 
@@ -245,4 +311,8 @@ private struct QuickLookPreview: NSViewRepresentable {
   if let attachment = PreviewFixtures.attachments.first {
     AttachmentInspector(attachment)
   }
+}
+
+#Preview("Attachment inspector of several files") {
+  AttachmentInspector(PreviewFixtures.attachments)
 }

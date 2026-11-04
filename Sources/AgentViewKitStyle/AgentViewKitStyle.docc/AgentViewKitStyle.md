@@ -73,6 +73,7 @@ inspector of its file with ``SwiftUI/View/toolCallLocationChipStyle(_:)``.
 ### Diffs
 
 - ``DiffSummary``
+- ``UnreadablePatch``
 - ``EditorKitDiffRenderer``
 - ``DiffContentView``
 - ``DiffLayout``

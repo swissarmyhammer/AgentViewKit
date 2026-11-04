@@ -15,7 +15,9 @@ import UniformTypeIdentifiers
 ///
 /// The views of ``Surface`` have no focusable view at the center of their
 /// scope, so EditorKit gives the focus to the beacon of the scope. The
-/// inspector has a focusable view of its own, which takes the focus.
+/// inspector is one of them: it is an EditorKit `InspectorView`, which never
+/// takes the keyboard focus itself (the host moves it in), so the beacon of
+/// the attachment scope holds it there too.
 @Suite(.serialized, .hostedSerially) @MainActor struct AttachmentFocusHostedTests {
   /// An attachment view that lets the beacon of its scope hold the focus.
   enum Surface: CaseIterable, Sendable {
@@ -29,6 +31,8 @@ import UniformTypeIdentifiers
     case artifact
     /// An ``ImageView`` of an image block.
     case image
+    /// An ``AttachmentInspector`` of a file.
+    case inspector
   }
 
   /// A view to mount, with the id of the attachment of its scope.
@@ -69,6 +73,9 @@ import UniformTypeIdentifiers
       let (png, image) = try TestImage.makePNGContent(uri: WireContentBlockViewHostedTests.imageURI)
       let file = ContentBlockFile.attachment(of: png, named: WireContentBlockViewHostedTests.imageName, type: .png)
       return MountedSurface(content: AnyView(ImageView(image: image)), id: file.id)
+    case .inspector:
+      let attachment = try AttachmentFixtures.attachment(named: "blob.bin", in: directory)
+      return MountedSurface(content: AnyView(AttachmentInspector(attachment)), id: attachment.id)
     }
   }
 
@@ -106,17 +113,6 @@ import UniformTypeIdentifiers
     try await Self.inspectFocusedScope(of: { try Self.mount(surface, in: $0) }) { focused in
       #expect(focused.responder is GeometryProbeView)
       #expect(WindowSpace.rect(of: focused.responder) == focused.itemRect)
-    }
-  }
-
-  /// The inspector has a focusable view of its own, so a `nav.*` move on its
-  /// scope focuses that view and not the beacon of the scope.
-  @Test func aFocusableViewOfTheInspectorTakesTheFocusOfItsScope() async throws {
-    try await Self.inspectFocusedScope(of: { directory in
-      let attachment = try AttachmentFixtures.attachment(named: "blob.bin", in: directory)
-      return MountedSurface(content: AnyView(AttachmentInspector(attachment)), id: attachment.id)
-    }) { focused in
-      #expect(WindowSpace.rect(of: focused.responder) != focused.itemRect)
     }
   }
 }

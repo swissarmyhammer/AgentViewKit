@@ -2,13 +2,16 @@
   @testable import AgentViewKit
   import AgentViewKitTestSupport
   import EditorDiff
+  import EditorInspectorTestSupport
   import EditorTestSupport
   import Foundation
   import SwiftUI
   import Testing
 
-  /// Tests for the EditorKit renderer that ``DiffView`` uses when the host
-  /// installs no renderer (plan.md §4.1, decision 12).
+  /// Tests for the EditorKit preview that ``DiffView`` shows when the host
+  /// installs no renderer (plan.md §4.1, decision 12): a `PreviewField` of
+  /// the selected file, read with EditorKit's `InspectorDriver` by
+  /// ``DiffView/previewIdentifier``.
   @Suite(.serialized, .hostedSerially) @MainActor struct DiffRendererDefaultHostedTests {
     /// A size that shows the file chips and the renderer.
     static let size = CGSize(width: 720, height: 900)
@@ -47,6 +50,9 @@
 
       """
 
+    /// The failure that the preview of ``unreadablePatch`` shows.
+    static let unreadableMessage = "Cannot read the patch at line 3"
+
     /// Makes a harness that shows `view`, after one render pass.
     ///
     /// - Parameter view: The view to show.
@@ -62,7 +68,14 @@
       defer { harness.close() }
 
       #expect(!views(withAccessibilityIdentifier: EditorDiffIdentifier.root, in: harness.hostingView).isEmpty)
-      #expect(harness.element(identifier: EditorKitDiffRenderer.unreadablePatchIdentifier) == nil)
+      #expect(harness.inspectorDriver.previewFailure(of: DiffView.previewIdentifier) == nil)
+    }
+
+    @Test func thePreviewShowsTheFirstFileOfThePatch() {
+      let harness = Self.mount(DiffView(patch: Self.patch))
+      defer { harness.close() }
+
+      #expect(harness.rowValue(DiffView.previewIdentifier) == Self.firstPath)
     }
 
     @Test func theInlineLayoutHasNoColumns() {
@@ -84,21 +97,12 @@
       #expect(views(withAccessibilityIdentifier: EditorDiffIdentifier.root, in: harness.hostingView).isEmpty)
     }
 
-    @Test func theSideBySideLayoutShowsTheEditorKitColumns() {
-      let harness = Self.mount(DiffView(patch: Self.patch).diffLayout(.sideBySide))
-      defer { harness.close() }
-
-      #expect(!views(withAccessibilityIdentifier: EditorDiffIdentifier.root, in: harness.hostingView).isEmpty)
-      #expect(!views(withAccessibilityIdentifier: EditorDiffIdentifier.oldColumn, in: harness.hostingView).isEmpty)
-      #expect(!views(withAccessibilityIdentifier: EditorDiffIdentifier.newColumn, in: harness.hostingView).isEmpty)
-    }
-
-    @Test func anUnreadablePatchShowsTheLineOfTheParseError() {
+    @Test func anUnreadablePatchShowsTheLineOfTheParseError() async {
       let harness = Self.mount(DiffView(patch: Self.unreadablePatch))
       defer { harness.close() }
+      let driver = harness.inspectorDriver
 
-      let row = harness.element(identifier: EditorKitDiffRenderer.unreadablePatchIdentifier)
-      #expect(row?.label == "Cannot read the patch at line 3")
+      #expect(await settle(until: { driver.previewFailure(of: DiffView.previewIdentifier) == Self.unreadableMessage }))
       #expect(views(withAccessibilityIdentifier: EditorDiffIdentifier.root, in: harness.hostingView).isEmpty)
     }
 

@@ -19,8 +19,12 @@ import SwiftUI
 ///   environment.
 /// - The renderer of the ``SwiftUI/EnvironmentValues/diffRenderer``, with the
 ///   full patch and the path of the selected file. The default renderer is
-///   the EditorKit diff view, in the ``SwiftUI/EnvironmentValues/diffLayout``.
-///   The kit does not render diffs itself. A host replaces the renderer with
+///   EditorKit's one-value preview, a `PreviewField` of the selected file,
+///   with the identifier ``previewIdentifier``: the EditorKit diff view at
+///   the preview height of the style, one row for each line, inline. A patch
+///   that EditorKit cannot read shows the failure of the preview, with the
+///   line where the parse stopped (``UnreadablePatch``). The kit does not
+///   render diffs itself. A host replaces the renderer with
 ///   ``SwiftUI/View/diffRenderer(_:)``.
 /// - An Accept and a Reject button for each hunk of the selected file.
 /// - An "Attach to prompt" button. It gives the lines that the renderer
@@ -47,6 +51,10 @@ public struct DiffView: View {
 
   /// The accessibility identifier of the note of a diff with no patch text.
   public static let noPatchIdentifier = "diff-no-patch"
+
+  /// The accessibility identifier of the EditorKit preview of the selected
+  /// file, the default renderer.
+  public static let previewIdentifier = "diff-preview"
 
   /// The start of the accessibility identifier of each Accept button.
   static let acceptPrefix = "diff-accept-"
@@ -254,8 +262,8 @@ public struct DiffView: View {
     }
   }
 
-  /// The renderer of the environment, or the EditorKit renderer when the
-  /// environment has none, with the selected file.
+  /// The renderer of the environment, or the EditorKit preview of the
+  /// selected file when the environment has none.
   ///
   /// - Parameters:
   ///   - patch: The patch text.
@@ -266,7 +274,31 @@ public struct DiffView: View {
     if let renderer {
       renderer(patch, file?.path)
     } else {
-      EditorKitDiffRenderer(patch: patch, file: file?.path)
+      PreviewField(Self.previewSource(of: patch, file: file?.path))
+        .accessibilityLabel(String(localized: "Changes", bundle: .module))
+        .accessibilityIdentifier(Self.previewIdentifier)
+    }
+  }
+
+  /// What the EditorKit preview of a patch shows: the diff of the file at
+  /// `file`, or of each file when no file matches (see
+  /// `EditorKitDiffRenderer.diff(of:file:)`).
+  ///
+  /// The parse runs here, so a readable patch shows at once. A patch that
+  /// EditorKit cannot read is a load that throws its ``UnreadablePatch``
+  /// under the patch text, so the preview shows its one failure state with
+  /// the line where the parse stopped.
+  ///
+  /// - Parameters:
+  ///   - patch: The full patch text.
+  ///   - file: The path of the selected file, or `nil`.
+  /// - Returns: The source of the preview.
+  static func previewSource(of patch: String, file: String?) -> PreviewSource {
+    switch EditorKitDiffRenderer.diff(of: patch, file: file) {
+    case .success(let diff):
+      .value(.diff(diff))
+    case .failure(let error):
+      .load(id: patch) { throw UnreadablePatch(error) }
     }
   }
 

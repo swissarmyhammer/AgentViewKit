@@ -141,7 +141,7 @@ struct SplitViewHostWithThreadTabs: View {
     await RunLoopBlockFence.afterPendingBlocks()
     harness.render()
 
-    try Shared.requireInspectorItem(in: harness, showsTheNameOf: "blob.bin")
+    try Shared.requireInspectorItem(in: harness, shows: attachment)
   }
 
   // MARK: - Host mode
@@ -169,7 +169,7 @@ struct SplitViewHostWithThreadTabs: View {
       state.selection
         == AgentAttachmentSelection(attachment: attachment, sessionId: session.model.sessionId))
     #expect(Shared.inspectorItems(in: harness).count == 1)
-    #expect(harness.element(identifier: AttachmentInspector.nameIdentifier) == nil)
+    #expect(Shared.shownName(of: attachment, in: harness) == nil)
     #expect(harness.element(identifier: SplitViewHostWithThreadTabs.hostInspectorIdentifier) != nil)
   }
 

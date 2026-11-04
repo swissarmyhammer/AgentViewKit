@@ -146,6 +146,12 @@ import Testing
     #expect(error.map(EditorKitDiffRenderer.line(of:)) == Self.unreadableLine)
   }
 
+  @Test func anUnreadablePatchSaysTheLineWhereTheParseStopped() {
+    let unreadable = UnreadablePatch(.malformedHunkHeader(line: Self.unreadableLine))
+
+    #expect(unreadable.errorDescription == "Cannot read the patch at line \(Self.unreadableLine)")
+  }
+
   @Test func eachDiffLayoutHasItsEditorKitLayout() {
     #expect(DiffLayout.inline.documentLayout == .inline)
     #expect(DiffLayout.sideBySide.documentLayout == .sideBySide)

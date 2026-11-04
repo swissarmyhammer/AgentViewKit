@@ -82,6 +82,18 @@ enum InspectorGallery {
       one = AnyView(view)
       several = nil
     }
+
+    /// Makes the subject of a view of one object and a view of several.
+    ///
+    /// - Parameters:
+    ///   - name: The name of the subject.
+    ///   - one: The view of one object.
+    ///   - several: The view of several objects with different values.
+    init(_ name: String, one: some View, several: some View) {
+      self.name = name
+      self.one = AnyView(one)
+      self.several = AnyView(several)
+    }
   }
 
   /// Records each inspector image in `gallery`.
@@ -94,9 +106,12 @@ enum InspectorGallery {
     let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let attachment = try AttachmentFixtures.attachment(named: SnapshotFixtures.inspectorFileName, in: directory)
+    let second = try AttachmentFixtures.attachment(named: SnapshotFixtures.secondInspectorFileName, in: directory)
+    let host = Subject(
+      "attachment-host", one: AttachmentInspector(attachment), several: AttachmentInspector([attachment, second]))
 
     try await recordBuiltInAttachmentInspector(attachment, in: gallery)
-    for subject in [Subject("attachment-host", view: AttachmentInspector(attachment))] + (try fixtures.subjects) {
+    for subject in [host] + (try fixtures.subjects) {
       try await record(subject, in: gallery)
     }
   }

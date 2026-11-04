@@ -36,8 +36,10 @@ extension View {
   }
 }
 
-/// The default diff renderer of the view kits: the EditorKit `DiffView`
-/// (plan.md §4.1, decision 12).
+/// A diff renderer of the view kits: the EditorKit `DiffView`, in a
+/// ``DiffContentView`` (plan.md §4.1, decision 12). AgentViewKit's `DiffView`
+/// shows EditorKit's one-value preview instead; SnapshotViewKit still uses
+/// this renderer, which goes when it moves to that preview.
 ///
 /// The renderer parses the patch with `EditorDiff`, keeps only the selected
 /// file, and shows it in a ``DiffContentView``. When EditorKit cannot read the
@@ -74,7 +76,7 @@ public struct EditorKitDiffRenderer: View {
       DiffContentView(diff: diff)
     case .failure(let error):
       DiffContentView(
-        note: String(localized: "Cannot read the patch at line \(Self.line(of: error))", bundle: .module),
+        note: UnreadablePatch(error).localizedDescription,
         systemImage: SharedSymbol.error, identifier: Self.unreadablePatchIdentifier)
     }
   }
@@ -106,10 +108,7 @@ public struct EditorKitDiffRenderer: View {
   /// - Parameter error: The parse error.
   /// - Returns: The line of the error.
   public static func line(of error: UnifiedDiffError) -> Int {
-    switch error {
-    case .malformedHunkHeader(let line), .hunkLineCountMismatch(let line), .unexpectedLine(let line):
-      line
-    }
+    UnreadablePatch(error).line
   }
 }
 

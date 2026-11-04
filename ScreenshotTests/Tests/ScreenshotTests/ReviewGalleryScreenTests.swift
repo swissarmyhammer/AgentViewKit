@@ -46,6 +46,8 @@
       try await hosted.theTerminalOutput()
       try await hosted.theElicitationForm()
       try await hosted.theAttachmentInspector()
+      try await hosted.theDiff()
+      try await hosted.theDiffOfAnUnreadablePatch()
       let glass = GlassSnapshotTests()
       try await glass.theHeaderOfTheThread()
       try await glass.theComposer()
