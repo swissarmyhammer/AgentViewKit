@@ -206,6 +206,33 @@ comments:
     - evidence: EK bcce50e4. `swift test` 944 + 67 passed (only the allowed mlx warning). `swift test --package-path IntegrationTests` 937 tests, 2 issues, both the known ^6y6ydyb failure (669 s total, all gate wait). `swift build --build-tests --package-path ScreenshotTests` completes; no capture. Files this iteration: Sources/AgentViewKitStyle/Symbols/LiveSymbolEffect.swift (deleted), Sources/AgentViewKitStyle/Status/StatusBar.swift, Sources/AgentViewKitStyle/AgentViewKitStyle.docc/AgentViewKitStyle.md, Sources/AgentViewKit/Items/ToolCallView.swift, ARCHITECTURE.md, IntegrationTests/Tests/IntegrationTests/Style/StatusBarTests.swift, plus the unstaged FieldLabel/driver work from the third iteration.
     - next: push. AttachmentInspector and the status/path/duration rows stay on their adoption cards.
   timestamp: 2026-11-04T19:07:57.338124+00:00
+- actor: claude-code
+  id: 01m6m04de3cd7xmncv71w5560r
+  text: |-
+    Review of 3b896707: all 10 findings are fixed and ticked in `## Review Findings (2026-11-04, review of 3b896707)`.
+    - Findings 1–3: `HostedViewHarness` (EditorTestSupport) and `InspectorDriver` (EditorInspectorTestSupport) are both EditorKit types, and EK has no driver initializer that takes a harness. So the one shared helper is `IntegrationTests/.../Helpers/HostedViewHarness+InspectorDriver.swift`: `harness.inspectorDriver`, plus `harness.fieldIDs(inBlock:)` for the row listing. It carries a TODO for the EK request. **EK request for editorkit-b5:** add `InspectorDriver(harness:)`, or `HostedViewHarness.inspectorDriver` and a block field-id listing, to EK test support; then this file goes. All call sites use the helper: config, toggles, client models and the panel. The config and toggle listings call `fieldIDs(inBlock:)`.
+    - Findings 4–5: `ConfigOptionsSessionModelHostedTests.object(of:)` is the one session-object id, used by `block(of:)`, `row(_:_:of:)` and the panel. The panel uses `ToolTogglesHostedTests.listObject`.
+    - Findings 6–10: one helper, `Inspection.named(_:name:fields:more:)` in Inspection/InspectionLabel.swift. A single `FieldLabel` names both the title (`label.text`) and the first group. ToolCall, Terminal, Plan, Compaction and Error use it. The same pattern was in Session and Connection in ClientModels+Inspectable.swift, so they use it too. Terminal's name falls back to the title through the helper. Row ids are unchanged.
+
+    ### implement — changed
+    - evidence: `swift test` 944 + 67 passed. `swift test --package-path IntegrationTests` 937 tests, 2 issues, both the known ^6y6ydyb failure (214 s; the UI test gate wait again). Files: IntegrationTests/Tests/IntegrationTests/{Helpers/HostedViewHarness+InspectorDriver.swift (new), Config/ConfigOptionsSessionModelHostedTests.swift, Input/ToolTogglesHostedTests.swift, Inspection/ClientModelInspectionHostedTests.swift, Inspection/InspectorPanelHostedTests.swift}, Sources/AgentViewKit/Inspection/{InspectionLabel.swift, TranscriptEntries+Inspectable.swift, ClientModels+Inspectable.swift}.
+    - next: push. EK request: harness→InspectorDriver helper.
+  timestamp: 2026-11-04T19:21:19.555546+00:00
+- actor: claude-code
+  id: 01m6m0k4909qsd5x4v80nzqhdk
+  text: |-
+    Review of 8a937f69: all 3 findings are fixed and ticked, and I swept the card's test files for more of the same.
+    - `HostedViewHarness+InspectorDriver.swift` now holds every shared row helper: `inspectorDriver`, `rowValue(_:)`, `showsRow(_:)`, `fieldIDs(inBlock:)`, plus `InspectorRowID.object(_:view:)` and `InspectorRowID.field(view:object:group:field:)` for row ids. The TODO now names all of them as the EK request, which EK has accepted for EditorInspectorTestSupport.
+    - Config tests: the local `rowValue` and `showsRow` copies are gone, and the calls use the harness. `object(of:)` and `row(_:_:of:)` build on `InspectorRowID`.
+    - ClientModel tests: the local `rowValue` is gone, and `row(of:group:field:)` is `InspectorRowID.field`.
+    - ToolToggles tests: `listObject` uses `InspectorRowID.object`, and reads and checks go through `harness.rowValue`/`showsRow`.
+    - Panel tests: `rows(of:)` builds nothing inline. It uses `ConfigOptionsSessionModelHostedTests.row`, `ToolTogglesHostedTests.row(tools[0].id)` and `ClientModelInspectionHostedTests.row(of:group:field:)`.
+    - After the sweep, no test file outside the shared helper calls `InspectorDriver.field`, `InspectorScheme.objectID` or `inspectorDriver.value`/`.elements` directly. The one remaining `InspectorDriver.field` is `ToolTogglesHostedTests.row`, which is the single tool-row builder over `listObject`.
+
+    ### implement — changed
+    - evidence: `swift test --package-path IntegrationTests` 937 tests, 2 issues, both the known ^6y6ydyb failure (63 s). These are test-only changes, so the root suite was not rerun. Files: IntegrationTests/Tests/IntegrationTests/{Helpers/HostedViewHarness+InspectorDriver.swift, Config/ConfigOptionsSessionModelHostedTests.swift, Input/ToolTogglesHostedTests.swift, Inspection/ClientModelInspectionHostedTests.swift, Inspection/InspectorPanelHostedTests.swift}.
+    - next: push.
+  timestamp: 2026-11-04T19:29:21.696989+00:00
 position_column: doing
 position_ordinal: '80'
 title: 'All AVK inspection through EditorKit''s EditorInspector: AttachmentInspector, config and tool forms, ACPClient conformances'
@@ -214,7 +241,7 @@ Rescoped 2026-11-04 by the user's call (relayed by editorkit-b5): the core inspe
 
 EK card ^tgdjf5g (01M6KG4FZSP41EZ8CDBTGDJF5G, card on EK origin at ec3869b2) builds a new EK product, `EditorInspector`: `Inspectable` (`AnyObject, Observable`), `Inspection`, `FieldGroup`/`Field` with the builders, the modifiers, `.adding`/`.removing`/`.replacing`, `InspectorView(selection)` / `InspectorView(selection, inspection)` (the content of an inspector column or panel; a panel can hold several; it replaces `InspectorForm(inspecting:)`), and `.inspect(_:)` as the convenience for the system column. Editable rows use EK editors (String → SingleLineField, `.multiline()` → EditorView at intrinsic sizing, [String] → TagField). EK starts by lifting AVK's `InspectorForm`, `InspectorActionRow` and `inspectorPreviewFrame()` from `Sources/AgentViewKitStyle/Inspector/`.
 
-**Unblocked:** EditorInspector is on EK origin. AVK now builds on EK df2ba2a9 (^eghwsfh).
+**Unblocked:** EditorInspector is on EK origin. AVK now builds on EK main (bcce50e4).
 
 ## Panel hosting
 Testudo's dockable panel shows several objects at once. Every AVK inspector has to work as content in a panel where the **host owns scrolling** (no ScrollView or Form scrolling of its own) and at **narrow widths, about 240 pt**. EK's `InspectorView` handles both. Build each one on it, not around it.
@@ -269,3 +296,20 @@ The SHA does not need relaying to KVK/SVK/Testudo; editorkit-b5 sends it to them
 - [x] ScreenshotTests/Tests/ScreenshotTests/InspectorGalleryFixtures.swift:136 code-hygiene/magic-numbers-swift — Magic numbers should be replaced by named constants.
 - [x] Sources/AgentViewKit/Inspection/InspectionText.swift:23 reuse — `InspectionText.location(_:)` rebuilds the `<path>` / `<path>:<line>` text that already exists as `ToolCallLocationChips.Location.text(path:line:)`. Call that instead (`ToolCallLocationChips.Location.text(path: location.path.rawValue, line: location.line?.rawValue)`) and drop the local format. If the Style type can't be reached from the Inspection code, move the format into one shared function that both call.
 - [x] Sources/AgentViewKit/Inspection/TranscriptEntries+Inspectable.swift:94 duplication — the ThoughtEntry inspection is a verbatim copy of the AgentMessageEntry inspection (lines 80-86), differing only in the title. Extract one helper that takes the title plus the text and id accessors, call it from both, and delete the copy. Have UserMessageEntry use the same helper too, adding its send-state field.
+
+## Review Findings (2026-11-04, review of 3b896707)
+- [x] IntegrationTests/Tests/IntegrationTests/Config/ConfigOptionsSessionModelHostedTests.swift:185 reuse — the new `driver(of:)` helper rebuilds EditorKit's `InspectorDriver(window:root:)` from a harness, and the same one-line wrapper is copied in other changed test files. Keep one generic helper that takes a `HostedViewHarness` and returns an `InspectorDriver`. If it's generic, it belongs in EditorKit's EditorTestSupport, per the project rule. Otherwise put it in one AVK test-support file. Make the four call sites use it and drop the copies.
+- [x] ConfigOptionsSessionModelHostedTests.swift:304 reuse — the row listing filters `accessibilityElements()` by a block prefix, and the same filter is written again for the tool list. Move the listing of a block's field ids into one helper that takes the block id, and call it from both.
+- [x] IntegrationTests/Tests/IntegrationTests/Inspection/ClientModelInspectionHostedTests.swift:72 reuse — `rowValue` constructs `InspectorDriver(window:root:)` inline. Call the shared helper instead.
+- [x] IntegrationTests/Tests/IntegrationTests/Inspection/InspectorPanelHostedTests.swift:37 reuse — `rows(of:)` rebuilds the session object id with `InspectorScheme.objectID(of: [session], key: "")`, the same expression as `ConfigOptionsSessionModelHostedTests.block(of:)`. Use one shared session-object helper.
+- [x] InspectorPanelHostedTests.swift:38 reuse — `rows(of:)` recomputes the list object id that `ToolTogglesHostedTests.listObject` already defines, and the session object id as well. Reference `ToolTogglesHostedTests.listObject`, and expose the session object id from one helper, such as `ConfigOptionsSessionModelHostedTests.object(of:)`, so each object id has one definition.
+- [x] Sources/AgentViewKit/Inspection/TranscriptEntries+Inspectable.swift:34 duplication — "Tool Call" is spelled twice in one inspection, as the `String(localized:)` title and as the group's `FieldLabel`. Make one `FieldLabel`, pass `label.text` as the title and `label` to `FieldGroup`, as the other entries do.
+- [x] TranscriptEntries+Inspectable.swift:47 duplication — the `let label = FieldLabel(localized: …)` / `let title = label.text` pair is repeated in four inspection properties and differs only by the name. Extract one helper, such as `entryLabel(_:)` returning `(label, title)` or a builder taking the name and the field content, and call it from all four.
+- [x] TranscriptEntries+Inspectable.swift:158 duplication — the same pair for PlanTranscriptEntry. Use the helper with "Plan".
+- [x] TranscriptEntries+Inspectable.swift:175 duplication — the same for CompactionEntry. Use the helper with "Compaction".
+- [x] TranscriptEntries+Inspectable.swift:192 duplication — the same for ErrorEntry. Use the helper with "Error".
+
+## Review Findings (2026-11-04, review of 8a937f69)
+- [x] IntegrationTests/Tests/IntegrationTests/Config/ConfigOptionsSessionModelHostedTests.swift:197 reuse — `ConfigOptionsSessionModelHostedTests.rowValue` duplicates `ClientModelInspectionHostedTests.rowValue`. Keep a single `rowValue` in the shared harness extension (HostedViewHarness+InspectorDriver.swift), have this file call it, and remove the local copy.
+- [x] IntegrationTests/Tests/IntegrationTests/Inspection/ClientModelInspectionHostedTests.swift:72 reuse — the same helper. Move `rowValue(_:in:)` onto the HostedViewHarness extension, beside `inspectorDriver` and `fieldIDs(inBlock:)`, so both suites call `harness.rowValue(identifier)`. Delete both copies.
+- [x] IntegrationTests/Tests/IntegrationTests/Inspection/InspectorPanelHostedTests.swift:43 reuse — the search-tool row id is rebuilt inline with `InspectorDriver.field(view: ToolToggles.listIdentifier, object: ToolTogglesHostedTests.listObject, group: ToolToggles.groupIdentifier, field: "search")`. Replace it with `ToolTogglesHostedTests.row(Self.tools[0].id)`.

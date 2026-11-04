@@ -143,6 +143,14 @@ import Testing
   /// The text of the choice `Fast One` of the model option.
   static let fastChoice = "Fast One (Fast Models)"
 
+  /// The object id of a session model in an inspector: its session id.
+  ///
+  /// - Parameter model: The session model.
+  /// - Returns: The escaped object id.
+  static func object(of model: SessionModel) -> String {
+    InspectorRowID.object(model, view: ConfigOptionsView.viewIdentifier)
+  }
+
   /// The scheme id of the block of the form of `model`: the view and the
   /// object.
   ///
@@ -150,7 +158,7 @@ import Testing
   /// - Returns: The id, such as `inspection:config-options/object:<session>`.
   static func block(of model: SessionModel) -> String {
     InspectorScheme.blockIdentifier(
-      view: ConfigOptionsView.viewIdentifier, object: InspectorScheme.objectID(of: [model], key: ""))
+      view: ConfigOptionsView.viewIdentifier, object: object(of: model))
   }
 
   /// The scheme id of the row of an option in the form of `model`: the
@@ -162,9 +170,7 @@ import Testing
   ///   - model: The session model of the form.
   /// - Returns: The id that the row carries.
   static func row(_ section: String, _ id: SessionConfigId, of model: SessionModel) -> String {
-    InspectorDriver.field(
-      view: ConfigOptionsView.viewIdentifier, object: InspectorScheme.objectID(of: [model], key: ""),
-      group: section, field: id.rawValue)
+    InspectorRowID.field(view: ConfigOptionsView.viewIdentifier, object: model, group: section, field: id.rawValue)
   }
 
   /// The row of the model option.
@@ -178,35 +184,6 @@ import Testing
     row(ConfigOptionsView.uncategorizedSectionID, webID, of: model)
   }
 
-  /// The driver of the inspector rows of `harness`.
-  ///
-  /// - Parameter harness: The harness of the view.
-  /// - Returns: EditorKit's `InspectorDriver` over the hosting view.
-  static func driver(of harness: HostedViewHarness<some View>) -> InspectorDriver {
-    InspectorDriver(window: harness.window, root: harness.hostingView)
-  }
-
-  /// The choice that the picker row of `identifier` shows, or the state of
-  /// its toggle row: `1` on and `0` off.
-  ///
-  /// - Parameters:
-  ///   - identifier: The scheme id of the row.
-  ///   - harness: The harness of the view.
-  /// - Returns: The value of the row, or `nil` when no row has the id.
-  static func rowValue(_ identifier: String, in harness: HostedViewHarness<some View>) -> String? {
-    driver(of: harness).value(of: identifier)
-  }
-
-  /// Whether the form of `harness` shows the row of `identifier`.
-  ///
-  /// - Parameters:
-  ///   - identifier: The scheme id of the row.
-  ///   - harness: The harness of the view.
-  /// - Returns: `true` when an element carries the id.
-  static func showsRow(_ identifier: String, in harness: HostedViewHarness<some View>) -> Bool {
-    !driver(of: harness).elements(identifier).isEmpty
-  }
-
   /// Presses the toggle row of the web search option of `model`, and waits
   /// for the request that the commit of the row starts.
   ///
@@ -218,7 +195,7 @@ import Testing
   static func pressWebSearch(
     of model: SessionModel, in harness: HostedViewHarness<some View>, starts: ReportRecorder<String>
   ) async throws {
-    try driver(of: harness).press(webRow(model))
+    try harness.inspectorDriver.press(webRow(model))
     // The row commits in a task of its own, which starts the request.
     await ObservationWait.until { !starts.values.isEmpty }
     try #require(starts.values == [setMethod])
@@ -272,7 +249,7 @@ import Testing
     defer { harness.close() }
 
     #expect(session.model.configOptions == nil)
-    #expect(!Self.showsRow(Self.webRow(session.model), in: harness))
+    #expect(!harness.showsRow(Self.webRow(session.model)))
     #expect(harness.element(identifier: PermissionModePicker.pickerIdentifier) == nil)
   }
 
@@ -282,12 +259,12 @@ import Testing
     let harness = Self.mount(session: session)
     defer { harness.close() }
     let model = session.model
-    #expect(Self.showsRow(Self.webRow(session.model), in: harness))
+    #expect(harness.showsRow(Self.webRow(session.model)))
 
     try await session.sendUpdate(Self.configUpdate(options: []))
     await harness.render { model.configOptions?.isEmpty == true }
 
-    #expect(!Self.showsRow(Self.webRow(session.model), in: harness))
+    #expect(!harness.showsRow(Self.webRow(session.model)))
     #expect(harness.element(identifier: PermissionModePicker.pickerIdentifier) == nil)
   }
 
@@ -300,8 +277,7 @@ import Testing
     defer { harness.close() }
 
     let model = session.model
-    let fields = Self.block(of: model) + "/field:"
-    let rows = harness.accessibilityElements().compactMap(\.identifier).filter { $0.hasPrefix(fields) }
+    let rows = harness.fieldIDs(inBlock: Self.block(of: model))
     #expect(rows == [Self.modeRow(model), Self.modelRow(model), Self.webRow(model)])
   }
 
@@ -311,7 +287,7 @@ import Testing
     let harness = Self.mount(session: session)
     defer { harness.close() }
 
-    #expect(Self.rowValue(Self.modelRow(session.model), in: harness) == Self.fastChoice)
+    #expect(harness.rowValue(Self.modelRow(session.model)) == Self.fastChoice)
   }
 
   // MARK: - Set config option
@@ -340,13 +316,13 @@ import Testing
     #expect(params["configId"]?.stringValue == "web")
     #expect(params["type"]?.stringValue == "boolean")
     #expect(params["value"] == .bool(true))
-    #expect(Self.rowValue(Self.webRow(session.model), in: harness) == Self.notSelected)
+    #expect(harness.rowValue(Self.webRow(session.model)) == Self.notSelected)
 
     let optionsBefore = model.configOptions
     session.agent.releaseHeldAnswer()
     await harness.render { model.configOptions != optionsBefore }
 
-    #expect(Self.rowValue(Self.webRow(session.model), in: harness) == Self.selected)
+    #expect(harness.rowValue(Self.webRow(session.model)) == Self.selected)
   }
 
   /// The choice of the current value sends nothing. To know that no frame
@@ -361,7 +337,7 @@ import Testing
     let harness = Self.mount(session: session, requestStartReport: starts.report)
     defer { harness.close() }
     let model = session.model
-    let driver = Self.driver(of: harness)
+    let driver = harness.inspectorDriver
 
     try driver.choose("Ask", in: Self.modeRow(model))
     try driver.choose(Self.deepChoice, in: Self.modelRow(model))
@@ -404,7 +380,7 @@ import Testing
     await harness.render { TranscriptChecks.hasErrorEntry(model) }
 
     #expect(TranscriptChecks.hasErrorEntry(model))
-    #expect(Self.rowValue(Self.webRow(session.model), in: harness) == Self.notSelected)
+    #expect(harness.rowValue(Self.webRow(session.model)) == Self.notSelected)
   }
 
   // MARK: - Agent updates
@@ -424,7 +400,7 @@ import Testing
     await harness.render { model.configOptions != optionsBefore }
 
     #expect(harness.element(identifier: autoSegment)?.value == Self.selected)
-    #expect(Self.rowValue(Self.modeRow(session.model), in: harness) == "Auto")
+    #expect(harness.rowValue(Self.modeRow(session.model)) == "Auto")
   }
 
   // MARK: - Menu
@@ -439,7 +415,7 @@ import Testing
     harness.render()
 
     #expect(harness.element(identifier: ConfigOptionsView.menuIdentifier) != nil)
-    #expect(!Self.showsRow(Self.webRow(session.model), in: harness))
+    #expect(!harness.showsRow(Self.webRow(session.model)))
   }
 
   // MARK: - Permission mode
