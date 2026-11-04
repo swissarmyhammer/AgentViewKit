@@ -118,31 +118,37 @@
     }
 
     /// Whether `answer`, the element that the hit test of the window answers
-    /// over the control, is the control.
+    /// at the center of the shown control, is the control.
     ///
     /// Over the segmented permission-mode picker, the hit test answers the
     /// AppKit segment under the point, as VoiceOver reads a segmented
-    /// control: a radio button with no identifier, labelled with the name of
-    /// its value. Over each other control, it answers the control.
+    /// control: a radio button with no identifier. So the answer must be the
+    /// segment of ``centerModeValue``, one of the segments under the picker.
+    /// Over each other control, it answers the control.
     ///
     /// - Parameters:
     ///   - answer: The answered element, or `nil`.
-    ///   - identifier: The accessibility identifier of the control.
-    /// - Returns: `true` when the answer is the control, or a segment of the
-    ///   picker.
-    func names(_ answer: NSObject?, identifier: String) -> Bool {
+    ///   - shown: The shown control.
+    /// - Returns: `true` when the answer is the control, or the center
+    ///   segment of the picker.
+    func isAnswered(by answer: NSObject?, in shown: ShownBarControl) -> Bool {
       guard let answer else { return false }
-      guard self == .modePicker else { return accessibilityIdentifier(of: answer) == identifier }
-      return accessibilityRole(of: answer) == NSAccessibility.Role.radioButton.rawValue
-        && accessibilityLabel(of: answer).map(Self.modeValueNames.contains) == true
+      guard self == .modePicker else { return accessibilityIdentifier(of: answer) == shown.identifier }
+      let role = accessibilityRole(of: answer)
+      let label = accessibilityLabel(of: answer)
+      let segments = shown.harness.elements(under: PermissionModePicker.pickerIdentifier)
+      return label == Self.centerModeValue && segments.contains { $0.role == role && $0.label == label }
     }
 
-    /// The names of the values of the mode option of the fixture session
-    /// that the permission-mode picker shows: the labels of its segments.
-    static var modeValueNames: [String] {
+    /// The label of the segment at the center of the permission-mode picker
+    /// of the fixture session: the middle value of its mode option, whose
+    /// count is odd.
+    static var centerModeValue: String? {
       let options = PreviewFixtures.configuredSession.configOptions ?? []
-      guard case .select(let select)? = PermissionModePicker.modeOption(in: options)?.type else { return [] }
-      return select.choices?.options.map(\.name) ?? []
+      guard let mode = PermissionModePicker.modeOption(in: options) else { return nil }
+      let labels = ConfigOptionFields.options(of: mode.configId, in: options).map(\.label)
+      guard !labels.count.isMultiple(of: 2) else { return nil }
+      return labels[labels.count / 2]
     }
 
     /// The controls that a landed jump presses. It is `nonisolated` because
@@ -552,8 +558,10 @@
 
       let element = accessibilityHitTest(atCenterOfScopeAt: shown.path, in: system, window: shown.harness.window)
 
-      let answer = element.flatMap { accessibilityIdentifier(of: $0) }
-      #expect(control.names(element, identifier: shown.identifier), "\(String(describing: answer))")
+      let answer = element.map { element in
+        [accessibilityRole(of: element), accessibilityLabel(of: element), accessibilityIdentifier(of: element)]
+      }
+      #expect(control.isAnswered(by: element, in: shown), "role, label, identifier: \(String(describing: answer))")
     }
 
     /// A jump to the editor of the composer focuses its text view, so the

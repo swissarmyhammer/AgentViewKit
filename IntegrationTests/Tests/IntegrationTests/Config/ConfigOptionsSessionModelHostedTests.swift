@@ -226,6 +226,16 @@ import Testing
     _ name: String, in identifier: String, harness: HostedViewHarness<some View>, session: ScriptedSession
   ) async throws -> JSONValue {
     try harness.performCustomAction(named: name, identifier: identifier)
+    return try await firstSetParams(in: session)
+  }
+
+  /// The `params` of the first set-config-option frame that the agent gets,
+  /// once it is there.
+  ///
+  /// - Parameter session: The scripted session.
+  /// - Returns: The params.
+  /// - Throws: When no frame comes.
+  static func firstSetParams(in session: ScriptedSession) async throws -> JSONValue {
     await ObservationWait.until { !setParams(in: session).isEmpty }
     return try #require(setParams(in: session).first)
   }
@@ -424,9 +434,8 @@ import Testing
     defer { harness.close() }
 
     try harness.inspectorDriver.choose(Self.deepChoice, in: Self.modelRow(session.model))
-    await ObservationWait.until { !Self.setParams(in: session).isEmpty }
 
-    let params = try #require(Self.setParams(in: session).first)
+    let params = try await Self.firstSetParams(in: session)
     #expect(params["configId"]?.stringValue == "model")
     #expect(params["value"]?.stringValue == "deep-1")
   }
@@ -518,9 +527,8 @@ import Testing
     defer { harness.close() }
 
     try harness.press(identifier: ConfigOptionsView.controlIdentifier(for: Self.webID))
-    await ObservationWait.until { !Self.setParams(in: session).isEmpty }
 
-    let params = try #require(Self.setParams(in: session).first)
+    let params = try await Self.firstSetParams(in: session)
     #expect(params["configId"]?.stringValue == "web")
     #expect(params["value"] == .bool(true))
   }
