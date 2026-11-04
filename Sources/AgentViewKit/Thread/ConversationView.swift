@@ -1,3 +1,4 @@
+import EditorCommandsUI
 import EditorStyle
 import FoundationModelsACPClient
 import SwiftUI
@@ -569,6 +570,10 @@ extension ConversationView where EmptyState == DefaultConversationEmptyState {
 /// only this view and not the list. A ``ConversationView`` shows it over the
 /// bottom of its list. An ``AgentThreadView`` shows it in its floating
 /// controls.
+///
+/// The pill floats over the rows, so it blocks the bound clicks of the host
+/// (`.blocksCommandClicks()`): an Option-click on the pill over a bound row
+/// scrolls to the bottom and does not run the command of that row.
 struct ConversationPill: View {
   /// The manager of the conversation.
   let anchors: ScrollAnchorManager
@@ -578,6 +583,7 @@ struct ConversationPill: View {
       ScrollToBottomPill(newItemCount: anchors.newItemsSinceUnpinned) {
         anchors.pinToBottom()
       }
+      .blocksCommandClicks()
     }
   }
 }
