@@ -87,13 +87,13 @@ public struct PermissionView: View {
   /// The symbol of the title.
   static let symbol = SharedSymbol.userAction
   /// The symbol of a tool call subject.
-  static let toolCallSymbol = SharedSymbol.tool
+  static let toolCallSymbol = EditorSymbol.tool(.other).systemImage
   /// The symbol of a command subject.
-  static let commandSymbol = SharedSymbol.terminal
+  static let commandSymbol = EditorSymbol.tool(.execute).systemImage
   /// The symbol of the working directory.
   static let directorySymbol = SharedSymbol.folder
   /// The symbol of the button that shows or hides the terminal.
-  static let terminalLinkSymbol = SharedSymbol.terminal
+  static let terminalLinkSymbol = EditorSymbol.tool(.execute).systemImage
   /// The symbol of the Send button of the comment field. The comment goes
   /// out as the next prompt, so the button shows the symbol of a send.
   static let commentSubmitSymbol = SharedSymbol.send
@@ -105,7 +105,7 @@ public struct PermissionView: View {
   }
   /// The symbol of the "switch to auto" button, which changes the session
   /// mode.
-  static let switchToAutoSymbol = SharedSymbol.switchMode
+  static let switchToAutoSymbol = EditorSymbol.tool(.switchMode).systemImage
 
   /// The symbol of the button of an option.
   ///

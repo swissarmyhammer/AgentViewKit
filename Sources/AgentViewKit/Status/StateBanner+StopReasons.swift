@@ -29,7 +29,7 @@ extension StateBanner {
       explanation: String(
         localized: "The model did not write an answer after its reasoning. Send the request again.",
         bundle: .module),
-      symbolName: SharedSymbol.reasoning,
+      symbolName: EditorSymbol.tool(.think).systemImage,
       identifier: "state-banner-stop-reason-ended-in-reasoning"),
     "_repeated": StatusBar.Message(
       title: String(localized: "The model repeated itself", bundle: .module),

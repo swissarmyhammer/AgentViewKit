@@ -351,7 +351,7 @@ public struct SessionListView: View {
             await perform { try await connection.deleteSession(info.sessionId) }
           }
         } label: {
-          Label(String(localized: "Delete", bundle: .module), systemImage: SharedSymbol.delete)
+          Label(String(localized: "Delete", bundle: .module), systemImage: EditorSymbol.tool(.delete).systemImage)
             .labelStyle(.iconOnly)
         }
         .buttonStyle(.borderless)

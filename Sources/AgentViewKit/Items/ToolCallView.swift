@@ -674,7 +674,7 @@ private struct ToolCallTerminalLabel: View {
   var body: some View {
     Label(
       String(localized: "Terminal \(terminalID)", bundle: .module),
-      systemImage: SharedSymbol.terminal
+      systemImage: EditorSymbol.tool(.execute).systemImage
     )
     .foregroundStyle(themeSecondary)
   }
