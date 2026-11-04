@@ -151,6 +151,17 @@ comments:
     - evidence: `swift test`: 944 + 67 passed. `swift test --package-path IntegrationTests`: 936 tests, 2 issues, both the known ^6y6ydyb failure (ThreadFloatingControlsHostedTests.aStreamedTurnKeepsTheThreadPinnedToTheBottom). Note: that run took 565 s, against 49 s earlier; `runningAndIdleWithNoPromptOpenShowTheStateAndAnnounceNothing` took 514 s but passed. `swift build --build-tests --package-path ScreenshotTests` completes. No capture: the gallery output is unchanged. Files: ScreenshotTests/.../InspectorGallery.swift, InspectorGalleryFixtures.swift; Sources/AgentViewKit/Inspection/InspectionText.swift, TranscriptEntries+Inspectable.swift; IntegrationTests/.../Inspection/InspectorPanelHostedTests.swift, ClientModelInspectionHostedTests.swift.
     - next: review. The card's open items still wait on EK ^eghwsfh and on SVK.
   timestamp: 2026-11-04T17:26:55.584570+00:00
+- actor: claude-code
+  id: 01m6ksp1ae236x93h924shnkm7
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed. 5 review findings fixed in 6 files.
+    - test: green apart from the known ^6y6ydyb. Root 944+67 passed; IntegrationTests 936, with 1 known failure.
+    - commit: f7d59eb0, on top of b0f176ae.
+    - review: clean on b0f176ae..f7d59eb0 (0 findings).
+    - pushed: origin/main is at f7d59eb0. SVK be738d5 had already moved off AVK's inspector copies.
+    - next: the card stays in doing. When EK ^eghwsfh lands, run /finish again for the "Waiting on EK" items.
+  timestamp: 2026-11-04T17:28:36.942098+00:00
 position_column: doing
 position_ordinal: '80'
 title: 'All AVK inspection through EditorKit''s EditorInspector: AttachmentInspector, config and tool forms, ACPClient conformances'
