@@ -1,5 +1,7 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
+import EditorInspector
+import EditorInspectorTestSupport
 import EditorTestSupport
 import Foundation
 import SwiftUI
@@ -28,16 +30,28 @@ import Testing
     ToolToggle(id: issueID, name: "Create issue", isEnabled: false),
   ]
 
-  /// The EditorKit accessibility identifier of the row of a tool in the
-  /// list style: the view, the group and the tool.
-  ///
-  /// EditorKit's `InspectorDriver` (^eghwsfh) reads and presses the rows when
-  /// its final SHA lands, and the ids then take its path scheme.
+  /// The scheme id of the row of a tool in the list style: the view and the
+  /// one list object of ``ToolToggles/listIdentifier``, the group and the
+  /// tool.
   ///
   /// - Parameter tool: The identifier of the tool.
-  /// - Returns: The identifier, such as `tool-toggles.tools.search`.
+  /// - Returns: The id that the row carries.
   static func row(_ tool: ToolToggleID) -> String {
-    [ToolToggles.listIdentifier, ToolToggles.groupIdentifier, tool.rawValue].joined(separator: ".")
+    InspectorDriver.field(
+      view: ToolToggles.listIdentifier, object: listObject, group: ToolToggles.groupIdentifier, field: tool.rawValue)
+  }
+
+  /// The object id of the list of a ``ToolToggles``: the list has no
+  /// identity of its own, so EditorKit names it by its inspection and its
+  /// position.
+  static let listObject = InspectorScheme.objectID(of: [ToolToggleList(tools: [])], key: ToolToggles.listIdentifier)
+
+  /// The driver of the inspector rows of `harness`.
+  ///
+  /// - Parameter harness: The harness of the view.
+  /// - Returns: EditorKit's `InspectorDriver` over the hosting view.
+  static func driver(of harness: HostedViewHarness<ToolToggles>) -> InspectorDriver {
+    InspectorDriver(window: harness.window, root: harness.hostingView)
   }
 
   /// Mounts the list style of ``tools``, and makes one render pass.
@@ -60,9 +74,9 @@ import Testing
     let harness = Self.mountList { recorder.report(Call(id: $0, isEnabled: $1)) }
     defer { harness.close() }
 
-    try harness.press(identifier: Self.row(Self.issueID))
+    try Self.driver(of: harness).press(Self.row(Self.issueID))
     await ObservationWait.until { recorder.values.count == 1 }
-    try harness.press(identifier: Self.row(Self.searchID))
+    try Self.driver(of: harness).press(Self.row(Self.searchID))
     await ObservationWait.until { recorder.values.count == 2 }
 
     #expect(
@@ -76,8 +90,8 @@ import Testing
     let harness = Self.mountList()
     defer { harness.close() }
 
-    #expect(harness.element(identifier: Self.row(Self.searchID))?.value == "1")
-    #expect(harness.element(identifier: Self.row(Self.issueID))?.value == "0")
+    #expect(Self.driver(of: harness).value(of: Self.row(Self.searchID)) == "1")
+    #expect(Self.driver(of: harness).value(of: Self.row(Self.issueID)) == "0")
   }
 
   @Test func theListShowsOneRowForEachTool() {
@@ -85,7 +99,7 @@ import Testing
     defer { harness.close() }
 
     let identifiers = harness.accessibilityElements().compactMap(\.identifier).filter {
-      $0.hasPrefix([ToolToggles.listIdentifier, ToolToggles.groupIdentifier, ""].joined(separator: "."))
+      $0.hasPrefix(InspectorScheme.blockIdentifier(view: ToolToggles.listIdentifier, object: Self.listObject) + "/field:")
     }
     #expect(identifiers == [Self.row(Self.searchID), Self.row(Self.issueID)])
   }
@@ -95,7 +109,7 @@ import Testing
     defer { harness.close() }
     harness.render()
 
-    #expect(harness.element(identifier: Self.row(Self.searchID)) == nil)
+    #expect(Self.driver(of: harness).elements(Self.row(Self.searchID)).isEmpty)
   }
 
   @Test func theMenuStyleShowsAMenuButton() {
