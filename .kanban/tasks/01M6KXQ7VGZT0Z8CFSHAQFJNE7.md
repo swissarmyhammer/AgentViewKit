@@ -63,8 +63,16 @@ comments:
     - evidence: commit aabf21b0 on worktree-agent-a3b11d3d18f086ddc (after eee76be0). It fixes the review finding at ScreenshotTests/Tests/ScreenshotTests/SnapshotFixtures.swift, code-hygiene/magic-numbers-swift: "Magic numbers should be replaced by named constants." `completionListHeight` is now `composerHeight + EditorKitPromptEditor.completionListMaximumHeight` (140 + 160 = 300), so the image size is unchanged and no recapture is needed. I checked CompletionListComposer.swift myself for magic numbers, missing docs, function length and idioms: it has no literals, every declaration is documented, and both functions are short. Its two stored properties start as valid values that each mount replaces; the type comment documents this. `swift build --build-tests --package-path ScreenshotTests` succeeds with 0 AVK warnings. Not pushed.
     - next: coordinator review; the merge waits for EK's EditorStyle padding fix (^81kpa17).
   timestamp: 2026-11-04T19:57:44.011467+00:00
-position_column: doing
-position_ordinal: '8480'
+- actor: claude-code
+  id: 01m6m56sx5xwnmnw6rcmf5vte5
+  text: |-
+    ### finish — clean
+    - Merged into main (d3ff62e2). Full review on main: clean (0 findings, 7 of 7 files).
+    - test: root 943+67 passed; IntegrationTests 938 passed (5 known issues).
+    - AVK's prompt list draws EK's EditorCompletionRow. AVK's public CompletionRow stays because KVK BoardFieldCompletion (701a93d) uses it. It gets deleted once EK's EditorCompletionRow card (identifier, one a11y element, selected trait, no outer inset) lands and KVK has moved.
+  timestamp: 2026-11-04T20:50:00.741771+00:00
+position_column: done
+position_ordinal: ffffff9980
 title: Deduplicate AgentViewKitStyle CompletionRow onto EditorKit's EditorCompletionRow
 ---
 ~~**Blocked** on EK renaming its public `CompletionRow` (EditorComplete, made public in df2ba2a9) to `EditorCompletionRow`. editorkit-b5 sends the SHA. Don't start before then.~~ Obsolete: EK renamed it to `EditorCompletionRow` (EditorComplete, `CompletionPopup.swift`) on EK origin main at 43628df7.
