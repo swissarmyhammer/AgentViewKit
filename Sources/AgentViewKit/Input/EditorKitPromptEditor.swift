@@ -195,8 +195,8 @@ public struct EditorKitPromptEditor: View {
   /// The list of the open completion session.
   ///
   /// The list has a scroll content margin of the extra small spacing step, so
-  /// the selection surface of a row stands clear of the edges of the menu. A
-  /// row has no padding around it (`style.md`, rule 10).
+  /// the selection surface of a row stands clear of the edges of the menu, as
+  /// the padding of EditorKit's completion popup around its rows does.
   ///
   /// - Parameters:
   ///   - completion: The open session.
@@ -610,9 +610,14 @@ public struct EditorKitPromptEditor: View {
   }
 }
 
-/// One row of the completion list of ``EditorKitPromptEditor``: the shared
-/// ``CompletionRow`` of a completion. The list of the editor gives the space
-/// around its rows.
+/// One row of the completion list of ``EditorKitPromptEditor``: EditorKit's
+/// `EditorCompletionRow` of a completion, the row of EditorKit's own
+/// completion popup.
+///
+/// The row is one accessibility element with the label and the detail of the
+/// completion, the selected trait of the selected row, and
+/// ``EditorKitPromptEditor/completionRowIdentifier``: EditorKit's row has no
+/// accessibility identifier and no selected trait of its own.
 struct PromptCompletionRow: View {
   /// The completion of the row.
   let item: Completion
@@ -621,9 +626,12 @@ struct PromptCompletionRow: View {
   let isSelected: Bool
 
   var body: some View {
-    CompletionRow(
-      label: item.label, detail: item.detail, isSelected: isSelected,
-      identifier: EditorKitPromptEditor.completionRowIdentifier)
+    EditorCompletionRow(item: item, isSelected: isSelected)
+      .accessibilityElement(children: .combine)
+      .accessibilityLabel(item.label)
+      .accessibilityValue(item.detail ?? "")
+      .accessibilityAddTraits(isSelected ? .isSelected : [])
+      .accessibilityIdentifier(EditorKitPromptEditor.completionRowIdentifier)
   }
 }
 

@@ -123,6 +123,27 @@ enum SnapshotFixtures {
     SessionModel.preview(transcript: [.update(.stateUpdate(.running(RunningStateUpdate())))])
   }
 
+  /// The height of the image of the completion list of the composer, in
+  /// points: the composer, and the list of the commands of
+  /// ``commandsSession`` above its field.
+  static let completionListHeight: CGFloat = 300
+
+  /// The size of the image of the completion list of the composer, in points.
+  static let completionListSize = CGSize(width: wideWidth, height: completionListHeight)
+
+  /// A session whose agent reports two slash commands: one that takes text,
+  /// whose row shows the hint of its input as the detail, and one that takes
+  /// no input, whose row shows no detail.
+  static var commandsSession: SessionModel {
+    SessionModel.preview(availableCommands: [
+      .command(
+        Command(
+          description: "Compact the thread", name: "compact",
+          input: .text(TextCommandInput(hint: "instructions")))),
+      .command(Command(description: "Make a plan", name: "plan")),
+    ])
+  }
+
   /// The size of the image of the request deck in the bar, in points.
   static let requestDeckSize = CGSize(width: 320, height: 320)
 
