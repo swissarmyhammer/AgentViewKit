@@ -95,6 +95,7 @@ public struct ToolCallLocationChips: View {
     self.locations = locations
   }
 
+  /// A chip for each location, in a flow layout that wraps the chips to the next line.
   public var body: some View {
     ChipFlowLayout(spacing: editorStyle.spacing.xs) {
       ForEach(locations) { location in
@@ -140,19 +141,24 @@ public struct ToolCallLocationChip: View {
     self.location = location
   }
 
+  /// The document symbol and the short text of the location, in the fill and the corners of a chip.
   public var body: some View {
-    Label(location.shortText, systemImage: SharedSymbol.document)
-      .font(editorTheme.font(for: .ui, style: .caption))
-      .lineLimit(1)
-      .truncationMode(.middle)
-      .padding(.horizontal, editorStyle.spacing.s)
-      .padding(.vertical, editorStyle.spacing.xs)
-      .background(
-        themeFill.quaternary, in: EditorSurface.shape(radius: ToolCallLocationChips.corners.radius(in: editorStyle)))
-      .help(location.fullText)
-      .accessibilityElement(children: .ignore)
-      .accessibilityLabel(location.fullText)
-      .accessibilityIdentifier(location.identifier)
+    Label {
+      Text(location.shortText)
+    } icon: {
+      EditorSymbolImage(.file(.document))
+    }
+    .font(editorTheme.font(for: .ui, style: .caption))
+    .lineLimit(1)
+    .truncationMode(.middle)
+    .padding(.horizontal, editorStyle.spacing.s)
+    .padding(.vertical, editorStyle.spacing.xs)
+    .background(
+      themeFill.quaternary, in: EditorSurface.shape(radius: ToolCallLocationChips.corners.radius(in: editorStyle)))
+    .help(location.fullText)
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(location.fullText)
+    .accessibilityIdentifier(location.identifier)
   }
 }
 

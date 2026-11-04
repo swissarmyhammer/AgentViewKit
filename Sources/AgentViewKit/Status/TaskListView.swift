@@ -96,21 +96,6 @@ public struct TaskListView: View {
     }
   }
 
-  /// The SF Symbol name of a status. An entry in progress shows its symbol
-  /// with the variable color effect.
-  ///
-  /// - Parameter status: The ACP status of an entry.
-  /// - Returns: The symbol name.
-  static func statusSymbol(_ status: FoundationModelsACP.PlanEntryStatus) -> String {
-    switch status {
-    case .pending: ItemStatus.pending.systemImage
-    case .inProgress: ItemStatus.inProgress.systemImage
-    case .completed: ItemStatus.completed.systemImage
-    case .cancelled: ItemStatus.cancelled.systemImage
-    case .unknown: ItemStatus.unknown.systemImage
-    }
-  }
-
   /// The SF Symbol name of a priority. Each priority has a different symbol,
   /// so that the priority does not show with color only.
   ///
@@ -203,7 +188,6 @@ private struct PlanEntryRow: View {
   let entry: FoundationModelsACP.PlanEntry
 
   @Environment(\.editorStyle) private var editorStyle
-  @Environment(\.editorTheme) private var editorTheme
   @Environment(\.themeForeground) private var themeForeground
   @Environment(\.themeSecondary) private var themeSecondary
 
@@ -216,26 +200,20 @@ private struct PlanEntryRow: View {
         .strikethrough(entry.status == .cancelled)
         .foregroundStyle(entry.status == .cancelled ? themeSecondary : themeForeground)
       Spacer(minLength: editorStyle.spacing.s)
-      StatusSymbolImage(
-        name: TaskListView.prioritySymbol(entry.priority),
-        color: editorTheme.tint(for: entry.priority)
-      )
-      .help(TaskListView.priorityLabel(entry.priority))
+      EditorSymbolImage(systemName: TaskListView.prioritySymbol(entry.priority), tone: .init(entry.priority))
+        .help(TaskListView.priorityLabel(entry.priority))
     }
     .accessibilityElement(children: .ignore)
     .accessibilityLabel(TaskListView.entryLabel(entry))
     .accessibilityAddTraits(.isStaticText)
   }
 
-  /// The symbol of the status. An entry in progress shows its symbol with
-  /// the live symbol effect, as a running tool call does. Under Reduce
-  /// Motion, the symbol does not move.
+  /// The symbol of the status: the EditorKit status symbol of the ACP status
+  /// (`EditorSymbol.Status`). An entry in progress shows its symbol with the
+  /// live symbol effect, as a running tool call does. Under Reduce Motion,
+  /// the symbol does not move.
   private var statusSymbol: some View {
-    StatusSymbolImage(
-      name: TaskListView.statusSymbol(entry.status),
-      color: editorTheme.statusColor(for: entry.status)
-    )
-    .liveSymbolEffect(isActive: entry.status == .inProgress)
+    EditorSymbolImage(.status(.init(entry.status)), isLive: entry.status == .inProgress)
   }
 }
 

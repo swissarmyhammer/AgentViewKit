@@ -10,7 +10,7 @@ import SwiftUI
 /// own, so it draws in the root foreground, because the secondary color is
 /// 3.9:1 on the light window background, below the 4.5:1 of caption text, and a
 /// status color, such as the succeeded green, is too light. The symbol draws
-/// with ``StatusSymbolImage``. The send state of ``UserMessageView`` and the
+/// with EditorKit's `EditorSymbolImage`. The send state of ``UserMessageView`` and the
 /// exit label of ``CommandOutputView`` and ``TerminalView`` show this view, so
 /// a change of the font reaches each of them.
 struct StatusCaptionLabel: View {
@@ -20,9 +20,9 @@ struct StatusCaptionLabel: View {
   /// The SF Symbol name of the state.
   let symbolName: String
 
-  /// The color of the symbol: a color of the EditorKit theme, or
-  /// `\.themeSecondary` for a state with no color.
-  let color: Color
+  /// The tone of the theme the symbol draws in: a status token, or the
+  /// neutral tone for a state with no color.
+  let tone: EditorSymbol.Tone
 
   @Environment(\.editorTheme) private var editorTheme
 
@@ -30,7 +30,7 @@ struct StatusCaptionLabel: View {
     Label {
       Text(title)
     } icon: {
-      StatusSymbolImage(name: symbolName, color: color)
+      EditorSymbolImage(systemName: symbolName, tone: tone)
     }
     .font(editorTheme.font(for: .ui, style: .caption))
   }

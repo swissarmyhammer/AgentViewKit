@@ -101,7 +101,7 @@ public struct AgentAuthView: View {
   /// The symbol of each Sign In button.
   static let signInSymbol = SharedSymbol.signIn
   /// The symbol of each Run button.
-  static let runSymbol = SharedSymbol.terminal
+  static let runSymbol = EditorSymbol.tool(.execute).systemImage
   /// The symbol of the Reconnect button.
   static let reconnectSymbol = SharedSymbol.reload
   /// The symbol of the Sign Out button.

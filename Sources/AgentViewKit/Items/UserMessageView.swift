@@ -1,6 +1,5 @@
 import EditorStyle
 import EditorSwiftUI
-import EditorTheme
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -61,7 +60,6 @@ public struct UserMessageView: View, PrefixedAccessibilityIdentifier {
     /// The send state to show.
     let state: SendState
 
-    @Environment(\.editorTheme) private var editorTheme
 
     /// The text of a send state.
     ///
@@ -75,22 +73,9 @@ public struct UserMessageView: View, PrefixedAccessibilityIdentifier {
       }
     }
 
-    /// The SF Symbol of a send state.
-    ///
-    /// - Parameter state: The send state.
-    /// - Returns: The pending, the completed, or the error symbol.
-    static func symbol(of state: SendState) -> String {
-      switch state {
-      case .pending: ItemStatus.pending.systemImage
-      case .sent: ItemStatus.completed.systemImage
-      case .failed: SharedSymbol.error
-      }
-    }
-
     var body: some View {
-      StatusCaptionLabel(
-        title: Self.title(of: state), symbolName: Self.symbol(of: state), color: editorTheme.statusColor(for: state)
-      )
+      let symbol = EditorSymbol.status(.init(state))
+      return StatusCaptionLabel(title: Self.title(of: state), symbolName: symbol.systemImage, tone: symbol.tone)
       .accessibilityElement(children: .ignore)
       .accessibilityLabel(Self.title(of: state))
     }

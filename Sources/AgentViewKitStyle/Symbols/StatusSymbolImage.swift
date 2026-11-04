@@ -6,12 +6,13 @@ import SwiftUI
 ///
 /// The view shows the symbol with the hierarchical rendering mode of the
 /// status views and the symbol weight of the shared style. Each caller keeps
-/// its own map from its state to the symbol name and to the color. The
-/// ``StatusBar`` and each status symbol of AgentViewKit, such as the status
-/// of a tool call, the plan entry, the error card and the notice banner, draw
-/// their symbols with this view, so a change of the rendering mode or of the
-/// weight reaches each of them. A caller adds its own symbol effects to the
-/// view.
+/// its own map from its state to the symbol name and to the color. A caller
+/// adds its own symbol effects to the view.
+///
+/// AgentViewKit draws each of its symbols with EditorKit's
+/// `EditorSymbolImage`, in a tone of the theme. This view stays only for the
+/// view kits that still draw with it, such as SnapshotViewKit, and goes when
+/// those kits draw `EditorSymbolImage`.
 public struct StatusSymbolImage: View {
   /// The SF Symbol name. Read it from ``SharedSymbol``, from `ItemStatus` or
   /// `ItemPriority` of EditorStyle, or from the symbol map of the caller.
@@ -33,6 +34,7 @@ public struct StatusSymbolImage: View {
     self.color = color
   }
 
+  /// The symbol, drawn hierarchically in the symbol weight of the style and in the color of the state.
   public var body: some View {
     Image(systemName: name)
       .symbolRenderingMode(.hierarchical)

@@ -18,6 +18,15 @@ The inspector of the view kits is EditorKit's `EditorInspector`: the
 `InspectorActionRow` and `.inspectorPreviewFrame()`. The library keeps no
 copy of them, and a view kit imports `EditorInspector` itself.
 
+The symbols of a tool kind, a file kind and a status are EditorKit's
+`EditorSymbol`, and the library and AgentViewKit draw each symbol with
+EditorKit's `EditorSymbolImage`, in a tone of the theme, with its live effect
+and its Reduce Motion rule. ``SharedSymbol`` keeps the names of the concepts
+that EditorKit does not hold, such as a warning notice or a Reload button.
+Its tool-kind and file names, ``StatusSymbolImage`` and
+``DiffFileChip/symbolName(for:)`` stay for the view kits that still read them,
+until those kits draw EditorKit's symbols.
+
 A view of the library takes the behaviour of a kit through a style protocol
 of the environment, in the shape of `ButtonStyle`. AgentViewKit gives the
 button of a ``StatusBar`` the focus scope of a bar control with

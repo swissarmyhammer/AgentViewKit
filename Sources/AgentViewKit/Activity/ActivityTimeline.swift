@@ -87,6 +87,7 @@ public struct ActivityTimeline: View {
 
   // MARK: - Body
 
+  /// A row for each entry of the activity, or the empty state when the activity has no entries.
   public var body: some View {
     let entries = session.transcript.compactMap(TimelineEntry.init(entry:))
     VStack(spacing: 0) {
@@ -173,16 +174,16 @@ private enum TimelineEntry: Identifiable {
 
 /// One row of an ``ActivityTimeline``, and its expanded view.
 private struct ActivityEntryRow: View {
-  /// The symbol, the text and the color of a row.
-  private struct Appearance {
+  /// The symbol, the text and the tone of a row.
+  fileprivate struct Appearance {
     /// The text of the row.
     let title: String
 
     /// The SF Symbol name of the row.
     let symbolName: String
 
-    /// The color of the symbol.
-    let tint: Color
+    /// The tone of the theme the symbol draws in.
+    let tone: EditorSymbol.Tone
 
     /// The status of a tool call row, or `nil` for a row with no status.
     var status: FoundationModelsACP.ToolCallStatus? = nil
@@ -194,8 +195,8 @@ private struct ActivityEntryRow: View {
     }
   }
 
-  /// The SF Symbol name of a thought row.
-  static let thoughtSymbolName = SharedSymbol.reasoning
+  /// The symbol of a thought row.
+  static let thoughtSymbol = EditorSymbol.tool(.think)
 
   /// The entry to show.
   let entry: TimelineEntry
@@ -207,8 +208,6 @@ private struct ActivityEntryRow: View {
   let onToggle: () -> Void
 
   @Environment(\.editorStyle) private var editorStyle
-  @Environment(\.editorTheme) private var editorTheme
-  @Environment(\.themeSecondary) private var themeSecondary
 
   var body: some View {
     let key = entry.id.rowKey
@@ -216,7 +215,7 @@ private struct ActivityEntryRow: View {
     VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
       Button(action: onToggle) {
         HStack(spacing: editorStyle.spacing.s) {
-          StatusSymbolImage(name: appearance.symbolName, color: appearance.tint)
+          EditorSymbolImage(systemName: appearance.symbolName, tone: appearance.tone)
           Text(appearance.title)
             .lineLimit(1)
             .truncationMode(.middle)
@@ -243,19 +242,18 @@ private struct ActivityEntryRow: View {
 
   // MARK: - Content
 
-  /// The symbol, the text and the color of the row, from the entry object.
+  /// The symbol, the text and the tone of the row, from the entry object.
   private var appearance: Appearance {
     switch entry {
     case .thought(let thought):
       Appearance(
-        title: ReasoningView.completedTitle(duration: thought.duration), symbolName: Self.thoughtSymbolName,
-        tint: themeSecondary)
+        title: ReasoningView.completedTitle(duration: thought.duration), symbol: Self.thoughtSymbol)
     case .toolCall(let toolCall):
       toolCallAppearance(toolCall)
     case .terminal(let terminal):
       Appearance(
         title: terminal.command ?? String(localized: "Terminal", bundle: .module),
-        symbolName: SharedSymbol.terminal, tint: themeSecondary)
+        symbol: .tool(.execute))
     case .error(let error):
       errorAppearance(ErrorView.content(code: error.code.wireValue, message: error.message))
     }
@@ -270,8 +268,7 @@ private struct ActivityEntryRow: View {
   private func toolCallAppearance(_ toolCall: ToolCallEntry) -> Appearance {
     Appearance(
       title: ToolCallView.displayTitle(toolCall.shownTitle),
-      symbolName: ToolKindSymbol.name(for: toolCall.shownKind),
-      tint: themeSecondary,
+      symbol: .tool(.init(toolCall.shownKind)),
       status: toolCall.shownStatus)
   }
 
@@ -281,7 +278,7 @@ private struct ActivityEntryRow: View {
   /// - Returns: The title and the symbol of the card, with the error color of
   ///   the EditorKit theme.
   private func errorAppearance(_ content: ErrorView.Content) -> Appearance {
-    Appearance(title: content.title, symbolName: content.symbolName, tint: editorTheme.severityError)
+    Appearance(title: content.title, symbolName: content.symbolName, tone: .error)
   }
 
   /// The view that a click on the row shows.
@@ -296,6 +293,20 @@ private struct ActivityEntryRow: View {
     case .error(let error):
       ErrorView(entry: error)
     }
+  }
+}
+
+extension ActivityEntryRow.Appearance {
+  /// Makes the appearance of a row that shows an EditorKit symbol, in the
+  /// tone of the symbol.
+  ///
+  /// - Parameters:
+  ///   - title: The text of the row.
+  ///   - symbol: The symbol of the row.
+  ///   - status: The status of a tool call row, or `nil` for a row with no
+  ///     status.
+  init(title: String, symbol: EditorSymbol, status: FoundationModelsACP.ToolCallStatus? = nil) {
+    self.init(title: title, symbolName: symbol.systemImage, tone: symbol.tone, status: status)
   }
 }
 
