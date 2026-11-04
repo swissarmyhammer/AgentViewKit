@@ -195,14 +195,14 @@ import Testing
     let harness = Self.mount(entry)
     defer { harness.close() }
     let row = Self.row(of: entry, group: "time", field: "duration")
-    #expect(Self.rowValue(row, in: harness) == nil)
+    #expect(harness.rowValue(row) == nil)
 
     clock.advance(by: Self.toolCallSeconds)
     try await session.sendToolCallUpdate(title: Self.timedCallTitle, status: .completed)
     await harness.render { entry.timing.endedAt != nil }
 
     let expected = DurationFieldFormat(units: .minutesSeconds).format(.seconds(Self.toolCallSeconds))
-    #expect(Self.rowValue(row, in: harness) == expected)
+    #expect(harness.rowValue(row) == expected)
   }
 
   /// A `plan_update` with one step, `Read`.
