@@ -76,6 +76,28 @@ public struct RecordedSessionsStage: Equatable, Sendable {
     "profile:\n  standard:\n    - \(recordedStandardModel)\n"
   }
 
+  /// The recorded working directory of the nested recording
+  /// (`interrupted-nested-child`), as the string that the agent recorded.
+  ///
+  /// The agent restores the child sessions of a recording only when the
+  /// directory exists and the resume sends this exact string. On macOS `/tmp`
+  /// is a link to `/private/tmp`, but the agent compares the strings, so the
+  /// path is not resolved.
+  nonisolated public static let nestedWorkingDirectory = "/tmp/AgentViewKitDemo-nested-work"
+
+  /// The agent definitions that the nested recording needs, as the recording
+  /// made them: the name of each agent, and the text of its `AGENT.md`.
+  nonisolated static let nestedAgentDefinitions: [(name: String, text: String)] = [
+    (
+      "parent",
+      "---\nname: parent\ndescription: The parent agent of the nested recording.\ntools: Agent\n---\n\nDo the task.\n"
+    ),
+    (
+      "leaf",
+      "---\nname: leaf\ndescription: The leaf agent of the nested recording.\n---\n\nDo the task.\n"
+    ),
+  ]
+
   /// The start of the name of each stage directory.
   static let stageNamePrefix = "AgentViewKitDemo-RecordedSessions-"
 
@@ -157,6 +179,7 @@ public struct RecordedSessionsStage: Equatable, Sendable {
     let stage = RecordedSessionsStage(
       root: parent.appending(path: stageNamePrefix + UUID().uuidString, directoryHint: .isDirectory))
     try stage.makeDirectories()
+    try makeNestedWorkingDirectory()
     for recording in try directories(in: recordings) {
       try stage.copy(recording)
     }
@@ -172,6 +195,24 @@ public struct RecordedSessionsStage: Equatable, Sendable {
       try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     }
     try Data(Self.profileText.utf8).write(to: profileFile)
+  }
+
+  /// Makes ``nestedWorkingDirectory`` with the agent definitions of the nested
+  /// recording in its project layer (`.agents/agents/<name>/AGENT.md`).
+  ///
+  /// The directory has a fixed place outside the stage, because the recording
+  /// holds this path. Each stage writes the same files, so a stage that exists
+  /// at the same time does not change them.
+  ///
+  /// - Throws: The error of the file manager.
+  private static func makeNestedWorkingDirectory() throws {
+    let agents = URL(filePath: nestedWorkingDirectory, directoryHint: .isDirectory)
+      .appending(path: ".agents/agents", directoryHint: .isDirectory)
+    for definition in nestedAgentDefinitions {
+      let directory = agents.appending(path: definition.name, directoryHint: .isDirectory)
+      try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+      try Data(definition.text.utf8).write(to: directory.appending(path: "AGENT.md", directoryHint: .notDirectory))
+    }
   }
 
   /// Copies each directory and each file of one recording into
