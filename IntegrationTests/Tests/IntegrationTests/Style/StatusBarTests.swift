@@ -1,5 +1,6 @@
 import AgentViewKitStyle
 import EditorStyle
+import EditorSwiftUI
 import EditorTestSupport
 import EditorTheme
 import SwiftUI

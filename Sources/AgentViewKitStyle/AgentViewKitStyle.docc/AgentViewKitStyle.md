@@ -42,8 +42,6 @@ inspector of its file with ``SwiftUI/View/toolCallLocationChipStyle(_:)``.
 
 - ``SharedSymbol``
 - ``StatusSymbolImage``
-- ``LiveSymbolEffect``
-- ``SwiftUI/View/liveSymbolEffect(isActive:)``
 
 ### The status bar
 

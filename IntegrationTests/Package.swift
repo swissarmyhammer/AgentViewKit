@@ -25,8 +25,9 @@ let rootProducts: [Target.Dependency] = [
 ]
 
 /// The EditorKit products that the hosted tests import: the views, the
-/// commands, the style, the theme and the inspector of the kit, and the hosted
-/// window helpers of `EditorTestSupport`.
+/// commands, the style, the theme and the inspector of the kit, the hosted
+/// window helpers of `EditorTestSupport`, and the inspector driver of
+/// `EditorInspectorTestSupport`.
 let editorKitProducts: [Target.Dependency] = [
   .product(name: "EditorSwiftUI", package: "EditorKit"),
   .product(name: "EditorTheme", package: "EditorKit"),
@@ -37,6 +38,7 @@ let editorKitProducts: [Target.Dependency] = [
   .product(name: "EditorComplete", package: "EditorKit"),
   .product(name: "EditorExtensions", package: "EditorKit"),
   .product(name: "EditorInspector", package: "EditorKit"),
+  .product(name: "EditorInspectorTestSupport", package: "EditorKit"),
   .product(name: "EditorCommandsTestSupport", package: "EditorKit"),
   .product(name: "EditorTestSupport", package: "EditorKit"),
 ]

@@ -1,8 +1,8 @@
 ---
 assignees:
 - claude-code
-position_column: todo
-position_ordinal: 8a80
+position_column: doing
+position_ordinal: '8180'
 title: ThreadFloatingControlsHostedTests.aStreamedTurnKeepsTheThreadPinnedToTheBottom fails on main with EditorKit 50414d62
 ---
 Found while implementing ^e4857xj. It reproduces on a clean worktree of main 69856eae, with deps resolved to EditorKit 50414d62 (the run only needs IntegrationTests/Style/InspectorPreviewFrameTests.swift removed to compile, see below).

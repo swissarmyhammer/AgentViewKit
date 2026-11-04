@@ -11,10 +11,10 @@ import FoundationModelsACPClient
 // Each row is read-only: the agent owns each entry. Each get block reads the
 // entry when the row draws, so an update of the agent redraws the row. The
 // rows use the kinds of EditorKit's inspector only; no AgentViewKit view
-// goes inside an inspector. The fields that wait for an EditorKit kind of
-// ^eghwsfh are not here yet: the tool call status (the status token), the
-// locations and the working directory (the path kind), and the duration of
-// an entry (the duration kind).
+// goes inside an inspector. The fields that wait for an EditorKit kind are
+// not here yet: the tool call status (the status token, ^0cqh945), the
+// locations and the working directory (the path kind, ^hpxbqhx), and the
+// duration of an entry (the duration kind, ^xb69s3d).
 
 extension ObservableTranscriptEntry {
   /// The group of the start and end times of the entry, as the client saw
@@ -31,10 +31,10 @@ extension ToolCallEntry: @retroactive Inspectable {
   /// The title, the kind and the tool name of the call, and its times.
   public static var inspection: Inspection<ToolCallEntry> {
     Inspection(title: String(localized: "Tool Call", bundle: .module), name: { $0.shownTitle }) {
-      FieldGroup(String(localized: "Tool Call", bundle: .module)) {
+      FieldGroup(FieldLabel(localized: "Tool Call", bundle: .module)) {
         Field(InspectionLabel.title) { $0.shownTitle }
-        Field(String(localized: "Kind", bundle: .module)) { $0.shownKind.wireValue }
-        Field(String(localized: "Tool", bundle: .module)) { $0.name }
+        Field(FieldLabel(localized: "Kind", bundle: .module)) { $0.shownKind.wireValue }
+        Field(FieldLabel(localized: "Tool", bundle: .module)) { $0.name }
       }
       timeGroup
     }
@@ -44,14 +44,15 @@ extension ToolCallEntry: @retroactive Inspectable {
 extension TerminalEntry: @retroactive Inspectable {
   /// The command, the exit and the output of the terminal, and its times.
   public static var inspection: Inspection<TerminalEntry> {
-    let title = String(localized: "Terminal", bundle: .module)
+    let label: FieldLabel = FieldLabel(localized: "Terminal", bundle: .module)
+    let title = label.text
     return Inspection(title: title, name: { $0.command ?? title }) {
-      FieldGroup(title) {
-        Field(String(localized: "Command", bundle: .module)) { $0.command }
-        Field(String(localized: "Exit Status", bundle: .module)) { entry in
+      FieldGroup(label) {
+        Field(FieldLabel(localized: "Command", bundle: .module)) { $0.command }
+        Field(FieldLabel(localized: "Exit Status", bundle: .module)) { entry in
           entry.exitStatus.map { TerminalView.ExitSummary(code: $0.exitCode, signal: $0.signal).label }
         }
-        Field(String(localized: "Output", bundle: .module)) { $0.text }
+        Field(FieldLabel(localized: "Output", bundle: .module)) { $0.text }
           .multiline()
       }
       timeGroup
@@ -114,7 +115,7 @@ extension UserMessageEntry: @retroactive Inspectable {
       title: String(localized: "User Message", bundle: .module), content: { $0.content },
       messageID: { $0.messageId?.rawValue }
     ) {
-      Field(String(localized: "Send State", bundle: .module)) { InspectionText.sendState($0.sendState) }
+      Field(FieldLabel(localized: "Send State", bundle: .module)) { InspectionText.sendState($0.sendState) }
     }
   }
 }
@@ -145,8 +146,8 @@ extension SessionMessageEntry: @retroactive Inspectable {
       title: String(localized: "Session Message", bundle: .module), content: { $0.content },
       messageID: { $0.messageId.rawValue }
     ) {
-      Field(String(localized: "From Session", bundle: .module)) { $0.senderSessionId?.rawValue }
-      Field(String(localized: "To Session", bundle: .module)) { $0.recipientSessionId?.rawValue }
+      Field(FieldLabel(localized: "From Session", bundle: .module)) { $0.senderSessionId?.rawValue }
+      Field(FieldLabel(localized: "To Session", bundle: .module)) { $0.recipientSessionId?.rawValue }
     }
   }
 }
@@ -154,10 +155,11 @@ extension SessionMessageEntry: @retroactive Inspectable {
 extension PlanTranscriptEntry: @retroactive Inspectable {
   /// The steps of the plan, each with its status, and its times.
   public static var inspection: Inspection<PlanTranscriptEntry> {
-    let title = String(localized: "Plan", bundle: .module)
+    let label: FieldLabel = FieldLabel(localized: "Plan", bundle: .module)
+    let title = label.text
     return Inspection(title: title) {
-      FieldGroup(title) {
-        Field(String(localized: "Steps", bundle: .module)) { entry in
+      FieldGroup(label) {
+        Field(FieldLabel(localized: "Steps", bundle: .module)) { entry in
           entry.entries.map(InspectionText.step).joined(separator: "\n")
         }
         .multiline()
@@ -170,13 +172,14 @@ extension PlanTranscriptEntry: @retroactive Inspectable {
 extension CompactionEntry: @retroactive Inspectable {
   /// The status, the summary and the error of the compaction, and its times.
   public static var inspection: Inspection<CompactionEntry> {
-    let title = String(localized: "Compaction", bundle: .module)
+    let label: FieldLabel = FieldLabel(localized: "Compaction", bundle: .module)
+    let title = label.text
     return Inspection(title: title) {
-      FieldGroup(title) {
+      FieldGroup(label) {
         Field(InspectionLabel.status) { CompactionEntryView.statusLabel(for: $0.status) }
-        Field(String(localized: "Summary", bundle: .module)) { InspectionText.text(of: $0.summary) }
+        Field(FieldLabel(localized: "Summary", bundle: .module)) { InspectionText.text(of: $0.summary) }
           .multiline()
-        Field(String(localized: "Error", bundle: .module)) { $0.error }
+        Field(FieldLabel(localized: "Error", bundle: .module)) { $0.error }
       }
       timeGroup
     }
@@ -186,10 +189,11 @@ extension CompactionEntry: @retroactive Inspectable {
 extension ErrorEntry: @retroactive Inspectable {
   /// The code and the message of the error, and its times.
   public static var inspection: Inspection<ErrorEntry> {
-    let title = String(localized: "Error", bundle: .module)
+    let label: FieldLabel = FieldLabel(localized: "Error", bundle: .module)
+    let title = label.text
     return Inspection(title: title) {
-      FieldGroup(title) {
-        Field(String(localized: "Code", bundle: .module)) { $0.code.wireValue }
+      FieldGroup(label) {
+        Field(FieldLabel(localized: "Code", bundle: .module)) { $0.code.wireValue }
         Field(InspectionLabel.message) { $0.message }
           .multiline()
       }
@@ -202,8 +206,8 @@ extension UnknownEntry: @retroactive Inspectable {
   /// The type of the update that the client does not know, and its times.
   public static var inspection: Inspection<UnknownEntry> {
     Inspection(title: String(localized: "Unknown Update", bundle: .module)) {
-      FieldGroup(String(localized: "Update", bundle: .module)) {
-        Field(String(localized: "Type", bundle: .module)) { $0.type }
+      FieldGroup(FieldLabel(localized: "Update", bundle: .module)) {
+        Field(FieldLabel(localized: "Type", bundle: .module)) { $0.type }
       }
       timeGroup
     }

@@ -120,7 +120,7 @@ enum ConfigOptionFields {
   ) -> Inspection<SessionModel> {
     Inspection(title: title) {
       for section in sections {
-        FieldGroup(section.title) {
+        FieldGroup(.verbatim(section.title)) {
           for option in section.options {
             if let field = selectField(option, reporting: report) { field }
             if let field = booleanField(option, reporting: report) { field }
@@ -142,7 +142,7 @@ enum ConfigOptionFields {
   ) -> Field<SessionModel, ConfigChoice>? {
     guard case .select = option.type else { return nil }
     let id = option.configId
-    return Field(option.name) { session in choice(of: id, in: session.configOptions ?? []) ?? .missing }
+    return Field(.verbatim(option.name)) { session in choice(of: id, in: session.configOptions ?? []) ?? .missing }
       .choices { session in choices(of: id, in: session.configOptions ?? []) }
       .editing { session, choice in
         session.startSetConfigOption(id, to: .id(choice.value), reporting: report)
@@ -162,7 +162,7 @@ enum ConfigOptionFields {
   ) -> Field<SessionModel, Bool>? {
     guard case .boolean = option.type else { return nil }
     let id = option.configId
-    return Field(option.name) { session in isOn(id, in: session.configOptions ?? []) ?? false }
+    return Field(.verbatim(option.name)) { session in isOn(id, in: session.configOptions ?? []) ?? false }
       .editing { session, isOn in
         session.startSetConfigOption(id, to: .boolean(isOn), reporting: report)
       }
