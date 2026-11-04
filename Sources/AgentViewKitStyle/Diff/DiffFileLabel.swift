@@ -88,6 +88,7 @@ public struct DiffFileLabel: View {
     URL(fileURLWithPath: path).lastPathComponent
   }
 
+  /// The file symbol of the change, the file name and the line counts, in one caption row.
   public var body: some View {
     HStack(spacing: editorStyle.spacing.s) {
       EditorSymbolImage(Self.symbol(for: operation))

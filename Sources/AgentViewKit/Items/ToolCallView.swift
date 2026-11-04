@@ -352,6 +352,7 @@ public struct ToolCallView: View {
 
   // MARK: - Body
 
+  /// The row of the call, and its body while the row is expanded.
   public var body: some View {
     let id = entry.id.rowKey
     let store = environmentStore ?? ownStore

@@ -67,7 +67,7 @@ struct OutputExitLabel: View {
   var body: some View {
     StatusCaptionLabel(
       title: text, symbolName: symbolName,
-      tone: outcome.map { EditorSymbol.status(.init($0)).tone } ?? .neutral
+      tone: outcome?.symbol.tone ?? .neutral
     )
     .frame(maxWidth: .infinity, alignment: .leading)
     .accessibilityElement(children: .ignore)

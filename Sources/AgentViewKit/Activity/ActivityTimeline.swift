@@ -87,6 +87,7 @@ public struct ActivityTimeline: View {
 
   // MARK: - Body
 
+  /// A row for each entry of the activity, or the empty state when the activity has no entries.
   public var body: some View {
     let entries = session.transcript.compactMap(TimelineEntry.init(entry:))
     VStack(spacing: 0) {

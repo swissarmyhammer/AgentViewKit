@@ -34,6 +34,7 @@ public struct StatusSymbolImage: View {
     self.color = color
   }
 
+  /// The symbol, drawn hierarchically in the symbol weight of the style and in the color of the state.
   public var body: some View {
     Image(systemName: name)
       .symbolRenderingMode(.hierarchical)

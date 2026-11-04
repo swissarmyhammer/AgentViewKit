@@ -95,6 +95,7 @@ public struct ToolCallLocationChips: View {
     self.locations = locations
   }
 
+  /// A chip for each location, in a flow layout that wraps the chips to the next line.
   public var body: some View {
     ChipFlowLayout(spacing: editorStyle.spacing.xs) {
       ForEach(locations) { location in
@@ -140,6 +141,7 @@ public struct ToolCallLocationChip: View {
     self.location = location
   }
 
+  /// The document symbol and the short text of the location, in the fill and the corners of a chip.
   public var body: some View {
     Label {
       Text(location.shortText)

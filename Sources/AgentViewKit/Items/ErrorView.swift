@@ -63,6 +63,7 @@ public struct ErrorView: View {
       symbolName: SharedSymbol.error)
   }
 
+  /// The title line of the error with its symbol in the error tone, and the data of the error below it.
   public var body: some View {
     let content = Self.content(code: entry.code.wireValue, message: entry.message)
     ContentTileStack {

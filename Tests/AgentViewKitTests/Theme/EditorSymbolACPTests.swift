@@ -16,9 +16,6 @@ import Testing
 /// cases of one kind show two symbols, and that each tone reads its token of
 /// the theme. These tests check only the map from ACP to EditorKit.
 @Suite struct EditorSymbolACPTests {
-  /// The ACP wire value of a call whose result is lost.
-  nonisolated static let lostWireValue = "_lost"
-
   @Test(arguments: [
     (FoundationModelsACP.ToolKind.read, EditorSymbol.ToolKind.read),
     (.edit, .edit),
@@ -43,7 +40,7 @@ import Testing
     (.completed, .completed),
     (.failed, .failed),
     (.cancelled, .cancelled),
-    (.unknown(lostWireValue), .lost),
+    (.unknown(ToolStatusSymbolTests.lostWireValue), .lost),
     (.unknown("custom_status"), .unknown),
   ])
   func eachToolCallStatusGivesItsEditorKitStatus(
@@ -94,6 +91,10 @@ import Testing
     #expect(EditorSymbol.Status(outcome) == expected)
   }
 
+  @Test func theSymbolOfAnExitOutcomeIsTheSymbolOfItsStatus() {
+    #expect(CommandOutputView.ExitOutcome.failure.symbol == .status(.failed))
+  }
+
   @Test(arguments: [
     (FoundationModelsACP.PlanEntryPriority.high, EditorSymbol.Tone.error),
     (.medium, .warning),
@@ -105,7 +106,7 @@ import Testing
   }
 
   @Test func aLostResultDrawsInTheFailedColorOfTheTheme() {
-    let status = FoundationModelsACP.ToolCallStatus.unknown(Self.lostWireValue)
+    let status = FoundationModelsACP.ToolCallStatus.unknown(ToolStatusSymbolTests.lostWireValue)
     let tone = EditorSymbol.status(EditorSymbol.Status(status)).tone
 
     #expect(tone.color(in: DistinctRolesTheme()) == DistinctRolesTheme.Role.failed)

@@ -178,7 +178,7 @@ import Testing
     let outcomes: [(CommandOutputView.ExitOutcome, Concept)] = [(.success, .completed), (.failure, .error)]
     let exits: [(TerminalView.ExitSummary, Concept)] = [(.signal("SIGINT"), .signal), (.unknown, .unknown)]
     return outcomes.map {
-      Use(concept: $1, place: "command output \($0)", name: EditorSymbol.status(.init($0)).systemImage)
+      Use(concept: $1, place: "command output \($0)", name: $0.symbol.systemImage)
     }
       + exits.map { Use(concept: $1, place: "terminal exit \($0)", name: $0.symbolName) }
   }

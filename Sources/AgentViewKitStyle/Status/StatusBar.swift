@@ -233,6 +233,7 @@ public struct StatusBar: View {
     self.identifier = identifier
   }
 
+  /// The title line of the message, with its symbol in the tone of its severity, and the button of the action.
   public var body: some View {
     StatusTitleLayout(
       title: message.title, explanation: message.explanation, textLabel: message.textLabel,

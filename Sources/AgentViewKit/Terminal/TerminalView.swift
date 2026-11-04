@@ -99,7 +99,7 @@ public struct TerminalView: View {
     /// The SF Symbol name of the footer.
     var symbolName: String {
       switch self {
-      case .code: EditorSymbol.status(outcome.map(EditorSymbol.Status.init) ?? .unknown).systemImage
+      case .code: (outcome?.symbol ?? .status(.unknown)).systemImage
       case .signal: SharedSymbol.signal
       case .unknown: EditorSymbol.status(.unknown).systemImage
       }
@@ -160,6 +160,7 @@ public struct TerminalView: View {
       limit: showsAll ? Int.max : rowLimit)
   }
 
+  /// The header with the command, the rows of the output that show, and the footer with the exit.
   public var body: some View {
     let output = output
     let rows = output.rows

@@ -75,6 +75,8 @@ public struct DiffFileChip: View {
     hasPatch ? DiffFileLabel.Counts(added: file.added, removed: file.removed) : nil
   }
 
+  /// The label of the file in a plain button that selects the file, on the
+  /// selection surface when the renderer shows it.
   public var body: some View {
     Button(action: select) {
       DiffFileLabel(operation: file.operation, path: file.path, counts: counts)

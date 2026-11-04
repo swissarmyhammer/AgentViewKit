@@ -75,6 +75,13 @@ public struct CommandOutputView: View {
       case .failure: String(localized: "Failed", bundle: .module)
       }
     }
+
+    /// The symbol of the outcome: the EditorKit status symbol of the command
+    /// (`EditorSymbol.Status.init(_:)`), which gives the footer its symbol
+    /// name and its tone.
+    var symbol: EditorSymbol {
+      .status(EditorSymbol.Status(self))
+    }
   }
 
   /// The rows of an output that the view shows.
@@ -165,6 +172,7 @@ public struct CommandOutputView: View {
     self.suppliedModel = model
   }
 
+  /// The command, the rows of the output that show, and the footer with the exit code.
   public var body: some View {
     let shown = TerminalOutput(
       output: output, palette: editorTheme.terminalPalette,
@@ -244,7 +252,7 @@ public struct CommandOutputView: View {
   private func footer(exitCode: Int, outcome: ExitOutcome) -> some View {
     OutputExitLabel(
       text: String(localized: "Exit code \(exitCode)", bundle: .module),
-      symbolName: EditorSymbol.status(.init(outcome)).systemImage,
+      symbolName: outcome.symbol.systemImage,
       outcome: outcome, identifier: Self.footerIdentifier)
   }
 }
