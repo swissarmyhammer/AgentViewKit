@@ -352,7 +352,8 @@ public struct ToolCallView: View {
 
   // MARK: - Body
 
-  /// The row of the call, and its body while the row is expanded.
+  /// The tile of the call: its header, its waiting status and, while the
+  /// call is expanded, its content.
   public var body: some View {
     let id = entry.id.rowKey
     let store = environmentStore ?? ownStore

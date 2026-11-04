@@ -1,16 +1,18 @@
+import EditorSwiftUI
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 
-/// The `mode` config option of a session as a segmented control, for the
-/// accessory of the composer (plan.md §3.2 "Last-value state",
-/// §9 E, §11 decision 16).
+/// The `mode` config option of a session as a segmented EditorKit
+/// `ChoiceField`, for the accessory of the composer (plan.md §3.2
+/// "Last-value state", §9 E, §11 decision 16).
 ///
 /// The view reads `SessionModel.configOptions` in its body, and shows the
 /// first select option of the `mode` category, with one segment for each
-/// value. The segments ignore the groups of grouped choices. When the model
-/// has no such option, or `configOptions` is `nil` or empty, the view is
-/// empty.
+/// value. The segments ignore the groups of grouped choices. Each value is
+/// also a named accessibility action of the control, the name of the value.
+/// When the model has no such option, or `configOptions` is `nil` or empty,
+/// the view is empty.
 ///
 /// A change calls `SessionModel.setConfigOption(_:)` with an `id` value. The
 /// control shows the value of the model only, and keeps no copy of the
@@ -21,9 +23,6 @@ public struct PermissionModePicker: View {
   /// The accessibility identifier of the segmented control.
   public static let pickerIdentifier = "permission-mode-picker"
 
-  /// The start of the accessibility identifier of each segment.
-  public static let segmentIdentifierPrefix = "permission-mode-value-"
-
   /// The session model whose mode option the view shows.
   let session: SessionModel
 
@@ -33,14 +32,6 @@ public struct PermissionModePicker: View {
   ///   shows.
   public init(session: SessionModel) {
     self.session = session
-  }
-
-  /// The accessibility identifier of the segment of a value.
-  ///
-  /// - Parameter value: The `value` id of the choice.
-  /// - Returns: The identifier, such as `permission-mode-value-auto`.
-  public static func segmentIdentifier(for value: String) -> String {
-    AccessibilityIdentifier.make(prefix: segmentIdentifierPrefix, value: value)
   }
 
   /// The option that the view shows.
@@ -54,6 +45,8 @@ public struct PermissionModePicker: View {
     }
   }
 
+  /// The segmented choice of the mode option, or nothing when the session
+  /// reports no select option of the `mode` category.
   public var body: some View {
     if let option = Self.modeOption(in: session.configOptions ?? []),
       case .select(let select) = option.type,
@@ -61,17 +54,11 @@ public struct PermissionModePicker: View {
     {
       let selection = session.makeConfigBinding(
         for: option.configId, current: select.currentValue, send: SetSessionConfigOptionRequest.Value.id)
-      Picker(option.name, selection: selection) {
-        ForEach(choices.options, id: \.value) { value in
-          Text(value.name)
-            .tag(value.value)
-            .accessibilityIdentifier(Self.segmentIdentifier(for: value.value.rawValue))
-        }
-      }
-      .pickerStyle(.segmented)
-      .help(option.description ?? option.name)
-      .accessibilityIdentifier(Self.pickerIdentifier)
-      .agentControlScope(Self.pickerIdentifier)
+      ChoiceField(option.name, selection: selection, options: choices.options.map { $0.choiceOption() })
+        .pickerStyle(.segmented)
+        .help(option.description ?? option.name)
+        .accessibilityIdentifier(Self.pickerIdentifier)
+        .agentControlScope(Self.pickerIdentifier)
     }
   }
 }

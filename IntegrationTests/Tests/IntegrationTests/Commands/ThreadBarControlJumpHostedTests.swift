@@ -117,22 +117,32 @@
       }
     }
 
-    /// Whether `answer`, the accessibility identifier of the element that
-    /// the hit test of the window answers over the control, names the
-    /// control.
+    /// Whether `answer`, the element that the hit test of the window answers
+    /// over the control, is the control.
     ///
     /// Over the segmented permission-mode picker, the hit test answers the
-    /// segment under the point, as VoiceOver reads a segmented control. Over
-    /// each other control, it answers the control.
+    /// AppKit segment under the point, as VoiceOver reads a segmented
+    /// control: a radio button with no identifier, labelled with the name of
+    /// its value. Over each other control, it answers the control.
     ///
     /// - Parameters:
-    ///   - answer: The identifier of the answered element, or `nil`.
+    ///   - answer: The answered element, or `nil`.
     ///   - identifier: The accessibility identifier of the control.
     /// - Returns: `true` when the answer is the control, or a segment of the
     ///   picker.
-    func names(_ answer: String?, identifier: String) -> Bool {
-      guard self == .modePicker else { return answer == identifier }
-      return answer?.hasPrefix(PermissionModePicker.segmentIdentifierPrefix) == true
+    func names(_ answer: NSObject?, identifier: String) -> Bool {
+      guard let answer else { return false }
+      guard self == .modePicker else { return accessibilityIdentifier(of: answer) == identifier }
+      return accessibilityRole(of: answer) == NSAccessibility.Role.radioButton.rawValue
+        && accessibilityLabel(of: answer).map(Self.modeValueNames.contains) == true
+    }
+
+    /// The names of the values of the mode option of the fixture session
+    /// that the permission-mode picker shows: the labels of its segments.
+    static var modeValueNames: [String] {
+      let options = PreviewFixtures.configuredSession.configOptions ?? []
+      guard case .select(let select)? = PermissionModePicker.modeOption(in: options)?.type else { return [] }
+      return select.choices?.options.map(\.name) ?? []
     }
 
     /// The controls that a landed jump presses. It is `nonisolated` because
@@ -543,7 +553,7 @@
       let element = accessibilityHitTest(atCenterOfScopeAt: shown.path, in: system, window: shown.harness.window)
 
       let answer = element.flatMap { accessibilityIdentifier(of: $0) }
-      #expect(control.names(answer, identifier: shown.identifier), "\(String(describing: answer))")
+      #expect(control.names(element, identifier: shown.identifier), "\(String(describing: answer))")
     }
 
     /// A jump to the editor of the composer focuses its text view, so the

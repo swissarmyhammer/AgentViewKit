@@ -44,23 +44,44 @@ import Testing
     ])
   }
 
-  @Test func theChoicesOfAGroupedSelectNameTheirGroup() {
-    let names = ConfigOptionFields.choices(of: Self.modelID, in: Self.options).map(\.description)
+  /// A mode option with two flat values, `ask` selected.
+  private static let flatMode = SessionConfigOption(
+    configId: SessionConfigId(rawValue: "mode"), name: "Mode", category: .mode,
+    type: .select(
+      SessionConfigSelect(
+        currentValue: SessionConfigValueId(rawValue: "ask"),
+        options: .array([
+          .object(["value": .string("ask"), "name": .string("Ask")]),
+          .object(["value": .string("auto"), "name": .string("Auto")]),
+        ]))))
 
-    #expect(names == ["Fast One (Fast Models)", "Deep One (Deep Models)"])
+  @Test func theOptionsOfASelectAreLabelledWithTheNamesOfItsValues() {
+    let labels = ConfigOptionFields.options(of: Self.modelID, in: Self.options).map(\.label)
+
+    #expect(labels == ["Fast One", "Deep One"])
   }
 
-  @Test func theChoiceOfASelectIsItsCurrentValue() {
-    let choice = ConfigOptionFields.choice(of: Self.modelID, in: Self.options)
+  @Test func theOptionsOfAGroupedSelectStandInTheSectionsOfTheirGroups() {
+    let sections = ConfigOptionFields.options(of: Self.modelID, in: Self.options).map(\.section)
 
-    #expect(choice?.value == SessionConfigValueId(rawValue: "deep-1"))
+    #expect(sections == ["Fast Models", "Deep Models"])
+  }
+
+  @Test func theOptionsOfAFlatSelectStandInNoSection() {
+    let sections = ConfigOptionFields.options(of: Self.flatMode.configId, in: [Self.flatMode]).map(\.section)
+
+    #expect(sections == [nil, nil])
+  }
+
+  @Test func theValueOfASelectIsItsCurrentValue() {
+    #expect(ConfigOptionFields.value(of: Self.modelID, in: Self.options) == SessionConfigValueId(rawValue: "deep-1"))
   }
 
   @Test func theValueOfABooleanIsItsCurrentValue() {
     #expect(ConfigOptionFields.isOn(Self.webID, in: Self.options) == true)
   }
 
-  @Test func anOptionThatIsGoneHasNoChoice() {
-    #expect(ConfigOptionFields.choice(of: Self.modelID, in: [Self.web]) == nil)
+  @Test func anOptionThatIsGoneHasNoValue() {
+    #expect(ConfigOptionFields.value(of: Self.modelID, in: [Self.web]) == nil)
   }
 }

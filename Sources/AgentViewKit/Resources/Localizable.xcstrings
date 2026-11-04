@@ -11,16 +11,6 @@
         }
       }
     },
-    "%@ (%@)" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ (%2$@)"
-          }
-        }
-      }
-    },
     "%@ asks for input" : {
       "localizations" : {
         "en" : {
