@@ -69,7 +69,7 @@ import Testing
   ///   - harness: The harness of the view.
   /// - Returns: The value, or `nil` when no row has the identifier.
   static func rowValue(_ identifier: String, in harness: HostedViewHarness<InspectorView>) -> String? {
-    InspectorDriver(window: harness.window, root: harness.hostingView).value(of: identifier)
+    harness.inspectorDriver.value(of: identifier)
   }
 
   /// The first entry of `type` in the transcript of `session`, after it

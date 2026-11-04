@@ -5,7 +5,7 @@ position_column: doing
 position_ordinal: '8580'
 title: Adopt EditorKit number, date and duration (^d2fa1j4) for AVK's timing fields
 ---
-**Blocked** on EK card ^d2fa1j4 (on EK origin at 2524005e). It lands EK's number, date/time and duration fields. editorkit-b5 sends the SHA. Don't start before then.
+**Unblocked (2026-11-04):** the old "Blocked on ^d2fa1j4" line is obsolete. EK ^d2fa1j4 is on EK origin at a2ae6249 (`NumberField`/`NumberText`, `DateField`/`DateText` with `DateFieldComponents`, `DurationField`/`DurationText` with `DurationFieldFormat`, the `.duration` inspection kind with `.durationFormat(_:)`). AVK builds on a2ae6249.
 
 Boundary (user, 2026-11-04): single-value controls are EK's; compound views stay in AVK.
 

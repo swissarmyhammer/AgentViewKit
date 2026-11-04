@@ -143,6 +143,14 @@ import Testing
   /// The text of the choice `Fast One` of the model option.
   static let fastChoice = "Fast One (Fast Models)"
 
+  /// The object id of a session model in an inspector: its session id.
+  ///
+  /// - Parameter model: The session model.
+  /// - Returns: The escaped object id.
+  static func object(of model: SessionModel) -> String {
+    InspectorScheme.objectID(of: [model], key: "")
+  }
+
   /// The scheme id of the block of the form of `model`: the view and the
   /// object.
   ///
@@ -150,7 +158,7 @@ import Testing
   /// - Returns: The id, such as `inspection:config-options/object:<session>`.
   static func block(of model: SessionModel) -> String {
     InspectorScheme.blockIdentifier(
-      view: ConfigOptionsView.viewIdentifier, object: InspectorScheme.objectID(of: [model], key: ""))
+      view: ConfigOptionsView.viewIdentifier, object: object(of: model))
   }
 
   /// The scheme id of the row of an option in the form of `model`: the
@@ -163,7 +171,7 @@ import Testing
   /// - Returns: The id that the row carries.
   static func row(_ section: String, _ id: SessionConfigId, of model: SessionModel) -> String {
     InspectorDriver.field(
-      view: ConfigOptionsView.viewIdentifier, object: InspectorScheme.objectID(of: [model], key: ""),
+      view: ConfigOptionsView.viewIdentifier, object: object(of: model),
       group: section, field: id.rawValue)
   }
 
@@ -178,14 +186,6 @@ import Testing
     row(ConfigOptionsView.uncategorizedSectionID, webID, of: model)
   }
 
-  /// The driver of the inspector rows of `harness`.
-  ///
-  /// - Parameter harness: The harness of the view.
-  /// - Returns: EditorKit's `InspectorDriver` over the hosting view.
-  static func driver(of harness: HostedViewHarness<some View>) -> InspectorDriver {
-    InspectorDriver(window: harness.window, root: harness.hostingView)
-  }
-
   /// The choice that the picker row of `identifier` shows, or the state of
   /// its toggle row: `1` on and `0` off.
   ///
@@ -194,7 +194,7 @@ import Testing
   ///   - harness: The harness of the view.
   /// - Returns: The value of the row, or `nil` when no row has the id.
   static func rowValue(_ identifier: String, in harness: HostedViewHarness<some View>) -> String? {
-    driver(of: harness).value(of: identifier)
+    harness.inspectorDriver.value(of: identifier)
   }
 
   /// Whether the form of `harness` shows the row of `identifier`.
@@ -204,7 +204,7 @@ import Testing
   ///   - harness: The harness of the view.
   /// - Returns: `true` when an element carries the id.
   static func showsRow(_ identifier: String, in harness: HostedViewHarness<some View>) -> Bool {
-    !driver(of: harness).elements(identifier).isEmpty
+    !harness.inspectorDriver.elements(identifier).isEmpty
   }
 
   /// Presses the toggle row of the web search option of `model`, and waits
@@ -218,7 +218,7 @@ import Testing
   static func pressWebSearch(
     of model: SessionModel, in harness: HostedViewHarness<some View>, starts: ReportRecorder<String>
   ) async throws {
-    try driver(of: harness).press(webRow(model))
+    try harness.inspectorDriver.press(webRow(model))
     // The row commits in a task of its own, which starts the request.
     await ObservationWait.until { !starts.values.isEmpty }
     try #require(starts.values == [setMethod])
@@ -300,8 +300,7 @@ import Testing
     defer { harness.close() }
 
     let model = session.model
-    let fields = Self.block(of: model) + "/field:"
-    let rows = harness.accessibilityElements().compactMap(\.identifier).filter { $0.hasPrefix(fields) }
+    let rows = harness.fieldIDs(inBlock: Self.block(of: model))
     #expect(rows == [Self.modeRow(model), Self.modelRow(model), Self.webRow(model)])
   }
 
@@ -361,7 +360,7 @@ import Testing
     let harness = Self.mount(session: session, requestStartReport: starts.report)
     defer { harness.close() }
     let model = session.model
-    let driver = Self.driver(of: harness)
+    let driver = harness.inspectorDriver
 
     try driver.choose("Ask", in: Self.modeRow(model))
     try driver.choose(Self.deepChoice, in: Self.modelRow(model))

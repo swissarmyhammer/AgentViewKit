@@ -34,14 +34,13 @@ import Testing
   /// - Parameter session: The session of the panel.
   /// - Returns: The scheme id of each row.
   static func rows(of session: SessionModel) -> [String] {
-    let sessionObject = InspectorScheme.objectID(of: [session], key: "")
-    let listObject = InspectorScheme.objectID(of: [ToolToggleList(tools: [])], key: ToolToggles.listIdentifier)
+    let sessionObject = ConfigOptionsSessionModelHostedTests.object(of: session)
     return [
       InspectorDriver.field(
         view: ConfigOptionsView.viewIdentifier, object: sessionObject,
         group: ConfigOptionsView.uncategorizedSectionID, field: "web-search"),
       InspectorDriver.field(
-        view: ToolToggles.listIdentifier, object: listObject, group: ToolToggles.groupIdentifier, field: "search"),
+        view: ToolToggles.listIdentifier, object: ToolTogglesHostedTests.listObject, group: ToolToggles.groupIdentifier, field: "search"),
       InspectorDriver.field(view: SessionModel.inspection.id, object: sessionObject, group: "session", field: "id"),
     ]
   }
@@ -68,7 +67,7 @@ import Testing
     let harness = HostedViewHarness(Panel(session: session), size: Self.narrowPanel)
     defer { harness.close() }
     harness.render()
-    let driver = InspectorDriver(window: harness.window, root: harness.hostingView)
+    let driver = harness.inspectorDriver
 
     for row in Self.rows(of: session) {
       #expect(driver.elements(row).count == 1, "The panel shows no row \(row).")
@@ -86,7 +85,7 @@ import Testing
     defer { harness.close() }
     harness.render()
 
-    try InspectorDriver(window: harness.window, root: harness.hostingView).press(ToolTogglesHostedTests.row(Self.tools[0].id))
+    try harness.inspectorDriver.press(ToolTogglesHostedTests.row(Self.tools[0].id))
     await ObservationWait.until { !recorder.values.isEmpty }
 
     #expect(recorder.values == [false])

@@ -46,14 +46,6 @@ import Testing
   /// position.
   static let listObject = InspectorScheme.objectID(of: [ToolToggleList(tools: [])], key: ToolToggles.listIdentifier)
 
-  /// The driver of the inspector rows of `harness`.
-  ///
-  /// - Parameter harness: The harness of the view.
-  /// - Returns: EditorKit's `InspectorDriver` over the hosting view.
-  static func driver(of harness: HostedViewHarness<ToolToggles>) -> InspectorDriver {
-    InspectorDriver(window: harness.window, root: harness.hostingView)
-  }
-
   /// Mounts the list style of ``tools``, and makes one render pass.
   ///
   /// - Parameter onToggle: The host closure of the view.
@@ -74,9 +66,9 @@ import Testing
     let harness = Self.mountList { recorder.report(Call(id: $0, isEnabled: $1)) }
     defer { harness.close() }
 
-    try Self.driver(of: harness).press(Self.row(Self.issueID))
+    try harness.inspectorDriver.press(Self.row(Self.issueID))
     await ObservationWait.until { recorder.values.count == 1 }
-    try Self.driver(of: harness).press(Self.row(Self.searchID))
+    try harness.inspectorDriver.press(Self.row(Self.searchID))
     await ObservationWait.until { recorder.values.count == 2 }
 
     #expect(
@@ -90,17 +82,16 @@ import Testing
     let harness = Self.mountList()
     defer { harness.close() }
 
-    #expect(Self.driver(of: harness).value(of: Self.row(Self.searchID)) == "1")
-    #expect(Self.driver(of: harness).value(of: Self.row(Self.issueID)) == "0")
+    #expect(harness.inspectorDriver.value(of: Self.row(Self.searchID)) == "1")
+    #expect(harness.inspectorDriver.value(of: Self.row(Self.issueID)) == "0")
   }
 
   @Test func theListShowsOneRowForEachTool() {
     let harness = Self.mountList()
     defer { harness.close() }
 
-    let identifiers = harness.accessibilityElements().compactMap(\.identifier).filter {
-      $0.hasPrefix(InspectorScheme.blockIdentifier(view: ToolToggles.listIdentifier, object: Self.listObject) + "/field:")
-    }
+    let identifiers = harness.fieldIDs(
+      inBlock: InspectorScheme.blockIdentifier(view: ToolToggles.listIdentifier, object: Self.listObject))
     #expect(identifiers == [Self.row(Self.searchID), Self.row(Self.issueID)])
   }
 
@@ -109,7 +100,7 @@ import Testing
     defer { harness.close() }
     harness.render()
 
-    #expect(Self.driver(of: harness).elements(Self.row(Self.searchID)).isEmpty)
+    #expect(harness.inspectorDriver.elements(Self.row(Self.searchID)).isEmpty)
   }
 
   @Test func theMenuStyleShowsAMenuButton() {

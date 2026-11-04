@@ -30,12 +30,11 @@ extension ObservableTranscriptEntry {
 extension ToolCallEntry: @retroactive Inspectable {
   /// The title, the kind and the tool name of the call, and its times.
   public static var inspection: Inspection<ToolCallEntry> {
-    Inspection(title: String(localized: "Tool Call", bundle: .module), name: { $0.shownTitle }) {
-      FieldGroup(FieldLabel(localized: "Tool Call", bundle: .module)) {
-        Field(InspectionLabel.title) { $0.shownTitle }
-        Field(FieldLabel(localized: "Kind", bundle: .module)) { $0.shownKind.wireValue }
-        Field(FieldLabel(localized: "Tool", bundle: .module)) { $0.name }
-      }
+    .named(FieldLabel(localized: "Tool Call", bundle: .module), name: { $0.shownTitle }) {
+      Field(InspectionLabel.title) { $0.shownTitle }
+      Field(FieldLabel(localized: "Kind", bundle: .module)) { $0.shownKind.wireValue }
+      Field(FieldLabel(localized: "Tool", bundle: .module)) { $0.name }
+    } more: {
       timeGroup
     }
   }
@@ -44,17 +43,14 @@ extension ToolCallEntry: @retroactive Inspectable {
 extension TerminalEntry: @retroactive Inspectable {
   /// The command, the exit and the output of the terminal, and its times.
   public static var inspection: Inspection<TerminalEntry> {
-    let label: FieldLabel = FieldLabel(localized: "Terminal", bundle: .module)
-    let title = label.text
-    return Inspection(title: title, name: { $0.command ?? title }) {
-      FieldGroup(label) {
-        Field(FieldLabel(localized: "Command", bundle: .module)) { $0.command }
-        Field(FieldLabel(localized: "Exit Status", bundle: .module)) { entry in
-          entry.exitStatus.map { TerminalView.ExitSummary(code: $0.exitCode, signal: $0.signal).label }
-        }
-        Field(FieldLabel(localized: "Output", bundle: .module)) { $0.text }
-          .multiline()
+    .named(FieldLabel(localized: "Terminal", bundle: .module), name: { $0.command }) {
+      Field(FieldLabel(localized: "Command", bundle: .module)) { $0.command }
+      Field(FieldLabel(localized: "Exit Status", bundle: .module)) { entry in
+        entry.exitStatus.map { TerminalView.ExitSummary(code: $0.exitCode, signal: $0.signal).label }
       }
+      Field(FieldLabel(localized: "Output", bundle: .module)) { $0.text }
+        .multiline()
+    } more: {
       timeGroup
     }
   }
@@ -155,15 +151,12 @@ extension SessionMessageEntry: @retroactive Inspectable {
 extension PlanTranscriptEntry: @retroactive Inspectable {
   /// The steps of the plan, each with its status, and its times.
   public static var inspection: Inspection<PlanTranscriptEntry> {
-    let label: FieldLabel = FieldLabel(localized: "Plan", bundle: .module)
-    let title = label.text
-    return Inspection(title: title) {
-      FieldGroup(label) {
-        Field(FieldLabel(localized: "Steps", bundle: .module)) { entry in
-          entry.entries.map(InspectionText.step).joined(separator: "\n")
-        }
-        .multiline()
+    .named(FieldLabel(localized: "Plan", bundle: .module)) {
+      Field(FieldLabel(localized: "Steps", bundle: .module)) { entry in
+        entry.entries.map(InspectionText.step).joined(separator: "\n")
       }
+      .multiline()
+    } more: {
       timeGroup
     }
   }
@@ -172,15 +165,12 @@ extension PlanTranscriptEntry: @retroactive Inspectable {
 extension CompactionEntry: @retroactive Inspectable {
   /// The status, the summary and the error of the compaction, and its times.
   public static var inspection: Inspection<CompactionEntry> {
-    let label: FieldLabel = FieldLabel(localized: "Compaction", bundle: .module)
-    let title = label.text
-    return Inspection(title: title) {
-      FieldGroup(label) {
-        Field(InspectionLabel.status) { CompactionEntryView.statusLabel(for: $0.status) }
-        Field(FieldLabel(localized: "Summary", bundle: .module)) { InspectionText.text(of: $0.summary) }
-          .multiline()
-        Field(FieldLabel(localized: "Error", bundle: .module)) { $0.error }
-      }
+    .named(FieldLabel(localized: "Compaction", bundle: .module)) {
+      Field(InspectionLabel.status) { CompactionEntryView.statusLabel(for: $0.status) }
+      Field(FieldLabel(localized: "Summary", bundle: .module)) { InspectionText.text(of: $0.summary) }
+        .multiline()
+      Field(FieldLabel(localized: "Error", bundle: .module)) { $0.error }
+    } more: {
       timeGroup
     }
   }
@@ -189,14 +179,11 @@ extension CompactionEntry: @retroactive Inspectable {
 extension ErrorEntry: @retroactive Inspectable {
   /// The code and the message of the error, and its times.
   public static var inspection: Inspection<ErrorEntry> {
-    let label: FieldLabel = FieldLabel(localized: "Error", bundle: .module)
-    let title = label.text
-    return Inspection(title: title) {
-      FieldGroup(label) {
-        Field(FieldLabel(localized: "Code", bundle: .module)) { $0.code.wireValue }
-        Field(InspectionLabel.message) { $0.message }
-          .multiline()
-      }
+    .named(FieldLabel(localized: "Error", bundle: .module)) {
+      Field(FieldLabel(localized: "Code", bundle: .module)) { $0.code.wireValue }
+      Field(InspectionLabel.message) { $0.message }
+        .multiline()
+    } more: {
       timeGroup
     }
   }

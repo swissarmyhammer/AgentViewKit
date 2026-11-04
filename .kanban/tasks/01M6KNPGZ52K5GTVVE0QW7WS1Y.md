@@ -1,8 +1,8 @@
 ---
 assignees:
 - claude-code
-position_column: todo
-position_ordinal: '8780'
+position_column: doing
+position_ordinal: '8680'
 title: 'Adopt EditorKit one-value preview (^jn3qmmy): delete AVK''s single diff preview'
 ---
 **Blocked** on EK card ^jn3qmmy (on EK origin at 2524005e). It lands EK's one-value preview kind (diff, file, image, code), harvested from AVK. editorkit-b5 sends the SHA. Don't start before then.
