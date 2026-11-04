@@ -1,7 +1,6 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
 import EditorInspector
-import EditorTestSupport
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
@@ -73,23 +72,18 @@ struct InspectorGalleryFixtures {
 
   /// Opens the scripted session and sends ``updates``.
   ///
-  /// The connection model reads a `FixedClock` from
-  /// `TimedSessionClock.start` that moves `TimedSessionClock.stepSeconds`
-  /// after the model takes each update, so the Time group of each entry shows a known start
-  /// and end, and the duration row of each entry that ended.
+  /// The updates play as a ``TimedTurn``, one step each, so the Time group
+  /// of each entry shows a known start and end, and the duration row of
+  /// each entry that ended.
   ///
   /// - Returns: The fixtures, once each entry is in the transcript.
   /// - Throws: The error of the session or of the transport.
   static func open() async throws -> InspectorGalleryFixtures {
-    let clock = FixedClock(start: TimedSessionClock.start)
-    let session = try await ScriptedSession.open(now: clock.now)
-    let model = session.model
-    for (index, update) in updates.enumerated() {
-      try await session.sendUpdate(update)
-      await ObservationWait.until(within: TimingGalleryFixtures.settleLimit) { model.transcript.count > index }
-      clock.advance(by: TimedSessionClock.stepSeconds)
+    let turn = try await TimedTurn.open()
+    for update in updates {
+      try await turn.addEntry(update)
     }
-    return InspectorGalleryFixtures(session: session)
+    return InspectorGalleryFixtures(session: turn.session)
   }
 
   /// Closes the scripted session.

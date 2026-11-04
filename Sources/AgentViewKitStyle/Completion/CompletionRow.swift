@@ -11,6 +11,10 @@ import SwiftUI
 /// glass and no padding around its surface: the list gives the space around its
 /// rows (EditorKit `style.md`, rule 10), for example with
 /// `.scrollContentMargins(\.spacing.xs)`.
+///
+/// AgentViewKit's own completion list draws EditorKit's `EditorCompletionRow`.
+/// This row stays while KanbanViewKit's field completion list uses it
+/// (^aqfjne7).
 public struct CompletionRow: View {
   /// The radius step of the selection surface: the small radius of a row in a
   /// list.

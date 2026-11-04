@@ -6,13 +6,13 @@ import Testing
 /// The acceptance test of the nested resume with the real agent: a resume of a
 /// nested recording shows the tree.
 ///
-/// The test is off until FoundationModelsACPAgent replays the child history of
-/// a recorded session that has `agentSpawn` records (the Router records), and
-/// the demo app has such a recording. Turn it on then, and it must pass with no
-/// change to the checks: the tree under the resumed root has a child that has a
-/// child, as the recording holds.
+/// The recording is `interrupted-nested-child`: a root, a child and a grandchild
+/// that the agent recorded with its stub model, interrupted at a quit. The
+/// stage makes the recorded working directory and the agent definitions that
+/// the agent needs to restore the children. The tree under the resumed root has
+/// a child that has a child, as the recording holds.
 @Suite @MainActor struct RecordedNestedResumeTests {
-  @Test(.disabled("Waits for the Agent package to replay child sessions from a recording with agentSpawn."))
+  @Test
   func aResumeOfANestedRecordingShowsTheTree() async throws {
     let scenario = try await RecordedSessionsScenario.start()
     defer { Task { await scenario.stop() } }
