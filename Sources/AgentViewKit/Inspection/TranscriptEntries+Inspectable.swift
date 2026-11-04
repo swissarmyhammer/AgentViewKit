@@ -12,17 +12,24 @@ import FoundationModelsACPClient
 // entry when the row draws, so an update of the agent redraws the row. The
 // rows use the kinds of EditorKit's inspector only; no AgentViewKit view
 // goes inside an inspector. The fields that wait for an EditorKit kind are
-// not here yet: the tool call status (the status token, ^0cqh945), the
-// locations and the working directory (the path kind, ^hpxbqhx), and the
-// duration of an entry (the duration kind, ^xb69s3d).
+// not here yet: the tool call status (the status token, ^0cqh945), and the
+// locations and the working directory (the path kind, ^hpxbqhx).
 
 extension ObservableTranscriptEntry {
   /// The group of the start and end times of the entry, as the client saw
-  /// them.
+  /// them, and the duration between them.
+  ///
+  /// The duration row is EditorKit's duration kind, in the format of the
+  /// time of a transcript row (`EntryTimingView.durationFormat`). It shows
+  /// only for an entry that has ended, as the client model gives a duration
+  /// only then.
   static var timeGroup: FieldGroup<Self> {
     FieldGroup(InspectionLabel.time) {
       Field(InspectionLabel.started) { $0.timing.startedAt }
       Field(InspectionLabel.ended) { $0.timing.endedAt }
+      Field(InspectionLabel.duration) { Duration.seconds($0.timing.duration ?? .zero) }
+        .durationFormat(EntryTimingView.durationFormat)
+        .visible { $0.timing.duration != nil }
     }
   }
 }

@@ -22,8 +22,17 @@ comments:
     - evidence: EK pinned to 50414d62 (09bf6449 fails on FieldLabel). RED: `aStreamedTurnKeepsTheThreadPinnedToTheBottom` failed at lines 300 and 301. GREEN: the same test passes. Root `swift test`: 944 tests (104 suites) + 67 tests (10 suites) passed. `swift test --package-path IntegrationTests`: 936 tests in 123 suites passed in 92.9 s, with 5 known issues, which are the intentional FontRoleExpectationsTests negatives. With no gate contention, runningAndIdle... took 4.5 s. The only warnings are mlx's. Commit af251ae6 on branch worktree-agent-adc4f403d7ba8d4b7, not pushed. Files: Sources/AgentViewKit/Thread/ConversationView.swift, Sources/AgentViewKit/Infrastructure/ScrollAnchorManager.swift
     - next: /review
   timestamp: 2026-11-04T19:28:47.926659+00:00
-position_column: doing
-position_ordinal: '8180'
+- actor: claude-code
+  id: 01m6m1r9ka83kcv6xx7te1z6qz
+  text: |-
+    ### finish — clean
+    - implement: changed. af251ae6: ConversationView tells ScrollAnchorManager about a new last row from whichever comes first, the change action or a visibility report.
+    - review: clean on af251ae6 (0 findings).
+    - test: green on current EK main after merging into main (daa111f4). Root suite passes; IntegrationTests 937 passed, with the 5 intentional FontRoleExpectations known issues.
+    - pushed: origin main daa111f4.
+  timestamp: 2026-11-04T19:49:39.562556+00:00
+position_column: done
+position_ordinal: ffffff9680
 title: ThreadFloatingControlsHostedTests.aStreamedTurnKeepsTheThreadPinnedToTheBottom fails on main with EditorKit 50414d62
 ---
 Found while implementing ^e4857xj. It reproduces on a clean worktree of main 69856eae, with deps resolved to EditorKit 50414d62 (the run only needs IntegrationTests/Style/InspectorPreviewFrameTests.swift removed to compile, see below).
