@@ -16,6 +16,7 @@ is:
 | `django__django-14608` | `no-otel-1011` |
 | `django__django-14672` | `no-otel-1011` |
 | `stub-model-kinds` | stub model, see "The stub model sessions" |
+| `interrupted-nested-child` | stub model, see "The nested sessions" |
 
 Each directory is one transcript location of the agent: `.gitattributes`, and
 one directory for each session with `index.md`, `session-history.json`, and
@@ -77,6 +78,26 @@ To record these sessions again:
 5. After the idle `state_update` of each session, send `session/close`, so
    that the agent writes `session-history.json`.
 6. Copy `<root>/transcripts` into this directory with `cp -Rp`.
+
+## The nested sessions
+
+The `interrupted-nested-child` directory holds a root session, a child, and a
+grandchild. FoundationModelsACPAgent recorded them with its stub model:
+`Recordings/interrupted-nested-child/make.py` of that package makes them again.
+The process quit while the child and the grandchild ran, so no session has an
+`endedAt` mark, and the agent restores the children, idle, at a resume.
+
+The agent restores the children only when two things are true:
+
+- The recorded working directory exists. It is `/tmp/AgentViewKitDemo-nested-work`
+  (`RecordedSessionsStage.nestedWorkingDirectory`), and the resume must send
+  that exact string.
+- The agent definitions `parent` and `leaf` exist. The stage writes them into
+  `.agents/agents/` of that directory, with the text that `make.py` writes.
+
+`RecordedSessionsStage.make` does both. `RecordedNestedResumeTests` checks that a
+resume shows a child that has a child. Replace the sessions with the steps in
+the README of the agent package, and change the ids there if you do.
 
 ## The scripted sessions of the Gallery
 
