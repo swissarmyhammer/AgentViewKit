@@ -45,6 +45,7 @@ let package = Package(
         .product(name: "AgentViewKit", package: rootPackageName),
         .product(name: "AgentViewKitTestSupport", package: rootPackageName),
         .product(name: "AgentViewKitDemoSupport", package: rootPackageName),
+        .product(name: "EditorComplete", package: "EditorKit"),
         .product(name: "EditorSwiftUI", package: "EditorKit"),
         .product(name: "EditorStyle", package: "EditorKit"),
         .product(name: "EditorInspector", package: "EditorKit"),
