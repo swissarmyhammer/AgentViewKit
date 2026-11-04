@@ -122,6 +122,35 @@ comments:
     - evidence: `swift test` 944 + 67 passed (only the allowed mlx warning). `swift test --package-path IntegrationTests` 936 tests, 2 issues, all in ThreadFloatingControlsHostedTests.aStreamedTurnKeepsTheThreadPinnedToTheBottom, which also fails on clean main (^6y6ydyb). `swift test --package-path ScreenshotTests` 20 passed, and the gallery wrote the inspector images. Files: Package.swift, IntegrationTests/Package.swift, ScreenshotTests/Package.swift; Sources/AgentViewKit/{Config/ConfigOptionsView.swift, Config/ConfigOptionFields.swift, Input/ToolToggles.swift, Attachments/AttachmentInspector.swift, Attachments/AttachmentActions.swift, Inspection/*, Items/CompactionEntryView.swift, Connections/ConnectionRow.swift, Connections/ConnectionStatusChip.swift, Resources/Localizable.xcstrings}; AgentViewKitStyle Inspector copies deleted plus docc; tests listed in the previous comment; ARCHITECTURE.md, README.md, demo sheet and generator.
     - next: the open acceptance items wait on EK ^eghwsfh kinds and InspectorDriver: AttachmentInspector on InspectorView (preview kind), status/path/duration rows, the attachment Mixed images, and the move to the driver. Landing the copy removal waits for SVK. ^6y6ydyb is a separate pre-existing failure.
   timestamp: 2026-11-04T16:59:24.187936+00:00
+- actor: claude-code
+  id: 01m6kr250d8e6vp6k24exv89s1
+  text: |-
+    ### finish iteration 1 — stuck
+    - implement: stuck. Everything that fits the f79a6d63 kinds is built; the rest waits on EK ^eghwsfh kinds and InspectorDriver (see "Waiting on EK ^eghwsfh").
+    - test: root swift test 944+67 passed; IntegrationTests 936 tests, 1 failure, which also fails on clean main (^6y6ydyb); ScreenshotTests 20 passed, gallery written.
+    - commit: b0f176ae, local only. Not pushed: the removal of InspectorForm/InspectorActionRow/inspectorPreviewFrame waits for snapshotviewkit-45's EditorInspector push.
+    - review: not run. The card is incomplete until its blockers land.
+    - next: when SVK's SHA arrives, review b0f176ae and push. When ^eghwsfh lands, run /finish again for the waiting items.
+  timestamp: 2026-11-04T17:00:16.781029+00:00
+- actor: claude-code
+  id: 01m6kr2yczgzqavwjnbn0k58k0
+  text: |-
+    EK ^eghwsfh adds (editorkit-b5, 2026-11-04):
+    - InspectorDriver gets a verb that chooses an option in a choice row without opening the pop-up. Restore `selectingTheCurrentValueSendsNothing` on it.
+    - The inspector test fixtures and InspectorDriver move to a new EK product, `EditorInspectorTestSupport`; EditorTestSupport stops depending on EditorInspector. At that SHA, link and import `EditorInspectorTestSupport` wherever tests use the driver or the `InspectedTask`/`InspectedFile` fixtures.
+  timestamp: 2026-11-04T17:00:42.783393+00:00
+- actor: claude-code
+  id: 01m6ksjyb0gd4ab86mh3ajrks8
+  text: |-
+    Review findings for b0f176ae are fixed and ticked in the description's `## Review Findings`. I applied the same cause to the whole file and to the files beside it:
+    - Magic numbers: InspectorGallery uses `builtInWidth` and the shared `height`. InspectorGalleryFixtures uses `settleSeconds` → `settleLimit`, plus `pairCount` with `prefix`/`first`/`last`. The same CGSize literal shape also appeared in IntegrationTests Inspection/InspectorPanelHostedTests (`narrowWidth`, `panelHeight`) and ClientModelInspectionHostedTests (`width`, `height`), so I named those too.
+    - Reuse: `InspectionText.location(_:)` now calls `ToolCallLocationChips.Location.text(path:line:)`.
+    - Duplication: `MessageInspection.inspection(title:content:messageID:extra:)` is the one shape now. User, agent, thought and session messages all use it, with send state, and from/to as the extra fields. The FieldGroup takes a built field list; a closure with `return` skips the builder. Key-path accessors failed the Sendable conversion, so the calls use closures.
+
+    ### implement — changed
+    - evidence: `swift test`: 944 + 67 passed. `swift test --package-path IntegrationTests`: 936 tests, 2 issues, both the known ^6y6ydyb failure (ThreadFloatingControlsHostedTests.aStreamedTurnKeepsTheThreadPinnedToTheBottom). Note: that run took 565 s, against 49 s earlier; `runningAndIdleWithNoPromptOpenShowTheStateAndAnnounceNothing` took 514 s but passed. `swift build --build-tests --package-path ScreenshotTests` completes. No capture: the gallery output is unchanged. Files: ScreenshotTests/.../InspectorGallery.swift, InspectorGalleryFixtures.swift; Sources/AgentViewKit/Inspection/InspectionText.swift, TranscriptEntries+Inspectable.swift; IntegrationTests/.../Inspection/InspectorPanelHostedTests.swift, ClientModelInspectionHostedTests.swift.
+    - next: review. The card's open items still wait on EK ^eghwsfh and on SVK.
+  timestamp: 2026-11-04T17:26:55.584570+00:00
 position_column: doing
 position_ordinal: '80'
 title: 'All AVK inspection through EditorKit''s EditorInspector: AttachmentInspector, config and tool forms, ACPClient conformances'
@@ -178,3 +207,10 @@ Everything that fits the f79a6d63 kinds is built. These items wait for the ^eghw
 - [ ] Choosing a config option in a picker row in hosted tests: no harness can pick an item of a SwiftUI pop-up. Today the tests read the picker value and edit through the toggle row. `selectingTheCurrentValueSendsNothing` was dropped because the equal-value guard is EK's now. It comes back on InspectorDriver's choice verb.
 - [ ] Move ClientModelInspectionHostedTests, InspectorPanelHostedTests, ConfigOptionsSessionModelHostedTests (form rows) and ToolTogglesHostedTests (list rows) onto `InspectorDriver` and the `…/inspection:<view>/object:<id>/field:<group>.<label>` ids.
 - [ ] Landing the removal of AVK's InspectorForm/InspectorActionRow/inspectorPreviewFrame waits for SVK to move to `import EditorInspector` (the coordinator sequences the push).
+
+## Review Findings (2026-11-04, review of b0f176ae)
+- [x] ScreenshotTests/Tests/ScreenshotTests/InspectorGallery.swift:39 code-hygiene/magic-numbers-swift — Magic numbers should be replaced by named constants.
+- [x] ScreenshotTests/Tests/ScreenshotTests/InspectorGalleryFixtures.swift:45 code-hygiene/magic-numbers-swift — Magic numbers should be replaced by named constants.
+- [x] ScreenshotTests/Tests/ScreenshotTests/InspectorGalleryFixtures.swift:136 code-hygiene/magic-numbers-swift — Magic numbers should be replaced by named constants.
+- [x] Sources/AgentViewKit/Inspection/InspectionText.swift:23 reuse — `InspectionText.location(_:)` rebuilds the `<path>` / `<path>:<line>` text that already exists as `ToolCallLocationChips.Location.text(path:line:)`. Call that instead (`ToolCallLocationChips.Location.text(path: location.path.rawValue, line: location.line?.rawValue)`) and drop the local format. If the Style type can't be reached from the Inspection code, move the format into one shared function that both call.
+- [x] Sources/AgentViewKit/Inspection/TranscriptEntries+Inspectable.swift:94 duplication — the ThoughtEntry inspection is a verbatim copy of the AgentMessageEntry inspection (lines 80-86), differing only in the title. Extract one helper that takes the title plus the text and id accessors, call it from both, and delete the copy. Have UserMessageEntry use the same helper too, adding its send-state field.

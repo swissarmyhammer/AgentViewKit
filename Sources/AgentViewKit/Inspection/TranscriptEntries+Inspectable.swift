@@ -59,17 +59,62 @@ extension TerminalEntry: @retroactive Inspectable {
   }
 }
 
+/// The shared inspection of the message entries: the user message, the
+/// agent message, the thought and the message between two sessions.
+enum MessageInspection {
+  /// The inspection of a message entry: its text and its id, the fields
+  /// `extra` gives after them, and its times.
+  ///
+  /// - Parameters:
+  ///   - title: The title of a block of the entry type.
+  ///   - content: The content blocks of an entry.
+  ///   - messageID: The id of the message of an entry, or `nil` while no
+  ///     agent gave one.
+  ///   - extra: The fields that follow the text, before the id.
+  /// - Returns: The inspection.
+  static func inspection<Entry: ObservableTranscriptEntry>(
+    title: String, content: @escaping @MainActor (Entry) -> [FoundationModelsACP.ContentBlock],
+    messageID: @escaping @MainActor (Entry) -> String?,
+    @FieldBuilder<Entry> extra: () -> [AnyField<Entry>] = { [] }
+  ) -> Inspection<Entry> {
+    let fields = textField(content) + extra() + idField(messageID)
+    return Inspection(title: title) {
+      // A closure with a `return` takes no builder: the fields are built.
+      FieldGroup(InspectionLabel.message) { return fields }
+      Entry.timeGroup
+    }
+  }
+
+  /// The text row of a message entry.
+  ///
+  /// - Parameter content: The content blocks of an entry.
+  /// - Returns: The row.
+  @FieldBuilder<Entry>
+  private static func textField<Entry: AnyObject>(
+    _ content: @escaping @MainActor (Entry) -> [FoundationModelsACP.ContentBlock]
+  ) -> [AnyField<Entry>] {
+    Field(InspectionLabel.text) { InspectionText.text(of: content($0)) }
+      .multiline()
+  }
+
+  /// The id row of a message entry.
+  ///
+  /// - Parameter messageID: The id of the message of an entry, or `nil`.
+  /// - Returns: The row.
+  @FieldBuilder<Entry>
+  private static func idField<Entry: AnyObject>(_ messageID: @escaping @MainActor (Entry) -> String?) -> [AnyField<Entry>] {
+    Field(InspectionLabel.messageID) { messageID($0) }
+  }
+}
+
 extension UserMessageEntry: @retroactive Inspectable {
   /// The text, the send state and the id of the message, and its times.
   public static var inspection: Inspection<UserMessageEntry> {
-    Inspection(title: String(localized: "User Message", bundle: .module)) {
-      FieldGroup(InspectionLabel.message) {
-        Field(InspectionLabel.text) { InspectionText.text(of: $0.content) }
-          .multiline()
-        Field(String(localized: "Send State", bundle: .module)) { InspectionText.sendState($0.sendState) }
-        Field(InspectionLabel.messageID) { $0.messageId?.rawValue }
-      }
-      timeGroup
+    MessageInspection.inspection(
+      title: String(localized: "User Message", bundle: .module), content: { $0.content },
+      messageID: { $0.messageId?.rawValue }
+    ) {
+      Field(String(localized: "Send State", bundle: .module)) { InspectionText.sendState($0.sendState) }
     }
   }
 }
@@ -77,44 +122,31 @@ extension UserMessageEntry: @retroactive Inspectable {
 extension AgentMessageEntry: @retroactive Inspectable {
   /// The text and the id of the message, and its times.
   public static var inspection: Inspection<AgentMessageEntry> {
-    Inspection(title: String(localized: "Agent Message", bundle: .module)) {
-      FieldGroup(InspectionLabel.message) {
-        Field(InspectionLabel.text) { InspectionText.text(of: $0.content) }
-          .multiline()
-        Field(InspectionLabel.messageID) { $0.messageId?.rawValue }
-      }
-      timeGroup
-    }
+    MessageInspection.inspection(
+      title: String(localized: "Agent Message", bundle: .module), content: { $0.content },
+      messageID: { $0.messageId?.rawValue })
   }
 }
 
 extension ThoughtEntry: @retroactive Inspectable {
   /// The text and the id of the thought, and its times.
   public static var inspection: Inspection<ThoughtEntry> {
-    Inspection(title: String(localized: "Thought", bundle: .module)) {
-      FieldGroup(InspectionLabel.message) {
-        Field(InspectionLabel.text) { InspectionText.text(of: $0.content) }
-          .multiline()
-        Field(InspectionLabel.messageID) { $0.messageId?.rawValue }
-      }
-      timeGroup
-    }
+    MessageInspection.inspection(
+      title: String(localized: "Thought", bundle: .module), content: { $0.content },
+      messageID: { $0.messageId?.rawValue })
   }
 }
 
 extension SessionMessageEntry: @retroactive Inspectable {
   /// The text of the message between two sessions, its sender and its
-  /// recipient, and its times.
+  /// recipient, its id, and its times.
   public static var inspection: Inspection<SessionMessageEntry> {
-    Inspection(title: String(localized: "Session Message", bundle: .module)) {
-      FieldGroup(InspectionLabel.message) {
-        Field(InspectionLabel.text) { InspectionText.text(of: $0.content) }
-          .multiline()
-        Field(String(localized: "From Session", bundle: .module)) { $0.senderSessionId?.rawValue }
-        Field(String(localized: "To Session", bundle: .module)) { $0.recipientSessionId?.rawValue }
-        Field(InspectionLabel.messageID) { $0.messageId.rawValue }
-      }
-      timeGroup
+    MessageInspection.inspection(
+      title: String(localized: "Session Message", bundle: .module), content: { $0.content },
+      messageID: { $0.messageId.rawValue }
+    ) {
+      Field(String(localized: "From Session", bundle: .module)) { $0.senderSessionId?.rawValue }
+      Field(String(localized: "To Session", bundle: .module)) { $0.recipientSessionId?.rawValue }
     }
   }
 }

@@ -20,8 +20,15 @@ import Testing
 /// `InspectorDriver` (^eghwsfh) replaces ``rowValue(_:in:)`` when its final
 /// SHA lands, and the ids then take its path scheme.
 @Suite(.serialized, .hostedSerially) @MainActor struct ClientModelInspectionHostedTests {
-  /// The size of the window: about the width of an inspector column.
-  static let size = CGSize(width: 360, height: 640)
+  /// The width of the window: about the width of an inspector column, in
+  /// points.
+  static let width: CGFloat = 360
+
+  /// The height of the window, in points.
+  static let height: CGFloat = 640
+
+  /// The size of the window.
+  static let size = CGSize(width: width, height: height)
 
   /// The id of the tool call of the tests.
   static let toolCallID = "inspect-call"

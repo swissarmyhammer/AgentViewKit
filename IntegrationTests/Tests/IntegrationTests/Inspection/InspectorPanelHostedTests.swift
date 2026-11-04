@@ -16,8 +16,14 @@ import Testing
 /// EditorKit's `InspectorDriver` (^eghwsfh) reads them when its final SHA
 /// lands.
 @Suite(.serialized, .hostedSerially) @MainActor struct InspectorPanelHostedTests {
-  /// The size of a narrow docked panel, in points.
-  static let narrowPanel = CGSize(width: 240, height: 900)
+  /// The width of a narrow docked panel, in points.
+  static let narrowWidth: CGFloat = 240
+
+  /// The height of the panel, in points: tall enough for each row.
+  static let panelHeight: CGFloat = 900
+
+  /// The size of a narrow docked panel.
+  static let narrowPanel = CGSize(width: narrowWidth, height: panelHeight)
 
   /// The tools of the panel.
   static let tools = [ToolToggle(id: ToolToggleID("search"), name: "Search code", isEnabled: true)]

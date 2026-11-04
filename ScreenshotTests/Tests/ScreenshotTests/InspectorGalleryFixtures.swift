@@ -41,8 +41,15 @@ struct InspectorGalleryFixtures {
     #"{"sessionUpdate": "x_index_update", "note": "second"}"#,
   ]
 
+  /// The longest wait for the entries of ``updates``, in seconds.
+  private static let settleSeconds = 10
+
   /// The longest wait for the entries of ``updates``.
-  private static let settleLimit = Duration.seconds(10)
+  private static let settleLimit = Duration.seconds(settleSeconds)
+
+  /// The number of entries of one kind that a subject shows: one, and a
+  /// second beside it for the Mixed image.
+  private static let pairCount = 2
 
   /// The number of entries that ``updates`` make.
   private static var entryCount: Int { updates.count }
@@ -133,7 +140,8 @@ struct InspectorGalleryFixtures {
   /// - Throws: When the transcript has fewer than two entries of the type.
   private func pair<Entry: Inspectable>(_ name: String, _ type: Entry.Type) throws -> InspectorGallery.Subject {
     let entries = session.model.transcript.compactMap { $0.object as? Entry }
-    try #require(entries.count >= 2, "The transcript has \(entries.count) entries of \(type).")
-    return InspectorGallery.Subject(name, entries[0], entries[1])
+    try #require(entries.count >= Self.pairCount, "The transcript has \(entries.count) entries of \(type).")
+    let pair = entries.prefix(Self.pairCount)
+    return InspectorGallery.Subject(name, try #require(pair.first), try #require(pair.last))
   }
 }

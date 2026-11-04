@@ -34,9 +34,12 @@ enum InspectorGallery {
   /// The height of each image, in points.
   private static let height: CGFloat = 560
 
-  /// The size of the window of the built-in attachment inspector: a thread
-  /// area with the inspector column at its trailing edge.
-  private static let builtInSize = CGSize(width: 900, height: 560)
+  /// The width of the window of the built-in attachment inspector: a thread
+  /// area with the inspector column at its trailing edge, in points.
+  private static let builtInWidth: CGFloat = 900
+
+  /// The size of the window of the built-in attachment inspector.
+  private static let builtInSize = CGSize(width: builtInWidth, height: height)
 
   /// The panel widths of each subject, with the name of each in the image
   /// name.
