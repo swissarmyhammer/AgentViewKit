@@ -147,9 +147,12 @@
       let options = PreviewFixtures.configuredSession.configOptions ?? []
       guard let mode = PermissionModePicker.modeOption(in: options) else { return nil }
       let labels = ConfigOptionFields.options(of: mode.configId, in: options).map(\.label)
-      guard !labels.count.isMultiple(of: 2) else { return nil }
-      return labels[labels.count / 2]
+      guard !labels.count.isMultiple(of: halves) else { return nil }
+      return labels[labels.count / halves]
     }
+
+    /// The number of halves a segmented picker splits into around its center.
+    private static let halves = 2
 
     /// The controls that a landed jump presses. It is `nonisolated` because
     /// the arguments of a test use it.
