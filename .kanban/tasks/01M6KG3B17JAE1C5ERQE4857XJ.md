@@ -218,6 +218,21 @@ comments:
     - evidence: `swift test` 944 + 67 passed. `swift test --package-path IntegrationTests` 937 tests, 2 issues, both the known ^6y6ydyb failure (214 s; the UI test gate wait again). Files: IntegrationTests/Tests/IntegrationTests/{Helpers/HostedViewHarness+InspectorDriver.swift (new), Config/ConfigOptionsSessionModelHostedTests.swift, Input/ToolTogglesHostedTests.swift, Inspection/ClientModelInspectionHostedTests.swift, Inspection/InspectorPanelHostedTests.swift}, Sources/AgentViewKit/Inspection/{InspectionLabel.swift, TranscriptEntries+Inspectable.swift, ClientModels+Inspectable.swift}.
     - next: push. EK request: harness→InspectorDriver helper.
   timestamp: 2026-11-04T19:21:19.555546+00:00
+- actor: claude-code
+  id: 01m6m0k4909qsd5x4v80nzqhdk
+  text: |-
+    Review of 8a937f69: all 3 findings are fixed and ticked, and I swept the card's test files for more of the same.
+    - `HostedViewHarness+InspectorDriver.swift` now holds every shared row helper: `inspectorDriver`, `rowValue(_:)`, `showsRow(_:)`, `fieldIDs(inBlock:)`, plus `InspectorRowID.object(_:view:)` and `InspectorRowID.field(view:object:group:field:)` for row ids. The TODO now names all of them as the EK request, which EK has accepted for EditorInspectorTestSupport.
+    - Config tests: the local `rowValue` and `showsRow` copies are gone, and the calls use the harness. `object(of:)` and `row(_:_:of:)` build on `InspectorRowID`.
+    - ClientModel tests: the local `rowValue` is gone, and `row(of:group:field:)` is `InspectorRowID.field`.
+    - ToolToggles tests: `listObject` uses `InspectorRowID.object`, and reads and checks go through `harness.rowValue`/`showsRow`.
+    - Panel tests: `rows(of:)` builds nothing inline. It uses `ConfigOptionsSessionModelHostedTests.row`, `ToolTogglesHostedTests.row(tools[0].id)` and `ClientModelInspectionHostedTests.row(of:group:field:)`.
+    - After the sweep, no test file outside the shared helper calls `InspectorDriver.field`, `InspectorScheme.objectID` or `inspectorDriver.value`/`.elements` directly. The one remaining `InspectorDriver.field` is `ToolTogglesHostedTests.row`, which is the single tool-row builder over `listObject`.
+
+    ### implement — changed
+    - evidence: `swift test --package-path IntegrationTests` 937 tests, 2 issues, both the known ^6y6ydyb failure (63 s). These are test-only changes, so the root suite was not rerun. Files: IntegrationTests/Tests/IntegrationTests/{Helpers/HostedViewHarness+InspectorDriver.swift, Config/ConfigOptionsSessionModelHostedTests.swift, Input/ToolTogglesHostedTests.swift, Inspection/ClientModelInspectionHostedTests.swift, Inspection/InspectorPanelHostedTests.swift}.
+    - next: push.
+  timestamp: 2026-11-04T19:29:21.696989+00:00
 position_column: doing
 position_ordinal: '80'
 title: 'All AVK inspection through EditorKit''s EditorInspector: AttachmentInspector, config and tool forms, ACPClient conformances'
@@ -293,3 +308,8 @@ The SHA does not need relaying to KVK/SVK/Testudo; editorkit-b5 sends it to them
 - [x] TranscriptEntries+Inspectable.swift:158 duplication — the same pair for PlanTranscriptEntry. Use the helper with "Plan".
 - [x] TranscriptEntries+Inspectable.swift:175 duplication — the same for CompactionEntry. Use the helper with "Compaction".
 - [x] TranscriptEntries+Inspectable.swift:192 duplication — the same for ErrorEntry. Use the helper with "Error".
+
+## Review Findings (2026-11-04, review of 8a937f69)
+- [x] IntegrationTests/Tests/IntegrationTests/Config/ConfigOptionsSessionModelHostedTests.swift:197 reuse — `ConfigOptionsSessionModelHostedTests.rowValue` duplicates `ClientModelInspectionHostedTests.rowValue`. Keep a single `rowValue` in the shared harness extension (HostedViewHarness+InspectorDriver.swift), have this file call it, and remove the local copy.
+- [x] IntegrationTests/Tests/IntegrationTests/Inspection/ClientModelInspectionHostedTests.swift:72 reuse — the same helper. Move `rowValue(_:in:)` onto the HostedViewHarness extension, beside `inspectorDriver` and `fieldIDs(inBlock:)`, so both suites call `harness.rowValue(identifier)`. Delete both copies.
+- [x] IntegrationTests/Tests/IntegrationTests/Inspection/InspectorPanelHostedTests.swift:43 reuse — the search-tool row id is rebuilt inline with `InspectorDriver.field(view: ToolToggles.listIdentifier, object: ToolTogglesHostedTests.listObject, group: ToolToggles.groupIdentifier, field: "search")`. Replace it with `ToolTogglesHostedTests.row(Self.tools[0].id)`.
