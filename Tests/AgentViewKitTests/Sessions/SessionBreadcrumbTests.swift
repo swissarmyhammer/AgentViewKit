@@ -24,6 +24,23 @@ import Testing
     return session
   }
 
+  // MARK: - The title of the host
+
+  @Test func theTitleOfTheHostNamesTheFirstCrumbAndNoOther() async throws {
+    let session = try await Self.openTree()
+    defer { session.close() }
+    let path = try #require(session.session(Self.linter)).path
+
+    let titles = AgentInfoHeader.titles(of: path, sessionTitle: "Agents")
+
+    #expect(titles == ["Agents", "Reviewer", "Linter"])
+  }
+
+  @Test func withNoSessionTheTitleOfTheHostIsTheWholePath() {
+    #expect(AgentInfoHeader.titles(of: [], sessionTitle: "Agents") == ["Agents"])
+    #expect(AgentInfoHeader.titles(of: [], sessionTitle: nil).isEmpty)
+  }
+
   // MARK: - Path and collapse
 
   @Test func thePathOfTheGrandchildHasTheRootTheChildAndTheGrandchild() async throws {

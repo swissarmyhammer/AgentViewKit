@@ -30,7 +30,13 @@ import SwiftUI
 /// the path does not fit the width, the middle crumbs collapse into one "..."
 /// dropdown. That is a rule of the width, and not of the number of sessions.
 /// The agent segment has the higher layout priority, so a long title
-/// truncates first. The
+/// truncates first, and each crumb can truncate, so the header never sets
+/// the least width of its pane.
+///
+/// The host can give a session title, such as the title of a tab (D142).
+/// The first crumb shows it in place of the title of its session, and
+/// follows each change of it. With a title and no session, the header shows
+/// the title as plain text after the agent. The
 /// segments are text with no glass and no fill of their own: the one glass
 /// is the surface that the host of the header gives, such as the floating
 /// glass in the top bar of ``AgentThreadView``.
@@ -41,7 +47,8 @@ import SwiftUI
 ///
 /// VoiceOver reads the header as one header element with the identifier
 /// ``identifier``. Its label names the path, such as "Agent, Reviewer,
-/// Linter", or the name of the agent alone, and its value is the version
+/// Linter", with the session title of the host for the first crumb, or the
+/// name of the agent alone, and its value is the version
 /// line. With a session, the header is a container, so each dropdown stays
 /// reachable.
 ///
@@ -62,6 +69,10 @@ public struct AgentInfoHeader: View {
   /// agent alone.
   let session: SessionModel?
 
+  /// The title that the host gives to the first crumb, or `nil` for the
+  /// title of its session.
+  let sessionTitle: String?
+
   /// Called with the id of the session that the user chooses in a dropdown.
   let select: (SessionId) -> Void
 
@@ -72,14 +83,19 @@ public struct AgentInfoHeader: View {
   ///   - session: The session that the header shows after the agent, or
   ///     `nil` for the agent alone. The crumbs are its ancestors and the
   ///     session itself. The header reads the model and keeps no copy.
+  ///   - sessionTitle: The title of the first crumb, such as the title of a
+  ///     tab, or `nil` for the title of its session. With no session, the
+  ///     header shows the title alone after the agent.
   ///   - select: Called with the id of the session that the user chooses in
   ///     a dropdown. Which session a window shows is the state of the view,
   ///     so the host changes it. The default does nothing.
   public init(
-    connection: ConnectionModel, session: SessionModel? = nil, select: @escaping (SessionId) -> Void = { _ in }
+    connection: ConnectionModel, session: SessionModel? = nil, sessionTitle: String? = nil,
+    select: @escaping (SessionId) -> Void = { _ in }
   ) {
     self.connection = connection
     self.session = session
+    self.sessionTitle = sessionTitle
     self.select = select
   }
 
@@ -87,9 +103,9 @@ public struct AgentInfoHeader: View {
     if let info = connection.initializeResponse?.info {
       let agent = info.title ?? info.name
       let path = session?.path ?? []
-      AgentBreadcrumb(agent: agent, version: info.version, path: path, select: select)
+      AgentBreadcrumb(agent: agent, version: info.version, path: path, sessionTitle: sessionTitle, select: select)
         .accessibilityElement(children: path.isEmpty ? .ignore : .contain)
-        .accessibilityLabel(Self.label(agent: agent, path: path.map(\.displayTitle)))
+        .accessibilityLabel(Self.label(agent: agent, path: Self.titles(of: path, sessionTitle: sessionTitle)))
         .accessibilityValue(AgentBreadcrumb.versionLine(of: info.version))
         .accessibilityAddTraits(.isHeader)
         .accessibilityIdentifier(Self.identifier)
@@ -105,6 +121,18 @@ public struct AgentInfoHeader: View {
   /// - Returns: The label.
   static func label(agent: String, path: [String]) -> String {
     SessionPathText.label([agent] + path)
+  }
+
+  /// The titles of the crumbs of a path.
+  ///
+  /// - Parameters:
+  ///   - path: The sessions from the root to the shown session.
+  ///   - sessionTitle: The title of the host for the first crumb, or `nil`.
+  /// - Returns: The titles. With no session, the title of the host alone, or
+  ///   none.
+  static func titles(of path: [SessionModel], sessionTitle: String?) -> [String] {
+    guard !path.isEmpty else { return sessionTitle.map { [$0] } ?? [] }
+    return path.map { SessionBreadcrumb.title(of: $0, in: path, rootTitle: sessionTitle) }
   }
 }
 
@@ -122,6 +150,10 @@ struct AgentBreadcrumb: View {
   /// The accessibility identifier of the name of the agent.
   static let agentIdentifier = "agent-info-agent"
 
+  /// The accessibility identifier of the session title that shows with no
+  /// session.
+  static let sessionIdentifier = "agent-info-session"
+
   /// The layout priority of the agent segment over the crumbs, so that the
   /// crumbs truncate first.
   static let agentPriority: Double = 1
@@ -136,8 +168,32 @@ struct AgentBreadcrumb: View {
   /// alone.
   let path: [SessionModel]
 
+  /// The title that the host gives to the first crumb, or `nil`.
+  let sessionTitle: String?
+
   /// Called with the id of the session that the user chooses.
   let select: (SessionId) -> Void
+
+  /// Makes the row of the agent and the crumbs.
+  ///
+  /// - Parameters:
+  ///   - agent: The name of the agent.
+  ///   - version: The version of the agent.
+  ///   - path: The sessions from the root to the shown session. The default
+  ///     is none, for the agent alone.
+  ///   - sessionTitle: The title of the first crumb, or of the plain session
+  ///     segment with no path. The default is `nil`.
+  ///   - select: Called with the id of the session that the user chooses.
+  init(
+    agent: String, version: String, path: [SessionModel] = [], sessionTitle: String? = nil,
+    select: @escaping (SessionId) -> Void = { _ in }
+  ) {
+    self.agent = agent
+    self.version = version
+    self.path = path
+    self.sessionTitle = sessionTitle
+    self.select = select
+  }
 
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
@@ -155,7 +211,16 @@ struct AgentBreadcrumb: View {
     HStack(alignment: .firstTextBaseline, spacing: editorStyle.spacing.s) {
       agentSegment
         .layoutPriority(Self.agentPriority)
-      SessionBreadcrumb(path: path, collapsed: collapsed, select: select)
+      if path.isEmpty, let sessionTitle {
+        DecorativeSymbolImage(name: SharedSymbol.disclosure)
+          .imageScale(.small)
+        Text(sessionTitle)
+          .font(editorTheme.font(for: .ui, style: .headline))
+          .lineLimit(1)
+          .accessibilityIdentifier(Self.sessionIdentifier)
+      } else {
+        SessionBreadcrumb(path: path, rootTitle: sessionTitle, collapsed: collapsed, select: select)
+      }
       Spacer(minLength: editorStyle.spacing.s)
     }
   }

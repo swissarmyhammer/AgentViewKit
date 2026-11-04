@@ -51,6 +51,13 @@ enum BreadcrumbSegment: Identifiable {
 /// `needsAttention` is true, so a question of a session deep in the tree
 /// shows on each crumb above it. A choice gives the id of the session to the
 /// host through `select`; the view keeps no state of the choice.
+///
+/// When the host gives a title, the first crumb shows it in place of the
+/// title of its session, such as the title of a tab (D142).
+///
+/// Each crumb can truncate, so the row never sets the least width of the
+/// pane that holds the header: a long title, or a session id with no title,
+/// shows in part.
 struct SessionBreadcrumb: View {
   /// The accessibility identifier of the crumb of a session.
   ///
@@ -67,6 +74,10 @@ struct SessionBreadcrumb: View {
 
   /// The sessions from the root to the shown session.
   let path: [SessionModel]
+
+  /// The title that the host gives to the first crumb, or `nil` for the
+  /// title of its session.
+  let rootTitle: String?
 
   /// Whether the middle crumbs collapse.
   let collapsed: Bool
@@ -99,7 +110,27 @@ struct SessionBreadcrumb: View {
   /// The label of a crumb: the title, and the mark when the session needs
   /// the user.
   private func crumbLabel(_ session: SessionModel) -> some View {
-    titleLabel(session.displayTitle, needsAttention: session.needsAttention)
+    titleLabel(title(of: session), needsAttention: session.needsAttention)
+  }
+
+  /// The title of the crumb of a session: the title of the host for the
+  /// first crumb, and the title of the session for the others.
+  private func title(of session: SessionModel) -> String {
+    Self.title(of: session, in: path, rootTitle: rootTitle)
+  }
+
+  /// The title of the crumb of a session of a path.
+  ///
+  /// - Parameters:
+  ///   - session: The session of the crumb.
+  ///   - path: The sessions from the root to the shown session.
+  ///   - rootTitle: The title that the host gives to the first crumb, or
+  ///     `nil`.
+  /// - Returns: The host title for the first crumb, when there is one, and
+  ///   the display title of the session otherwise.
+  static func title(of session: SessionModel, in path: [SessionModel], rootTitle: String?) -> String {
+    guard let rootTitle, session.sessionId == path.first?.sessionId else { return session.displayTitle }
+    return rootTitle
   }
 
   /// The label of a dropdown: a headline title, and the warning mark when
@@ -109,6 +140,7 @@ struct SessionBreadcrumb: View {
       Text(text)
         .font(editorTheme.font(for: .ui, style: .headline))
         .lineLimit(1)
+        .truncationMode(.middle)
       if needsAttention {
         DecorativeSymbolImage(name: SharedSymbol.warning)
           .imageScale(.small)
@@ -121,7 +153,7 @@ struct SessionBreadcrumb: View {
   private func crumb(_ session: SessionModel) -> some View {
     dropdown(
       choices: session.siblingsIncludingSelf, current: session.sessionId, label: { crumbLabel(session) },
-      accessibilityLabel: Self.accessibilityLabel(for: session),
+      accessibilityLabel: Self.accessibilityLabel(for: session, title: title(of: session)),
       identifier: Self.crumbIdentifier(for: session.sessionId)
     )
     .modifier(crumbScope(session.sessionId))
@@ -160,7 +192,7 @@ struct SessionBreadcrumb: View {
     .accessibilityHint(String(localized: "Shows the sessions at this level.", bundle: .module))
     .menuStyle(.borderlessButton)
     .menuIndicator(.hidden)
-    .fixedSize()
+    .fixedSize(horizontal: false, vertical: true)
     .accessibilityLabel(accessibilityLabel)
     .accessibilityIdentifier(identifier)
   }
@@ -222,10 +254,13 @@ struct SessionBreadcrumb: View {
   /// The VoiceOver label of a crumb: the title, the state, and a note when
   /// the session needs the user.
   ///
-  /// - Parameter session: The session of the crumb.
+  /// - Parameters:
+  ///   - session: The session of the crumb.
+  ///   - title: The title of the crumb. The default is the display title of
+  ///     the session.
   /// - Returns: Text such as "Linter, Waiting for you, needs your attention".
-  static func accessibilityLabel(for session: SessionModel) -> String {
-    var parts = [session.displayTitle, session.status.text]
+  static func accessibilityLabel(for session: SessionModel, title: String? = nil) -> String {
+    var parts = [title ?? session.displayTitle, session.status.text]
     if session.needsAttention { parts.append(String(localized: "needs your attention", bundle: .module)) }
     return parts.joined(separator: ", ")
   }

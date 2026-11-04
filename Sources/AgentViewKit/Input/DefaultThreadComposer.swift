@@ -10,7 +10,7 @@ import SwiftUI
 /// gives the composer its session model and its connection model. To keep
 /// the text in the host, or to use another editor, give a
 /// ``PromptInputView`` to
-/// ``AgentThreadView/init(session:connection:headerContextMenuPath:composer:)``.
+/// ``AgentThreadView/init(session:connection:sessionTitle:headerContextMenuPath:composer:)``.
 ///
 /// The unsent text is the draft of the session model, which the kit keeps
 /// out of the view (^f41brfh). So a thread view that the host rebuilds for
@@ -82,8 +82,10 @@ extension AgentThreadView where Composer == DefaultThreadComposer {
   /// the session model.
   ///
   /// The header shows the path to the shown session after the agent, with a
-  /// dropdown of the siblings at each level. The host can give the path of
-  /// one of its own command scopes with `headerContextMenuPath`. A right click on the header then shows the
+  /// dropdown of the siblings at each level. The host can name the session
+  /// of the first crumb with `sessionTitle`, such as the title of a tab, and
+  /// give the path of one of its own command scopes with
+  /// `headerContextMenuPath`. A right click on the header then shows the
   /// EditorKit context menu of that path, with no command that is not
   /// available there.
   ///
@@ -91,14 +93,17 @@ extension AgentThreadView where Composer == DefaultThreadComposer {
   ///   - session: The session model whose transcript the view shows.
   ///   - connection: The connection model that opened the session, or `nil`
   ///     when the host closes the session itself.
+  ///   - sessionTitle: The title of the crumb of the session in the header,
+  ///     such as the title of a tab, or `nil` for the title of the session.
+  ///     The header follows each change of it.
   ///   - headerContextMenuPath: The path of a host scope whose context menu
   ///     a right click on the header shows, or `nil` for no context menu.
   public init(
-    session: SessionModel, connection: ConnectionModel? = nil,
+    session: SessionModel, connection: ConnectionModel? = nil, sessionTitle: String? = nil,
     headerContextMenuPath: FocusPath? = nil
   ) {
     self.init(
-      session: session, connection: connection,
+      session: session, connection: connection, sessionTitle: sessionTitle,
       headerContextMenuPath: headerContextMenuPath
     ) { DefaultThreadComposer() }
   }

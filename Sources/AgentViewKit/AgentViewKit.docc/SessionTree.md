@@ -53,9 +53,11 @@ row jumps to the child while it exists. After the removal, the row stays as
 history with a short "Finished" label. If you view a child that the client
 removes, the view shows its parent.
 
-### The break of the API
+### The title of the host
 
+The header reads the session model, so it names the path itself. A host that
+titles the session, such as with the title of a tab, gives `sessionTitle` to
 `AgentThreadView.init(session:connection:sessionTitle:headerContextMenuPath:composer:)`
-lost the parameter `sessionTitle`, and so did `AgentInfoHeader`. The header
-reads the session model, so it names the path itself. Remove the argument, and
-give the root session.
+or to `AgentInfoHeader`. The first crumb shows that title in place of the title
+of its session, and follows each change of it. The other crumbs show the
+titles of their sessions.

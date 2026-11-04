@@ -32,6 +32,13 @@ import Testing
   /// A size too narrow to show the long session title whole.
   static let narrowSize = CGSize(width: 420, height: 120)
 
+  /// The width of the small area of a host window, such as the chat pane of
+  /// Testudo: the header must fit it with a long crumb.
+  static let paneSize = CGSize(width: 260, height: 120)
+
+  /// The id of the child with the long title in the session tests.
+  static let longChild = SessionId(rawValue: "long-child")
+
   /// The largest difference between two widths that the tests take as the
   /// same width, in points.
   static let widthTolerance: CGFloat = 0.5
@@ -126,7 +133,7 @@ import Testing
 
     let header = try #require(harness.element(identifier: AgentInfoHeader.identifier))
 
-    #expect(header.label == "\(Self.agentName), \(Self.sessionTitle)")
+    #expect(header.label == AgentInfoHeader.label(agent: Self.agentName, path: [Self.sessionTitle]))
     #expect(header.value == "Version \(Self.agentVersion)")
     #expect(harness.elements(under: AgentInfoHeader.identifier).isEmpty)
   }
@@ -137,7 +144,69 @@ import Testing
 
     let header = try #require(harness.element(identifier: AgentInfoHeader.identifier))
 
-    #expect(header.label == Self.agentName)
+    #expect(header.label == AgentInfoHeader.label(agent: Self.agentName, path: []))
     #expect(harness.elements(under: AgentInfoHeader.identifier).isEmpty)
+  }
+
+  // MARK: - The crumbs of a session
+
+  @Test func aLongCrumbTruncatesInANarrowPane() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let child = try await session.announceChild(Self.longChild, title: Self.longSessionTitle)
+    let harness = HostedViewHarness(size: Self.paneSize) {
+      AgentInfoHeader(connection: session.connection, session: child)
+    }
+    defer { harness.close() }
+    harness.render()
+
+    let crumb = try #require(harness.frame(identifier: SessionBreadcrumb.crumbIdentifier(for: Self.longChild)))
+    let host = harness.screenFrame(of: harness.hostingView)
+
+    #expect(crumb.minX >= host.minX, "crumb \(crumb), host \(host)")
+    #expect(crumb.maxX <= host.maxX, "crumb \(crumb), host \(host)")
+  }
+
+  @Test func theFirstCrumbShowsTheSessionTitleOfTheHostAndFollowsItsChanges() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let title = HostTitle(Self.sessionTitle)
+    let harness = HostedViewHarness(size: Self.wideSize) {
+      TitledHeader(connection: session.connection, session: session.model, title: title)
+    }
+    defer { harness.close() }
+    harness.render()
+
+    let header = try #require(harness.element(identifier: AgentInfoHeader.identifier))
+    #expect(
+      header.label?.hasSuffix(SessionPathText.spokenSeparator + Self.sessionTitle) == true,
+      "\(String(describing: header.label))")
+
+    title.value = "Project"
+    harness.render()
+
+    let changed = try #require(harness.element(identifier: AgentInfoHeader.identifier))
+    #expect(
+      changed.label?.hasSuffix(SessionPathText.spokenSeparator + "Project") == true,
+      "\(String(describing: changed.label))")
+  }
+}
+
+/// The title of a tab of a host, which changes while the header shows.
+@MainActor @Observable private final class HostTitle {
+  var value: String
+
+  init(_ value: String) { self.value = value }
+}
+
+/// A host that gives its tab title to the header. The body reads the title,
+/// so a change of it renders the header again, as in a host app.
+private struct TitledHeader: View {
+  let connection: ConnectionModel
+  let session: SessionModel
+  let title: HostTitle
+
+  var body: some View {
+    AgentInfoHeader(connection: connection, session: session, sessionTitle: title.value)
   }
 }

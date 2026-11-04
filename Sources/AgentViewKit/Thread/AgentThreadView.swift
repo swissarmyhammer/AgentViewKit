@@ -43,7 +43,7 @@ import SwiftUI
 /// `style.md`, rule 4). The composer slot is directly below its chat
 /// (D36). The default slot is a ``DefaultThreadComposer``: a
 /// ``PromptInputView`` that keeps its own text. Give a custom composer with
-/// ``init(session:connection:headerContextMenuPath:composer:)``,
+/// ``init(session:connection:sessionTitle:headerContextMenuPath:composer:)``,
 /// or `EmptyView()` for no composer.
 /// The scroll-to-bottom pill (``ScrollToBottomPill``) floats over the list,
 /// above the bar, and takes no space in the bar. Thus the bottom inset of the
@@ -161,6 +161,10 @@ public struct AgentThreadView<Composer: View>: View {
   /// The manager of the scroll position that a test gave, or `nil`.
   let hostAnchors: ScrollAnchorManager?
 
+  /// The title that the header shows for the session of the host, such as
+  /// the title of a tab, or `nil` for the title of the session (D142).
+  let sessionTitle: String?
+
   /// The path of the host scope whose context menu the header shows, or
   /// `nil` for no context menu.
   let headerContextMenuPath: FocusPath?
@@ -194,7 +198,7 @@ public struct AgentThreadView<Composer: View>: View {
   /// connection model of the thread view in its environment. Give
   /// `EmptyView()` for no composer.
   ///
-  /// See ``init(session:connection:headerContextMenuPath:composer:)`` for
+  /// See ``init(session:connection:sessionTitle:headerContextMenuPath:composer:)`` for
   /// the close of the session, the Reload button, the path in the header and
   /// the context menu of the header.
   ///
@@ -202,16 +206,19 @@ public struct AgentThreadView<Composer: View>: View {
   ///   - session: The session model whose transcript the view shows.
   ///   - connection: The connection model that opened the session, or `nil`
   ///     when the host closes the session itself.
+  ///   - sessionTitle: The title of the crumb of the session in the header,
+  ///     such as the title of a tab, or `nil` for the title of the session.
+  ///     The header follows each change of it.
   ///   - headerContextMenuPath: The path of a host scope whose context menu
   ///     a right click on the header shows, or `nil` for no context menu.
   ///   - composer: The builder of the view in the composer slot, such as a
   ///     ``PromptInputView``.
   public init(
-    session: SessionModel, connection: ConnectionModel? = nil,
+    session: SessionModel, connection: ConnectionModel? = nil, sessionTitle: String? = nil,
     headerContextMenuPath: FocusPath? = nil, @ViewBuilder composer: () -> Composer
   ) {
     self.init(
-      session: session, connection: connection, anchors: nil,
+      session: session, connection: connection, anchors: nil, sessionTitle: sessionTitle,
       headerContextMenuPath: headerContextMenuPath, composer: composer)
   }
 
@@ -226,16 +233,19 @@ public struct AgentThreadView<Composer: View>: View {
   ///   - connection: The connection model that opened the session, or `nil`.
   ///   - anchors: The manager of the scroll position, or `nil` to let the
   ///     view make its own manager.
+  ///   - sessionTitle: The title of the crumb of the session in the header,
+  ///     or `nil`.
   ///   - headerContextMenuPath: The path of the host scope whose context
   ///     menu the header shows, or `nil`.
   ///   - composer: The builder of the view in the composer slot.
   init(
     session: SessionModel, connection: ConnectionModel? = nil, anchors: ScrollAnchorManager?,
-    headerContextMenuPath: FocusPath? = nil, @ViewBuilder composer: () -> Composer
+    sessionTitle: String? = nil, headerContextMenuPath: FocusPath? = nil, @ViewBuilder composer: () -> Composer
   ) {
     self.root = session
     self.connection = connection
     self.hostAnchors = anchors
+    self.sessionTitle = sessionTitle
     self.headerContextMenuPath = headerContextMenuPath
     self.composer = composer()
   }
@@ -334,7 +344,8 @@ public struct AgentThreadView<Composer: View>: View {
           // takes no space. The header has no padding of its own (^rgsq3k4):
           // the bar insets it in its glass with the steps of the style.
           FloatingGlassContainer(spacing: editorStyle.spacing.s) {
-            AgentInfoHeader(connection: connection, session: session, select: show).padding(headerInset).floatingGlass()
+            AgentInfoHeader(connection: connection, session: session, sessionTitle: sessionTitle, select: show)
+              .padding(headerInset).floatingGlass()
               .hostPathContextMenu(headerContextMenuPath)
               .padding(.horizontal, barEdgeInset)
               .padding(.vertical, editorStyle.spacing.s)
@@ -359,7 +370,7 @@ public struct AgentThreadView<Composer: View>: View {
     // shows through its mark and the jump of the banner.
     .onChange(of: root.replayEndCount) { focus.resumeEnded() }
     .onChange(of: root.sessionId) { focus.resumeEnded() }
-    .environment(\.openSession, show)
+    .environment(\.openSession, OpenSessionAction(run: show))
     .agentCommandScope(
       session: session, anchors: anchors,
       navigation: AgentSessionNavigation(show: show, presentJump: { isJumpPresented = true })
@@ -515,6 +526,24 @@ final class SessionAnchorStore {
   }
 }
 
+/// The action that shows another session of the tree in the nearest
+/// ``AgentThreadView`` (``SwiftUI/EnvironmentValues/openSession``).
+///
+/// The function is in a struct, not in the environment value itself: an
+/// environment value that holds a closure can invalidate its dependents on
+/// each update.
+struct OpenSessionAction {
+  /// The function that shows the session with an id.
+  let run: @MainActor (SessionId) -> Void
+
+  /// Shows the session with an id.
+  ///
+  /// - Parameter id: The id of the session.
+  func callAsFunction(_ id: SessionId) {
+    run(id)
+  }
+}
+
 /// The fixed values of ``AgentThreadView``.
 ///
 /// A generic view type cannot hold a stored static property, so the values
@@ -530,7 +559,7 @@ extension EnvironmentValues {
   /// Shows another session of the tree in the nearest ``AgentThreadView``, or
   /// `nil` outside a thread view. A tool row of an `agents` call uses it to
   /// jump to the child session of the call.
-  @Entry var openSession: ((SessionId) -> Void)? = nil
+  @Entry var openSession: OpenSessionAction? = nil
 
   /// The ``ObservationReport`` that gets the close decision of the nearest
   /// ``AgentThreadView`` when the view goes away, or `nil`.
