@@ -19,9 +19,9 @@ import Testing
   /// An `available_commands_update` with two commands.
   static let commandsUpdate = #"""
     {"sessionUpdate": "available_commands_update", "availableCommands": [
-      {"name": "compact", "description": "Compact the thread",
+      {"type": "command", "name": "compact", "description": "Compact the thread",
        "input": {"type": "text", "hint": "instructions"}},
-      {"name": "plan", "description": "Make a plan"}]}
+      {"type": "command", "name": "plan", "description": "Make a plan"}]}
     """#
 
   /// Mounts a composer with the EditorKit editor over the session model of a

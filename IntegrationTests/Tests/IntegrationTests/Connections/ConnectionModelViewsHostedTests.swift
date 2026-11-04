@@ -1,4 +1,4 @@
-import AgentViewKit
+@testable import AgentViewKit
 import AgentViewKitTestSupport
 import AgentViewKitDemoSupport
 import EditorTestSupport
@@ -180,9 +180,11 @@ import Testing
     defer { harness.close() }
     harness.render()
 
+    // The thread shows its session, so the header is a container: its label
+    // is the path, and the version line is one of its elements.
     let header = try #require(harness.element(identifier: AgentInfoHeader.identifier))
-    #expect(header.label == "scripted-agent")
-    #expect(header.value == "Version 1.0.0")
+    #expect(header.label == AgentInfoHeader.label(agent: "scripted-agent", path: [session.model.displayTitle]))
+    #expect(harness.elements(under: AgentInfoHeader.identifier).contains { $0.label == "Version 1.0.0" })
   }
 
   @Test func theHeaderShowsTheTitleOfTheAgentWhenTheAgentGivesOne() async throws {
@@ -193,7 +195,7 @@ import Testing
     harness.render()
 
     let header = try #require(harness.element(identifier: AgentInfoHeader.identifier))
-    #expect(header.label == "Scripted Agent")
+    #expect(header.label == AgentInfoHeader.label(agent: "Scripted Agent", path: []))
     #expect(header.value == "Version 2.1.0")
   }
 

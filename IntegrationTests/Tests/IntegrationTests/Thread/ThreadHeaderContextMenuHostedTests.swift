@@ -50,7 +50,7 @@ import Testing
     ///
     /// - Parameter make: Makes the command that the definition registers.
     /// - Returns: The definition, placed in the context menu by ``group``.
-    func definition(make: @escaping @Sendable (CommandPayload?) -> any Command) -> CommandDefinition {
+    func definition(make: @escaping @Sendable (CommandPayload?) -> any EditorCommands.Command) -> CommandDefinition {
       CommandDefinition(
         id: id, title: .static(title), contextMenu: ContextMenuPlacement(group: group, order: 0), make: make)
     }

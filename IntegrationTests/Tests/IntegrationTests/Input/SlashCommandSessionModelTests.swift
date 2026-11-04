@@ -26,9 +26,9 @@ import Testing
   static let newSessionWithCommands = #"""
     {"sessionId": "\#(ScriptedSession.sessionID)",
      "availableCommands": [
-       {"name": "compact", "description": "Compact the thread",
+       {"type": "command", "name": "compact", "description": "Compact the thread",
         "input": {"type": "text", "hint": "instructions"}},
-       {"name": "plan", "description": "Make a plan"}]}
+       {"type": "command", "name": "plan", "description": "Make a plan"}]}
     """#
 
   /// An `available_commands_update` with no command.
@@ -138,7 +138,7 @@ import Testing
     defer { session.close() }
     let commands = session.model.availableCommands
 
-    #expect(commands?.map(\.name) == ["compact", "plan"])
+    #expect(commands?.compactMap(SlashCommandSource.command(of:)).map(\.name) == ["compact", "plan"])
     #expect(EditorKitPromptEditor.isTrigger("/", reportsCommands: commands != nil, hasRoot: false))
     let labels = await CompletionFixture.editor("/", commands: commands, root: nil).query()
     #expect(Set(labels) == ["/compact", "/plan"])

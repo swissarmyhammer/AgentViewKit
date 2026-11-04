@@ -65,7 +65,7 @@ struct PromptInputHost: View {
   /// The `session/new` result with the one command `plan`.
   static let newSessionWithPlan = #"""
     {"sessionId": "\#(ScriptedSession.sessionID)",
-     "availableCommands": [{"name": "plan", "description": "Make a plan"}]}
+     "availableCommands": [{"type": "command", "name": "plan", "description": "Make a plan"}]}
     """#
 
   /// Shows a composer over the session model of a scripted session.
@@ -167,7 +167,8 @@ struct PromptInputHost: View {
     let model = PromptInputHostedTestModel(text: Self.message)
     let harness = HostedViewHarness(size: Self.composerSize) {
       PromptInputView(text: Bindable(model).text, onSubmit: {}) { context in
-        Button((context.commands ?? []).map(\.name).joined()) { context.onSubmit() }
+        let names = (context.commands ?? []).compactMap(SlashCommandSource.command(of:)).map(\.name)
+        Button(names.joined()) { context.onSubmit() }
           .accessibilityIdentifier("custom-editor")
       }
       .environment(\.sessionModel, session.model)

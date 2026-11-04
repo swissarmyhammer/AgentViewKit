@@ -23,7 +23,7 @@ import Testing
   static let windowSize = CGSize(width: 480, height: 480)
 
   /// The number of verbs of the kit.
-  static let verbCount = 13
+  static let verbCount = AgentCommandVerb.allCases.count
 
   /// The JSON-RPC id of the permission request that the scripted agent sends.
   static let agentRequestID = 100
@@ -192,7 +192,7 @@ import Testing
   /// The scope is the root of the window, so EditorKit also registers the
   /// window undo commands there. The test counts the commands of the kit
   /// apart from them.
-  @Test func aMountedSessionThreadViewRegistersTheThirteenCommands() async throws {
+  @Test func aMountedSessionThreadViewRegistersEachVerbOfTheKit() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let system = CommandSystem()
