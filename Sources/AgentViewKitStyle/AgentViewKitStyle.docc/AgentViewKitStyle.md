@@ -13,6 +13,11 @@ The library links EditorKit only. Its dependency closure holds no ACP
 package, no Textual and no math engine, so a view kit that must not link ACP
 links it.
 
+The inspector of the view kits is EditorKit's `EditorInspector`: the
+`Inspectable` protocol, `InspectorView`, the grouped `InspectorForm`, the
+`InspectorActionRow` and `.inspectorPreviewFrame()`. The library keeps no
+copy of them, and a view kit imports `EditorInspector` itself.
+
 A view of the library takes the behaviour of a kit through a style protocol
 of the environment, in the shape of `ButtonStyle`. AgentViewKit gives the
 button of a ``StatusBar`` the focus scope of a bar control with
@@ -53,9 +58,6 @@ inspector of its file with ``SwiftUI/View/toolCallLocationChipStyle(_:)``.
 
 ### Rows
 
-- ``InspectorForm``
-- ``SwiftUI/View/inspectorPreviewFrame()``
-- ``InspectorActionRow``
 - ``CompletionRow``
 
 ### Chips

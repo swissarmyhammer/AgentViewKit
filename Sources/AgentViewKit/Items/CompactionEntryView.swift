@@ -72,7 +72,7 @@ public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
   /// - Returns: The name of the status. The status of an entry with no
   ///   `compaction_update` gives "No status yet", and a status that the kit
   ///   does not know gives its wire value.
-  private static func statusLabel(for status: CompactionStatus) -> String {
+  static func statusLabel(for status: CompactionStatus) -> String {
     switch status {
     case .inProgress: WorkStatusLabel.inProgress
     case .completed: WorkStatusLabel.completed

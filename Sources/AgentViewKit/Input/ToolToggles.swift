@@ -1,3 +1,5 @@
+import EditorInspector
+import Observation
 import SwiftUI
 
 /// The identifier of a ``ToolToggle`` in the host list of a ``ToolToggles``.
@@ -30,7 +32,11 @@ public nonisolated struct ToolToggle: Sendable, Hashable, Identifiable {
 /// The toggles that turn the tools of the agent on and off (plan.md §9 D).
 ///
 /// ``Style/menu`` shows the toggles in a menu for the composer accessory.
-/// ``Style/list`` shows them in a form, for a sheet or a popover.
+/// ``Style/list`` shows them as the content of an inspector, a sheet or a
+/// popover: an EditorKit `InspectorView` of the list, with one toggle row for
+/// each tool. Its rows take EditorKit's accessibility identifiers:
+/// ``listIdentifier``, the group and the id of the tool, such as
+/// `tool-toggles.tools.search`.
 ///
 /// The view shows a host list of tools. A toggle calls the host closure with
 /// the tool identifier and the new value. The host updates the list. The
@@ -46,17 +52,23 @@ public struct ToolToggles: View {
     /// menu.
     case menu
 
-    /// A form that shows each toggle in place.
+    /// The content of an inspector: an EditorKit `InspectorView` with one
+    /// toggle row for each tool.
     case list
   }
 
   /// The accessibility identifier of the menu button of ``Style/menu``.
   public static let menuIdentifier = "tool-toggles-menu"
 
-  /// The accessibility identifier of the form of ``Style/list``.
+  /// The identifier of the `InspectorView` of ``Style/list``: the first
+  /// part of the accessibility identifier of each of its rows.
   public static let listIdentifier = "tool-toggles"
 
-  /// The start of the accessibility identifier of each toggle.
+  /// The identifier of the group of the rows of ``Style/list``.
+  static let groupIdentifier = "tools"
+
+  /// The start of the accessibility identifier of each toggle of the menu of
+  /// ``Style/menu``.
   public static let toggleIdentifierPrefix = "tool-toggle-"
 
   /// The SF Symbol of the menu button.
@@ -71,6 +83,9 @@ public struct ToolToggles: View {
   /// The host closure that a toggle calls.
   let onToggle: OnToggle
 
+  /// The list that the rows of ``Style/list`` read, which follows ``tools``.
+  @State private var list: ToolToggleList
+
   /// Makes the view for a host list of tools.
   ///
   /// - Parameters:
@@ -82,9 +97,11 @@ public struct ToolToggles: View {
     self.tools = tools
     self.style = style
     self.onToggle = onToggle
+    _list = State(initialValue: ToolToggleList(tools: tools))
   }
 
-  /// The accessibility identifier of the toggle of a tool.
+  /// The accessibility identifier of the toggle of a tool in the menu of
+  /// ``Style/menu``.
   ///
   /// - Parameter tool: The identifier of the tool.
   /// - Returns: `tool-toggle-<tool>`.
@@ -104,16 +121,33 @@ public struct ToolToggles: View {
         .help(String(localized: "Turn tools on or off", bundle: .module))
         .accessibilityIdentifier(Self.menuIdentifier)
       case .list:
-        Form {
-          toolSection
-        }
-        .formStyle(.grouped)
-        .accessibilityIdentifier(Self.listIdentifier)
+        InspectorView(list, Self.inspection(of: tools, onToggle: onToggle), id: Self.listIdentifier)
+          .onChange(of: tools) { list.tools = tools }
       }
     }
   }
 
-  /// One section with a toggle for each tool.
+  /// The inspection of ``Style/list``: one group with a toggle row for each
+  /// tool of `tools`, whose edit calls `onToggle`.
+  ///
+  /// - Parameters:
+  ///   - tools: The tools, in the order to show.
+  ///   - onToggle: The host closure that a toggle calls.
+  /// - Returns: The inspection.
+  private static func inspection(of tools: [ToolToggle], onToggle: @escaping OnToggle) -> Inspection<ToolToggleList> {
+    Inspection(title: String(localized: "Tools", bundle: .module)) {
+      FieldGroup(String(localized: "Available", bundle: .module)) {
+        for tool in tools {
+          Field(tool.name) { list in list.isEnabled(tool.id) }
+            .editing { _, isEnabled in onToggle(tool.id, isEnabled) }
+            .identifier(tool.id.rawValue)
+        }
+      }
+      .identifier(groupIdentifier)
+    }
+  }
+
+  /// One section of the menu with a toggle for each tool.
   private var toolSection: some View {
     Section {
       ForEach(tools) { tool in
@@ -137,6 +171,33 @@ public struct ToolToggles: View {
       get: { tool.isEnabled },
       set: { isEnabled in onToggle(tool.id, isEnabled) }
     )
+  }
+}
+
+/// The host list of a ``ToolToggles`` in the ``ToolToggles/Style/list``
+/// style, as the object of its `InspectorView`.
+///
+/// The view writes the host list here each time it changes, so the rows read
+/// the state of each tool when they draw.
+@Observable
+final class ToolToggleList {
+  /// The host list, in the order to show.
+  var tools: [ToolToggle]
+
+  /// Makes the list of `tools`.
+  ///
+  /// - Parameter tools: The host list.
+  init(tools: [ToolToggle]) {
+    self.tools = tools
+  }
+
+  /// Whether the agent can use a tool.
+  ///
+  /// - Parameter id: The identifier of the tool.
+  /// - Returns: The state of the tool, or `false` when the list has no tool
+  ///   with the identifier.
+  func isEnabled(_ id: ToolToggleID) -> Bool {
+    tools.first { $0.id == id }?.isEnabled ?? false
   }
 }
 

@@ -26,13 +26,14 @@ SHARED_SOURCES = %w[../../Sources/AgentViewKitDemoSupport].freeze
 # agent of the ACP tab and of the Gallery tab, which runs in the app process. The app also
 # imports the EditorKit theme modules `EditorSwiftUI`, `EditorTheme` and `EditorStyle`, to set
 # the theme and the shared style of the kit views, and the EditorKit command modules `EditorCommands` and `EditorCommandsUI`,
-# to mirror the agent commands into the menu bar with `EditorMenuCommands`.
+# to mirror the agent commands into the menu bar with `EditorMenuCommands`, and the EditorKit
+# inspector module `EditorInspector`, to place the config options in the settings sheet.
 # `Package.swift` depends on the same packages, so the build uses one copy of each.
 REMOTE_PACKAGES = {
   'git@github.com:swissarmyhammer/FoundationModelsACP.git' => %w[FoundationModelsACP],
   'git@github.com:swissarmyhammer/FoundationModelsACPClient.git' => %w[FoundationModelsACPClient],
   'git@github.com:swissarmyhammer/FoundationModelsACPAgent.git' => %w[FoundationModelsACPAgent],
-  'git@github.com:swissarmyhammer/EditorKit.git' => %w[EditorSwiftUI EditorTheme EditorStyle EditorCommands EditorCommandsUI]
+  'git@github.com:swissarmyhammer/EditorKit.git' => %w[EditorSwiftUI EditorTheme EditorStyle EditorCommands EditorCommandsUI EditorInspector]
 }.freeze
 
 # The directories that the app bundle holds as they are. `RecordedSessions` holds the recorded

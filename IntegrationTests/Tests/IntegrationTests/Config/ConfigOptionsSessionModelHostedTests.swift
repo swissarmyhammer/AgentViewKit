@@ -19,6 +19,13 @@ import Testing
 /// that the agent got. The test waits for the frame, or for the model value
 /// that a frame of the agent is certain to change, and then makes one render
 /// pass before it reads the view.
+///
+/// The form style is an EditorKit `InspectorView`, so the tests read and press
+/// its rows by EditorKit's accessibility identifiers (``row(_:_:)``). A test
+/// reads the choice of a picker row from its accessibility value. The harness
+/// cannot choose an item of a SwiftUI pop-up, so a change goes through the
+/// toggle row; the choice tests wait for EditorKit's `InspectorDriver`
+/// (^eghwsfh), which also replaces the row reads when its final SHA lands.
 @Suite(.serialized, .hostedSerially) @MainActor struct ConfigOptionsSessionModelHostedTests {
   /// A size that shows the full form.
   static let size = CGSize(width: 480, height: 600)
@@ -130,17 +137,56 @@ import Testing
     return harness
   }
 
-  /// The accessibility value of a choice of a select option.
+  /// The text of the choice `Fast One` of the model option.
+  static let fastChoice = "Fast One (Fast Models)"
+
+  /// The EditorKit accessibility identifier of the row of an option in the
+  /// form: the view, the category section and the option.
   ///
   /// - Parameters:
-  ///   - value: The value id of the choice.
+  ///   - section: The id of the category section, such as `model`.
   ///   - id: The id of the option.
+  /// - Returns: The identifier, such as `config-options.model.model`.
+  static func row(_ section: String, _ id: SessionConfigId) -> String {
+    [ConfigOptionsView.viewIdentifier, section, id.rawValue].joined(separator: ".")
+  }
+
+  /// The name row of the form, which EditorKit adds above the rows.
+  static let nameRow = ConfigOptionsView.viewIdentifier + ".name"
+
+  /// The row of the model option.
+  static let modelRow = row("model", modelID)
+
+  /// The row of the mode option.
+  static let modeRow = row("mode", modeID)
+
+  /// The row of the web search option.
+  static let webRow = row(ConfigOptionsView.uncategorizedSectionID, webID)
+
+  /// The choice that the picker row of `identifier` shows, or the state of
+  /// its toggle row: `1` on and `0` off.
+  ///
+  /// - Parameters:
+  ///   - identifier: The identifier of the row.
   ///   - harness: The harness of the view.
-  /// - Returns: `"1"` for the selected choice, `"0"` for another choice.
-  static func choiceValue(
-    _ value: String, of id: SessionConfigId, in harness: HostedViewHarness<some View>
-  ) -> String? {
-    harness.element(identifier: ConfigOptionsView.choiceIdentifier(for: id, value: value))?.value
+  /// - Returns: The accessibility value of the row, or `nil` when no row has
+  ///   the identifier.
+  static func rowValue(_ identifier: String, in harness: HostedViewHarness<some View>) -> String? {
+    harness.element(identifier: identifier)?.value
+  }
+
+  /// Presses the toggle row of the web search option, and waits for the
+  /// request that the commit of the row starts.
+  ///
+  /// - Parameters:
+  ///   - harness: The harness of the view.
+  ///   - starts: The recorder of the request starts.
+  /// - Throws: When the row is not there or does not press.
+  static func pressWebSearch(in harness: HostedViewHarness<some View>, starts: ReportRecorder<String>) async throws {
+    try harness.press(identifier: webRow)
+    // The row commits in a task of its own, which starts the request.
+    await ObservationWait.until { !starts.values.isEmpty }
+    try #require(starts.values == [setMethod])
   }
 
   /// The `params` of each set-config-option frame that the agent got.
@@ -191,7 +237,7 @@ import Testing
     defer { harness.close() }
 
     #expect(session.model.configOptions == nil)
-    #expect(harness.element(identifier: ConfigOptionsView.viewIdentifier) == nil)
+    #expect(harness.element(identifier: Self.webRow) == nil)
     #expect(harness.element(identifier: PermissionModePicker.pickerIdentifier) == nil)
   }
 
@@ -201,44 +247,36 @@ import Testing
     let harness = Self.mount(session: session)
     defer { harness.close() }
     let model = session.model
-    #expect(harness.element(identifier: ConfigOptionsView.viewIdentifier) != nil)
+    #expect(harness.element(identifier: Self.webRow) != nil)
 
     try await session.sendUpdate(Self.configUpdate(options: []))
     await harness.render { model.configOptions?.isEmpty == true }
 
-    #expect(harness.element(identifier: ConfigOptionsView.viewIdentifier) == nil)
+    #expect(harness.element(identifier: Self.webRow) == nil)
     #expect(harness.element(identifier: PermissionModePicker.pickerIdentifier) == nil)
   }
 
   // MARK: - Form
 
-  @Test func theFormShowsTheCategorySectionsInOrder() async throws {
+  @Test func theFormShowsOneRowForEachOptionInTheCategoryOrder() async throws {
     let session = try await Self.openSession()
     defer { session.close() }
     let harness = Self.mount(session: session)
     defer { harness.close() }
 
-    let headers = harness.accessibilityElements().compactMap(\.identifier).filter {
-      $0.hasPrefix(ConfigOptionsView.sectionIdentifierPrefix)
+    let rows = harness.accessibilityElements().compactMap(\.identifier).filter {
+      $0.hasPrefix(ConfigOptionsView.viewIdentifier + ".") && $0 != Self.nameRow
     }
-    #expect(headers == ["config-section-mode", "config-section-model", "config-section-uncategorized"])
-    #expect(harness.element(identifier: "config-section-model")?.label == "Model")
+    #expect(rows == [Self.modeRow, Self.modelRow, Self.webRow])
   }
 
-  @Test func aSelectWithGroupsShowsASectionForEachGroupName() async throws {
+  @Test func aSelectWithGroupsNamesTheGroupOfItsChoice() async throws {
     let session = try await Self.openSession()
     defer { session.close() }
     let harness = Self.mount(session: session)
     defer { harness.close() }
 
-    let elements = harness.accessibilityElements()
-    for (groupID, name) in [("fast", "Fast Models"), ("deep", "Deep Models")] {
-      let identifier = ConfigOptionsView.groupIdentifier(for: Self.modelID, groupID: groupID)
-      let index = try #require(elements.firstIndex { $0.identifier == identifier })
-      #expect(elements[index + 1].label == name, "The group \(groupID) has no header.")
-    }
-    #expect(Self.choiceValue("fast-1", of: Self.modelID, in: harness) == Self.selected)
-    #expect(Self.choiceValue("deep-1", of: Self.modelID, in: harness) == Self.notSelected)
+    #expect(Self.rowValue(Self.modelRow, in: harness) == Self.fastChoice)
   }
 
   // MARK: - Set config option
@@ -247,9 +285,8 @@ import Testing
   /// value that it reports. The report changes the options of the model, so
   /// the test waits for that change, and then renders the view.
   @Test func aChangeSendsSetConfigOptionAndTheViewShowsTheValueThatTheModelReports() async throws {
-    let reported = Self.modelOption.replacingOccurrences(
-      of: #""currentValue": "fast-1""#, with: #""currentValue": "deep-1""#)
-    let reportedFrame = try Self.configUpdateFrame(options: [reported, Self.webOption, Self.modeOption(current: "ask")])
+    let reported = Self.webOption.replacingOccurrences(of: #""currentValue": false"#, with: #""currentValue": true"#)
+    let reportedFrame = try Self.configUpdateFrame(options: [Self.modelOption, reported, Self.modeOption(current: "ask")])
     let session = try await Self.openSession { agent in
       agent.heldMethods = [Self.setMethod]
       agent.followUps[Self.setMethod] = { _, _ in [reportedFrame] }
@@ -260,69 +297,21 @@ import Testing
     defer { harness.close() }
     let model = session.model
 
-    try harness.press(identifier: ConfigOptionsView.choiceIdentifier(for: Self.modelID, value: "deep-1"))
-    // The choice starts the set request in the same step as the press, so a
-    // press that started nothing stops the test here.
-    try #require(starts.values == [Self.setMethod])
+    try await Self.pressWebSearch(in: harness, starts: starts)
     await harness.render { !Self.setParams(in: session).isEmpty }
 
     let params = try #require(Self.setParams(in: session).first)
     #expect(params["sessionId"]?.stringValue == ScriptedSession.sessionID)
-    #expect(params["configId"]?.stringValue == "model")
-    #expect(params["type"]?.stringValue == "id")
-    #expect(params["value"]?.stringValue == "deep-1")
-    #expect(Self.choiceValue("fast-1", of: Self.modelID, in: harness) == Self.selected)
+    #expect(params["configId"]?.stringValue == "web")
+    #expect(params["type"]?.stringValue == "boolean")
+    #expect(params["value"] == .bool(true))
+    #expect(Self.rowValue(Self.webRow, in: harness) == Self.notSelected)
 
     let optionsBefore = model.configOptions
     session.agent.releaseHeldAnswer()
     await harness.render { model.configOptions != optionsBefore }
 
-    #expect(Self.choiceValue("deep-1", of: Self.modelID, in: harness) == Self.selected)
-    #expect(Self.choiceValue("fast-1", of: Self.modelID, in: harness) == Self.notSelected)
-  }
-
-  @Test func changingAToggleSendsABooleanValue() async throws {
-    let session = try await Self.openSession()
-    defer { session.close() }
-    let starts = ReportRecorder<String>()
-    let harness = Self.mount(session: session, requestStartReport: starts.report)
-    defer { harness.close() }
-
-    try harness.press(identifier: ConfigOptionsView.controlIdentifier(for: Self.webID))
-    // The toggle starts the set request in the same step as the press, so a
-    // press that started nothing stops the test here.
-    try #require(starts.values == [Self.setMethod])
-    await ObservationWait.until { !Self.setParams(in: session).isEmpty }
-
-    let params = try #require(Self.setParams(in: session).first)
-    #expect(params["configId"]?.stringValue == "web")
-    #expect(params["type"]?.stringValue == "boolean")
-    #expect(params["value"] == .bool(true))
-  }
-
-  /// The press of the current value sends nothing. To know that no frame
-  /// comes later, the test then presses a new value of another option as a
-  /// fence: the frames go to the agent in order, so when the frame of the
-  /// fence is there, a frame of the first press is there too. The test then
-  /// checks that the fence frame is the only frame.
-  @Test func selectingTheCurrentValueSendsNothing() async throws {
-    let session = try await Self.openSession()
-    defer { session.close() }
-    let starts = ReportRecorder<String>()
-    let harness = Self.mount(session: session, requestStartReport: starts.report)
-    defer { harness.close() }
-
-    try harness.press(identifier: ConfigOptionsView.choiceIdentifier(for: Self.modeID, value: "ask"))
-    // The press of the current value starts no request, so a press that
-    // started a request stops the test here.
-    try #require(starts.values.isEmpty)
-    try harness.press(identifier: ConfigOptionsView.choiceIdentifier(for: Self.modelID, value: "deep-1"))
-    // The fence choice starts the set request in the same step as the press,
-    // so a press that started nothing stops the test here.
-    try #require(starts.values == [Self.setMethod])
-    await ObservationWait.until { !Self.setParams(in: session).isEmpty }
-
-    #expect(Self.setParams(in: session).map { $0["configId"]?.stringValue } == ["model"])
+    #expect(Self.rowValue(Self.webRow, in: harness) == Self.selected)
   }
 
   /// The test does not press a segment. A press on an AppKit segmented
@@ -351,15 +340,11 @@ import Testing
     defer { harness.close() }
     let model = session.model
 
-    try harness.press(identifier: ConfigOptionsView.choiceIdentifier(for: Self.modelID, value: "deep-1"))
-    // The choice starts the set request in the same step as the press, so a
-    // press that started nothing stops the test here.
-    try #require(starts.values == [Self.setMethod])
+    try await Self.pressWebSearch(in: harness, starts: starts)
     await harness.render { TranscriptChecks.hasErrorEntry(model) }
 
     #expect(TranscriptChecks.hasErrorEntry(model))
-    #expect(Self.choiceValue("fast-1", of: Self.modelID, in: harness) == Self.selected)
-    #expect(Self.choiceValue("deep-1", of: Self.modelID, in: harness) == Self.notSelected)
+    #expect(Self.rowValue(Self.webRow, in: harness) == Self.notSelected)
   }
 
   // MARK: - Agent updates
@@ -379,7 +364,7 @@ import Testing
     await harness.render { model.configOptions != optionsBefore }
 
     #expect(harness.element(identifier: autoSegment)?.value == Self.selected)
-    #expect(Self.choiceValue("auto", of: Self.modeID, in: harness) == Self.selected)
+    #expect(Self.rowValue(Self.modeRow, in: harness) == "Auto")
   }
 
   // MARK: - Menu
@@ -394,7 +379,7 @@ import Testing
     harness.render()
 
     #expect(harness.element(identifier: ConfigOptionsView.menuIdentifier) != nil)
-    #expect(harness.element(identifier: ConfigOptionsView.controlIdentifier(for: Self.webID)) == nil)
+    #expect(harness.element(identifier: Self.webRow) == nil)
   }
 
   // MARK: - Permission mode

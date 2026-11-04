@@ -1,4 +1,5 @@
 import AgentViewKit
+import EditorInspector
 import EditorStyle
 import FoundationModelsACPClient
 import SwiftUI
@@ -52,7 +53,11 @@ struct ACPSettingsSheet: View {
             }
           }
           GroupBox("Session") {
+            // The sheet scrolls, and the group box names the options, so
+            // the inspector rows neither scroll nor show a header.
             ConfigOptionsView(session: session, style: .form)
+              .inspectorScrolling(.host)
+              .inspectorBlockHeader(.hidden)
           }
         }
         .padding()

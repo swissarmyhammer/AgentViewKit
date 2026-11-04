@@ -52,6 +52,7 @@
       try await glass.theComposerWhileTheAgentRuns()
       try await glass.theRequestDeckInTheBar()
       try await glass.theFloatingControlsOfTheThread()
+      try await InspectorGallery.record(in: gallery)
     }
 
     @Test func thePageShowsEachKeyScreenAndEachRecordedSnapshot() async throws {

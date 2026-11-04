@@ -67,6 +67,10 @@ let editorKitProducts: [Target.Dependency] = [
   // floating glass and the status and priority symbols (KanbanViewKit
   // plan.md §5.1, decision 18).
   .product(name: "EditorStyle", package: "EditorKit"),
+  // The inspector: `Inspectable`, `InspectorView` and its field kinds. Each
+  // inspector of the kit is an `InspectorView`, and the client models
+  // conform to `Inspectable` (`Sources/AgentViewKit/Inspection/`).
+  .product(name: "EditorInspector", package: "EditorKit"),
 ]
 
 /// The EditorKit products that the style target links: the shared style and

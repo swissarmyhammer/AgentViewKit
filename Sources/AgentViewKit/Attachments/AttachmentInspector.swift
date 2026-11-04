@@ -1,3 +1,4 @@
+import EditorInspector
 import Observation
 import Quartz
 import SwiftUI

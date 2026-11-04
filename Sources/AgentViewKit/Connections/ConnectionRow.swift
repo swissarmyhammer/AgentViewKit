@@ -75,7 +75,7 @@ public struct ConnectionRow: View {
   ///
   /// - Parameter transport: The transport of the server.
   /// - Returns: `stdio` or `HTTP`.
-  private static func label(for transport: MCPServerTransport) -> String {
+  static func label(for transport: MCPServerTransport) -> String {
     switch transport {
     case .stdio: "stdio"
     case .http: "HTTP"

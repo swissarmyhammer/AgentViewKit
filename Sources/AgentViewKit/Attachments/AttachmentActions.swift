@@ -1,3 +1,4 @@
+import EditorInspector
 import EditorStyle
 import OSLog
 import SwiftUI

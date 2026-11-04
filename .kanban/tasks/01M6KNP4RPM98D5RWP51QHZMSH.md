@@ -1,6 +1,11 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m6kqq7e1cd5z8wtdp4h3aw22
+  text: 'Sequencing (snapshotviewkit-45, 2026-11-04): SVK''s ChangesInspector imports AgentViewKitStyle for `SharedSymbol.changes` in its empty state. Before this card removes the SharedSymbol mapping, SVK has to move to EK''s symbols. Ask snapshotviewkit-45 for that SHA and push the removal only after it (no shims).'
+  timestamp: 2026-11-04T16:54:18.817953+00:00
 position_column: todo
 position_ordinal: '8480'
 title: 'Adopt EditorKit symbols (^j0562t1): delete AVK''s Symbols copies'

@@ -491,8 +491,8 @@
 
     /// The client gives the text of a connection that closes before the
     /// answer. The test reads that text from `RequestError(reporting:)` of the
-    /// client, and does not copy it. The test presses a config choice to send
-    /// the kit request.
+    /// client, and does not copy it. The test presses the web search toggle of
+    /// the config form to send the kit request.
     @Test func aConnectionThatClosesBeforeTheAnswerShowsTheClientTextInTheErrorRow() async throws {
       let config = ConfigOptionsSessionModelHostedTests.self
       let session = try await config.openSession { $0.heldMethods = [config.setMethod] }
@@ -509,10 +509,7 @@
       let model = session.model
       let clientText = RequestError(reporting: ConnectionError.closed).message
 
-      try harness.press(identifier: ConfigOptionsView.choiceIdentifier(for: config.modelID, value: "deep-1"))
-      // The choice starts the set request in the same step as the press, so a
-      // press that started nothing stops the test here.
-      try #require(starts.values == [config.setMethod])
+      try await config.pressWebSearch(in: harness, starts: starts)
       await ObservationWait.until { !config.setParams(in: session).isEmpty }
       session.close()
       await harness.render { TranscriptChecks.hasErrorEntry(model) }

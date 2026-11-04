@@ -94,7 +94,7 @@ public struct ConnectionStatusChip: View {
   ///
   /// - Parameter status: The status of the server.
   /// - Returns: The name, such as `Not reported`.
-  private static func label(for status: MCPServerStatus) -> String {
+  static func label(for status: MCPServerStatus) -> String {
     switch status {
     case .notReported: String(localized: "Not reported", bundle: .module)
     case .connecting: String(localized: "Connecting", bundle: .module)

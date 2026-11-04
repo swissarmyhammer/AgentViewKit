@@ -11,6 +11,16 @@
         }
       }
     },
+    "%@ (%@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@)"
+          }
+        }
+      }
+    },
     "%@ asks for input" : {
       "localizations" : {
         "en" : {
@@ -77,6 +87,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@, %2$lld more"
+          }
+        }
+      }
+    },
+    "%@: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: %2$@"
           }
         }
       }
@@ -221,6 +241,26 @@
         }
       }
     },
+    "Agent" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent"
+          }
+        }
+      }
+    },
+    "Agent Message" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent Message"
+          }
+        }
+      }
+    },
     "Allow and Switch to Auto Mode" : {
       "localizations" : {
         "en" : {
@@ -311,6 +351,16 @@
         }
       }
     },
+    "Available" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Available"
+          }
+        }
+      }
+    },
     "Cancel" : {
       "localizations" : {
         "en" : {
@@ -351,12 +401,32 @@
         }
       }
     },
+    "Code" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code"
+          }
+        }
+      }
+    },
     "Collapsed" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Collapsed"
+          }
+        }
+      }
+    },
+    "Command" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command"
           }
         }
       }
@@ -391,6 +461,16 @@
         }
       }
     },
+    "Compaction" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compaction"
+          }
+        }
+      }
+    },
     "Completed" : {
       "localizations" : {
         "en" : {
@@ -417,6 +497,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Connecting"
+          }
+        }
+      }
+    },
+    "Connection" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connection"
+          }
+        }
+      }
+    },
+    "Context Size" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Context Size"
+          }
+        }
+      }
+    },
+    "Context Used" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Context Used"
           }
         }
       }
@@ -551,6 +661,16 @@
         }
       }
     },
+    "Disconnected" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disconnected"
+          }
+        }
+      }
+    },
     "Each item must be one of the choices." : {
       "localizations" : {
         "en" : {
@@ -571,6 +691,26 @@
         }
       }
     },
+    "Ended" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ended"
+          }
+        }
+      }
+    },
+    "Entries" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entries"
+          }
+        }
+      }
+    },
     "Error" : {
       "localizations" : {
         "en" : {
@@ -587,6 +727,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Error %1$@: %2$@"
+          }
+        }
+      }
+    },
+    "Exit Status" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exit Status"
           }
         }
       }
@@ -651,6 +801,16 @@
         }
       }
     },
+    "Failed: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed: %@"
+          }
+        }
+      }
+    },
     "Focus Composer" : {
       "localizations" : {
         "en" : {
@@ -667,6 +827,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "From %1$@ to %2$@"
+          }
+        }
+      }
+    },
+    "From Session" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From Session"
           }
         }
       }
@@ -707,6 +877,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "High priority"
+          }
+        }
+      }
+    },
+    "Id" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Id"
           }
         }
       }
@@ -761,12 +941,32 @@
         }
       }
     },
+    "Kind" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kind"
+          }
+        }
+      }
+    },
     "Link" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Link"
+          }
+        }
+      }
+    },
+    "Listed Sessions" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Listed Sessions"
           }
         }
       }
@@ -811,12 +1011,52 @@
         }
       }
     },
+    "MCP Server" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MCP Server"
+          }
+        }
+      }
+    },
+    "MCP Servers" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MCP Servers"
+          }
+        }
+      }
+    },
     "Medium priority" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Medium priority"
+          }
+        }
+      }
+    },
+    "Message" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Message"
+          }
+        }
+      }
+    },
+    "Message Id" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Message Id"
           }
         }
       }
@@ -867,6 +1107,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "More of the path"
+          }
+        }
+      }
+    },
+    "Name" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name"
           }
         }
       }
@@ -1111,6 +1361,16 @@
         }
       }
     },
+    "Open Sessions" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Sessions"
+          }
+        }
+      }
+    },
     "Open in Browser" : {
       "localizations" : {
         "en" : {
@@ -1167,6 +1427,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pending"
+          }
+        }
+      }
+    },
+    "Plan" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plan"
           }
         }
       }
@@ -1541,6 +1811,16 @@
         }
       }
     },
+    "Send State" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send State"
+          }
+        }
+      }
+    },
     "Send a message to start the conversation." : {
       "localizations" : {
         "en" : {
@@ -1591,12 +1871,42 @@
         }
       }
     },
+    "Server" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server"
+          }
+        }
+      }
+    },
+    "Session" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Session"
+          }
+        }
+      }
+    },
     "Session List Not Available" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Session List Not Available"
+          }
+        }
+      }
+    },
+    "Session Message" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Session Message"
           }
         }
       }
@@ -1831,6 +2141,16 @@
         }
       }
     },
+    "Started" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Started"
+          }
+        }
+      }
+    },
     "Started at %@" : {
       "localizations" : {
         "en" : {
@@ -1847,6 +2167,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Started at %1$@, took %2$@"
+          }
+        }
+      }
+    },
+    "State" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "State"
+          }
+        }
+      }
+    },
+    "Status" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status"
+          }
+        }
+      }
+    },
+    "Steps" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steps"
           }
         }
       }
@@ -1891,6 +2241,16 @@
         }
       }
     },
+    "Subagents" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subagents"
+          }
+        }
+      }
+    },
     "Submit" : {
       "localizations" : {
         "en" : {
@@ -1907,6 +2267,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Succeeded"
+          }
+        }
+      }
+    },
+    "Summary" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Summary"
           }
         }
       }
@@ -1957,6 +2327,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Terminal, %@"
+          }
+        }
+      }
+    },
+    "Text" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text"
           }
         }
       }
@@ -2881,6 +3261,56 @@
         }
       }
     },
+    "Time" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time"
+          }
+        }
+      }
+    },
+    "Title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Title"
+          }
+        }
+      }
+    },
+    "To Session" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To Session"
+          }
+        }
+      }
+    },
+    "Tool" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tool"
+          }
+        }
+      }
+    },
+    "Tool Call" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tool Call"
+          }
+        }
+      }
+    },
     "Tool call" : {
       "localizations" : {
         "en" : {
@@ -2921,12 +3351,32 @@
         }
       }
     },
+    "Transport" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transport"
+          }
+        }
+      }
+    },
     "Turn tools on or off" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Turn tools on or off"
+          }
+        }
+      }
+    },
+    "Type" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type"
           }
         }
       }
@@ -2947,6 +3397,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Unknown"
+          }
+        }
+      }
+    },
+    "Unknown Update" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown Update"
           }
         }
       }
@@ -3001,6 +3461,16 @@
         }
       }
     },
+    "Update" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update"
+          }
+        }
+      }
+    },
     "Usage" : {
       "localizations" : {
         "en" : {
@@ -3027,6 +3497,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "User"
+          }
+        }
+      }
+    },
+    "User Message" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "User Message"
           }
         }
       }
