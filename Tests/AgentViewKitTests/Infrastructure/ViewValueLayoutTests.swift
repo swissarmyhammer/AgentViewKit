@@ -20,7 +20,9 @@ import Testing
   /// ``ToolCallBody`` holds the shared style of the EditorKit `EditorStyle`
   /// target as a value, so the style must have no padding byte either.
   @Test func theStyleHasNoPaddingByte() {
-    StoredLayout<EditorStyle>(\.spacing, \.radii, \.tile, \.chip, \.symbolWeight, \.density).expectNoPaddingByte()
+    StoredLayout<EditorStyle>(
+      \.spacing, \.radii, \.tile, \.chip, \.previewHeight, \.symbolWeight, \.density
+    ).expectNoPaddingByte()
   }
 
   @Test func theTileTokensHaveNoPaddingByte() {
