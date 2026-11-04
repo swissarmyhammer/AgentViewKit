@@ -459,7 +459,7 @@ private struct ToolCallHeader: View {
 
   /// The status symbol, with the symbol effects of the row. The live symbol
   /// effect of a pending or running call shows that the call is live, so the
-  /// row shows no separate spinner. ``View/liveSymbolEffect(isActive:)`` comes
+  /// row shows no separate spinner. EditorKit's `liveSymbolEffect(isActive:)` comes
   /// last, so under Reduce Motion it also removes the bounce.
   private var statusGlyph: some View {
     let status = entry.shownStatus

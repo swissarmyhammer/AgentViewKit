@@ -12,13 +12,10 @@ import Testing
 /// `InspectorView`, in a real window.
 ///
 /// Each test inspects one model and reads one row by its EditorKit
-/// accessibility identifier: the view, the group and the field. A live test
-/// sends a `session/update` from the scripted agent, waits for the model
-/// value that the update is certain to change, and reads the row again.
-///
-/// The rows are read through the hosted harness. EditorKit's
-/// `InspectorDriver` (^eghwsfh) replaces ``rowValue(_:in:)`` when its final
-/// SHA lands, and the ids then take its path scheme.
+/// accessibility identifier (``row(_:_:of:)``): the view, the object, the
+/// group and the field. A live test sends a `session/update` from the
+/// scripted agent, waits for the model value that the update is certain to
+/// change, and reads the row again.
 @Suite(.serialized, .hostedSerially) @MainActor struct ClientModelInspectionHostedTests {
   /// The width of the window: about the width of an inspector column, in
   /// points.
@@ -47,6 +44,21 @@ import Testing
     let harness = HostedViewHarness(InspectorView(object), size: size)
     harness.render()
     return harness
+  }
+
+  /// The EditorKit accessibility identifier of a row of the inspector of
+  /// `object`, which ``mount(_:)`` shows under the id of its inspection.
+  ///
+  /// - Parameters:
+  ///   - group: The group part of the row, such as `tool-call`.
+  ///   - field: The field part of the row, such as `title`.
+  ///   - object: The inspected model.
+  /// - Returns: The identifier, such as
+  ///   `inspection:<inspection>/object:<object>/field:tool-call.title`.
+  static func row<Object: Inspectable>(_ group: String, _ field: String, of object: Object) -> String {
+    let view = Object.inspection.id
+    return InspectorScheme.rowIdentifier(
+      view: view, object: InspectorScheme.objectID(of: [object], key: view), group: group, field: field)
   }
 
   /// The accessibility value of the row of `identifier`.
@@ -83,7 +95,7 @@ import Testing
     let entry = try await Self.entry(ToolCallEntry.self, in: session)
     let harness = Self.mount(entry)
     defer { harness.close() }
-    let row = "tool-call.tool-call.title"
+    let row = Self.row("tool-call", "title", of: entry)
     #expect(Self.rowValue(row, in: harness) == "Read")
 
     try await session.sendUpdate(
@@ -101,14 +113,14 @@ import Testing
     let entry = try await Self.entry(TerminalEntry.self, in: session)
     let harness = Self.mount(entry)
     defer { harness.close() }
-    #expect(Self.rowValue("terminal.terminal.command", in: harness) == "ls")
+    #expect(Self.rowValue(Self.row("terminal", "command", of: entry), in: harness) == "ls")
 
     try await session.sendUpdate(
       #"{"sessionUpdate": "terminal_update", "terminalId": "\#(Self.terminalID)", "exitStatus": {"exitCode": 0}}"#)
     await harness.render { entry.exitStatus != nil }
 
     #expect(
-      Self.rowValue("terminal.terminal.exit-status", in: harness)
+      Self.rowValue(Self.row("terminal", "exit-status", of: entry), in: harness)
         == TerminalView.ExitSummary(code: 0, signal: nil).label)
   }
 
@@ -120,7 +132,7 @@ import Testing
     let entry = try await Self.entry(AgentMessageEntry.self, in: session)
     let harness = Self.mount(entry)
     defer { harness.close() }
-    let row = "agent-message.message.text"
+    let row = Self.row("message", "text", of: entry)
     #expect(Self.rowValue(row, in: harness) == "Hello")
 
     try await session.sendUpdate(
@@ -143,7 +155,7 @@ import Testing
       WireBlockJSON.makeChunk("agent_thought_chunk", messageID: Self.messageID, block: WireBlockJSON.makeText("ing")))
     await harness.render { InspectionText.text(of: entry.content) == "Thinking" }
 
-    #expect(Self.rowValue("thought.message.text", in: harness) == "Thinking")
+    #expect(Self.rowValue(Self.row("message", "text", of: entry), in: harness) == "Thinking")
   }
 
   @Test func theStepsRowOfAPlanFollowsItsSteps() async throws {
@@ -157,7 +169,7 @@ import Testing
     try await session.sendUpdate(Self.planUpdate(status: "completed"))
     await harness.render { entry.entries.first?.status == .completed }
 
-    #expect(Self.rowValue("plan.plan.steps", in: harness) == "\(WorkStatusLabel.completed): Read")
+    #expect(Self.rowValue(Self.row("plan", "steps", of: entry), in: harness) == "\(WorkStatusLabel.completed): Read")
   }
 
   @Test func theContextRowOfASessionFollowsItsUsage() async throws {
@@ -166,7 +178,7 @@ import Testing
     let model = session.model
     let harness = Self.mount(model)
     defer { harness.close() }
-    let row = "session.agent.context-used"
+    let row = Self.row("agent", "context-used", of: model)
     #expect(Self.rowValue(row, in: harness) == EditorInspectorStrings.noValue)
 
     try await session.sendUpdate(#"{"sessionUpdate": "usage_update", "used": 48, "size": 200}"#)
@@ -194,7 +206,7 @@ import Testing
     let harness = Self.mount(entry)
     defer { harness.close() }
 
-    #expect(Self.rowValue("error.error.message", in: harness) == "It broke.")
+    #expect(Self.rowValue(Self.row("error", "message", of: entry), in: harness) == "It broke.")
   }
 
   @Test func aUserMessageShowsItsSendState() throws {
@@ -202,7 +214,9 @@ import Testing
     let harness = Self.mount(entry)
     defer { harness.close() }
 
-    #expect(Self.rowValue("user-message.message.send-state", in: harness) == InspectionText.sendState(entry.sendState))
+    #expect(
+      Self.rowValue(Self.row("message", "send-state", of: entry), in: harness)
+        == InspectionText.sendState(entry.sendState))
   }
 
   @Test func aConnectionShowsItsState() {
@@ -211,7 +225,7 @@ import Testing
     defer { harness.close() }
 
     #expect(
-      Self.rowValue("connection.connection.state", in: harness)
+      Self.rowValue(Self.row("connection", "state", of: connection), in: harness)
         == InspectionText.connectionState(connection.state))
   }
 
@@ -221,6 +235,6 @@ import Testing
     let harness = Self.mount(server)
     defer { harness.close() }
 
-    #expect(Self.rowValue("mcp-server.server.transport", in: harness) == ConnectionRow.label(for: transport))
+    #expect(Self.rowValue(Self.row("server", "transport", of: server), in: harness) == ConnectionRow.label(for: transport))
   }
 }

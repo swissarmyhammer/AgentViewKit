@@ -1,3 +1,4 @@
+import EditorSwiftUI
 import Foundation
 import FoundationModelsACP
 import OSLog
@@ -26,6 +27,29 @@ nonisolated enum ConfigSelectChoices: Hashable {
     case .flat(let options): options
     case .grouped(let groups): groups.flatMap(\.options)
     }
+  }
+
+  /// The options of an EditorKit `ChoiceField` that chooses one of the
+  /// values, in the order of ``options``. The option of a value in a group
+  /// stands in the menu section of its group, under the group name.
+  var choiceOptions: [ChoiceOption<SessionConfigValueId>] {
+    switch self {
+    case .flat(let values):
+      values.map { $0.choiceOption() }
+    case .grouped(let groups):
+      groups.flatMap { group in group.options.map { $0.choiceOption(section: group.name) } }
+    }
+  }
+}
+
+nonisolated extension SessionConfigSelectOption {
+  /// The option of an EditorKit `ChoiceField` that chooses this value.
+  ///
+  /// - Parameter section: The header of the menu section that the option
+  ///   stands in, or `nil` for none.
+  /// - Returns: The option, labelled with the name of the value.
+  func choiceOption(section: String? = nil) -> ChoiceOption<SessionConfigValueId> {
+    ChoiceOption(value, label: name, section: section)
   }
 }
 

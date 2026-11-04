@@ -1,4 +1,5 @@
 import EditorInspector
+import EditorSwiftUI
 import Observation
 import SwiftUI
 
@@ -136,9 +137,9 @@ public struct ToolToggles: View {
   /// - Returns: The inspection.
   private static func inspection(of tools: [ToolToggle], onToggle: @escaping OnToggle) -> Inspection<ToolToggleList> {
     Inspection(title: String(localized: "Tools", bundle: .module)) {
-      FieldGroup(String(localized: "Available", bundle: .module)) {
+      FieldGroup(FieldLabel(localized: "Available", bundle: .module)) {
         for tool in tools {
-          Field(tool.name) { list in list.isEnabled(tool.id) }
+          Field(.verbatim(tool.name)) { list in list.isEnabled(tool.id) }
             .editing { _, isEnabled in onToggle(tool.id, isEnabled) }
             .identifier(tool.id.rawValue)
         }
@@ -151,21 +152,29 @@ public struct ToolToggles: View {
   private var toolSection: some View {
     Section {
       ForEach(tools) { tool in
-        // On macOS 27 a switch style has no accessibility label of its own,
-        // and a grouped form makes a switch by default. So the view sets the
-        // check box style, as ConfigOptionsView does.
-        Toggle(tool.name, isOn: binding(for: tool))
-          .toggleStyle(.checkbox)
-          .accessibilityIdentifier(Self.toggleIdentifier(for: tool.id))
+        ToolToggleMenuItem(tool: tool, onToggle: onToggle)
       }
     }
   }
+}
 
-  /// A binding that reads `tool` and writes to the host closure.
-  ///
-  /// - Parameter tool: The tool of the toggle.
-  /// - Returns: The binding of the toggle.
-  private func binding(for tool: ToolToggle) -> Binding<Bool> {
+/// The toggle of one tool in the menu of ``ToolToggles/Style/menu``: an
+/// EditorKit `ToggleField`, a check box on macOS.
+struct ToolToggleMenuItem: View {
+  /// The tool of the toggle.
+  let tool: ToolToggle
+
+  /// The host closure that the toggle calls.
+  let onToggle: ToolToggles.OnToggle
+
+  var body: some View {
+    ToggleField(tool.name, isOn: isEnabled)
+      .accessibilityIdentifier(ToolToggles.toggleIdentifier(for: tool.id))
+  }
+
+  /// A binding that reads ``tool`` and writes to the host closure.
+  private var isEnabled: Binding<Bool> {
+    let tool = tool
     let onToggle = onToggle
     return Binding(
       get: { tool.isEnabled },

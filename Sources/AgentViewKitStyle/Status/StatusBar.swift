@@ -40,7 +40,7 @@ import SwiftUI
 /// the selection and the focus (card ^y2mrfxt).
 ///
 /// The symbol of a message of work that goes on (``Message/isOngoing``)
-/// shows the live symbol effect of ``LiveSymbolEffect``. Under Reduce Motion,
+/// shows EditorKit's live symbol effect (`liveSymbolEffect(isActive:)`). Under Reduce Motion,
 /// the symbol does not move.
 public struct StatusBar: View {
   /// The text that a bar shows.

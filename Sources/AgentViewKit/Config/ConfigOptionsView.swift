@@ -1,6 +1,7 @@
 import EditorCommandsUI
 import EditorInspector
 import EditorStyle
+import EditorSwiftUI
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
@@ -17,9 +18,11 @@ import SwiftUI
 /// The view puts the options in one section for each category, in this
 /// order: mode, model, thought level, model config, then the options with no
 /// category. An option with a category that the kit does not know is in the
-/// last section. A select option shows as a `Picker`. When the choices of the
-/// option are in groups, the picker has one section for each group, with the
-/// group name as its header. A boolean option shows as a `Toggle`. The kit
+/// last section. A select option shows as an EditorKit `ChoiceField`. When
+/// the choices of the option are in groups, the field has one section for
+/// each group, with the group name as its header. A boolean option shows as
+/// an EditorKit `ToggleField`. Each value is a named accessibility action of
+/// its field, the name of the value. The kit
 /// cannot show an option of a type that it does not know, so the view does
 /// not show it.
 ///
@@ -32,8 +35,8 @@ import SwiftUI
 /// ``Style/menu`` shows the sections in a menu for a toolbar.
 /// ``Style/form`` shows the sections as the content of an inspector: an
 /// EditorKit `InspectorView` of the session, with one group for each
-/// category and one row for each option, a picker for a select and a toggle
-/// for a boolean. The view is not `SessionModel.inspection`: the agent names
+/// category and one row for each option, a choice row for a select and a
+/// toggle row for a boolean. The view is not `SessionModel.inspection`: the agent names
 /// the options of each session, and the inspection of a type is the same for
 /// each session, so the form builds its own inspection from the options that
 /// the model holds. The rows take EditorKit's accessibility identifiers:
@@ -66,13 +69,17 @@ public struct ConfigOptionsView: View {
     }
 
     /// The header of the section.
-    public var title: String {
+    public var title: String { label.text }
+
+    /// The header of the section as the name of its inspector group, keyed
+    /// by its source text in each language.
+    var label: FieldLabel {
       switch category {
-      case .mode: String(localized: "Mode", bundle: .module)
-      case .model: String(localized: "Model", bundle: .module)
-      case .thoughtLevel: String(localized: "Thought Level", bundle: .module)
-      case .modelConfig: String(localized: "Model Settings", bundle: .module)
-      case .unknown, nil: String(localized: "Other", bundle: .module)
+      case .mode: FieldLabel(localized: "Mode", bundle: .module)
+      case .model: FieldLabel(localized: "Model", bundle: .module)
+      case .thoughtLevel: FieldLabel(localized: "Thought Level", bundle: .module)
+      case .modelConfig: FieldLabel(localized: "Model Settings", bundle: .module)
+      case .unknown, nil: FieldLabel(localized: "Other", bundle: .module)
       }
     }
   }
@@ -89,10 +96,6 @@ public struct ConfigOptionsView: View {
 
   /// The start of the accessibility identifier of each category section.
   public static let sectionIdentifierPrefix = "config-section-"
-
-  /// The text between the control identifier and the value id in the
-  /// accessibility identifier of a value.
-  public static let choiceIdentifierInfix = "-value-"
 
   /// The ``CategorySection/id`` of the section of options with no category
   /// that the kit knows.
@@ -135,32 +138,6 @@ public struct ConfigOptionsView: View {
   /// - Returns: The identifier, such as `config-option-model`.
   public static func controlIdentifier(for id: SessionConfigId) -> String {
     AccessibilityIdentifier.make(prefix: controlIdentifierPrefix, value: id.rawValue)
-  }
-
-  /// The accessibility identifier of one value of a select option in the
-  /// menu of ``Style/menu``.
-  ///
-  /// - Parameters:
-  ///   - id: The id of the select option.
-  ///   - value: The `value` id of the choice.
-  /// - Returns: The identifier, such as `config-option-model-value-fast-1`.
-  public static func choiceIdentifier(for id: SessionConfigId, value: String) -> String {
-    controlIdentifier(for: id, infix: choiceIdentifierInfix, suffix: value)
-  }
-
-  /// The accessibility identifier of a part of the control of an option.
-  ///
-  /// - Parameters:
-  ///   - id: The id of the option.
-  ///   - infix: The text between the control identifier and `suffix`.
-  ///   - suffix: The id of the part.
-  /// - Returns: The control identifier, then `infix`, then `suffix`.
-  private static func controlIdentifier(
-    for id: SessionConfigId,
-    infix: String,
-    suffix: String
-  ) -> String {
-    controlIdentifier(for: id) + infix + suffix
   }
 
   /// The accessibility identifier of the header of a category section in the
@@ -263,8 +240,8 @@ public struct ConfigOptionsView: View {
 }
 
 /// The control of one ACP `SessionConfigOption` in the menu of
-/// ``ConfigOptionsView/Style/menu``: a menu `Picker` for a select and a
-/// `Toggle` for a boolean.
+/// ``ConfigOptionsView/Style/menu``: an EditorKit `ChoiceField` in the menu
+/// style for a select and a `ToggleField` for a boolean.
 struct ConfigOptionControl: View {
   /// The option to show, as the session model holds it.
   let option: SessionConfigOption
@@ -277,57 +254,26 @@ struct ConfigOptionControl: View {
   @Environment(\.requestStartReport) private var reportRequestStart
 
   var body: some View {
+    control
+      .help(option.description ?? option.name)
+      .accessibilityIdentifier(ConfigOptionsView.controlIdentifier(for: option.configId))
+  }
+
+  /// The field of the type of ``option``.
+  @ViewBuilder private var control: some View {
     switch option.type {
     case .select(let select):
       if let choices = select.choices {
-        picker(current: select.currentValue, choices: choices)
+        ChoiceField(
+          option.name, selection: binding(select.currentValue, send: SetSessionConfigOptionRequest.Value.id),
+          options: choices.choiceOptions
+        )
+        .pickerStyle(.menu)
       }
     case .boolean(let boolean):
-      Toggle(option.name, isOn: binding(boolean.currentValue, send: SetSessionConfigOptionRequest.Value.boolean))
-        .toggleStyle(.checkbox)
-        .help(option.description ?? option.name)
-        .accessibilityIdentifier(ConfigOptionsView.controlIdentifier(for: option.configId))
+      ToggleField(option.name, isOn: binding(boolean.currentValue, send: SetSessionConfigOptionRequest.Value.boolean))
     case .unknown:
       EmptyView()
-    }
-  }
-
-  /// The picker of a select option.
-  ///
-  /// - Parameters:
-  ///   - current: The id of the selected value.
-  ///   - choices: The values that the user can select.
-  /// - Returns: The picker. It has one section for each group of `choices`.
-  @ViewBuilder
-  private func picker(current: SessionConfigValueId, choices: ConfigSelectChoices) -> some View {
-    let selection = binding(current, send: SetSessionConfigOptionRequest.Value.id)
-    Picker(option.name, selection: selection) {
-      switch choices {
-      case .flat(let values):
-        choiceRows(values)
-      case .grouped(let groups):
-        ForEach(groups, id: \.groupId) { group in
-          Section(group.name) {
-            choiceRows(group.options)
-          }
-        }
-      }
-    }
-    .pickerStyle(.menu)
-    .help(option.description ?? option.name)
-    .accessibilityIdentifier(ConfigOptionsView.controlIdentifier(for: option.configId))
-  }
-
-  /// One row for each value, tagged with its value id.
-  ///
-  /// - Parameter values: The values that the user can select.
-  /// - Returns: The rows.
-  private func choiceRows(_ values: [SessionConfigSelectOption]) -> some View {
-    ForEach(values, id: \.value) { value in
-      Text(value.name)
-        .tag(value.value)
-        .accessibilityIdentifier(
-          ConfigOptionsView.choiceIdentifier(for: option.configId, value: value.value.rawValue))
     }
   }
 

@@ -1,6 +1,7 @@
 import AgentViewKitTestSupport
 import AgentViewKitDemoSupport
 import EditorCommandsUI
+import EditorInspector
 import EditorTestSupport
 import FoundationModelsACP
 import FoundationModelsACPClient
@@ -22,10 +23,10 @@ import Testing
 ///
 /// The form style is an EditorKit `InspectorView`, so the tests read and press
 /// its rows by EditorKit's accessibility identifiers (``row(_:_:)``). A test
-/// reads the choice of a picker row from its accessibility value. The harness
-/// cannot choose an item of a SwiftUI pop-up, so a change goes through the
-/// toggle row; the choice tests wait for EditorKit's `InspectorDriver`
-/// (^eghwsfh), which also replaces the row reads when its final SHA lands.
+/// reads the choice of a choice row from its accessibility value. The harness
+/// cannot choose an item of a pop-up or press a segment, so a test chooses a
+/// value through its named accessibility action: each value of an EditorKit
+/// `ChoiceField` is an action named by the value.
 @Suite(.serialized, .hostedSerially) @MainActor struct ConfigOptionsSessionModelHostedTests {
   /// A size that shows the full form.
   static let size = CGSize(width: 480, height: 600)
@@ -137,22 +138,43 @@ import Testing
     return harness
   }
 
-  /// The text of the choice `Fast One` of the model option.
-  static let fastChoice = "Fast One (Fast Models)"
+  /// The name of the value `fast-1` of the model option.
+  static let fastChoice = "Fast One"
+
+  /// The name of the value `deep-1` of the model option.
+  static let deepChoice = "Deep One"
+
+  /// The name of the value `ask` of the mode option.
+  static let askChoice = "Ask"
+
+  /// The name of the value `auto` of the mode option.
+  static let autoChoice = "Auto"
+
+  /// The object id of the block of the form: EditorKit names a block of an
+  /// `Identifiable` object by the description of its id, the `SessionId` of
+  /// the scripted session.
+  static let sessionObject = InspectorScheme.escaped(
+    String(describing: SessionId(rawValue: ScriptedSession.sessionID)))
+
+  /// The EditorKit identifier of the block of the form: the view and the
+  /// session.
+  static let block = InspectorScheme.blockIdentifier(view: ConfigOptionsView.viewIdentifier, object: sessionObject)
 
   /// The EditorKit accessibility identifier of the row of an option in the
-  /// form: the view, the category section and the option.
+  /// form: the view, the session, the category section and the option.
   ///
   /// - Parameters:
   ///   - section: The id of the category section, such as `model`.
   ///   - id: The id of the option.
-  /// - Returns: The identifier, such as `config-options.model.model`.
+  /// - Returns: The identifier, such as
+  ///   `inspection:config-options/object:…/field:model.model`.
   static func row(_ section: String, _ id: SessionConfigId) -> String {
-    [ConfigOptionsView.viewIdentifier, section, id.rawValue].joined(separator: ".")
+    InspectorScheme.rowIdentifier(
+      view: ConfigOptionsView.viewIdentifier, object: sessionObject, group: section, field: id.rawValue)
   }
 
   /// The name row of the form, which EditorKit adds above the rows.
-  static let nameRow = ConfigOptionsView.viewIdentifier + ".name"
+  static let nameRow = InspectorScheme.identifier(of: "name", inRow: block)
 
   /// The row of the model option.
   static let modelRow = row("model", modelID)
@@ -187,6 +209,55 @@ import Testing
     // The row commits in a task of its own, which starts the request.
     await ObservationWait.until { !starts.values.isEmpty }
     try #require(starts.values == [setMethod])
+  }
+
+  /// Chooses the value `name` of the choice field of `identifier` through
+  /// its named accessibility action, and waits for the request that the
+  /// change starts.
+  ///
+  /// - Parameters:
+  ///   - name: The name of the value.
+  ///   - identifier: The identifier of the field.
+  ///   - harness: The harness of the view.
+  ///   - session: The scripted session that gets the request.
+  /// - Returns: The `params` of the request.
+  /// - Throws: When the field is not there, has no action `name`, or sends
+  ///   no request.
+  static func choose(
+    _ name: String, in identifier: String, harness: HostedViewHarness<some View>, session: ScriptedSession
+  ) async throws -> JSONValue {
+    try harness.performCustomAction(named: name, identifier: identifier)
+    await ObservationWait.until { !setParams(in: session).isEmpty }
+    return try #require(setParams(in: session).first)
+  }
+
+  /// The segment of the value `name` in the permission-mode picker.
+  ///
+  /// - Parameters:
+  ///   - name: The name of the value.
+  ///   - harness: The harness of the view.
+  /// - Returns: The segment, or `nil` when the picker has none of the name.
+  static func modeSegment(_ name: String, in harness: HostedViewHarness<some View>) -> AccessibilityElementSnapshot? {
+    harness.elements(under: PermissionModePicker.pickerIdentifier).first { $0.label == name }
+  }
+
+  /// Shows the menu control of each option of a session, as the menu of
+  /// ``ConfigOptionsView/Style/menu`` holds them. A hosted window cannot
+  /// open the menu, so the test shows its controls.
+  ///
+  /// - Parameter session: The scripted session.
+  /// - Returns: The harness, after one render pass.
+  static func mountMenuControls(session: ScriptedSession) -> HostedViewHarness<some View> {
+    let options = session.model.configOptions ?? []
+    let harness = HostedViewHarness(size: size) {
+      VStack {
+        ForEach(options, id: \.configId) { option in
+          ConfigOptionControl(option: option, session: session.model)
+        }
+      }
+    }
+    harness.render()
+    return harness
   }
 
   /// The `params` of each set-config-option frame that the agent got.
@@ -265,18 +336,27 @@ import Testing
     defer { harness.close() }
 
     let rows = harness.accessibilityElements().compactMap(\.identifier).filter {
-      $0.hasPrefix(ConfigOptionsView.viewIdentifier + ".") && $0 != Self.nameRow
+      $0.hasPrefix(Self.block) && $0 != Self.nameRow
     }
     #expect(rows == [Self.modeRow, Self.modelRow, Self.webRow])
   }
 
-  @Test func aSelectWithGroupsNamesTheGroupOfItsChoice() async throws {
+  @Test func aSelectRowShowsTheNameOfItsValue() async throws {
     let session = try await Self.openSession()
     defer { session.close() }
     let harness = Self.mount(session: session)
     defer { harness.close() }
 
     #expect(Self.rowValue(Self.modelRow, in: harness) == Self.fastChoice)
+  }
+
+  @Test func aSelectRowWithGroupsOffersEachValueAsANamedAction() async throws {
+    let session = try await Self.openSession()
+    defer { session.close() }
+    let harness = Self.mount(session: session)
+    defer { harness.close() }
+
+    #expect(harness.element(identifier: Self.modelRow)?.customActions == [Self.fastChoice, Self.deepChoice])
   }
 
   // MARK: - Set config option
@@ -312,6 +392,18 @@ import Testing
     await harness.render { model.configOptions != optionsBefore }
 
     #expect(Self.rowValue(Self.webRow, in: harness) == Self.selected)
+  }
+
+  @Test func aChoiceInASelectRowSendsSetConfigOptionWithTheChosenValue() async throws {
+    let session = try await Self.openSession()
+    defer { session.close() }
+    let harness = Self.mount(session: session)
+    defer { harness.close() }
+
+    let params = try await Self.choose(Self.deepChoice, in: Self.modelRow, harness: harness, session: session)
+
+    #expect(params["configId"]?.stringValue == "model")
+    #expect(params["value"]?.stringValue == "deep-1")
   }
 
   /// The test does not press a segment. A press on an AppKit segmented
@@ -355,16 +447,15 @@ import Testing
     let harness = Self.mount(session: session)
     defer { harness.close() }
     let model = session.model
-    let autoSegment = PermissionModePicker.segmentIdentifier(for: "auto")
-    #expect(harness.element(identifier: autoSegment)?.value == Self.notSelected)
+    #expect(Self.modeSegment(Self.autoChoice, in: harness)?.value == Self.notSelected)
 
     let optionsBefore = model.configOptions
     try await session.sendUpdate(
       Self.configUpdate(options: [Self.modelOption, Self.webOption, Self.modeOption(current: "auto")]))
     await harness.render { model.configOptions != optionsBefore }
 
-    #expect(harness.element(identifier: autoSegment)?.value == Self.selected)
-    #expect(Self.rowValue(Self.modeRow, in: harness) == "Auto")
+    #expect(Self.modeSegment(Self.autoChoice, in: harness)?.value == Self.selected)
+    #expect(Self.rowValue(Self.modeRow, in: harness) == Self.autoChoice)
   }
 
   // MARK: - Menu
@@ -380,6 +471,33 @@ import Testing
 
     #expect(harness.element(identifier: ConfigOptionsView.menuIdentifier) != nil)
     #expect(harness.element(identifier: Self.webRow) == nil)
+  }
+
+  @Test func aChoiceInTheMenuSendsSetConfigOptionWithTheChosenValue() async throws {
+    let session = try await Self.openSession()
+    defer { session.close() }
+    let harness = Self.mountMenuControls(session: session)
+    defer { harness.close() }
+
+    let params = try await Self.choose(
+      Self.deepChoice, in: ConfigOptionsView.controlIdentifier(for: Self.modelID), harness: harness, session: session)
+
+    #expect(params["configId"]?.stringValue == "model")
+    #expect(params["value"]?.stringValue == "deep-1")
+  }
+
+  @Test func aToggleInTheMenuSendsSetConfigOptionWithTheNewValue() async throws {
+    let session = try await Self.openSession()
+    defer { session.close() }
+    let harness = Self.mountMenuControls(session: session)
+    defer { harness.close() }
+
+    try harness.press(identifier: ConfigOptionsView.controlIdentifier(for: Self.webID))
+    await ObservationWait.until { !Self.setParams(in: session).isEmpty }
+
+    let params = try #require(Self.setParams(in: session).first)
+    #expect(params["configId"]?.stringValue == "web")
+    #expect(params["value"] == .bool(true))
   }
 
   // MARK: - Permission mode
@@ -400,9 +518,31 @@ import Testing
     let harness = Self.mount(session: session)
     defer { harness.close() }
 
-    #expect(harness.element(identifier: PermissionModePicker.pickerIdentifier) != nil)
-    #expect(harness.element(identifier: PermissionModePicker.segmentIdentifier(for: "ask"))?.value == Self.selected)
-    #expect(
-      harness.element(identifier: PermissionModePicker.segmentIdentifier(for: "auto"))?.value == Self.notSelected)
+    let segments = harness.elements(under: PermissionModePicker.pickerIdentifier)
+    #expect(segments.map(\.label) == [Self.askChoice, Self.autoChoice])
+    #expect(segments.map(\.value) == [Self.selected, Self.notSelected])
+  }
+
+  @Test func thePermissionModePickerOffersEachValueAsANamedAction() async throws {
+    let session = try await Self.openSession()
+    defer { session.close() }
+    let harness = Self.mount(session: session)
+    defer { harness.close() }
+
+    let picker = harness.element(identifier: PermissionModePicker.pickerIdentifier)
+    #expect(picker?.customActions == [Self.askChoice, Self.autoChoice])
+  }
+
+  @Test func aChoiceInThePermissionModePickerSendsSetConfigOptionWithTheChosenValue() async throws {
+    let session = try await Self.openSession()
+    defer { session.close() }
+    let harness = Self.mount(session: session)
+    defer { harness.close() }
+
+    let params = try await Self.choose(
+      Self.autoChoice, in: PermissionModePicker.pickerIdentifier, harness: harness, session: session)
+
+    #expect(params["configId"]?.stringValue == "mode")
+    #expect(params["value"]?.stringValue == "auto")
   }
 }

@@ -1,5 +1,6 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
+import EditorInspector
 import EditorTestSupport
 import Foundation
 import SwiftUI
@@ -28,16 +29,23 @@ import Testing
     ToolToggle(id: issueID, name: "Create issue", isEnabled: false),
   ]
 
+  /// The object id of the block of the list style: EditorKit names an
+  /// object with no stable id by the key of its type and its position.
+  static let listObject = "tooltogglelist-1"
+
+  /// The EditorKit identifier of the block of the list style: the view and
+  /// the list.
+  static let block = InspectorScheme.blockIdentifier(view: ToolToggles.listIdentifier, object: listObject)
+
   /// The EditorKit accessibility identifier of the row of a tool in the
-  /// list style: the view, the group and the tool.
-  ///
-  /// EditorKit's `InspectorDriver` (^eghwsfh) reads and presses the rows when
-  /// its final SHA lands, and the ids then take its path scheme.
+  /// list style: the view, the list, the group and the tool.
   ///
   /// - Parameter tool: The identifier of the tool.
-  /// - Returns: The identifier, such as `tool-toggles.tools.search`.
+  /// - Returns: The identifier, such as
+  ///   `inspection:tool-toggles/object:tooltogglelist-1/field:tools.search`.
   static func row(_ tool: ToolToggleID) -> String {
-    [ToolToggles.listIdentifier, ToolToggles.groupIdentifier, tool.rawValue].joined(separator: ".")
+    InspectorScheme.rowIdentifier(
+      view: ToolToggles.listIdentifier, object: listObject, group: ToolToggles.groupIdentifier, field: tool.rawValue)
   }
 
   /// Mounts the list style of ``tools``, and makes one render pass.
@@ -85,7 +93,7 @@ import Testing
     defer { harness.close() }
 
     let identifiers = harness.accessibilityElements().compactMap(\.identifier).filter {
-      $0.hasPrefix([ToolToggles.listIdentifier, ToolToggles.groupIdentifier, ""].joined(separator: "."))
+      $0.hasPrefix(Self.block) && $0 != InspectorScheme.identifier(of: "name", inRow: Self.block)
     }
     #expect(identifiers == [Self.row(Self.searchID), Self.row(Self.issueID)])
   }
@@ -104,6 +112,21 @@ import Testing
     harness.render()
 
     #expect(harness.element(identifier: ToolToggles.menuIdentifier) != nil)
+  }
+
+  /// A hosted window cannot open the menu, so the test shows the toggle of
+  /// one tool as the menu holds it.
+  @Test func aToggleOfTheMenuCallsOnToggleWithTheIdAndTheNewValue() async throws {
+    let recorder = ReportRecorder<Call>()
+    let harness = HostedViewHarness(
+      ToolToggleMenuItem(tool: Self.tools[1]) { recorder.report(Call(id: $0, isEnabled: $1)) })
+    defer { harness.close() }
+    harness.render()
+
+    try harness.press(identifier: ToolToggles.toggleIdentifier(for: Self.issueID))
+    await ObservationWait.until { !recorder.values.isEmpty }
+
+    #expect(recorder.values == [.init(id: Self.issueID, isEnabled: true)])
   }
 
   // MARK: - Composer
