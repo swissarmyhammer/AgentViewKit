@@ -1,6 +1,7 @@
 import AgentViewKitTestSupport
 import EditorInspector
 import EditorInspectorTestSupport
+import EditorSwiftUI
 import EditorTestSupport
 import FoundationModelsACP
 import FoundationModelsACPClient
@@ -36,6 +37,16 @@ import Testing
 
   /// The id of the agent message of the tests.
   static let messageID = "inspect-message"
+
+  /// The first time of the clock of a timed test.
+  static let start = Date(timeIntervalSinceReferenceDate: 800_000_000)
+
+  /// The time from the start of the timed tool call to its completion, in
+  /// seconds.
+  static let toolCallSeconds: TimeInterval = 75
+
+  /// The title, and thus the `toolCallId`, of the timed tool call.
+  static let timedCallTitle = "Read README.md"
 
   /// Mounts an `InspectorView` of `object` and makes one render pass.
   ///
@@ -173,6 +184,25 @@ import Testing
     await harness.render { model.usage != nil }
 
     #expect(harness.rowValue(row) == "48")
+  }
+
+  @Test func theDurationRowOfAToolCallShowsTheTimeToItsCompletion() async throws {
+    let clock = FixedClock(start: Self.start)
+    let session = try await ScriptedSession.open(now: clock.now)
+    defer { session.close() }
+    try await session.sendToolCallUpdate(title: Self.timedCallTitle, status: .inProgress)
+    let entry = try await Self.entry(ToolCallEntry.self, in: session)
+    let harness = Self.mount(entry)
+    defer { harness.close() }
+    let row = Self.row(of: entry, group: "time", field: "duration")
+    #expect(harness.rowValue(row) == nil)
+
+    clock.advance(by: Self.toolCallSeconds)
+    try await session.sendToolCallUpdate(title: Self.timedCallTitle, status: .completed)
+    await harness.render { entry.timing.endedAt != nil }
+
+    let expected = DurationFieldFormat(units: .minutesSeconds).format(.seconds(Self.toolCallSeconds))
+    #expect(harness.rowValue(row) == expected)
   }
 
   /// A `plan_update` with one step, `Read`.

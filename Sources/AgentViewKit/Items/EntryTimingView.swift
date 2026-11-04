@@ -1,4 +1,5 @@
 import EditorStyle
+import EditorSwiftUI
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -20,11 +21,12 @@ import SwiftUI
 /// ``SwiftUI/View/entryTiming(_:)``, or to each row of a ``ConversationView``
 /// and an ``AgentThreadView`` with ``SwiftUI/View/transcriptTiming(_:)``.
 ///
-/// The view has no style of its own. The time is chrome, so it draws in the
-/// root font of the theme, its text uses `\.themeSecondary`, and its spacing
-/// and symbol weight come
-/// from the shared style (`\.editorStyle`). The system formatters write the time and the
-/// duration in the locale of the environment.
+/// The view has no style of its own. EditorKit's value texts show the time:
+/// a `DateText` of the start in `startFormat` and a `DurationText` of the
+/// duration in `durationFormat`, each in the `ui` font role of the theme
+/// and the locale of the environment. The text uses `\.themeSecondary`, and
+/// the spacing and the symbol weight come from the shared style
+/// (`\.editorStyle`).
 ///
 /// The view is one accessibility element. Its label tells the start and the
 /// duration, as ``accessibilityLabel(startedAt:duration:locale:)`` gives
@@ -41,15 +43,22 @@ public struct EntryTimingView: View, PrefixedAccessibilityIdentifier {
   /// The SF Symbol name of the time.
   static let symbolName = SharedSymbol.entryTime
 
-  /// The largest number of units in a duration text, such as "1 min, 15
-  /// sec".
+  /// The largest number of units in a spoken duration, such as "1 minute,
+  /// 15 seconds".
   static let largestUnitCount = 2
 
-  /// The units that a duration text can use.
-  static let durationUnits: Set<Duration.UnitsFormatStyle.Unit> = [.hours, .minutes, .seconds]
+  /// The units that a spoken duration can use.
+  static let spokenDurationUnits: Set<Duration.UnitsFormatStyle.Unit> = [.hours, .minutes, .seconds]
 
-  /// The format of a start time: the short time of the day, with no date.
-  static let startStyle = Date.FormatStyle(date: .omitted, time: .shortened)
+  /// The format of a start time, which the `DateText` of the view shows and
+  /// the VoiceOver label tells: the short time of the day, with no date,
+  /// such as "6:00 PM".
+  static let startFormat = ValueFieldFormat<Date>(Date.FormatStyle(date: .omitted, time: .shortened))
+
+  /// The format of a duration, which the `DurationText` of the view and the
+  /// duration row of an entry's inspection show: minutes and seconds, such
+  /// as "1:15".
+  static let durationFormat = DurationFieldFormat(units: .minutesSeconds)
 
   /// The transcript entry whose time the view shows.
   let entry: TranscriptEntry
@@ -63,33 +72,6 @@ public struct EntryTimingView: View, PrefixedAccessibilityIdentifier {
   /// - Parameter entry: The entry whose time the view shows.
   public init(entry: TranscriptEntry) {
     self.entry = entry
-  }
-
-  /// The text of a start time.
-  ///
-  /// - Parameters:
-  ///   - date: The start time.
-  ///   - locale: The locale of the text.
-  /// - Returns: The short time of the day, such as "6:00 PM".
-  public static func startText(for date: Date, locale: Locale = .autoupdatingCurrent) -> String {
-    date.formatted(startStyle.locale(locale))
-  }
-
-  /// The text of a duration, from the system duration formatter.
-  ///
-  /// - Parameters:
-  ///   - duration: The duration, in seconds.
-  ///   - width: The width of the unit names: `.abbreviated` for the view,
-  ///     and `.wide` for a label that VoiceOver reads.
-  ///   - locale: The locale of the text.
-  /// - Returns: At most two units, in whole seconds, such as "1 min, 15 sec"
-  ///   or "1 minute, 15 seconds".
-  public static func durationText(
-    for duration: TimeInterval, width: Duration.UnitsFormatStyle.UnitWidth, locale: Locale = .autoupdatingCurrent
-  ) -> String {
-    let style = Duration.UnitsFormatStyle(
-      allowedUnits: durationUnits, width: width, maximumUnitCount: largestUnitCount)
-    return Duration.seconds(duration).formatted(style.locale(locale))
   }
 
   /// The duration that a view shows.
@@ -106,18 +88,21 @@ public struct EntryTimingView: View, PrefixedAccessibilityIdentifier {
   /// The text of the duration that a label shows, with whole words, for a
   /// label that VoiceOver reads or for a title.
   ///
-  /// Each caller puts the text in its own localized phrase and gives its own
-  /// text when the result is `nil`.
+  /// The text stands in a sentence, so it names its units, which a
+  /// `DurationText` does not. Each caller puts the text in its own localized
+  /// phrase and gives its own text when the result is `nil`.
   ///
   /// - Parameters:
   ///   - duration: The duration of an entry, in seconds, or `nil` when the
   ///     entry has no end time.
   ///   - locale: The locale of the text.
-  /// - Returns: The ``durationText(for:width:locale:)`` of the
-  ///   ``shownDuration(_:)`` with `.wide` units, such as "1 minute, 15
-  ///   seconds", or `nil` when the view shows no duration.
+  /// - Returns: The ``shownDuration(_:)`` in at most two whole units of the
+  ///   system duration formatter, such as "1 minute, 15 seconds", or `nil`
+  ///   when the view shows no duration.
   public static func spokenDuration(_ duration: TimeInterval?, locale: Locale = .autoupdatingCurrent) -> String? {
-    shownDuration(duration).map { durationText(for: $0, width: .wide, locale: locale) }
+    let style = Duration.UnitsFormatStyle(
+      allowedUnits: spokenDurationUnits, width: .wide, maximumUnitCount: largestUnitCount)
+    return shownDuration(duration).map { Duration.seconds($0).formatted(style.locale(locale)) }
   }
 
   /// A localized phrase that holds the ``spokenDuration(_:locale:)`` of a
@@ -153,7 +138,7 @@ public struct EntryTimingView: View, PrefixedAccessibilityIdentifier {
   public static func accessibilityLabel(
     startedAt: Date, duration: TimeInterval?, locale: Locale = .autoupdatingCurrent
   ) -> String {
-    let start = startText(for: startedAt, locale: locale)
+    let start = startFormat.format(startedAt, locale: locale)
     return durationPhrase(duration, locale: locale) {
       String(localized: "Started at \(start), took \($0)", bundle: .module)
     } fallback: {
@@ -179,9 +164,9 @@ public struct EntryTimingView: View, PrefixedAccessibilityIdentifier {
       Image(systemName: Self.symbolName)
         .fontWeight(editorStyle.symbolWeight)
         .accessibilityHidden(true)
-      Text(Self.startText(for: startedAt, locale: locale))
+      DateText(startedAt, format: Self.startFormat)
       if let shown = Self.shownDuration(duration) {
-        Text(Self.durationText(for: shown, width: .abbreviated, locale: locale))
+        DurationText(.seconds(shown), format: Self.durationFormat)
       }
     }
     .foregroundStyle(themeSecondary)
