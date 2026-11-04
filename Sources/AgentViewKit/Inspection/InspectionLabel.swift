@@ -27,6 +27,9 @@ enum InspectionLabel {
   /// The time an entry ended.
   static var ended: FieldLabel { FieldLabel(localized: "Ended", bundle: .module) }
 
+  /// The time from the start of an entry to its end.
+  static var duration: FieldLabel { FieldLabel(localized: "Duration", bundle: .module) }
+
   /// The title of a session or of a tool call.
   static var title: FieldLabel { FieldLabel(localized: "Title", bundle: .module) }
 

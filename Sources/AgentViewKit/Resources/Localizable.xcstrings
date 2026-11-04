@@ -671,6 +671,16 @@
         }
       }
     },
+    "Duration" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Duration"
+          }
+        }
+      }
+    },
     "Each item must be one of the choices." : {
       "localizations" : {
         "en" : {
