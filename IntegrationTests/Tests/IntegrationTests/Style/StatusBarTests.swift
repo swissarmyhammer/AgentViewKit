@@ -2,16 +2,12 @@ import AgentViewKitStyle
 import EditorStyle
 import EditorSwiftUI
 import EditorTestSupport
-import EditorTheme
 import SwiftUI
 import Testing
 
 /// Checks the status bar through its public API: the message and its
-/// severity, the color of the symbol, the action and the style of its button.
+/// severity, the tone of the symbol, the action and the style of its button.
 @Suite @MainActor struct StatusBarTests {
-  /// A theme with the default role colors.
-  static let theme = UIFamilyTheme()
-
   /// Makes a message of `severity`.
   ///
   /// - Parameter severity: The severity of the message.
@@ -51,14 +47,13 @@ import Testing
     #expect(!message.isOngoing)
   }
 
-  @Test func theSymbolColorComesFromTheSeverity() {
-    let colors: [(StatusBar.Message.Severity, Color)] = [
-      (.neutral, .secondary), (.information, Self.theme.severityInfo), (.warning, Self.theme.severityWarning),
-      (.failure, Self.theme.severityError),
+  @Test func theSymbolToneComesFromTheSeverity() {
+    let tones: [(StatusBar.Message.Severity, EditorSymbol.Tone)] = [
+      (.neutral, .neutral), (.information, .information), (.warning, .warning), (.failure, .error),
     ]
 
-    for (severity, color) in colors {
-      #expect(StatusBar.symbolColor(for: Self.message(severity), in: Self.theme) == color, "\(severity)")
+    for (severity, tone) in tones {
+      #expect(severity.tone == tone, "\(severity)")
     }
   }
 
@@ -145,13 +140,5 @@ import Testing
 
     #expect(message.accessibilityLabel == "Warning, Title")
     #expect(message.symbolHelp == "Warning")
-  }
-
-  @Test func aStatusSymbolTakesTheSizeOfItsSymbol() {
-    let size = StyleViewHost.fittingSize(
-      of: StatusSymbolImage(name: SharedSymbol.error, color: .secondary).liveSymbolEffect(isActive: true))
-
-    #expect(size.width > 0)
-    #expect(size.height > 0)
   }
 }

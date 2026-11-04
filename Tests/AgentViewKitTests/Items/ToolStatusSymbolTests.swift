@@ -1,20 +1,13 @@
 import AgentViewKitTestSupport
-import AppKit
 import Foundation
 import FoundationModelsACP
 import Testing
 
 @testable import AgentViewKit
 
-@Suite @MainActor struct ToolKindSymbolTests {
+@Suite @MainActor struct ToolStatusSymbolTests {
   /// The ACP wire value of a call whose result is lost.
   nonisolated static let lostWireValue = "_lost"
-
-  /// Each ACP kind, with one unknown kind.
-  nonisolated static let kinds: [FoundationModelsACP.ToolKind] = [
-    .read, .edit, .delete, .move, .search, .execute, .think, .fetch, .switchMode, .other,
-    .unknown("custom_kind"),
-  ]
 
   /// Each ACP status, with the lost status and one other unknown status.
   nonisolated static let statuses: [FoundationModelsACP.ToolCallStatus] = [
@@ -22,33 +15,10 @@ import Testing
     .unknown("custom_status"),
   ]
 
-  // MARK: - Kinds
-
-  @Test func eachKindMapsToADistinctSymbol() {
-    NameChecks.expectDistinctNames(Self.kinds.map(ToolKindSymbol.name(for:)))
-  }
-
-  @Test(arguments: kinds)
-  func eachKindSymbolIsASystemSymbol(kind: FoundationModelsACP.ToolKind) {
-    let name = ToolKindSymbol.name(for: kind)
-    #expect(NSImage(systemSymbolName: name, accessibilityDescription: nil) != nil, "\(name)")
-  }
-
-  @Test func allUnknownKindsShareOneSymbol() {
-    #expect(ToolKindSymbol.name(for: .unknown("a")) == ToolKindSymbol.name(for: .unknown("b")))
-  }
-
   // MARK: - Statuses
 
-  @Test func eachStatusMapsToADistinctSymbolAndLabel() {
-    NameChecks.expectDistinctNames(Self.statuses.map(ToolStatusSymbol.name(for:)))
+  @Test func eachStatusHasADistinctLabel() {
     NameChecks.expectDistinctNames(Self.statuses.map(ToolStatusSymbol.label(for:)))
-  }
-
-  @Test(arguments: statuses)
-  func eachStatusSymbolIsASystemSymbol(status: FoundationModelsACP.ToolCallStatus) {
-    let name = ToolStatusSymbol.name(for: status)
-    #expect(NSImage(systemSymbolName: name, accessibilityDescription: nil) != nil, "\(name)")
   }
 
   @Test func theStatusLabelsAreTheExpectedText() {

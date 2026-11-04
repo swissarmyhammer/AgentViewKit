@@ -40,7 +40,8 @@ extension View {
 /// "Tool call view", §5, §9 C).
 ///
 /// The view shows a `ToolCallEntry` of a `SessionModel`. It uses the ACP kind
-/// and status types. See ``ToolKindSymbol`` and ``ToolStatusSymbol``.
+/// and status types, and draws each kind and status as its EditorKit symbol
+/// (`EditorSymbol`). See ``ToolStatusSymbol``.
 ///
 /// The row shows the symbol of the kind, the `title` as the label, and a
 /// status symbol:
@@ -351,6 +352,7 @@ public struct ToolCallView: View {
 
   // MARK: - Body
 
+  /// The row of the call, and its body while the row is expanded.
   public var body: some View {
     let id = entry.id.rowKey
     let store = environmentStore ?? ownStore
@@ -439,10 +441,7 @@ private struct ToolCallHeader: View {
   /// The symbols and the text inside the row button.
   private var rowContent: some View {
     HStack(spacing: editorStyle.spacing.s) {
-      Image(systemName: ToolKindSymbol.name(for: entry.shownKind))
-        .symbolRenderingMode(.hierarchical)
-        .fontWeight(editorStyle.symbolWeight)
-        .foregroundStyle(themeSecondary)
+      EditorSymbolImage(.tool(.init(entry.shownKind)))
       Text(ToolCallView.displayTitle(entry.shownTitle))
         .lineLimit(1)
         .truncationMode(.middle)
@@ -676,7 +675,7 @@ private struct ToolCallTerminalLabel: View {
   var body: some View {
     Label(
       String(localized: "Terminal \(terminalID)", bundle: .module),
-      systemImage: SharedSymbol.terminal
+      systemImage: EditorSymbol.tool(.execute).systemImage
     )
     .foregroundStyle(themeSecondary)
   }

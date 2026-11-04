@@ -61,7 +61,7 @@ import Testing
 
   // MARK: - Footer
 
-  @Test func exitCodeZeroTintsSuccess() {
+  @Test func exitCodeZeroReadsAsSuccess() {
     let harness = HostedViewHarness(
       CommandOutputView(command: Self.command, output: "ok", exitCode: Self.successExitCode))
     defer { harness.close() }
@@ -70,12 +70,9 @@ import Testing
     let footer = harness.element(identifier: CommandOutputView.footerIdentifier)
     #expect(footer?.label == "Exit code \(Self.successExitCode)")
     #expect(footer?.value == CommandOutputView.ExitOutcome.success.label)
-    #expect(
-      DistinctRolesTheme().statusColor(for: CommandOutputView.ExitOutcome.success)
-        == DistinctRolesTheme.Role.succeeded)
   }
 
-  @Test func exitCodeOneTintsFailure() {
+  @Test func exitCodeOneReadsAsFailure() {
     let harness = HostedViewHarness(
       CommandOutputView(command: Self.command, output: "error", exitCode: Self.failureExitCode))
     defer { harness.close() }
@@ -84,9 +81,6 @@ import Testing
     let footer = harness.element(identifier: CommandOutputView.footerIdentifier)
     #expect(footer?.label == "Exit code \(Self.failureExitCode)")
     #expect(footer?.value == CommandOutputView.ExitOutcome.failure.label)
-    #expect(
-      DistinctRolesTheme().statusColor(for: CommandOutputView.ExitOutcome.failure)
-        == DistinctRolesTheme.Role.failed)
   }
 
   @Test(arguments: [

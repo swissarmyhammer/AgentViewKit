@@ -1,5 +1,6 @@
 import AgentViewKitStyle
 import EditorStyle
+import EditorSwiftUI
 import EditorTestSupport
 import SwiftUI
 import Testing
@@ -108,7 +109,7 @@ import Testing
     let layout = StatusTitleLayout(
       title: title, explanation: explanation, textLabel: title, identifier: textIdentifier
     ) {
-      StatusSymbolImage(name: SharedSymbol.error, color: .secondary)
+      EditorSymbolImage(.status(.failed))
         .accessibilityIdentifier(symbolIdentifier)
     } action: {
       StatusBarActionButton(action: action).buttonStyle(.glass)

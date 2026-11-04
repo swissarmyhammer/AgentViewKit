@@ -1,4 +1,5 @@
 import EditorStyle
+import EditorSwiftUI
 import SwiftUI
 
 /// The chip of one file of a diff: a button that selects the file, with its
@@ -55,20 +56,18 @@ public struct DiffFileChip: View {
     identifierPrefix + path
   }
 
-  /// The symbol of a file operation: the one map from a change to its symbol.
+  /// The SF Symbol name of a file operation: the name of the EditorKit file
+  /// symbol of its kind (`EditorSymbol.FileKind.init(_:)`), so the name has
+  /// no second map.
+  ///
+  /// AgentViewKit draws the symbol of a change with `EditorSymbolImage` and
+  /// does not call this. It stays only for SnapshotViewKit, which reads the
+  /// name until it reads `EditorSymbol.FileKind` (SVK card ^4pb2kay).
   ///
   /// - Parameter operation: The change to the file.
   /// - Returns: The SF Symbol name.
   public static func symbolName(for operation: DiffSummary.Operation) -> String {
-    switch operation {
-    case .added: SharedSymbol.addedFile
-    case .deleted: SharedSymbol.deletedFile
-    case .modified: SharedSymbol.modifiedFile
-    case .renamed: SharedSymbol.renamedFile
-    case .copied: SharedSymbol.copiedFile
-    case .binary: SharedSymbol.binary
-    case .unknown: ItemStatus.unknown.systemImage
-    }
+    EditorSymbol.file(EditorSymbol.FileKind(operation)).systemImage
   }
 
   /// The line counts of the file, when the diff has patch text.
@@ -76,6 +75,8 @@ public struct DiffFileChip: View {
     hasPatch ? DiffFileLabel.Counts(added: file.added, removed: file.removed) : nil
   }
 
+  /// The label of the file in a plain button that selects the file, on the
+  /// selection surface when the renderer shows it.
   public var body: some View {
     Button(action: select) {
       DiffFileLabel(operation: file.operation, path: file.path, counts: counts)
@@ -91,6 +92,27 @@ public struct DiffFileChip: View {
     .accessibilityValue(file.path)
     .accessibilityAddTraits(isSelected ? .isSelected : [])
     .accessibilityIdentifier(Self.identifier(for: file.path))
+  }
+}
+
+extension EditorSymbol.FileKind {
+  /// The EditorKit kind of a file of a diff: the one map from a change to its
+  /// symbol.
+  ///
+  /// ``DiffFileLabel`` shows the symbol of the kind, and a view kit that
+  /// shows a changed file reads the same kind, so the file shows one symbol.
+  ///
+  /// - Parameter operation: The change to the file.
+  public init(_ operation: DiffSummary.Operation) {
+    switch operation {
+    case .added: self = .added
+    case .deleted: self = .deleted
+    case .modified: self = .modified
+    case .renamed: self = .renamed
+    case .copied: self = .copied
+    case .binary: self = .binary
+    case .unknown: self = .unknown
+    }
   }
 }
 

@@ -1,3 +1,4 @@
+import EditorSwiftUI
 import Foundation
 import FoundationModelsACP
 import Testing
@@ -13,7 +14,7 @@ import Testing
 
   @Test func aPausedToolCallHasItsLabelAndItsSymbol() {
     #expect(ToolStatusSymbol.label(for: .paused) == "Paused")
-    #expect(ToolStatusSymbol.name(for: .paused) == SharedSymbol.stalled)
+    #expect(EditorSymbol.Status(FoundationModelsACP.ToolCallStatus.paused) == .paused)
   }
 
   @Test func aPausedToolCallIsNotLiveAndHasNoResult() {

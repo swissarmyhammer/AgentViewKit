@@ -3,6 +3,7 @@ import AgentViewKitTestSupport
 import AppKit
 import EditorDiff
 import EditorStyle
+import EditorSwiftUI
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
@@ -84,11 +85,8 @@ import Testing
     let statuses = PreviewFixtures.toolCallStatuses
 
     #expect(
-      Set(statuses.map(ToolStatusSymbol.name(for:)))
-        == [
-          ItemStatus.pending.systemImage, ItemStatus.inProgress.systemImage, ItemStatus.completed.systemImage, SharedSymbol.error,
-          ItemStatus.cancelled.systemImage, SharedSymbol.warning, ItemStatus.unknown.systemImage,
-        ])
+      Set(statuses.map(EditorSymbol.Status.init))
+        == [.pending, .inProgress, .completed, .failed, .cancelled, .lost, .unknown])
     #expect(Set(statuses.map(ToolStatusSymbol.label(for:))).count == statuses.count)
   }
 
@@ -96,11 +94,7 @@ import Testing
     let statuses = PreviewFixtures.planEntryStatuses
 
     #expect(
-      Set(statuses.map(TaskListView.statusSymbol))
-        == [
-          ItemStatus.pending.systemImage, ItemStatus.inProgress.systemImage, ItemStatus.completed.systemImage, ItemStatus.cancelled.systemImage,
-          ItemStatus.unknown.systemImage,
-        ])
+      Set(statuses.map(EditorSymbol.Status.init)) == [.pending, .inProgress, .completed, .cancelled, .unknown])
     #expect(Set(statuses.map(TaskListView.statusLabel)).count == statuses.count)
   }
 

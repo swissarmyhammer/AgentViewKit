@@ -1,5 +1,6 @@
 import EditorCommandsUI
 import EditorStyle
+import EditorSwiftUI
 import FoundationModelsACPClient
 import OSLog
 import SwiftUI
@@ -77,7 +78,7 @@ public struct MessageActions: View {
       case .copyThread: SharedSymbol.copyThread
       case .export: SharedSymbol.share
       case .retry: SharedSymbol.reload
-      case .edit: SharedSymbol.edit
+      case .edit: EditorSymbol.tool(.edit).systemImage
       }
     }
   }

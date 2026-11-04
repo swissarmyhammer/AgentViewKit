@@ -185,8 +185,7 @@ extension StatusBar.Message.Severity {
   /// The severity of the bar of a notice.
   ///
   /// - Parameter severity: The severity of the notice. A severity that the kit
-  ///   does not know informs, as the tint of the theme has it
-  ///   (`Theme.tint(for:)`).
+  ///   does not know informs.
   init(notice severity: NoticeSeverity) {
     switch severity {
     case .info, .unknown: self = .information

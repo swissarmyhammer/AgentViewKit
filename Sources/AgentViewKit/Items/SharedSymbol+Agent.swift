@@ -4,8 +4,10 @@ import Foundation
 /// The agent symbols of the kit: each SF Symbol of a concept that only the
 /// views of an agent thread show.
 ///
-/// The shared symbols of the view kits, such as the error, the tool kinds
-/// and the file operations, are in ``AgentViewKitStyle/SharedSymbol``. This
+/// The shared symbols of the view kits, such as the error and the Reload
+/// button, are in ``AgentViewKitStyle/SharedSymbol``. The symbols of a tool
+/// kind, a file kind and a status are EditorKit's `EditorSymbol`, and the kit
+/// reads them there, also for a button of the same concept, such as Edit. This
 /// extension adds the concepts of the kit to the same table, so a view of
 /// the kit reads each symbol as `SharedSymbol.<concept>`. A symbol name is
 /// written in the two table files only: no other source file of the kit

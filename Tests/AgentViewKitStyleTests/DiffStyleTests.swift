@@ -1,5 +1,6 @@
 import EditorCommands
 import EditorDiff
+import EditorSwiftUI
 import SwiftUI
 import Testing
 
@@ -63,13 +64,21 @@ import Testing
     #expect(DiffFileChip.identifier(for: Self.firstPath) == DiffFileChip.identifierPrefix + Self.firstPath)
   }
 
-  @Test func eachFileOperationHasTheSymbolOfItsConcept() {
-    #expect(DiffFileChip.symbolName(for: .added) == SharedSymbol.addedFile)
-    #expect(DiffFileChip.symbolName(for: .deleted) == SharedSymbol.deletedFile)
-    #expect(DiffFileChip.symbolName(for: .modified) == SharedSymbol.modifiedFile)
-    #expect(DiffFileChip.symbolName(for: .renamed(from: "a")) == SharedSymbol.renamedFile)
-    #expect(DiffFileChip.symbolName(for: .copied(from: "a")) == SharedSymbol.copiedFile)
-    #expect(DiffFileChip.symbolName(for: .binary) == SharedSymbol.binary)
+  @Test(arguments: [
+    (DiffSummary.Operation.added, EditorSymbol.FileKind.added),
+    (.deleted, .deleted),
+    (.modified, .modified),
+    (.renamed(from: "a"), .renamed),
+    (.copied(from: "a"), .copied),
+    (.binary, .binary),
+    (.unknown("custom"), .unknown),
+  ])
+  func eachFileOperationGivesItsEditorKitFileKind(operation: DiffSummary.Operation, expected: EditorSymbol.FileKind) {
+    #expect(EditorSymbol.FileKind(operation) == expected)
+  }
+
+  @Test func theSymbolNameOfAFileChipIsTheEditorKitFileSymbol() {
+    #expect(DiffFileChip.symbolName(for: .renamed(from: "a")) == EditorSymbol.file(.renamed).systemImage)
   }
 
   @Test func aBinaryFileOfAPatchHasTheBinaryOperation() {
@@ -99,11 +108,11 @@ import Testing
   }
 
   @Test func aLabelWithNoOperationShowsTheDocumentSymbol() {
-    #expect(DiffFileLabel.symbolName(for: nil) == SharedSymbol.document)
+    #expect(DiffFileLabel.symbol(for: nil) == .file(.document))
   }
 
   @Test func aLabelWithAnOperationShowsTheSymbolOfTheOperation() {
-    #expect(DiffFileLabel.symbolName(for: .added) == SharedSymbol.addedFile)
+    #expect(DiffFileLabel.symbol(for: .added) == .file(.added))
   }
 
   @Test func aLabelKeepsItsCounts() {
