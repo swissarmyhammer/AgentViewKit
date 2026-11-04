@@ -44,8 +44,24 @@ comments:
     - evidence: 8ef21362 on worktree-agent-a55801328dec1ae19. Finding "code-hygiene/missing-docs-swift: AllPublicDeclarationsHaveDocumentation: add a documentation comment for 'body'" fixed at PermissionModePicker.swift, and the same cause removed in every changed file: body of ConfigOptionsView, ToolToggles, ToolCallView, StatusBar (public) and ConfigOptionControl, ToolToggleMenuItem (internal). A scan of the changed source files finds no other undocumented public declaration. Root swift test: 946 + 67 pass, 0 AVK warnings (doc-only change; no package update run, so the CodeContext pin did not apply).
     - next: merge into main, then full review
   timestamp: 2026-11-04T20:12:56.174626+00:00
-position_column: doing
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m6m6803hdvtp4cz5jqstdv2n
+  text: |-
+    ### implement — changed
+    - evidence: 66665bef on worktree-agent-a55801328dec1ae19 (fast-forwarded to main a6c22f04 first; Package.resolved copied from main: EK 4767505c, foundationmodelscodecontext ffa5a665). All 4 review findings fixed and ticked in the card's Review Findings. `swift test --package-path IntegrationTests`: 946 tests in 124 suites passed (5 known issues), 0 AVK warnings. Test-only change, root suite not re-run.
+    - Hit test now requires the answer to be the center segment ("Default" of Plan/Default/Auto, from ConfigOptionFields.options(of:in:)) and one of the segments under the picker. The optional named-action step was not added: the bar-control fixture is a preview session with no agent, so no set_config_option frame can be read.
+    - next: main fast-forwards to 66665bef
+  timestamp: 2026-11-04T21:08:08.433264+00:00
+- actor: claude-code
+  id: 01m6m6jx1721xjhrxtcc3wcswb
+  text: |-
+    ### finish — clean
+    - Merged into main (a6c22f04). The full review on main found 3 reuse findings plus a weak hit test, fixed in 66665bef, then 2 magic numbers, fixed in 7daaa542. The last review is clean.
+    - test: root 943+68 passed; IntegrationTests 946 passed (5 known issues).
+    - Removed public API: ConfigOptionsView.choiceIdentifier(for:value:) and choiceIdentifierInfix, PermissionModePicker.segmentIdentifier(for:) and segmentIdentifierPrefix. No use in KVK 701a93d, SVK b5d1e8a or TestudoApp 2bd4341.
+  timestamp: 2026-11-04T21:14:05.735569+00:00
+position_column: done
+position_ordinal: ffffff9b80
 title: Adopt EditorKit choice and toggle (^bbffx3s) in PermissionModePicker, ConfigOptionsView, ToolToggles
 ---
 **Blocked** on EK card ^bbffx3s (on EK origin at 2524005e). It lands EK's choice and toggle controls, harvested from the controls inside AVK's pickers. editorkit-b5 sends the SHA. Don't start before then.
@@ -58,10 +74,19 @@ Boundary (user, 2026-11-04): single-value controls are EK's. `PermissionModePick
 - Keep each view's menu and form styles working.
 
 ## Acceptance Criteria
-- [ ] No AVK copy of a choice or toggle control is left in the three views.
-- [ ] The three views are built from EK's controls, with EK's theming.
-- [ ] The review gallery shows each view in each of its styles, light and dark.
+- [x] No AVK copy of a choice or toggle control is left in the three views.
+- [x] The three views are built from EK's controls, with EK's theming.
+- [x] The review gallery shows each view in each of its styles, light and dark.
 
 ## Tests
-- [ ] The full AVK test suite is green, with zero warnings in AVK targets.
-- [ ] Hosted tests: a choice and a toggle in each view still send the change to the session.
+- [x] The full AVK test suite is green, with zero warnings in AVK targets.
+- [x] Hosted tests: a choice and a toggle in each view still send the change to the session.
+
+## Review Findings (2026-11-04)
+- [x] Sources/AgentViewKit/Config/PermissionModePicker.swift:57 code-hygiene/missing-docs-swift — "AllPublicDeclarationsHaveDocumentation: add a documentation comment for 'body'." Fixed in every changed file (8ef21362).
+
+## Review Findings (2026-11-04, full review on main a6c22f04)
+- [x] IntegrationTests/Tests/IntegrationTests/Commands/ThreadBarControlJumpHostedTests.swift:145 reuse — `modeValueNames` reads the mode select's choice names by hand (`select.choices?.options.map(\.name)`). Use the production lookup, `ConfigOptionFields.options(of:in:)` mapped to `.label`, instead.
+- [x] IntegrationTests/Tests/IntegrationTests/Config/ConfigOptionsSessionModelHostedTests.swift:429 reuse — the wait-for-setParams-then-`#require(Self.setParams(in: session).first)` tail is written three times; extract one helper (`firstSetParams(in:)`) and call it from all three.
+- [x] IntegrationTests/Tests/IntegrationTests/Config/ConfigOptionsSessionModelHostedTests.swift:521 reuse — the same tail; use the one helper.
+- [x] ThreadBarControlJumpHostedTests hit test is loosened: it accepts any radio button labelled with a mode name, and its failure message prints a nil identifier. Require the hit element to be one of `harness.elements(under: PermissionModePicker.pickerIdentifier)`, require the exact segment expected at the picker's centre (from `ConfigOptionFields.options(of:in:)`), and put the hit element's role and label in the `#expect` message.
