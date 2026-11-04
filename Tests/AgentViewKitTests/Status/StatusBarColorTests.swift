@@ -1,7 +1,7 @@
 import AgentViewKitTestSupport
+import EditorSwiftUI
 import FoundationModelsACP
 import FoundationModelsACPClient
-import SwiftUI
 import Testing
 
 @testable import AgentViewKit
@@ -12,19 +12,11 @@ import Testing
 /// that its symbol has the warning color, and that each other message is
 /// neutral, so that its symbol has the `.secondary` style.
 ///
-/// The error and warning colors are status colors of the theme (D112). No
-/// symbol of a status message is the selection or the focus, so none uses
-/// the accent of the theme (card ^y2mrfxt).
-///
-/// The tests give ``DistinctRolesTheme``, which has a different color for each
-/// role, so each color names its role.
+/// The error and warning colors are severity tokens of the theme (D112),
+/// which the EditorKit tone of the severity reads. No symbol of a status
+/// message is the selection or the focus, so none uses the accent of the
+/// theme (card ^y2mrfxt).
 @Suite @MainActor struct StatusBarColorTests {
-  /// The role colors of ``DistinctRolesTheme``.
-  typealias Role = DistinctRolesTheme.Role
-
-  /// A theme with a different color for each role.
-  static let theme = DistinctRolesTheme()
-
   /// A failure of the connection to the agent.
   struct ConnectionFailure: Error {}
 
@@ -70,7 +62,7 @@ import Testing
 
   @Test func aWarningBarTintsItsSymbolWithTheWarningColor() {
     for message in Self.warningMessages {
-      #expect(StatusBar.symbolColor(for: message, in: Self.theme) == Role.warning, "\(message.identifier)")
+      #expect(message.severity.tone == .warning, "\(message.identifier)")
     }
   }
 
@@ -80,13 +72,13 @@ import Testing
 
   @Test func aFailureBarTintsItsSymbolWithTheErrorColor() throws {
     for message in try Self.failureMessages() {
-      #expect(StatusBar.symbolColor(for: message, in: Self.theme) == Role.error, "\(message.identifier)")
+      #expect(message.severity.tone == .error, "\(message.identifier)")
     }
   }
 
   @Test func aBarThatIsNotAFailureShowsItsSymbolWithTheSecondaryStyle() throws {
     for message in try Self.otherMessages() {
-      #expect(StatusBar.symbolColor(for: message, in: Self.theme) == Color.secondary, "\(message.identifier)")
+      #expect(message.severity.tone == .neutral, "\(message.identifier)")
     }
   }
 

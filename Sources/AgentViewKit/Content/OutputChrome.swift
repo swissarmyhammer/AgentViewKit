@@ -57,18 +57,17 @@ struct OutputExitLabel: View {
   let text: String
   /// The SF Symbol name of the label.
   let symbolName: String
-  /// The outcome of the command, or `nil` when it is not known. The label
-  /// uses `\.themeSecondary` for an unknown outcome.
+  /// The outcome of the command, or `nil` when it is not known. The symbol
+  /// draws in the tone of the EditorKit status of the outcome, and in the
+  /// neutral tone for an unknown outcome.
   let outcome: CommandOutputView.ExitOutcome?
   /// The accessibility identifier of the label.
   let identifier: String
 
-  @Environment(\.editorTheme) private var editorTheme
-  @Environment(\.themeSecondary) private var themeSecondary
-
   var body: some View {
     StatusCaptionLabel(
-      title: text, symbolName: symbolName, color: outcome.map(editorTheme.statusColor(for:)) ?? themeSecondary
+      title: text, symbolName: symbolName,
+      tone: outcome.map { EditorSymbol.status(.init($0)).tone } ?? .neutral
     )
     .frame(maxWidth: .infinity, alignment: .leading)
     .accessibilityElement(children: .ignore)

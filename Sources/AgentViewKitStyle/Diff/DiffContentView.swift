@@ -74,5 +74,6 @@ public struct DiffContentView: View {
 }
 
 #Preview("A note") {
-  DiffContentView(note: StylePreviewFixtures.fileName, systemImage: SharedSymbol.binary, identifier: "note")
+  DiffContentView(
+    note: StylePreviewFixtures.fileName, systemImage: EditorSymbol.file(.binary).systemImage, identifier: "note")
 }

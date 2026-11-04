@@ -1,4 +1,5 @@
 import EditorStyle
+import EditorSwiftUI
 import Foundation
 
 extension StateBanner {

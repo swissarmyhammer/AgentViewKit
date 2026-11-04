@@ -141,18 +141,22 @@ public struct ToolCallLocationChip: View {
   }
 
   public var body: some View {
-    Label(location.shortText, systemImage: SharedSymbol.document)
-      .font(editorTheme.font(for: .ui, style: .caption))
-      .lineLimit(1)
-      .truncationMode(.middle)
-      .padding(.horizontal, editorStyle.spacing.s)
-      .padding(.vertical, editorStyle.spacing.xs)
-      .background(
-        themeFill.quaternary, in: EditorSurface.shape(radius: ToolCallLocationChips.corners.radius(in: editorStyle)))
-      .help(location.fullText)
-      .accessibilityElement(children: .ignore)
-      .accessibilityLabel(location.fullText)
-      .accessibilityIdentifier(location.identifier)
+    Label {
+      Text(location.shortText)
+    } icon: {
+      EditorSymbolImage(.file(.document))
+    }
+    .font(editorTheme.font(for: .ui, style: .caption))
+    .lineLimit(1)
+    .truncationMode(.middle)
+    .padding(.horizontal, editorStyle.spacing.s)
+    .padding(.vertical, editorStyle.spacing.xs)
+    .background(
+      themeFill.quaternary, in: EditorSurface.shape(radius: ToolCallLocationChips.corners.radius(in: editorStyle)))
+    .help(location.fullText)
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(location.fullText)
+    .accessibilityIdentifier(location.identifier)
   }
 }
 

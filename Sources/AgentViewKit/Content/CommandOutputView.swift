@@ -75,14 +75,6 @@ public struct CommandOutputView: View {
       case .failure: String(localized: "Failed", bundle: .module)
       }
     }
-
-    /// The SF Symbol name of the footer.
-    var symbolName: String {
-      switch self {
-      case .success: ItemStatus.completed.systemImage
-      case .failure: SharedSymbol.error
-      }
-    }
   }
 
   /// The rows of an output that the view shows.
@@ -252,22 +244,8 @@ public struct CommandOutputView: View {
   private func footer(exitCode: Int, outcome: ExitOutcome) -> some View {
     OutputExitLabel(
       text: String(localized: "Exit code \(exitCode)", bundle: .module),
-      symbolName: outcome.symbolName,
+      symbolName: EditorSymbol.status(.init(outcome)).systemImage,
       outcome: outcome, identifier: Self.footerIdentifier)
-  }
-}
-
-nonisolated extension EditorTheme.Theme {
-  /// The color of a command with `outcome`.
-  ///
-  /// - Parameter outcome: The outcome of the command.
-  /// - Returns: `statusSucceeded` for a command that completed, and
-  ///   `statusFailed` for a command that failed.
-  public func statusColor(for outcome: CommandOutputView.ExitOutcome) -> Color {
-    switch outcome {
-    case .success: statusSucceeded
-    case .failure: statusFailed
-    }
   }
 }
 

@@ -1,3 +1,4 @@
+import EditorSwiftUI
 import Foundation
 import SwiftUI
 
@@ -19,17 +20,25 @@ import SwiftUI
 /// table. They come from `ItemStatus` and `ItemPriority` of the EditorKit
 /// `EditorStyle` target, so that the kits show the same symbol for the same
 /// state.
+///
+/// The symbols of a tool kind, a file kind and a status are EditorKit's
+/// `EditorSymbol` (EditorSwiftUI), and AgentViewKit reads them there. The
+/// tool-kind and file-operation names of this table stay only for the view
+/// kits that still read them, KanbanViewKit and SnapshotViewKit, and go
+/// when those kits read `EditorSymbol`.
 public nonisolated enum SharedSymbol {
   // MARK: - Status
 
-  /// The symbol of an error: a failed tool call, a failed turn, a failed
-  /// message, command or connection, an error notice, an error card and a
-  /// patch that a view cannot read.
+  /// The symbol of an error: a failed turn, a failed connection, an error
+  /// notice, an error card and a patch that a view cannot read. A failed
+  /// tool call, message or command shows the same symbol, as the failed
+  /// status of EditorKit's `EditorSymbol`.
   public static let error = "xmark.octagon.fill"
 
-  /// The symbol of a warning: a warning notice, a lost tool result, missing
-  /// updates, an attachment that the agent does not accept and a link that
-  /// leaves the app.
+  /// The symbol of a warning: a warning notice, missing updates, an
+  /// attachment that the agent does not accept and a link that leaves the
+  /// app. A lost tool result shows the same symbol, as the lost status of
+  /// EditorKit's `EditorSymbol`.
   public static let warning = "exclamationmark.triangle.fill"
 
   /// The symbol of an information notice.
@@ -40,6 +49,9 @@ public nonisolated enum SharedSymbol {
   public static let closed = "lock.fill"
 
   // MARK: - Tool kinds
+
+  // AgentViewKit reads each tool kind from `EditorSymbol.tool(_:)`. These
+  // names stay for the view kits that still read them.
 
   /// The symbol of a tool that reads a file.
   public static let read = "text.document"
@@ -80,6 +92,9 @@ public nonisolated enum SharedSymbol {
   public static let tool = "wrench.and.screwdriver"
 
   // MARK: - File operations
+
+  // AgentViewKit reads each file kind from `EditorSymbol.file(_:)`. These
+  // names stay for the view kits that still read them.
 
   /// The symbol of a file that a change makes.
   public static let addedFile = "plus.square"
@@ -139,7 +154,7 @@ public nonisolated enum SharedSymbol {
   Grid(alignment: .leading) {
     ForEach(names, id: \.self) { name in
       GridRow {
-        StatusSymbolImage(name: name, color: .secondary)
+        EditorSymbolImage(systemName: name, tone: .neutral)
         Text(verbatim: name)
       }
     }

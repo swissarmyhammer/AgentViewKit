@@ -73,7 +73,7 @@ public struct ErrorView: View {
         textLabel: String(localized: "\(content.title), \(content.detail)", bundle: .module),
         identifier: Self.identifier
       ) {
-        StatusSymbolImage(name: content.symbolName, color: editorTheme.severityError)
+        EditorSymbolImage(systemName: content.symbolName, tone: .error)
           .accessibilityHidden(true)
       }
     } body: {

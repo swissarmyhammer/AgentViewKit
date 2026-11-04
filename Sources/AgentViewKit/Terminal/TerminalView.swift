@@ -99,9 +99,9 @@ public struct TerminalView: View {
     /// The SF Symbol name of the footer.
     var symbolName: String {
       switch self {
-      case .code: outcome?.symbolName ?? ItemStatus.unknown.systemImage
+      case .code: EditorSymbol.status(outcome.map(EditorSymbol.Status.init) ?? .unknown).systemImage
       case .signal: SharedSymbol.signal
-      case .unknown: ItemStatus.unknown.systemImage
+      case .unknown: EditorSymbol.status(.unknown).systemImage
       }
     }
   }
@@ -196,8 +196,7 @@ public struct TerminalView: View {
   /// The row with the command and the working directory.
   private var header: some View {
     HStack(spacing: editorStyle.spacing.s) {
-      Image(systemName: SharedSymbol.terminal)
-        .foregroundStyle(themeSecondary)
+      EditorSymbolImage(.tool(.execute))
         .accessibilityHidden(true)
       Text(entry.command ?? String(localized: "Terminal", bundle: .module))
         .font(editorTheme.codeFont)

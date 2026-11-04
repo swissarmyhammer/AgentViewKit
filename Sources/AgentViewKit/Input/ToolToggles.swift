@@ -1,4 +1,5 @@
 import EditorInspector
+import EditorSwiftUI
 import Observation
 import SwiftUI
 
@@ -136,9 +137,9 @@ public struct ToolToggles: View {
   /// - Returns: The inspection.
   private static func inspection(of tools: [ToolToggle], onToggle: @escaping OnToggle) -> Inspection<ToolToggleList> {
     Inspection(title: String(localized: "Tools", bundle: .module)) {
-      FieldGroup(String(localized: "Available", bundle: .module)) {
+      FieldGroup(FieldLabel(localized: "Available", bundle: .module)) {
         for tool in tools {
-          Field(tool.name) { list in list.isEnabled(tool.id) }
+          Field(.verbatim(tool.name)) { list in list.isEnabled(tool.id) }
             .editing { _, isEnabled in onToggle(tool.id, isEnabled) }
             .identifier(tool.id.rawValue)
         }

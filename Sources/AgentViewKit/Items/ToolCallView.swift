@@ -40,7 +40,8 @@ extension View {
 /// "Tool call view", §5, §9 C).
 ///
 /// The view shows a `ToolCallEntry` of a `SessionModel`. It uses the ACP kind
-/// and status types. See ``ToolKindSymbol`` and ``ToolStatusSymbol``.
+/// and status types, and draws each kind and status as its EditorKit symbol
+/// (`EditorSymbol`). See ``ToolStatusSymbol``.
 ///
 /// The row shows the symbol of the kind, the `title` as the label, and a
 /// status symbol:
@@ -439,10 +440,7 @@ private struct ToolCallHeader: View {
   /// The symbols and the text inside the row button.
   private var rowContent: some View {
     HStack(spacing: editorStyle.spacing.s) {
-      Image(systemName: ToolKindSymbol.name(for: entry.shownKind))
-        .symbolRenderingMode(.hierarchical)
-        .fontWeight(editorStyle.symbolWeight)
-        .foregroundStyle(themeSecondary)
+      EditorSymbolImage(.tool(.init(entry.shownKind)))
       Text(ToolCallView.displayTitle(entry.shownTitle))
         .lineLimit(1)
         .truncationMode(.middle)
@@ -459,8 +457,8 @@ private struct ToolCallHeader: View {
 
   /// The status symbol, with the symbol effects of the row. The live symbol
   /// effect of a pending or running call shows that the call is live, so the
-  /// row shows no separate spinner. ``View/liveSymbolEffect(isActive:)`` comes
-  /// last, so under Reduce Motion it also removes the bounce.
+  /// row shows no separate spinner. EditorKit's `liveSymbolEffect(isActive:)`
+  /// comes last, so under Reduce Motion it also removes the bounce.
   private var statusGlyph: some View {
     let status = entry.shownStatus
     return ToolStatusImage(status: status)

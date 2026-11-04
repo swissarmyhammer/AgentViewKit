@@ -1,4 +1,5 @@
 import AgentViewKitTestSupport
+import EditorSwiftUI
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
@@ -62,8 +63,8 @@ import Testing
       (.cancelled, .cancelled), (.unknown(ToolStatusSymbol.lostWireValue), .warning),
       (.unknown("custom_status"), .unknown),
     ]
-    return kinds.map { Use(concept: $1, place: "tool kind \($0)", name: ToolKindSymbol.name(for: $0)) }
-      + statuses.map { Use(concept: $1, place: "tool status \($0)", name: ToolStatusSymbol.name(for: $0)) }
+    return kinds.map { Use(concept: $1, place: "tool kind \($0)", name: EditorSymbol.tool(.init($0)).systemImage) }
+      + statuses.map { Use(concept: $1, place: "tool status \($0)", name: EditorSymbol.status(.init($0)).systemImage) }
   }
 
   /// The symbols of the agent state banner: each state and each ACP stop
@@ -142,7 +143,7 @@ import Testing
       (.pending, .pending), (.inProgress, .inProgress), (.completed, .completed), (.cancelled, .cancelled),
       (.unknown("custom_status"), .unknown),
     ]
-    return statuses.map { Use(concept: $1, place: "plan \($0)", name: TaskListView.statusSymbol($0)) }
+    return statuses.map { Use(concept: $1, place: "plan \($0)", name: EditorSymbol.status(.init($0)).systemImage) }
   }
 
   /// The symbols of the priority of a plan entry.
@@ -169,14 +170,16 @@ import Testing
       (.renamed(from: "old.swift"), .renamedFile), (.copied(from: "old.swift"), .copiedFile),
       (.unknown("custom"), .unknown),
     ]
-    return operations.map { Use(concept: $1, place: "diff \($0)", name: DiffFileChip.symbolName(for: $0)) }
+    return operations.map { Use(concept: $1, place: "diff \($0)", name: EditorSymbol.file(.init($0)).systemImage) }
   }
 
   /// The symbols of the footer of a command output and of a terminal.
   static func commandOutputUses() -> [Use] {
     let outcomes: [(CommandOutputView.ExitOutcome, Concept)] = [(.success, .completed), (.failure, .error)]
     let exits: [(TerminalView.ExitSummary, Concept)] = [(.signal("SIGINT"), .signal), (.unknown, .unknown)]
-    return outcomes.map { Use(concept: $1, place: "command output \($0)", name: $0.symbolName) }
+    return outcomes.map {
+      Use(concept: $1, place: "command output \($0)", name: EditorSymbol.status(.init($0)).systemImage)
+    }
       + exits.map { Use(concept: $1, place: "terminal exit \($0)", name: $0.symbolName) }
   }
 
@@ -192,7 +195,7 @@ import Testing
   static func sendStateUses() -> [Use] {
     let states: [(SendState, Concept)] = [(.pending, .pending), (.sent, .completed), (.failed, .error)]
     return states.map {
-      Use(concept: $1, place: "send state \($0)", name: UserMessageView.SendStateLabel.symbol(of: $0))
+      Use(concept: $1, place: "send state \($0)", name: EditorSymbol.status(.init($0)).systemImage)
     }
   }
 
@@ -317,7 +320,7 @@ import Testing
     let banner = StateBanner.message(
       for: try StateBannerStopReasonTests.idleUpdate(stopReason: "max_turn_requests"))
 
-    #expect(ToolKindSymbol.name(for: .switchMode) != banner.symbolName)
+    #expect(EditorSymbol.tool(.switchMode).systemImage != banner.symbolName)
   }
 
   @Test func eachPlanPriorityShowsADifferentSymbol() {

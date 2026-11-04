@@ -116,7 +116,7 @@ public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
       textLabel: String(localized: "\(Self.title), \(statusText)", bundle: .module),
       identifier: Self.identifier(for: key)
     ) {
-      StatusSymbolImage(name: Self.symbolName, color: editorTheme.statusColor(for: status))
+      EditorSymbolImage(systemName: Self.symbolName, tone: EditorSymbol.status(.init(status)).tone)
         .accessibilityHidden(true)
     }
   }
