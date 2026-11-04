@@ -44,7 +44,7 @@ import Testing
   /// The object id of the list of a ``ToolToggles``: the list has no
   /// identity of its own, so EditorKit names it by its inspection and its
   /// position.
-  static let listObject = InspectorScheme.objectID(of: [ToolToggleList(tools: [])], key: ToolToggles.listIdentifier)
+  static let listObject = InspectorRowID.object(ToolToggleList(tools: []), view: ToolToggles.listIdentifier)
 
   /// Mounts the list style of ``tools``, and makes one render pass.
   ///
@@ -82,8 +82,8 @@ import Testing
     let harness = Self.mountList()
     defer { harness.close() }
 
-    #expect(harness.inspectorDriver.value(of: Self.row(Self.searchID)) == "1")
-    #expect(harness.inspectorDriver.value(of: Self.row(Self.issueID)) == "0")
+    #expect(harness.rowValue(Self.row(Self.searchID)) == "1")
+    #expect(harness.rowValue(Self.row(Self.issueID)) == "0")
   }
 
   @Test func theListShowsOneRowForEachTool() {
@@ -100,7 +100,7 @@ import Testing
     defer { harness.close() }
     harness.render()
 
-    #expect(harness.inspectorDriver.elements(Self.row(Self.searchID)).isEmpty)
+    #expect(!harness.showsRow(Self.row(Self.searchID)))
   }
 
   @Test func theMenuStyleShowsAMenuButton() {

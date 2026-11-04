@@ -31,6 +31,17 @@ comments:
     - So the Reduce Motion fix is in: EK's effect turns off `isActive` under Reduce Motion as well as removing the effects.
     - StatusSymbolImage and SharedSymbol stay. The rest of this card is still open.
   timestamp: 2026-11-04T18:43:11.000763+00:00
+- actor: claude-code
+  id: 01m6m0gqfqztv2ktvbrqw33h07
+  text: |-
+    Picked up (implement). Research and plan:
+    - EK origin main is bcce50e4 after `swift package update` (root, IntegrationTests, ScreenshotTests); it holds dccf5daf's EditorSymbol, EditorSymbolImage and LiveSymbolEffect.
+    - The worktree base 1f82d1cc still had Sources/AgentViewKitStyle/Symbols/LiveSymbolEffect.swift (the ^e4857xj removal is not in this base), so it is deleted here, as the orchestrator asked; the identical FieldLabel fix (Inspection/*.swift, ToolToggles, ConfigOptionFields) is made here too, so the merge with the main checkout is trivial. No CompletionRow ambiguity came up.
+    - EK's Status.tone and Status.systemImage are internal; only EditorSymbol.systemImage and EditorSymbol.tone are public, so AVK reads them through the EditorSymbol case.
+    - EditorSymbolImage takes a Tone, not a Color, so every AVK color that fed a symbol (Theme+StatusRoles statusColor/tint, CommandOutputView statusColor, StatusBar.symbolColor) becomes a map to an EK status or tone.
+    - Consumers (origin mains KVK, SVK be738d5-era, TestudoApp d2841fc): no one uses ToolKindSymbol, ToolStatusSymbol.name, statusColor(for:), tint(for:), StatusBar.symbolColor or liveSymbolEffect. SVK uses StatusSymbolImage (CheckpointSymbolImage) and names DiffFileChip.symbolName(for:) only in a doc comment (CheckpointFileContent). TestudoApp uses none of them.
+    - Interpretation of scope: AVK's own code moves off StatusSymbolImage and off the SharedSymbol tool-kind/file names; SharedSymbol's other names (error, warning, information, closed, reload, dismiss, link, disclosure) have no EK counterpart and AVK keeps reading them.
+  timestamp: 2026-11-04T19:28:03.063747+00:00
 position_column: doing
 position_ordinal: '8280'
 title: 'Adopt EditorKit symbols (^j0562t1): delete AVK''s Symbols copies'

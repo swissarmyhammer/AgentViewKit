@@ -247,8 +247,8 @@ public struct ConversationView<EmptyState: View>: View {
       }
     }
     .environment(\.sessionModel, session)
-    .onChange(of: lastRowKey) { old, new in
-      noteLastItem(old: old, new: new)
+    .onChange(of: lastRowKey) {
+      noteLastItem()
     }
     .onChange(of: pageCount) {
       anchors.restoreAnchor()
@@ -478,6 +478,13 @@ public struct ConversationView<EmptyState: View>: View {
 
   /// Tells the manager which rows are in view.
   ///
+  /// The view first tells the manager about a new last item
+  /// (``noteLastItem()``). SwiftUI can call the visibility action of the list
+  /// in the layout pass that shows a new row, before it calls the change
+  /// action of ``lastRowKey``. The manager then read the new row as a row
+  /// below its last item, so the report was not at the bottom, and it
+  /// unpinned the manager during a streamed turn (^6y6ydyb).
+  ///
   /// - Parameters:
   ///   - ids: The identifiers of the rows in view, in any order.
   ///   - isNearBottom: Whether the end of the list is in the tolerance of
@@ -486,6 +493,7 @@ public struct ConversationView<EmptyState: View>: View {
     if let isNearBottom {
       self.isNearBottom = isNearBottom
     }
+    noteLastItem()
     // Each id gets its position one time, and the sort compares the stored
     // positions.
     let transcript = session.transcript
@@ -496,12 +504,17 @@ public struct ConversationView<EmptyState: View>: View {
       ids: sorted, distanceFromBottom: self.isNearBottom ? 0 : .greatestFiniteMagnitude)
   }
 
-  /// Tells the manager about a change to the last item.
+  /// Tells the manager about a change to the last item, when the last item
+  /// of the transcript is not the last item that the manager holds
+  /// (``ScrollAnchorManager/lastItemID``).
   ///
-  /// - Parameters:
-  ///   - old: The identifier of the last item before the change.
-  ///   - new: The identifier of the last item after the change.
-  private func noteLastItem(old: String?, new: String?) {
+  /// The change action of ``lastRowKey`` and each visibility report call
+  /// this function, so the manager hears of each new last item one time,
+  /// from whichever call comes first.
+  private func noteLastItem() {
+    let old = anchors.lastItemID
+    let new = lastRowKey
+    guard new != old else { return }
     guard let new else {
       anchors.noteLastItemChanged(to: nil)
       return

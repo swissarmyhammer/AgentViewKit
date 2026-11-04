@@ -34,14 +34,11 @@ import Testing
   /// - Parameter session: The session of the panel.
   /// - Returns: The scheme id of each row.
   static func rows(of session: SessionModel) -> [String] {
-    let sessionObject = ConfigOptionsSessionModelHostedTests.object(of: session)
-    return [
-      InspectorDriver.field(
-        view: ConfigOptionsView.viewIdentifier, object: sessionObject,
-        group: ConfigOptionsView.uncategorizedSectionID, field: "web-search"),
-      InspectorDriver.field(
-        view: ToolToggles.listIdentifier, object: ToolTogglesHostedTests.listObject, group: ToolToggles.groupIdentifier, field: "search"),
-      InspectorDriver.field(view: SessionModel.inspection.id, object: sessionObject, group: "session", field: "id"),
+    [
+      ConfigOptionsSessionModelHostedTests.row(
+        ConfigOptionsView.uncategorizedSectionID, SessionConfigId(rawValue: "web-search"), of: session),
+      ToolTogglesHostedTests.row(tools[0].id),
+      ClientModelInspectionHostedTests.row(of: session, group: "session", field: "id"),
     ]
   }
 
