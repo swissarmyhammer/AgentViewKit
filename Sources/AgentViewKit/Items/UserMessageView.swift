@@ -1,6 +1,5 @@
 import EditorStyle
 import EditorSwiftUI
-import EditorTheme
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -43,7 +42,6 @@ public struct UserMessageView: View, PrefixedAccessibilityIdentifier {
   }
 
   @Environment(\.editorStyle) private var editorStyle
-  @Environment(\.editorTheme) private var editorTheme
 
   public var body: some View {
     VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
@@ -53,13 +51,11 @@ public struct UserMessageView: View, PrefixedAccessibilityIdentifier {
   }
 
   /// The send state of the entry: pending, sent, or failed (plan.md §3.2
-  /// "Prompt helper"), as EditorKit's `EditorStatusLabel` of its status
-  /// token. The label is one accessibility element. Its label is the label
-  /// of the state.
+  /// "Prompt helper"), as a ``StatusCaption`` of its status token. The
+  /// label is one accessibility element. Its label is the label of the
+  /// state.
   private var sendStateLabel: some View {
-    EditorStatusLabel(EditorStatus(entry.sendState))
-      .font(editorTheme.font(for: .ui, style: .caption))
-      .accessibilityIdentifier(Self.sendStateIdentifier(for: entry.id.rowKey))
+    StatusCaption(status: EditorStatus(entry.sendState), identifier: Self.sendStateIdentifier(for: entry.id.rowKey))
   }
 }
 
@@ -67,13 +63,4 @@ public struct UserMessageView: View, PrefixedAccessibilityIdentifier {
   if let entry = PreviewFixtures.firstEntry(in: .previewSample, as: UserMessageEntry.self) {
     UserMessageView(entry: entry)
   }
-}
-
-#Preview("A pending, a sent and a failed message") {
-  VStack(alignment: .leading) {
-    ForEach([SendState.pending, .sent, .failed], id: \.self) { state in
-      EditorStatusLabel(EditorStatus(state))
-    }
-  }
-  .padding()
 }

@@ -26,6 +26,9 @@ enum StatusGalleryFixtures {
   /// The size of the status image.
   static let size = CGSize(width: width, height: height)
 
+  /// The accessibility identifier of each status label of the image.
+  static let labelIdentifier = "gallery-status"
+
   /// The reason of the failed MCP server and the failed connection.
   static let failureReason = "The server process exited with code 1."
 
@@ -134,15 +137,16 @@ private struct StatusGallery: View {
     }
   }
 
-  /// One line of status labels, in the caption font that each row gives
-  /// them.
+  /// One line of status labels, each the ``StatusCaption`` that its row
+  /// draws.
   ///
   /// - Parameter statuses: The statuses of the line.
   /// - Returns: The line.
   private func labels(_ statuses: [EditorStatus]) -> some View {
     HStack(spacing: editorStyle.spacing.m) {
-      ForEach(statuses, id: \.self) { EditorStatusLabel($0) }
+      ForEach(statuses, id: \.self) {
+        StatusCaption(status: $0, identifier: StatusGalleryFixtures.labelIdentifier)
+      }
     }
-    .font(editorTheme.font(for: .ui, style: .caption))
   }
 }

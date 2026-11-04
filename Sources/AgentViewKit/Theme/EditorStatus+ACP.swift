@@ -83,9 +83,7 @@ nonisolated extension EditorStatus {
     case .connecting: self = .connecting
     case .connected: self = .connected
     case .failed(let reason): self = .connectionFailed(detail: reason)
-    case .closed:
-      self.init(
-        systemName: SharedSymbol.disconnected, tone: .cancelled, label: String(localized: "Closed", bundle: .module))
+    case .closed: self = .disconnected(label: String(localized: "Closed", bundle: .module))
     }
   }
 
@@ -95,10 +93,7 @@ nonisolated extension EditorStatus {
   /// - Parameter state: The state of a `ConnectionModel`.
   init(_ state: ConnectionState) {
     switch state {
-    case .disconnected:
-      self.init(
-        systemName: SharedSymbol.disconnected, tone: .cancelled,
-        label: String(localized: "Disconnected", bundle: .module))
+    case .disconnected: self = .disconnected(label: String(localized: "Disconnected", bundle: .module))
     case .connecting: self = .connecting
     case .connected: self = .connected
     case .failed(let error): self = .connectionFailed(detail: error.localizedDescription)
@@ -126,6 +121,14 @@ nonisolated extension EditorStatus {
   /// A connection, or a server, that is open.
   private static var connected: EditorStatus {
     EditorStatus(symbol: .status(.completed), label: String(localized: "Connected", bundle: .module))
+  }
+
+  /// A connection, or a server, that is closed.
+  ///
+  /// - Parameter label: The label of the state, such as "Closed".
+  /// - Returns: The disconnected symbol in the cancelled tone.
+  private static func disconnected(label: String) -> EditorStatus {
+    EditorStatus(systemName: SharedSymbol.disconnected, tone: .cancelled, label: label)
   }
 
   /// A connection, or a server, that failed.

@@ -15,7 +15,8 @@ extension EnvironmentValues {
   /// for an MCP server (plan.md §12).
   ///
   /// ``ToolCallView`` shows the status of the server, as EditorKit's
-  /// `EditorStatusLabel`, when the function gives a status. The value is `nil` until a host sets a function with
+  /// `EditorStatusLabel`, when the function gives a status. The value is
+  /// `nil` until a host sets a function with
   /// ``SwiftUI/View/toolCallConnectionState(_:)``.
   @Entry public var toolCallConnectionState: ToolCallConnectionStateProvider? = nil
 }
@@ -416,7 +417,6 @@ private struct ToolCallHeader: View {
 
   @Environment(\.toolCallConnectionState) private var connectionState
   @Environment(\.editorStyle) private var editorStyle
-  @Environment(\.editorTheme) private var editorTheme
   @Environment(\.themeSecondary) private var themeSecondary
 
   var body: some View {
@@ -437,9 +437,7 @@ private struct ToolCallHeader: View {
       )
       .accessibilityIdentifier(ToolCallView.toggleIdentifier(for: id))
       if let status = connectionState?(entry) {
-        EditorStatusLabel(EditorStatus(status))
-          .font(editorTheme.font(for: .ui, style: .caption))
-          .accessibilityIdentifier(ConnectionRow.statusIdentifier(for: status))
+        StatusCaption(status: EditorStatus(status), identifier: ConnectionRow.statusIdentifier(for: status))
       }
     }
   }

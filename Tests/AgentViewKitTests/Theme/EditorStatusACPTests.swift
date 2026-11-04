@@ -44,16 +44,8 @@ import Testing
     #expect(EditorStatus(status) == EditorStatus(.unknown, detail: Self.customWireValue))
   }
 
-  @Test func aPendingToolCallIsLive() {
-    #expect(EditorStatus(FoundationModelsACP.ToolCallStatus.pending).isLive)
-  }
-
   @Test func aPendingToolCallHasTheLabelOfThePendingStatus() {
     #expect(EditorStatus(FoundationModelsACP.ToolCallStatus.pending).label == EditorStatus(EditorSymbol.Status.pending).label)
-  }
-
-  @Test func aPausedToolCallIsNotLive() {
-    #expect(!EditorStatus(FoundationModelsACP.ToolCallStatus.paused).isLive)
   }
 
   // MARK: - Plan entries

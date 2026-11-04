@@ -47,8 +47,7 @@ struct OutputCapRow: View {
   }
 }
 
-/// The label that shows how a command exited, as EditorKit's
-/// `EditorStatusLabel`.
+/// The label that shows how a command exited, as a ``StatusCaption``.
 ///
 /// ``CommandOutputView`` and ``TerminalView`` show this label in their
 /// footer. VoiceOver reads the text as the label and the outcome as the
@@ -65,8 +64,6 @@ struct OutputExitLabel: View {
   /// The accessibility identifier of the label.
   let identifier: String
 
-  @Environment(\.editorTheme) private var editorTheme
-
   /// The status token of the exit: the symbol in the tone of the outcome,
   /// the text as the label, and the outcome as the detail.
   var status: EditorStatus {
@@ -75,10 +72,8 @@ struct OutputExitLabel: View {
   }
 
   var body: some View {
-    EditorStatusLabel(status)
-      .font(editorTheme.font(for: .ui, style: .caption))
+    StatusCaption(status: status, identifier: identifier)
       .frame(maxWidth: .infinity, alignment: .leading)
-      .accessibilityIdentifier(identifier)
   }
 }
 

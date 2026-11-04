@@ -94,9 +94,7 @@ public struct ConnectionRow: View {
         }
       }
       Spacer(minLength: editorStyle.spacing.s)
-      EditorStatusLabel(EditorStatus(server.status))
-        .font(editorTheme.font(for: .ui, style: .caption))
-        .accessibilityIdentifier(Self.statusIdentifier(for: server.status))
+      StatusCaption(status: EditorStatus(server.status), identifier: Self.statusIdentifier(for: server.status))
     }
     .accessibilityElement(children: .contain)
     .accessibilityLabel(server.name)
