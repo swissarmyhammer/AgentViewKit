@@ -1,5 +1,6 @@
 import AgentViewKitTestSupport
 import EditorInspector
+import EditorInspectorTestSupport
 import EditorTestSupport
 import FoundationModelsACP
 import FoundationModelsACPClient
@@ -12,8 +13,8 @@ import Testing
 /// owns the one scroll view (`.inspectorScrolling(.host)`), stacks several
 /// inspectors, and is as narrow as a docked panel.
 ///
-/// Each test reads the rows by EditorKit's accessibility identifiers: the
-/// view, the object, the group and the field.
+/// Each test finds and presses the rows with EditorKit's `InspectorDriver`,
+/// by their scheme ids.
 @Suite(.serialized, .hostedSerially) @MainActor struct InspectorPanelHostedTests {
   /// The width of a narrow docked panel, in points.
   static let narrowWidth: CGFloat = 240
@@ -27,19 +28,17 @@ import Testing
   /// The tools of the panel.
   static let tools = [ToolToggle(id: ToolToggleID("search"), name: "Search code", isEnabled: true)]
 
-  /// The rows that the panel shows, one of each inspector.
+  /// The rows that the panel of `session` shows, one of each inspector: the
+  /// web search option, the search tool and the id of the session.
   ///
   /// - Parameter session: The session of the panel.
-  /// - Returns: The web search row of the config options, the search row of
-  ///   the tools, and the id row of the session.
+  /// - Returns: The scheme id of each row.
   static func rows(of session: SessionModel) -> [String] {
-    let configOptions = ConfigOptionsView.viewIdentifier
-    return [
-      InspectorScheme.rowIdentifier(
-        view: configOptions, object: InspectorScheme.objectID(of: [session], key: configOptions),
-        group: ConfigOptionsView.uncategorizedSectionID, field: "web-search"),
-      ToolTogglesHostedTests.row(ToolToggleID("search")),
-      ClientModelInspectionHostedTests.row("session", "id", of: session),
+    [
+      ConfigOptionsSessionModelHostedTests.row(
+        ConfigOptionsView.uncategorizedSectionID, SessionConfigId(rawValue: "web-search"), of: session),
+      ToolTogglesHostedTests.row(tools[0].id),
+      ClientModelInspectionHostedTests.row(of: session, group: "session", field: "id"),
     ]
   }
 
@@ -65,10 +64,10 @@ import Testing
     let harness = HostedViewHarness(Panel(session: session), size: Self.narrowPanel)
     defer { harness.close() }
     harness.render()
+    let driver = harness.inspectorDriver
 
-    let shown = Set(harness.accessibilityElements().compactMap(\.identifier))
     for row in Self.rows(of: session) {
-      #expect(shown.contains(row), "The panel shows no row \(row).")
+      #expect(driver.elements(row).count == 1, "The panel shows no row \(row).")
     }
   }
 
@@ -83,7 +82,7 @@ import Testing
     defer { harness.close() }
     harness.render()
 
-    try harness.press(identifier: ToolTogglesHostedTests.row(ToolToggleID("search")))
+    try harness.inspectorDriver.press(ToolTogglesHostedTests.row(Self.tools[0].id))
     await ObservationWait.until { !recorder.values.isEmpty }
 
     #expect(recorder.values == [false])

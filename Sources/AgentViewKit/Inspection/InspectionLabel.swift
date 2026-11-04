@@ -1,11 +1,13 @@
 import EditorInspector
+import Foundation
 
 /// The titles, the group names and the field labels that more than one
 /// inspection of a client model uses.
 ///
-/// EditorKit makes the accessibility identifier of each row from the key of
-/// its title, its group name and its label, such as
-/// `tool-call.tool-call.title`.
+/// Each label is a `FieldLabel` of the string catalog of the kit
+/// (`FieldLabel(localized:bundle:)`), so EditorKit keys the scheme id of its
+/// row by the source key, the same in each language, such as
+/// `field:tool-call.title`.
 enum InspectionLabel {
   /// The group of the content of a message.
   static var message: FieldLabel { FieldLabel(localized: "Message", bundle: .module) }
@@ -33,4 +35,34 @@ enum InspectionLabel {
 
   /// The name of a server or of an agent.
   static var name: FieldLabel { FieldLabel(localized: "Name", bundle: .module) }
+}
+
+extension Inspection {
+  /// The inspection of a model whose first group is named as the inspection:
+  /// `label` names both, so the name is written one time.
+  ///
+  /// - Parameters:
+  ///   - label: The name of the first group; its text is the title of the
+  ///     inspection.
+  ///   - name: The name of one object, or `nil` to name it by the title. A
+  ///     block whose name gives `nil` takes the title too.
+  ///   - fields: The fields of the first group.
+  ///   - more: The groups after the first one.
+  /// - Returns: The inspection.
+  static func named(
+    _ label: FieldLabel, name: (@MainActor (Object) -> String?)? = nil,
+    @FieldBuilder<Object> fields: () -> [AnyField<Object>],
+    @InspectionBuilder<Object> more: () -> [FieldGroup<Object>] = { [] }
+  ) -> Inspection<Object> {
+    let built = fields()
+    // A closure with a `return` takes no builder: the fields are built.
+    let first = FieldGroup(label) { return built }
+    let rest = more()
+    let title = label.text
+    let objectName = name.map { name in { @MainActor (object: Object) -> String in name(object) ?? title } }
+    return Inspection(title: title, name: objectName) {
+      first
+      for group in rest { group }
+    }
+  }
 }

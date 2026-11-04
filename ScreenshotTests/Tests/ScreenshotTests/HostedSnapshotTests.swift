@@ -112,6 +112,13 @@ import Testing
       SnapshotFixtures.titleLineBars, named: "status-bar-title-lines", size: SnapshotFixtures.titleLineBarsSize)
   }
 
+  /// The permission-mode picker, the menu buttons of the config options and
+  /// the tools, and the choice and toggle controls that their menus hold.
+  @Test func theConfigAndToolControls() async throws {
+    try await Self.generate(
+      SnapshotFixtures.configControls, named: "config-controls", size: SnapshotFixtures.configControlsSize)
+  }
+
   @Test func theCodeBlock() async throws {
     let model = EditorModel(PreviewFixtures.codeSample)
     let block = CodeBlockView(

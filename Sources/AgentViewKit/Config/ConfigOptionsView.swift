@@ -39,9 +39,10 @@ import SwiftUI
 /// toggle row for a boolean. The view is not `SessionModel.inspection`: the agent names
 /// the options of each session, and the inspection of a type is the same for
 /// each session, so the form builds its own inspection from the options that
-/// the model holds. The rows take EditorKit's accessibility identifiers:
-/// ``viewIdentifier``, the id of the category section and the id of the
-/// option, such as `config-options.model.model`.
+/// the model holds. The rows take EditorKit's scheme ids: the view is
+/// ``viewIdentifier``, the object is the session, the group is the id of the
+/// category section and the field is the id of the option, such as
+/// `inspection:config-options/object:<session>/field:model.model`.
 public struct ConfigOptionsView: View {
   /// The presentation of a ``ConfigOptionsView``.
   public enum Style: Sendable, Hashable {
@@ -69,17 +70,13 @@ public struct ConfigOptionsView: View {
     }
 
     /// The header of the section.
-    public var title: String { label.text }
-
-    /// The header of the section as the name of its inspector group, keyed
-    /// by its source text in each language.
-    var label: FieldLabel {
+    public var title: String {
       switch category {
-      case .mode: FieldLabel(localized: "Mode", bundle: .module)
-      case .model: FieldLabel(localized: "Model", bundle: .module)
-      case .thoughtLevel: FieldLabel(localized: "Thought Level", bundle: .module)
-      case .modelConfig: FieldLabel(localized: "Model Settings", bundle: .module)
-      case .unknown, nil: FieldLabel(localized: "Other", bundle: .module)
+      case .mode: String(localized: "Mode", bundle: .module)
+      case .model: String(localized: "Model", bundle: .module)
+      case .thoughtLevel: String(localized: "Thought Level", bundle: .module)
+      case .modelConfig: String(localized: "Model Settings", bundle: .module)
+      case .unknown, nil: String(localized: "Other", bundle: .module)
       }
     }
   }

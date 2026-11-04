@@ -1,6 +1,7 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
 import EditorInspector
+import EditorInspectorTestSupport
 import EditorTestSupport
 import Foundation
 import SwiftUI
@@ -29,24 +30,21 @@ import Testing
     ToolToggle(id: issueID, name: "Create issue", isEnabled: false),
   ]
 
-  /// The object id of the block of the list style: EditorKit names an
-  /// object with no stable id by the key of its type and its position.
-  static let listObject = "tooltogglelist-1"
-
-  /// The EditorKit identifier of the block of the list style: the view and
-  /// the list.
-  static let block = InspectorScheme.blockIdentifier(view: ToolToggles.listIdentifier, object: listObject)
-
-  /// The EditorKit accessibility identifier of the row of a tool in the
-  /// list style: the view, the list, the group and the tool.
+  /// The scheme id of the row of a tool in the list style: the view and the
+  /// one list object of ``ToolToggles/listIdentifier``, the group and the
+  /// tool.
   ///
   /// - Parameter tool: The identifier of the tool.
-  /// - Returns: The identifier, such as
-  ///   `inspection:tool-toggles/object:tooltogglelist-1/field:tools.search`.
+  /// - Returns: The id that the row carries.
   static func row(_ tool: ToolToggleID) -> String {
-    InspectorScheme.rowIdentifier(
+    InspectorDriver.field(
       view: ToolToggles.listIdentifier, object: listObject, group: ToolToggles.groupIdentifier, field: tool.rawValue)
   }
+
+  /// The object id of the list of a ``ToolToggles``: the list has no
+  /// identity of its own, so EditorKit names it by its inspection and its
+  /// position.
+  static let listObject = InspectorRowID.object(ToolToggleList(tools: []), view: ToolToggles.listIdentifier)
 
   /// Mounts the list style of ``tools``, and makes one render pass.
   ///
@@ -68,9 +66,9 @@ import Testing
     let harness = Self.mountList { recorder.report(Call(id: $0, isEnabled: $1)) }
     defer { harness.close() }
 
-    try harness.press(identifier: Self.row(Self.issueID))
+    try harness.inspectorDriver.press(Self.row(Self.issueID))
     await ObservationWait.until { recorder.values.count == 1 }
-    try harness.press(identifier: Self.row(Self.searchID))
+    try harness.inspectorDriver.press(Self.row(Self.searchID))
     await ObservationWait.until { recorder.values.count == 2 }
 
     #expect(
@@ -84,17 +82,16 @@ import Testing
     let harness = Self.mountList()
     defer { harness.close() }
 
-    #expect(harness.element(identifier: Self.row(Self.searchID))?.value == "1")
-    #expect(harness.element(identifier: Self.row(Self.issueID))?.value == "0")
+    #expect(harness.rowValue(Self.row(Self.searchID)) == "1")
+    #expect(harness.rowValue(Self.row(Self.issueID)) == "0")
   }
 
   @Test func theListShowsOneRowForEachTool() {
     let harness = Self.mountList()
     defer { harness.close() }
 
-    let identifiers = harness.accessibilityElements().compactMap(\.identifier).filter {
-      $0.hasPrefix(Self.block) && $0 != InspectorScheme.identifier(of: "name", inRow: Self.block)
-    }
+    let identifiers = harness.fieldIDs(
+      inBlock: InspectorScheme.blockIdentifier(view: ToolToggles.listIdentifier, object: Self.listObject))
     #expect(identifiers == [Self.row(Self.searchID), Self.row(Self.issueID)])
   }
 
@@ -103,7 +100,7 @@ import Testing
     defer { harness.close() }
     harness.render()
 
-    #expect(harness.element(identifier: Self.row(Self.searchID)) == nil)
+    #expect(!harness.showsRow(Self.row(Self.searchID)))
   }
 
   @Test func theMenuStyleShowsAMenuButton() {

@@ -509,7 +509,7 @@
       let model = session.model
       let clientText = RequestError(reporting: ConnectionError.closed).message
 
-      try await config.pressWebSearch(in: harness, starts: starts)
+      try await config.pressWebSearch(of: session.model, in: harness, starts: starts)
       await ObservationWait.until { !config.setParams(in: session).isEmpty }
       session.close()
       await harness.render { TranscriptChecks.hasErrorEntry(model) }

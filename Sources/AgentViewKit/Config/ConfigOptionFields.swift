@@ -85,7 +85,7 @@ enum ConfigOptionFields {
   ) -> Inspection<SessionModel> {
     Inspection(title: title) {
       for section in sections {
-        FieldGroup(section.label) {
+        FieldGroup(.verbatim(section.title)) {
           for option in section.options {
             if let field = selectField(option, reporting: report) { field }
             if let field = booleanField(option, reporting: report) { field }
