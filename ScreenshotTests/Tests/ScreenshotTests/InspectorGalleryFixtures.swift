@@ -73,21 +73,21 @@ struct InspectorGalleryFixtures {
 
   /// Opens the scripted session and sends ``updates``.
   ///
-  /// The connection model reads a `FixedClock` that moves one step of the
-  /// timed thread (``TimingGalleryFixtures/stepSeconds``) after the model
-  /// takes each update, so the Time group of each entry shows a known start
+  /// The connection model reads a `FixedClock` from
+  /// `TimedSessionClock.start` that moves `TimedSessionClock.stepSeconds`
+  /// after the model takes each update, so the Time group of each entry shows a known start
   /// and end, and the duration row of each entry that ended.
   ///
   /// - Returns: The fixtures, once each entry is in the transcript.
   /// - Throws: The error of the session or of the transport.
   static func open() async throws -> InspectorGalleryFixtures {
-    let clock = FixedClock(start: TimingGalleryFixtures.start)
+    let clock = FixedClock(start: TimedSessionClock.start)
     let session = try await ScriptedSession.open(now: clock.now)
     let model = session.model
     for (index, update) in updates.enumerated() {
       try await session.sendUpdate(update)
       await ObservationWait.until(within: TimingGalleryFixtures.settleLimit) { model.transcript.count > index }
-      clock.advance(by: TimingGalleryFixtures.stepSeconds)
+      clock.advance(by: TimedSessionClock.stepSeconds)
     }
     return InspectorGalleryFixtures(session: session)
   }

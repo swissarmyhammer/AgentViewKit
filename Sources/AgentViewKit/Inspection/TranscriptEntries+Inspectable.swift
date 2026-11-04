@@ -21,15 +21,17 @@ extension ObservableTranscriptEntry {
   ///
   /// The duration row is EditorKit's duration kind, in the format of the
   /// time of a transcript row (`EntryTimingView.durationFormat`). It shows
-  /// only for an entry that has ended, as the client model gives a duration
-  /// only then.
+  /// where the transcript row shows a duration
+  /// (``EntryTimingView/shownDuration(_:)``): for an entry that has ended,
+  /// after at least ``EntryTimingView/shortestShownDuration`` (half a
+  /// second). A shorter duration rounds to zero seconds and shows no row.
   static var timeGroup: FieldGroup<Self> {
     FieldGroup(InspectionLabel.time) {
       Field(InspectionLabel.started) { $0.timing.startedAt }
       Field(InspectionLabel.ended) { $0.timing.endedAt }
       Field(InspectionLabel.duration) { Duration.seconds($0.timing.duration ?? .zero) }
         .durationFormat(EntryTimingView.durationFormat)
-        .visible { $0.timing.duration != nil }
+        .visible { EntryTimingView.shownDuration($0.timing.duration) != nil }
     }
   }
 }
