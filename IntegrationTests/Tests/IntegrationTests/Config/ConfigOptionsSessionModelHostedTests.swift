@@ -345,7 +345,7 @@ import Testing
     defer { harness.close() }
 
     let model = session.model
-    let rows = harness.fieldIDs(inBlock: Self.block(of: model))
+    let rows = harness.inspectorDriver.fieldIDs(inBlock: Self.block(of: model))
     #expect(rows == [Self.modeRow(model), Self.modelRow(model), Self.webRow(model)])
   }
 

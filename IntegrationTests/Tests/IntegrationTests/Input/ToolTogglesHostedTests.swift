@@ -90,7 +90,7 @@ import Testing
     let harness = Self.mountList()
     defer { harness.close() }
 
-    let identifiers = harness.fieldIDs(
+    let identifiers = harness.inspectorDriver.fieldIDs(
       inBlock: InspectorScheme.blockIdentifier(view: ToolToggles.listIdentifier, object: Self.listObject))
     #expect(identifiers == [Self.row(Self.searchID), Self.row(Self.issueID)])
   }
