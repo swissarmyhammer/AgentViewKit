@@ -35,9 +35,9 @@ public nonisolated struct ToolToggle: Sendable, Hashable, Identifiable {
 /// ``Style/menu`` shows the toggles in a menu for the composer accessory.
 /// ``Style/list`` shows them as the content of an inspector, a sheet or a
 /// popover: an EditorKit `InspectorView` of the list, with one toggle row for
-/// each tool. Its rows take EditorKit's accessibility identifiers:
-/// ``listIdentifier``, the group and the id of the tool, such as
-/// `tool-toggles.tools.search`.
+/// each tool. Its rows take EditorKit's scheme ids: the view and the
+/// inspection are ``listIdentifier``, and the field is the id of the tool, such
+/// as `inspection:tool-toggles/object:tool-toggles-1/field:tools.search`.
 ///
 /// The view shows a host list of tools. A toggle calls the host closure with
 /// the tool identifier and the new value. The host updates the list. The
@@ -136,7 +136,7 @@ public struct ToolToggles: View {
   ///   - onToggle: The host closure that a toggle calls.
   /// - Returns: The inspection.
   private static func inspection(of tools: [ToolToggle], onToggle: @escaping OnToggle) -> Inspection<ToolToggleList> {
-    Inspection(title: String(localized: "Tools", bundle: .module)) {
+    Inspection(id: listIdentifier, title: String(localized: "Tools", bundle: .module)) {
       FieldGroup(FieldLabel(localized: "Available", bundle: .module)) {
         for tool in tools {
           Field(.verbatim(tool.name)) { list in list.isEnabled(tool.id) }

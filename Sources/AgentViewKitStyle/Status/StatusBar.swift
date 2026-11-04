@@ -40,8 +40,8 @@ import SwiftUI
 /// (card ^y2mrfxt).
 ///
 /// The symbol of a message of work that goes on (``Message/isOngoing``)
-/// shows the live symbol effect of the image. Under Reduce Motion, the
-/// symbol does not move.
+/// shows EditorKit's live symbol effect (`liveSymbolEffect(isActive:)` of
+/// `EditorSwiftUI`). Under Reduce Motion, the symbol does not move.
 public struct StatusBar: View {
   /// The text that a bar shows.
   public struct Message: Equatable, Sendable {
