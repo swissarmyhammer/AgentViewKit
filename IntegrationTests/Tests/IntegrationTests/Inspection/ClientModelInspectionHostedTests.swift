@@ -40,7 +40,7 @@ import Testing
 
   /// A time from the start of a tool call to its completion that is
   /// shorter than `EntryTimingView.shortestShownDuration`, in seconds.
-  static let tooShortSeconds: TimeInterval = 0.2
+  nonisolated static let tooShortSeconds: TimeInterval = 0.2
 
   /// The title, and thus the `toolCallId`, of the timed tool call.
   static let timedCallTitle = "Read README.md"
@@ -183,7 +183,29 @@ import Testing
     #expect(harness.rowValue(row) == "48")
   }
 
-  @Test func theDurationRowOfAToolCallShowsTheTimeToItsCompletion() async throws {
+  /// A tool call of a timed test: the time from its start to its
+  /// completion, and whether its inspection then shows a duration row.
+  struct TimedCall: Sendable, CustomTestStringConvertible {
+    /// The time from the start of the call to its completion, in seconds.
+    let seconds: TimeInterval
+
+    /// Whether the Time group shows a duration row once the call completed.
+    let showsDuration: Bool
+
+    /// The name of the case in the test report.
+    var testDescription: String { "\(seconds) s" }
+  }
+
+  /// The timed calls of the duration test: one that takes a step of the
+  /// clock and shows its duration, and one that ends before
+  /// `EntryTimingView.shortestShownDuration` and shows no row.
+  nonisolated static let timedCalls = [
+    TimedCall(seconds: TimedSessionClock.stepSeconds, showsDuration: true),
+    TimedCall(seconds: tooShortSeconds, showsDuration: false),
+  ]
+
+  @Test(arguments: timedCalls)
+  func theDurationRowOfAToolCallShowsTheTimeToItsCompletion(call: TimedCall) async throws {
     let clock = FixedClock(start: TimedSessionClock.start)
     let session = try await ScriptedSession.open(now: clock.now)
     defer { session.close() }
@@ -194,28 +216,12 @@ import Testing
     let row = Self.durationRow(of: entry)
     #expect(harness.rowValue(row) == nil)
 
-    clock.advance(by: TimedSessionClock.stepSeconds)
+    clock.advance(by: call.seconds)
     try await session.sendToolCallUpdate(title: Self.timedCallTitle, status: .completed)
     await harness.render { entry.timing.endedAt != nil }
 
-    let expected = EntryTimingView.durationFormat.format(.seconds(TimedSessionClock.stepSeconds))
+    let expected = call.showsDuration ? EntryTimingView.durationFormat.format(.seconds(call.seconds)) : nil
     #expect(harness.rowValue(row) == expected)
-  }
-
-  @Test func aToolCallThatEndsBeforeTheShortestShownDurationShowsNoDurationRow() async throws {
-    let clock = FixedClock(start: TimedSessionClock.start)
-    let session = try await ScriptedSession.open(now: clock.now)
-    defer { session.close() }
-    try await session.sendToolCallUpdate(title: Self.timedCallTitle, status: .inProgress)
-    let entry = try await Self.entry(ToolCallEntry.self, in: session)
-    let harness = Self.mount(entry)
-    defer { harness.close() }
-
-    clock.advance(by: Self.tooShortSeconds)
-    try await session.sendToolCallUpdate(title: Self.timedCallTitle, status: .completed)
-    await harness.render { entry.timing.endedAt != nil }
-
-    #expect(harness.rowValue(Self.durationRow(of: entry)) == nil)
   }
 
   /// The scheme id of the duration row of the Time group of `entry`.
