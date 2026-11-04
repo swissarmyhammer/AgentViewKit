@@ -98,8 +98,17 @@ comments:
     - evidence: worktree-agent-ad357e2844ea95739 @ fca59c95. Root `swift test`: 942 + 68 passed, 0 AVK warnings. IntegrationTests CommandOutputViewHostedTests, TerminalView* and StatusBar* suites: 43 passed. 13 files changed.
     - next: /review
   timestamp: 2026-11-04T20:20:10.745279+00:00
-position_column: doing
-position_ordinal: '8280'
+- actor: claude-code
+  id: 01m6m5px2s1r9hgqkgdwsr5z9t
+  text: |-
+    ### finish — clean
+    - Merged into main (b758f656). The full review on main is clean: 0 findings, 46 files, all five new files read.
+    - test: root 941+68 passed; IntegrationTests 939 passed (5 known issues).
+    - Removed public API (ToolKindSymbol, ToolStatusSymbol's old members, the statusColor/tint theme functions, StatusBar.symbolColor, lostWireValue): no use in KVK 701a93d, SVK 3a85e9c or TestudoApp 2bd4341.
+    - Kept for consumers: SharedSymbol (SVK, KVK; its removal is on its own card) and DiffFileChip.symbolName(for:) (SVK tests). StatusSymbolImage is now unused by every kit and gets deleted by the status card ^0cqh945.
+  timestamp: 2026-11-04T20:58:48.281854+00:00
+position_column: done
+position_ordinal: ffffff9a80
 title: 'Adopt EditorKit symbols (^j0562t1): delete AVK''s Symbols copies'
 ---
 **Blocked** on EK card ^j0562t1 (on EK origin at 2524005e). It lands EK's harvest of the shared symbols. editorkit-b5 sends the SHA. Don't start before then.
