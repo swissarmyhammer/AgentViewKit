@@ -110,6 +110,8 @@ public struct ToolToggles: View {
     AccessibilityIdentifier.make(prefix: toggleIdentifierPrefix, value: tool.rawValue)
   }
 
+  /// The menu or the list of the tools, or nothing when the host list has
+  /// no tool.
   public var body: some View {
     if !tools.isEmpty {
       switch style {
@@ -167,6 +169,8 @@ struct ToolToggleMenuItem: View {
   /// The host closure that the toggle calls.
   let onToggle: ToolToggles.OnToggle
 
+  /// The check box of ``tool``, with the accessibility identifier of its
+  /// toggle.
   var body: some View {
     ToggleField(tool.name, isOn: isEnabled)
       .accessibilityIdentifier(ToolToggles.toggleIdentifier(for: tool.id))

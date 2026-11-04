@@ -45,6 +45,8 @@ public struct PermissionModePicker: View {
     }
   }
 
+  /// The segmented choice of the mode option, or nothing when the session
+  /// reports no select option of the `mode` category.
   public var body: some View {
     if let option = Self.modeOption(in: session.configOptions ?? []),
       case .select(let select) = option.type,

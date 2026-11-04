@@ -185,6 +185,8 @@ public struct ConfigOptionsView: View {
 
   // MARK: - Body
 
+  /// The menu or the form of the options that the view can show, or
+  /// nothing when the session reports none.
   public var body: some View {
     let sections = Self.sections(for: session.configOptions ?? [])
     if !sections.isEmpty {
@@ -250,6 +252,8 @@ struct ConfigOptionControl: View {
   /// or `nil`.
   @Environment(\.requestStartReport) private var reportRequestStart
 
+  /// The field of ``option``, with the help text and the accessibility
+  /// identifier of the control.
   var body: some View {
     control
       .help(option.description ?? option.name)

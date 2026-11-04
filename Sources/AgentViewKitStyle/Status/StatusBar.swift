@@ -238,6 +238,8 @@ public struct StatusBar: View {
     }
   }
 
+  /// The bar of the message: a content tile with the status symbol, the
+  /// title, the explanation and the action button of the message.
   public var body: some View {
     StatusTitleLayout(
       title: message.title, explanation: message.explanation, textLabel: message.textLabel,
