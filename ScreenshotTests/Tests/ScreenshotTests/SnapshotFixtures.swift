@@ -124,9 +124,10 @@ enum SnapshotFixtures {
   }
 
   /// The height of the image of the completion list of the composer, in
-  /// points: the composer, and the list of the commands of
-  /// ``commandsSession`` above its field.
-  static let completionListHeight: CGFloat = 300
+  /// points: the height of the composer image, and above it the room of the
+  /// tallest completion list of the editor, so the list of the commands of
+  /// ``commandsSession`` fits above the field.
+  static let completionListHeight = composerHeight + EditorKitPromptEditor.completionListMaximumHeight
 
   /// The size of the image of the completion list of the composer, in points.
   static let completionListSize = CGSize(width: wideWidth, height: completionListHeight)
