@@ -380,8 +380,10 @@ at its root. Then the thread views apply no inspector. A tap writes an
 `AgentAttachmentSelection` to the binding: the file and the `sessionId` of the
 thread that the user pressed. Thus more than one thread view can share one
 binding. Show the file in your inspector, for example with
-`AttachmentInspector`, whose actions Open, Reveal in Finder, Share, Save and
-Quick Look work in each mode. Each action is an EditorKit command of the scope
+`AttachmentInspector`, an EditorKit `InspectorView` of the file with its
+preview, whose actions Open, Reveal in Finder, Share, Save and Quick Look work
+in each mode. `AttachmentInspector([files])` folds several files into one
+form, whose preview reads "Mixed". Each action is an EditorKit command of the scope
 of the attachment, so the context menu and the command palette run it too. A
 write of `nil` closes the inspector.
 

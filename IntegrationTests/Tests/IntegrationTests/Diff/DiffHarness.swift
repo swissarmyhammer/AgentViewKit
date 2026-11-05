@@ -26,15 +26,15 @@
       return harness
     }
 
-    /// Makes a harness that shows the kit ``DiffView`` of `patch` in the inline
-    /// layout, after one render pass.
+    /// Makes a harness that shows the kit ``DiffView`` of `patch`, in its one
+    /// unified column, after one render pass.
     ///
     /// - Parameters:
     ///   - patch: The text of the patch to show.
     ///   - size: The size of the harness.
     /// - Returns: The harness.
-    static func mountInline(patch: String, size: CGSize) -> HostedViewHarness<some View> {
-      mount(DiffView(patch: patch).diffLayout(.inline), size: size)
+    static func mountDiff(patch: String, size: CGSize) -> HostedViewHarness<some View> {
+      mount(DiffView(patch: patch), size: size)
     }
   }
 #endif

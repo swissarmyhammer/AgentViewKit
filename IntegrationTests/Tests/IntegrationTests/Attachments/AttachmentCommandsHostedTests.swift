@@ -98,9 +98,9 @@ struct HostInspectorWithAttachmentActions: View {
     }
     await RunLoopBlockFence.afterPendingBlocks()
     harness.render()
-    try Shared.requireInspectorItem(in: harness, showsTheNameOf: "blob.bin")
+    try Shared.requireInspectorItem(in: harness, shows: attachment)
 
-    try Self.pressEach(AttachmentInspector.actionIdentifiers, in: harness)
+    try Shared.pressEachAction(in: harness)
 
     #expect(service.calls == Self.callsOfEachVerb(on: attachment))
   }
@@ -125,9 +125,9 @@ struct HostInspectorWithAttachmentActions: View {
     try harness.press(identifier: AttachmentView.identifier(for: .chip))
     try #require(state.selection?.attachment == attachment)
     harness.render()
-    try #require(harness.element(identifier: AttachmentInspector.nameIdentifier)?.label == "blob.bin")
+    try #require(Shared.shownName(of: attachment, in: harness) == "blob.bin")
 
-    try Self.pressEach(AttachmentInspector.actionIdentifiers, in: harness)
+    try Shared.pressEachAction(in: harness)
 
     #expect(service.calls == Self.callsOfEachVerb(on: attachment))
   }

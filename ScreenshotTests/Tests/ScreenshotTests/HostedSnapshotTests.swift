@@ -166,6 +166,24 @@ import Testing
     try await Self.generate(TerminalView(entry: entry), named: "terminal", size: SnapshotFixtures.terminalSize)
   }
 
+  /// A diff of a patch: the file chips over EditorKit's one-value preview of
+  /// the selected file.
+  @Test func theDiff() async throws {
+    try await Self.generate(
+      DiffView(patch: PreviewFixtures.smallPatch), named: "diff", size: SnapshotFixtures.diffSize)
+  }
+
+  /// The diff of a patch that EditorKit cannot read: the failure state of
+  /// the preview, with the line where the parse stopped. The settle waits
+  /// for the load of the preview to fail.
+  @Test func theDiffOfAnUnreadablePatch() async throws {
+    try await Self.generate(
+      DiffView(patch: SnapshotFixtures.unreadablePatch), named: "diff-unreadable", size: SnapshotFixtures.diffSize
+    ) {
+      await RunLoopBlockFence.afterPendingBlocks()
+    }
+  }
+
   @Test func theElicitationForm() async throws {
     let session = PreviewFixtures.elicitationSession
     let request = try #require(session.pendingElicitations.first)

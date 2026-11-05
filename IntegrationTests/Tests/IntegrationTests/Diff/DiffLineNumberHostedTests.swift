@@ -72,7 +72,7 @@
     ///
     /// - Returns: The harness.
     static func mountPatch() -> HostedViewHarness<some View> {
-      DiffHarness.mountInline(patch: patch, size: size)
+      DiffHarness.mountDiff(patch: patch, size: size)
     }
 
     /// The number of rows of the EditorKit diff: one for each line of its

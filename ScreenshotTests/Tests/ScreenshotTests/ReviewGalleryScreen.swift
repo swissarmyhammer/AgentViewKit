@@ -229,17 +229,22 @@
         """#)
     }
 
-    /// The session of the thread screen: a prompt with an attachment, a reply
-    /// with a code block, an edit with a diff, terminal output, a tool call, a
+    /// The session of the thread screen: a prompt with an attachment, an edit
+    /// with a diff, a reply with a code block, terminal output, a tool call, a
     /// plan, and a last reply.
+    ///
+    /// The edit stands above the reply: its diff takes the full height of its
+    /// content, and the thread is pinned to its bottom, so below the reply it
+    /// would push the code block out of the rows the list draws, and the
+    /// screen would wait for a code block model that is never made.
     ///
     /// - Returns: The session model.
     /// - Throws: The error of a decode.
     static func transcriptSession() throws -> SessionModel {
       .preview(transcript: [
         .update(try promptWithAttachment()),
-        .agent(SnapshotFixtures.agentMessage),
         .update(try diffToolCall()),
+        .agent(SnapshotFixtures.agentMessage),
         .terminal(
           command: SnapshotFixtures.terminalCommand, output: SnapshotFixtures.terminalOutput,
           exitCode: CommandOutputView.successExitCode),

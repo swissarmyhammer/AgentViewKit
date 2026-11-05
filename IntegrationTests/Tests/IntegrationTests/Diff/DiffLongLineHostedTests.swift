@@ -40,7 +40,7 @@
     ///
     /// - Returns: The harness.
     static func mountSmallPatch() -> HostedViewHarness<some View> {
-      DiffHarness.mountInline(patch: PreviewFixtures.smallPatch, size: size)
+      DiffHarness.mountDiff(patch: PreviewFixtures.smallPatch, size: size)
     }
 
     /// The root view of the EditorKit diff, and the text view under it.

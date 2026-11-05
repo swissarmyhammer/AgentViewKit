@@ -1,7 +1,7 @@
 // The kit builds on the shared look of the view kits, and its public API
 // names the types of that look: `StateBanner.message(for:)` gives a
-// `StatusBar.Message`, a `DiffView` reads `\.diffLayout`. The kit re-exports
-// the style library, so a host that imports AgentViewKit reads those types
+// `StatusBar.Message`, `DiffSummary.files(of:)` gives the files of a
+// `DiffView`. The kit re-exports the style library, so a host that imports AgentViewKit reads those types
 // with no second import, and each file of the kit reads them too. The kit
 // keeps no copy of the style (Package.swift, `AgentViewKitStyle`).
 @_exported import AgentViewKitStyle

@@ -5,6 +5,15 @@ Task ^x1cgc24.
 
 This file records how `DiffView` gets its default renderer from EditorKit.
 
+Superseded in part (^qw7ws1y, 2026-11-05): the default renderer of
+`DiffView` is now EditorKit's one-value preview, a `PreviewField` of the
+selected file, in one unified column at the full height of its content (the
+user's decision). `EditorKitDiffRenderer`, `DiffContentView`, `DiffLayout`,
+`EnvironmentValues.diffLayout` and `.diffLayout(_:)` are deleted, and a patch
+that EditorKit cannot read shows the failure state of the preview. The
+renderer slot (`EnvironmentValues.diffRenderer`) and the review actions stay
+as this record says.
+
 ## The EditorKit product
 
 - EditorKit shipped the unified diff feature (the spec is

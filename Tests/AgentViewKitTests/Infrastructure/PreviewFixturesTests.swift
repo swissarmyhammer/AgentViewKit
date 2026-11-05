@@ -857,14 +857,14 @@ import Testing
     }
   }
 
-  /// The added and the removed lines of a patch, as the EditorKit renderer
-  /// parses it.
+  /// The added and the removed lines of a patch, as the EditorKit preview of
+  /// a ``DiffView`` parses it.
   ///
   /// - Parameter patch: The patch text.
   /// - Returns: The number of added lines and of removed lines.
   /// - Throws: The parse error of a patch that EditorKit cannot read.
   static func changedLineCounts(of patch: String) throws -> (added: Int, removed: Int) {
-    let lines = try EditorKitDiffRenderer.diff(of: patch, file: nil).get()
+    let lines = try DiffView.diff(of: patch, file: nil).get()
       .files.flatMap(\.hunks).flatMap(\.lines)
     return (lines.count { $0.kind == .added }, lines.count { $0.kind == .removed })
   }

@@ -69,11 +69,6 @@ button of a ``StatusBar`` the focus scope of a bar control with
 ### Diffs
 
 - ``DiffSummary``
-- ``EditorKitDiffRenderer``
-- ``DiffContentView``
-- ``DiffLayout``
-- ``SwiftUI/EnvironmentValues/diffLayout``
-- ``SwiftUI/View/diffLayout(_:)``
 
 ### Command scopes
 
