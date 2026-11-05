@@ -207,7 +207,8 @@ import Testing
   static let probeChord = AgentCommandDeclinedKeyHostedTests.chord
 
   /// Binds ``probeChord`` at the thread path of `model` to the probe, and
-  /// then to a recording command, so the probe is the first binding.
+  /// then to the recording command of ``FallbackKeyBinding`` at the same
+  /// path, so the probe is the first binding.
   ///
   /// - Parameters:
   ///   - model: The session model of the thread scope.
@@ -215,12 +216,7 @@ import Testing
   /// - Returns: The log of the recording command.
   static func bindProbeChord(at model: SessionModel, in system: CommandSystem) -> CommandRunLog {
     let thread = AgentCommandScopeHostedTests.path(of: model)
-    system.registry.bindKey(probeChord.asSequence, to: .command(probeID), mode: .cua, at: thread)
-    let fallbacks = CommandRunLog()
-    system.registry.register(
-      .makeRecording(id: AgentCommandDeclinedKeyHostedTests.fallbackID, keys: [.cua: probeChord], log: fallbacks),
-      at: thread)
-    return fallbacks
+    return FallbackKeyBinding.bind(probeChord, to: probeID, at: thread, fallbackAt: thread, in: system)
   }
 
   /// The decision for the fixture (^zb5td6w): the probe declines only where
@@ -243,7 +239,7 @@ import Testing
         Self.probeChord.asSequence, mode: .cua, at: AgentCommandScopeHostedTests.path(of: model)))
 
     #expect(log.subjects.isEmpty)
-    #expect(fallbacks.runs.map(\.id) == [AgentCommandDeclinedKeyHostedTests.fallbackID])
+    #expect(fallbacks.runs.map(\.id) == [FallbackKeyBinding.fallbackID])
   }
 
   @Test func aKeyOfTheProbeWhereTheScopeGivesASubjectStaysWithTheProbe() async throws {

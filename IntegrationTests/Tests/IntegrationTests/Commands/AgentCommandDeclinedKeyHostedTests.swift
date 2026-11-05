@@ -1,7 +1,6 @@
 import AgentViewKitTestSupport
 import AppKit
 import EditorCommands
-import EditorCommandsTestSupport
 import EditorCommandsUI
 import EditorTestSupport
 import SwiftUI
@@ -55,9 +54,6 @@ struct CommandTargetCaptureView: NSViewRepresentable {
   /// A chord that no agent verb binds: Control-Command-F.
   static let chord: KeyChord = "⌃⌘F"
 
-  /// The id of the recording command of the host.
-  nonisolated static let fallbackID: CommandID = "host.fallback"
-
   @Test func aKeyThatFocusComposerDeclinesRunsTheNextBindingOfTheChord() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
@@ -81,15 +77,12 @@ struct CommandTargetCaptureView: NSViewRepresentable {
         return false
       })
     let thread = FocusPath.root(Self.hostSegment).appending(AgentCommandTarget.segment(for: session.model))
-    system.registry.bindKey(
-      Self.chord.asSequence, to: .command(AgentCommandVerb.focusComposer.id), mode: .cua, at: thread)
-    let fallbacks = CommandRunLog()
-    system.registry.register(
-      .makeRecording(id: Self.fallbackID, keys: [.cua: Self.chord], log: fallbacks), at: .root(Self.hostSegment))
+    let fallbacks = FallbackKeyBinding.bind(
+      Self.chord, to: AgentCommandVerb.focusComposer.id, at: thread, fallbackAt: .root(Self.hostSegment), in: system)
 
     #expect(system.registry.performKey(Self.chord.asSequence, mode: .cua, at: thread))
 
     #expect(focusRequests.values == [false])
-    #expect(fallbacks.runs.map(\.id) == [Self.fallbackID])
+    #expect(fallbacks.runs.map(\.id) == [FallbackKeyBinding.fallbackID])
   }
 }

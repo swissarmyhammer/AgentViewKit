@@ -22,9 +22,6 @@ import Testing
   /// The ids of the rows, in list order.
   static let ids = ["first", "second"]
 
-  /// The size of the window.
-  static let size = CGSize(width: 300, height: 300)
-
   /// The list of the bed.
   static let scope = AgentRowListScope(list: FocusSegment(kind: "openList"), rowKind: "openRow")
 
@@ -66,7 +63,7 @@ import Testing
           Color.clear.commandScope(segment: Self.tabPath.segments[0])
         }
         .commandSystem(system)),
-      size: Self.size)
+      size: AgentRowListBedSupport.windowSize)
     await RunLoopBlockFence.afterPendingBlocks()
     try #require(waitForLiveBeacons([Self.tabPath, Self.rowPath(0), Self.rowPath(1)], in: system))
   }
@@ -76,7 +73,7 @@ import Testing
   /// - Parameter index: The index of the row.
   /// - Returns: The path of the row.
   static func rowPath(_ index: Int) -> FocusPath {
-    FocusPath.root(scope.list).appending(scope.rowSegment(for: ids[index]))
+    scope.path(ofRow: ids[index])
   }
 
   /// The center of the text of the row at `index`, in window coordinates.

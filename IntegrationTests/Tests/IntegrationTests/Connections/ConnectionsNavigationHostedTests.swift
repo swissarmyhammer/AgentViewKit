@@ -41,9 +41,7 @@ import Testing
   /// - Returns: The row paths, at the root of the window.
   static func rowPaths(of model: SessionModel) -> [FocusPath] {
     let scope = ConnectionsView.scope(for: model)
-    return [MCPServersHostedTests.webName, MCPServersHostedTests.filesName].map {
-      FocusPath.root(scope.list).appending(scope.rowSegment(for: $0))
-    }
+    return [MCPServersHostedTests.webName, MCPServersHostedTests.filesName].map(scope.path(ofRow:))
   }
 
   @Test func theDownArrowSelectsTheNextServerAndTheUpArrowTheServerBefore() async throws {
