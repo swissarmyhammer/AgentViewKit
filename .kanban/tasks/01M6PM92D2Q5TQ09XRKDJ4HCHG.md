@@ -30,6 +30,25 @@ comments:
     - Hosted sign-in busy test: `ScriptedWireAgent.heldMethods = ["auth/login"]` holds the login, so the Sign In button stays busy.
     - Gallery: `ReviewGallery.record(suite:named:size:settle:content:)` with an accessibility press in the settle (`AccessibilityAction.press.perform(on:in:)`), in light and dark.
   timestamp: 2026-11-05T21:11:55.401469+00:00
+- actor: claude-code
+  id: 01m6pvb21sq5r7rp836576yfw1
+  text: |-
+    Implementation landed in 0fcd76cb (worktree-agent-aaf9752759133a0b2, not pushed or merged).
+    - Mic: `Phase.recording(level: Double?)`; `variableValue: level` on the EditorButton; value "Recording" then "Recording, input level 50%" (new catalog key "Recording, input level %@").
+    - Sign-in: `actionButton` is `EditorButton(..., isBusy: calls[operation] != nil)`; the HStack + ProgressView + `.disabled` are gone.
+    - `\.spinnerSizes` added to `theButtonTokensHaveNoPaddingByte`.
+    - Tests: unit `SpeechInputButtonValueTests` (4), hosted `whileRecordingTheValueCarriesTheLastInputLevel` and `whileSigningInTheSignInButtonReadsInProgress` (agent holds `auth/login`); existing phase expectations updated to `.recording(level: nil)`.
+    - Gallery: `GlassSnapshotTests/composer-field-recording` and `HostedSnapshotTests/sign-in-card-signing-in`, light and dark, both added to `recordSnapshots`.
+    What did not work: the first sign-in capture shared one ScriptedSession across both looks. The light card's sign-in was cancelled when the card went away, so the dark image showed "Sign-in failed / Request cancelled". Fixed by giving each look its own held session.
+    Note: the first IntegrationTests RED run took 865 s on one test. This looks like waiting on the machine-wide hosted lock that other worktrees hold. The same test took 0.29 s when it went GREEN.
+  timestamp: 2026-11-05T21:55:17.689686+00:00
+- actor: claude-code
+  id: 01m6pvb64bhnpkvse5j72bqk7w
+  text: |-
+    ### implement — changed
+    - evidence: 0fcd76cb; 12 files — Sources/AgentViewKit/Input/SpeechInputButton.swift, Sources/AgentViewKit/Connections/AgentAuthView.swift, Sources/AgentViewKit/Resources/Localizable.xcstrings, Tests/AgentViewKitTests/Infrastructure/ViewValueLayoutTests.swift, Tests/AgentViewKitTests/Input/SpeechInputButtonValueTests.swift, IntegrationTests/.../SpeechInputButtonHostedTests.swift, IntegrationTests/.../AgentAuthViewHostedTests.swift, IntegrationTests/.../ThreadBarControlJumpHostedTests.swift, ScreenshotTests/.../RecordingComposer.swift, GlassSnapshotTests.swift, HostedSnapshotTests.swift, ReviewGalleryScreenTests.swift. Root `swift test`: 1024 + 50 passed. IntegrationTests: 987 passed (5 known issues are the pre-existing FontRoleExpectationsTests negatives). Gallery page test passed. No warnings from AVK's own targets.
+    - next: /review
+  timestamp: 2026-11-05T21:55:21.867032+00:00
 position_column: doing
 position_ordinal: '9e80'
 title: Microphone live level and sign-in busy state on EditorButton
