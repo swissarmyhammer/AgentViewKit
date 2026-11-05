@@ -48,15 +48,6 @@ enum StylePreviewFixtures {
      }
     """
 
-  /// A patch whose hunk header EditorKit cannot read.
-  static let unreadablePatch = """
-    --- a/README.md
-    +++ b/README.md
-    @@ one two @@
-    -old
-    +new
-    """
-
   /// A message of each severity, the neutral one of work that goes on.
   static let statusMessages = [
     StatusBar.Message(

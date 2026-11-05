@@ -19,9 +19,6 @@
     /// The path of the first file of the fixture patch.
     static let firstPath = "Sources/App.swift"
 
-    /// The path of the second file of the fixture patch.
-    static let secondPath = "README.md"
-
     /// A patch with two files.
     static let patch = """
       diff --git a/Sources/App.swift b/Sources/App.swift
@@ -78,8 +75,8 @@
       #expect(harness.rowValue(DiffView.previewIdentifier) == Self.firstPath)
     }
 
-    @Test func theInlineLayoutHasNoColumns() {
-      let harness = DiffHarness.mountInline(patch: Self.patch, size: Self.size)
+    @Test func theDiffIsOneUnifiedColumn() {
+      let harness = DiffHarness.mountDiff(patch: Self.patch, size: Self.size)
       defer { harness.close() }
 
       #expect(!views(withAccessibilityIdentifier: EditorDiffIdentifier.root, in: harness.hostingView).isEmpty)
@@ -104,42 +101,6 @@
 
       #expect(await settle(until: { driver.previewFailure(of: DiffView.previewIdentifier) == Self.unreadableMessage }))
       #expect(views(withAccessibilityIdentifier: EditorDiffIdentifier.root, in: harness.hostingView).isEmpty)
-    }
-
-    // MARK: - Layout setting
-
-    @Test func theLayoutDefaultsToInline() {
-      #expect(EnvironmentValues().diffLayout == .inline)
-    }
-
-    @Test func eachLayoutMapsToTheEditorKitLayout() {
-      #expect(DiffLayout.inline.documentLayout == .inline)
-      #expect(DiffLayout.sideBySide.documentLayout == .sideBySide)
-    }
-
-    // MARK: - File filter
-
-    @Test func aFilePathKeepsOnlyThatFile() throws {
-      let diff = try EditorKitDiffRenderer.diff(of: Self.patch, file: Self.secondPath).get()
-      #expect(diff.files.map(\.newPath) == [Self.secondPath])
-    }
-
-    @Test func noFilePathKeepsEachFile() throws {
-      let diff = try EditorKitDiffRenderer.diff(of: Self.patch, file: nil).get()
-      #expect(diff.files.map(\.newPath) == [Self.firstPath, Self.secondPath])
-    }
-
-    @Test func anUnknownFilePathKeepsEachFile() throws {
-      let diff = try EditorKitDiffRenderer.diff(of: Self.patch, file: "Missing.swift").get()
-      #expect(diff.files.count == 2)
-    }
-
-    @Test func aParseErrorGivesItsLine() {
-      let result = EditorKitDiffRenderer.diff(of: Self.unreadablePatch, file: nil)
-      #expect(throws: UnifiedDiffError.malformedHunkHeader(line: 3)) { try result.get() }
-      #expect(EditorKitDiffRenderer.line(of: .malformedHunkHeader(line: 3)) == 3)
-      #expect(EditorKitDiffRenderer.line(of: .hunkLineCountMismatch(line: 4)) == 4)
-      #expect(EditorKitDiffRenderer.line(of: .unexpectedLine(line: 5)) == 5)
     }
   }
 #endif

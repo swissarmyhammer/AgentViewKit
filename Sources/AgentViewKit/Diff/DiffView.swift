@@ -21,8 +21,10 @@ import SwiftUI
 /// - The renderer of the ``SwiftUI/EnvironmentValues/diffRenderer``, with the
 ///   full patch and the path of the selected file. The default renderer is
 ///   EditorKit's one-value preview, a `PreviewField` of the selected file,
-///   with the identifier ``previewIdentifier``: the EditorKit diff view at
-///   the preview height of the style, one row for each line, inline. A patch
+///   with the identifier ``previewIdentifier``: the EditorKit diff view in
+///   one unified column, one row for each line, at the full height of its
+///   content, which grows as the patch grows, so the thread or the inspector
+///   around it scrolls and the diff has no scroll view of its own. A patch
 ///   that EditorKit cannot read shows the failure of the preview, with the
 ///   line where the parse stopped (``UnreadablePatch``). The kit does not
 ///   render diffs itself. A host replaces the renderer with
@@ -310,8 +312,7 @@ public struct DiffView: View {
   }
 
   /// What the EditorKit preview of a patch shows: the diff of the file at
-  /// `file`, or of each file when no file matches (see
-  /// `EditorKitDiffRenderer.diff(of:file:)`).
+  /// `file`, or of each file when no file matches (``diff(of:file:)``).
   ///
   /// The parse runs here, so a readable patch shows at once. A patch that
   /// EditorKit cannot read is a load that throws its ``UnreadablePatch``
@@ -323,12 +324,34 @@ public struct DiffView: View {
   ///   - file: The path of the selected file, or `nil`.
   /// - Returns: The source of the preview.
   static func previewSource(of patch: String, file: String?) -> PreviewSource {
-    switch EditorKitDiffRenderer.diff(of: patch, file: file) {
+    switch diff(of: patch, file: file) {
     case .success(let diff):
       .value(.diff(diff))
     case .failure(let error):
       .load(id: patch) { throw UnreadablePatch(error) }
     }
+  }
+
+  /// The parsed patch, with only the file at `file`.
+  ///
+  /// A file matches when its new path, or the old path of a deleted file, is
+  /// `file`. This is the path that ``DiffSummary`` gives. When no file
+  /// matches, the result has each file of the patch.
+  ///
+  /// - Parameters:
+  ///   - patch: The full patch text.
+  ///   - file: The path of the file to keep, or `nil` to keep each file.
+  /// - Returns: The parsed patch, or the parse error.
+  static func diff(of patch: String, file: String?) -> Result<UnifiedDiff, UnifiedDiffError> {
+    let parsed: UnifiedDiff
+    do {
+      parsed = try UnifiedDiff.parse(patch)
+    } catch {
+      return .failure(error)
+    }
+    guard let file else { return .success(parsed) }
+    let kept = parsed.files.filter { ($0.newPath ?? $0.oldPath) == file }
+    return .success(kept.isEmpty ? parsed : UnifiedDiff(files: kept))
   }
 
   /// The header of one hunk with its Accept and Reject buttons.

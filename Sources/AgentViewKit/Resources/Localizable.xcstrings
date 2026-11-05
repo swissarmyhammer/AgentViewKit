@@ -371,6 +371,16 @@
         }
       }
     },
+    "Cannot read the patch at line %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cannot read the patch at line %lld"
+          }
+        }
+      }
+    },
     "Change the request and send it again." : {
       "localizations" : {
         "en" : {

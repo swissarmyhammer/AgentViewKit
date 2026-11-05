@@ -64,8 +64,9 @@ enum SnapshotFixtures {
   /// The height of the image of the elicitation form, in points.
   static let elicitationHeight: CGFloat = 620
 
-  /// The height of the image of a diff: the file chips and the EditorKit
-  /// preview of the selected file at the default preview height, in points.
+  /// The height of the image of a diff, in points: the file chips and the
+  /// EditorKit preview of the selected file at the full height of its
+  /// content, with room below it.
   static let diffHeight: CGFloat = 340
 
   /// The size of the image of a diff, in points.

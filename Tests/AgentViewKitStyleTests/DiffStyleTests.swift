@@ -6,8 +6,8 @@ import Testing
 
 @testable import AgentViewKitStyle
 
-/// Checks the diff renderer setup, the diff summary, the file chip and the
-/// tool call scope kind through their public API.
+/// Checks the diff summary, the file chip and the tool call scope kind
+/// through their public API.
 @Suite @MainActor struct DiffStyleTests {
   /// The path of the first file of the sample patch.
   static let firstPath = "Sources/A.swift"
@@ -31,12 +31,6 @@ import Testing
     +let b = 2
     +let c = 3
     """
-
-  /// A patch whose hunk header EditorKit cannot read, on its third line.
-  static let unreadablePatch = "--- a/A.swift\n+++ b/A.swift\n@@ bad @@\n-a\n+b"
-
-  /// The line of the hunk header of ``unreadablePatch``.
-  static let unreadableLine = 3
 
   @Test func theSummaryCountsTheLinesOfEachFile() throws {
     let files = DiffSummary.parse(gitPatch: Self.patch)
@@ -106,47 +100,6 @@ import Testing
 
   @Test func aLabelNamesTheLastPartOfThePath() {
     #expect(DiffFileLabel.name(ofPath: "Sources/Board/BoardColumn.swift") == "BoardColumn.swift")
-  }
-
-  @Test func theRendererKeepsOnlyTheSelectedFile() throws {
-    let diff = try EditorKitDiffRenderer.diff(of: Self.patch, file: Self.secondPath).get()
-
-    #expect(diff.files.map(\.newPath) == [Self.secondPath])
-  }
-
-  @Test func theRendererKeepsEachFileWithNoSelection() throws {
-    let diff = try EditorKitDiffRenderer.diff(of: Self.patch, file: nil).get()
-
-    #expect(diff.files.count == 2)
-  }
-
-  @Test func theRendererKeepsEachFileWhenTheSelectionMatchesNone() throws {
-    let diff = try EditorKitDiffRenderer.diff(of: Self.patch, file: "Missing.swift").get()
-
-    #expect(diff.files.count == 2)
-  }
-
-  @Test func theRendererGivesTheLineWhereTheParseStopped() {
-    let error = #expect(throws: UnifiedDiffError.self) {
-      try EditorKitDiffRenderer.diff(of: Self.unreadablePatch, file: nil).get()
-    }
-
-    #expect(error.map(EditorKitDiffRenderer.line(of:)) == Self.unreadableLine)
-  }
-
-  @Test func anUnreadablePatchSaysTheLineWhereTheParseStopped() {
-    let unreadable = UnreadablePatch(.malformedHunkHeader(line: Self.unreadableLine))
-
-    #expect(unreadable.errorDescription == "Cannot read the patch at line \(Self.unreadableLine)")
-  }
-
-  @Test func eachDiffLayoutHasItsEditorKitLayout() {
-    #expect(DiffLayout.inline.documentLayout == .inline)
-    #expect(DiffLayout.sideBySide.documentLayout == .sideBySide)
-  }
-
-  @Test func theDefaultDiffLayoutIsInline() {
-    #expect(EnvironmentValues().diffLayout == .inline)
   }
 
   @Test func theToolCallSegmentNamesTheToolCallID() {
