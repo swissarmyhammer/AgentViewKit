@@ -22,7 +22,10 @@ public nonisolated enum TimedSessionClock {
   /// machine's time zone at ``start`` and the offset of
   /// ``zoneOtherThanTheMachines()``: three hours, so the two zones show two
   /// different clock times of ``start``.
-  public static let zoneShiftSeconds = 3 * 60 * 60
+  public static let zoneShiftSeconds = Int(Measurement(value: zoneShiftHours, unit: UnitDuration.hours).converted(to: .seconds).value)
+
+  /// The hours of ``zoneShiftSeconds``.
+  private static let zoneShiftHours: Double = 3
 
   /// A time zone whose clock time of ``start`` is not the clock time of the
   /// machine's time zone: its offset from GMT is ``zoneShiftSeconds`` more.
