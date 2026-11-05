@@ -299,9 +299,9 @@ public struct AttachmentInspector: View {
   /// The `InspectorView` of the files, with the actions of the one file.
   private var inspector: InspectorView {
     let view = InspectorView(files, Self.inspection, id: Self.viewIdentifier)
-    guard let soleAttachment else { return view }
+    guard soleAttachment != nil else { return view }
     return view.actions {
-      AttachmentActions(attachment: soleAttachment, identifierPrefix: Self.identifierPrefix)
+      AttachmentActions(identifierPrefix: Self.identifierPrefix)
     }
   }
 }

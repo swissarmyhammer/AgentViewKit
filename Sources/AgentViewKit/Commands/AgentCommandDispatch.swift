@@ -3,9 +3,8 @@ import EditorCommandsUI
 
 /// The one dispatch call of the targets of the agent scopes.
 ///
-/// ``AgentCommandTarget`` and ``AgentAttachmentTarget`` run their verbs
-/// through this call. Thus a button, a key and the palette run a command with
-/// the same rule in each scope.
+/// ``AgentCommandTarget`` runs its verbs through this call. Thus a button, a
+/// key and the palette run a command with the same rule in each scope.
 @MainActor
 enum AgentCommandDispatch {
   /// Runs the command `id` through the registry of `system`, at `path`.

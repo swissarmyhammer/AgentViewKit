@@ -160,7 +160,7 @@ public struct StateBanner: View {
     )
     .statusBarActionStyle(AgentStatusBarActionStyle())
     // The bar has no glass surface, and the content scrolls under it.
-    .requestActionPlace(.barWithoutGlass)
+    .editorButtonSurface(.content)
     .accessibilityIdentifier(Self.bannerIdentifier)
   }
 

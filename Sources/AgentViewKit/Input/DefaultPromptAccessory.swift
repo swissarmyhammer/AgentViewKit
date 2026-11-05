@@ -1,5 +1,6 @@
 import EditorCommandsUI
 import EditorStyle
+import EditorSwiftUI
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -85,40 +86,32 @@ public struct DefaultPromptAccessory: View {
         }
         submitButton
       }
+      // Each button of the accessory is its own glass in the container of
+      // the floating controls, not a button on another glass, so it keeps
+      // the glass style.
+      .editorButtonSurface(.content)
     }
   }
 
   /// The button that submits the prompt.
   private var submitButton: some View {
-    Button {
+    EditorButton(String(localized: "Send", bundle: .module), systemImage: AgentSymbol.send, look: .action) {
       submit()
-    } label: {
-      Label(String(localized: "Send", bundle: .module), systemImage: AgentSymbol.send)
-        .labelStyle(.iconOnly)
-        .fontWeight(editorStyle.symbolWeight)
     }
-    .buttonStyle(.glass)
-    .glassForegroundStyle()
+    .editorButtonCaptions(.hidden)
     .buttonBorderShape(.circle)
     .disabled(!submit.isEnabled)
-    .help(String(localized: "Send the prompt", bundle: .module))
     .accessibilityIdentifier(Self.submitIdentifier)
     .agentControlScope(Self.submitIdentifier)
   }
 
   /// The button that cancels the work of the session.
   private var stopButton: some View {
-    Button {
+    EditorButton(String(localized: "Stop", bundle: .module), systemImage: AgentSymbol.stop, look: .action) {
       session?.startCancel(reporting: reportRequestStart)
-    } label: {
-      Label(String(localized: "Stop", bundle: .module), systemImage: AgentSymbol.stop)
-        .labelStyle(.iconOnly)
-        .fontWeight(editorStyle.symbolWeight)
     }
-    .buttonStyle(.glass)
-    .glassForegroundStyle()
+    .editorButtonCaptions(.hidden)
     .buttonBorderShape(.circle)
-    .help(String(localized: "Stop the work of the agent", bundle: .module))
     .accessibilityIdentifier(Self.stopIdentifier)
     .agentControlScope(Self.stopIdentifier)
   }

@@ -564,13 +564,14 @@ public struct ElicitationFooterContext {
 ///
 /// The footer shows Cancel, Decline, and Submit. Submit is the primary action,
 /// and it is disabled until each field passes validation. Return presses
-/// Submit: it is the default action, and it stays last in the row. The place
-/// of the card gives the button styles (``RequestDeckPlace/style(of:)``): in
-/// content, Submit has the `.glass` style. In a ``RequestDeck`` in a bar of
-/// floating controls, the card is on the glass of the deck, so Submit, Cancel
-/// and Decline have the `.bordered` style. Submit has no prominent style,
-/// because the accent is only for the selection and the focus (card
-/// ^k06v4gt).
+/// Submit: it is the default action, and it stays last in the row. Each
+/// button is an EditorKit `EditorButton`: Cancel and Decline in the system
+/// style of their place, and Submit in the action look, which is the glass
+/// style in content and the bordered style on the glass of a ``RequestDeck``
+/// in a bar of floating controls. Submit has no prominent style, because the
+/// accent is only for the selection and the focus (card ^k06v4gt). A button
+/// with too little room hides its caption and keeps its symbol, with its name
+/// as its label and its tooltip.
 public struct ElicitationFooter: View {
   /// The context of the footer.
   let context: ElicitationFooterContext
@@ -587,21 +588,18 @@ public struct ElicitationFooter: View {
   public var body: some View {
     HStack(spacing: editorStyle.spacing.s) {
       Spacer(minLength: 0)
-      Button(
+      EditorButton(
         String(localized: "Cancel", bundle: .module), systemImage: ElicitationView.cancelSymbol,
         role: .cancel
       ) { context.cancel() }
-        .requestActionStyle(.standard)
         .accessibilityIdentifier(ElicitationView.cancelIdentifier)
-      Button(
+      EditorButton(
         String(localized: "Decline", bundle: .module), systemImage: ElicitationView.declineSymbol
       ) { context.decline() }
-        .requestActionStyle(.standard)
         .accessibilityIdentifier(ElicitationView.declineIdentifier)
-      Button(
-        String(localized: "Submit", bundle: .module), systemImage: ElicitationView.submitSymbol
+      EditorButton(
+        String(localized: "Submit", bundle: .module), systemImage: ElicitationView.submitSymbol, look: .action
       ) { context.submit() }
-        .requestActionStyle(.primary)
         .keyboardShortcut(.defaultAction)
         .disabled(!context.canSubmit)
         .accessibilityIdentifier(ElicitationView.submitIdentifier)

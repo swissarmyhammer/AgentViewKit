@@ -740,15 +740,9 @@ private struct ToolCallWaitingStatus: View {
   /// - Parameter session: The session model of the entry.
   /// - Returns: The button.
   private func answerButton(session: SessionModel) -> some View {
-    Button {
+    EditorToolbarButton(String(localized: "Waiting for your answer", bundle: .module), systemImage: AgentSymbol.question) {
       session.bringToFront(toolCall: entry)
-    } label: {
-      Label(
-        String(localized: "Waiting for your answer", bundle: .module),
-        systemImage: AgentSymbol.question)
     }
-    .buttonStyle(.borderless)
-    .font(editorTheme.font(for: .ui, style: .callout))
     .accessibilityHint(Text("Shows the question", bundle: .module))
     .accessibilityIdentifier(ToolCallView.waitingIdentifier(for: entry.id.rowKey))
   }
@@ -840,9 +834,7 @@ struct ToolCallChildLink: View {
   var body: some View {
     let status = entry.status
     if let child = entry.childSession, !child.isClosed, let openSession {
-      Button(
-        String(localized: "Open session", bundle: .module), systemImage: EditorSymbol.action(.disclosure).systemImage
-      ) {
+      EditorButton(String(localized: "Open session", bundle: .module), symbol: .action(.disclosure)) {
         openSession(child.sessionId)
       }
       .accessibilityIdentifier(Self.identifier(for: entry.id.rowKey))

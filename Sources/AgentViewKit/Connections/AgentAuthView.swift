@@ -57,14 +57,12 @@ public typealias AgentReconnect = @MainActor () async -> Void
 /// asks for a sign-in.
 ///
 /// The card is content, so it has no fill and no glass. A separator stroke
-/// marks its edge (`.inlineEdge(radius:)`, D113). Only its
-/// action buttons have a button style of their own, which comes from the
-/// place of the card (``RequestDeckPlace/style(of:)``): the `.glass` style.
+/// marks its edge (`.inlineEdge(radius:)`, D113). Its action buttons are
+/// EditorKit `EditorButton`s in the action look: the glass style in content.
 /// In the bottom bar of a thread, the card has no glass surface, and the
 /// content scrolls under it, so its buttons keep the glass style there too
-/// (EditorKit `style.md`, rule 4). There, ``AgentLoginPrompt``
-/// declares the place of a bar with no glass for it
-/// (``RequestDeckPlace/barWithoutGlass``).
+/// (EditorKit `style.md`, rule 4). There, ``AgentLoginPrompt`` declares the
+/// content surface for them (`.editorButtonSurface(_:)`).
 ///
 /// The texts of the card do not use a fixed vertical size. A text with a
 /// fixed vertical size gives its full wrapped height as its minimum height,
@@ -394,7 +392,8 @@ public struct AgentAuthView: View {
     .frame(maxWidth: .infinity, alignment: .trailing)
   }
 
-  /// A button that runs a call, with a `ProgressView` while the call runs.
+  /// A button that runs a call, disabled with a `ProgressView` before it
+  /// while the call runs.
   ///
   /// - Parameters:
   ///   - title: The text of the button.
@@ -414,21 +413,19 @@ public struct AgentAuthView: View {
     call: @escaping @MainActor () async throws -> Void
   ) -> some View {
     let isRunning = calls[operation] != nil
-    return Button {
-      perform(operation, call)
-    } label: {
+    return HStack(spacing: editorStyle.spacing.s) {
       if isRunning {
         ProgressView()
           .controlSize(.small)
-      } else {
-        Label(title, systemImage: systemImage)
       }
+      EditorButton(title, systemImage: systemImage, look: .action) {
+        perform(operation, call)
+      }
+      .disabled(isRunning)
+      .accessibilityLabel(accessibilityLabel)
+      .accessibilityIdentifier(identifier)
+      .agentControlScope(identifier)
     }
-    .requestActionStyle(.secondary)
-    .disabled(isRunning)
-    .accessibilityLabel(accessibilityLabel)
-    .accessibilityIdentifier(identifier)
-    .agentControlScope(identifier)
   }
 
   // MARK: Actions

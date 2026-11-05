@@ -209,7 +209,9 @@ let package = Package(
     // Gallery tab, which runs in the process of the app.
     .target(
       name: "AgentViewKitDemoSupport",
-      dependencies: ["AgentViewKit"] + acpProducts + demoAgentProducts,
+      // EditorSwiftUI draws the button of the toolbar of the gallery columns.
+      dependencies: ["AgentViewKit", .product(name: "EditorSwiftUI", package: "EditorKit")] + acpProducts
+        + demoAgentProducts,
       swiftSettings: mainActorIsolated
     ),
     .testTarget(

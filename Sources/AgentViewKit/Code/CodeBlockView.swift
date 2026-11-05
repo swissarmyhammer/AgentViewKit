@@ -112,12 +112,10 @@ public struct CodeBlockView: View {
         .lineLimit(1)
         .truncationMode(.middle)
       Spacer(minLength: editorStyle.spacing.s)
-      Button(String(localized: "Copy code", bundle: .module), systemImage: AgentSymbol.copy) {
+      EditorToolbarButton(String(localized: "Copy code", bundle: .module), systemImage: AgentSymbol.copy) {
         pasteboard.copyText(code)
       }
-      .labelStyle(.iconOnly)
-      .buttonStyle(.borderless)
-      .help(String(localized: "Copy code", bundle: .module))
+      .editorButtonCaptions(.hidden)
       .accessibilityIdentifier(Self.copyIdentifier)
     }
     .editorBlockHeader()

@@ -119,13 +119,12 @@ import SwiftUI
 /// - In content, the deck has no glass and no fill.
 ///
 /// The place also gives the button styles of the actions in the cards and in
-/// the notices (``RequestDeckPlace/style(of:)``, EditorKit
-/// `style.md`, "Buttons on glass"). In the bar, a glass button on the
-/// glass of the deck is glass on glass. Thus each action of a card uses the
-/// `.bordered` style. In content, the actions use the `.glass` style. No
-/// action, not even the primary action (for example Allow once), uses a
-/// prominent style: the accent is only for the selection and the focus (card
-/// ^k06v4gt).
+/// the notices: each action is an EditorKit `EditorButton` in the action
+/// look, which takes the bordered style on the glass of the deck in the bar,
+/// so no glass stands on glass, and the glass style in content (EditorKit
+/// `style.md`, "Buttons on glass"). No action, not even the primary action
+/// (for example Allow once), uses a prominent style: the accent is only for
+/// the selection and the focus (card ^k06v4gt).
 ///
 /// In both places, each card has no fill, and the separator stroke of the
 /// content edge marks it (`.inlineEdge(radius:)`, D113). The one exception
@@ -429,9 +428,8 @@ private struct DeckCards: View {
   }
 }
 
-/// The place of a ``RequestDeck`` or of other action buttons, which gives the
-/// surface of the deck (EditorKit `style.md`, "How the steps
-/// apply") and the button styles of the actions (``style(of:)``).
+/// The place of a ``RequestDeck``, which gives the surface of the deck
+/// (EditorKit `style.md`, "How the steps apply").
 nonisolated enum RequestDeckPlace: Equatable, Sendable {
   /// In a bar of floating controls, for example the composer slot of
   /// ``AgentThreadView``. A request in the bar is user input, so the deck is
@@ -439,13 +437,6 @@ nonisolated enum RequestDeckPlace: Equatable, Sendable {
   /// `GlassEffectContainer` of the bar. Only the buttons on the glass of the
   /// deck have this place.
   case bar
-
-  /// In a bar with no glass surface, for example the state banner and the
-  /// login prompt in the bottom bar of ``AgentThreadView``. The content
-  /// scrolls under the bar (EditorKit `style.md`, rule 4). A view
-  /// declares this place for its buttons with
-  /// ``SwiftUI/View/requestActionPlace(_:)``. A deck never has this place.
-  case barWithoutGlass
 
   /// In content. The deck has no glass and no fill.
   case content
@@ -458,18 +449,6 @@ nonisolated enum RequestDeckPlace: Equatable, Sendable {
   ///   `\.floatingGlassNamespace` is not `nil`.
   init(isInFloatingGlassContainer: Bool) {
     self = isInFloatingGlassContainer ? .bar : .content
-  }
-
-  /// The place of action buttons: the place that a view above them declares,
-  /// or else the place from the glass containers above them.
-  ///
-  /// - Parameters:
-  ///   - declared: The ``SwiftUI/EnvironmentValues/requestActionPlace`` of
-  ///     the buttons, or `nil` when no view declares a place.
-  ///   - isInFloatingGlassContainer: Whether a `FloatingGlassContainer` is
-  ///     above the buttons.
-  init(declared: RequestDeckPlace?, isInFloatingGlassContainer: Bool) {
-    self = declared ?? RequestDeckPlace(isInFloatingGlassContainer: isInFloatingGlassContainer)
   }
 
   /// Whether each card of a deck in this place draws the content edge.
@@ -499,7 +478,7 @@ private struct DeckSurface: ViewModifier {
   func body(content: Content) -> some View {
     switch RequestDeckPlace(isInFloatingGlassContainer: glassNamespace != nil) {
     case .bar: content.floatingGlass()
-    case .barWithoutGlass, .content: content
+    case .content: content
     }
   }
 }
@@ -554,11 +533,9 @@ private struct DeckHeader: View {
       }
     }
     .font(editorTheme.font(for: .ui, style: .callout))
-    .labelStyle(.iconOnly)
-    // The nearest button style wins: on the glass of the deck the buttons are
-    // bordered, and out of a bar they keep the borderless style.
-    .requestActionStyle(.standard)
-    .buttonStyle(.borderless)
+    // Previous and Next show their symbols alone; each title is the label
+    // and the tooltip of its button.
+    .editorButtonCaptions(.hidden)
   }
 
   /// The Previous button, "k of N", and the Next button.
@@ -582,8 +559,7 @@ private struct DeckHeader: View {
   /// - Parameters:
   ///   - verb: ``AgentCommandVerb/previousRequest`` or
   ///     ``AgentCommandVerb/nextRequest``, whose title is the label.
-  ///   - symbol: The symbol of the button, which ``EditorSymbolImage``
-  ///     draws.
+  ///   - symbol: The symbol of the button.
   ///   - neighbor: ``DeckLayout/previous`` or ``DeckLayout/next``.
   ///   - identifier: The accessibility identifier of the button.
   /// - Returns: The button.
@@ -591,14 +567,8 @@ private struct DeckHeader: View {
     verb: AgentCommandVerb, symbol: EditorSymbol, neighbor: KeyPath<DeckLayout, PendingRequest.ID?>,
     identifier: String
   ) -> some View {
-    Button {
+    EditorToolbarButton(verb.title, symbol: symbol) {
       source.bringToFront(neighbor: neighbor)
-    } label: {
-      Label {
-        Text(verb.title)
-      } icon: {
-        EditorSymbolImage(symbol)
-      }
     }
     .disabled(layout[keyPath: neighbor] == nil)
     .accessibilityIdentifier(identifier)

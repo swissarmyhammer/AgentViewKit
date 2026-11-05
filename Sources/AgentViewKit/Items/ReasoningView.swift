@@ -198,14 +198,13 @@ struct ReasoningBlock<Content: View>: View {
     return HStack(spacing: editorStyle.spacing.s) {
       title(duration: duration)
       Spacer(minLength: editorStyle.spacing.s)
-      Button(action: toggle) {
-        EditorSymbolImage(.action(.disclosure))
-          .rotationEffect(expanded ? ReasoningView.expandedChevronAngle : .zero)
-      }
-      .buttonStyle(.borderless)
-      .accessibilityLabel(
-        expanded ? Text("Hide reasoning", bundle: .module) : Text("Show reasoning", bundle: .module)
+      EditorToolbarButton(
+        expanded
+          ? String(localized: "Hide reasoning", bundle: .module) : String(localized: "Show reasoning", bundle: .module),
+        symbol: .action(.disclosure), action: toggle
       )
+      .editorButtonCaptions(.hidden)
+      .rotationEffect(expanded ? ReasoningView.expandedChevronAngle : .zero)
       .accessibilityIdentifier(ReasoningView.toggleIdentifier(for: id))
     }
     .contentShape(Rectangle())
