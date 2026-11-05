@@ -206,14 +206,4 @@ import Testing
       ])
     #expect(files.allSatisfy { $0.hunks.isEmpty })
   }
-
-  @Test func theChangeLabelHasTheOperationAndTheLanguage() {
-    let labels = DiffSummary.files(of: Self.structuredChanges).map(\.changeAccessibilityLabel)
-
-    #expect(
-      labels == [
-        "Added Swift file", "Deleted Markdown file", "Modified Python file", "Renamed Rust file",
-        "Copied Go file", "Changed Shell file",
-      ])
-  }
 }

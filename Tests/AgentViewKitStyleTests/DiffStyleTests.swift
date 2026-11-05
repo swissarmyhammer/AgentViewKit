@@ -1,13 +1,12 @@
 import EditorCommands
 import EditorDiff
-import EditorSwiftUI
 import SwiftUI
 import Testing
 
 @testable import AgentViewKitStyle
 
-/// Checks the diff renderer setup, the diff summary, the file chip and the
-/// tool call scope kind through their public API.
+/// Checks the diff renderer setup, the diff summary, the word of an
+/// operation and the tool call scope kind through their public API.
 @Suite @MainActor struct DiffStyleTests {
   /// The path of the first file of the sample patch.
   static let firstPath = "Sources/A.swift"
@@ -54,12 +53,6 @@ import Testing
     #expect(operations.map(\.label) == ["Added", "Deleted", "Modified", "Renamed", "Copied", "Binary", "Changed"])
   }
 
-  @Test func theChangeLabelOfAFileNamesItsOperationAndItsLanguage() {
-    let file = DiffSummary.FileSummary(path: Self.firstPath, operation: .add, hunks: [])
-
-    #expect(file.changeAccessibilityLabel == "Added Swift file")
-  }
-
   @Test func aBinaryFileOfAPatchHasTheBinaryOperation() {
     let files = DiffSummary.parse(
       gitPatch: """
@@ -84,28 +77,6 @@ import Testing
 
   @Test func theBinaryOperationHasItsWord() {
     #expect(FileDiff.Operation.binary.label == "Binary")
-  }
-
-  @Test func aLabelWithNoOperationShowsTheDocumentSymbol() {
-    #expect(DiffFileLabel.symbol(for: nil) == .file(.document))
-  }
-
-  @Test func aLabelWithAnOperationShowsTheSymbolOfTheOperation() {
-    #expect(DiffFileLabel.symbol(for: .add) == .file(.added))
-  }
-
-  @Test func aLabelKeepsItsCounts() {
-    let counts = DiffFileLabel.Counts(added: 1, removed: 2)
-
-    #expect(DiffFileLabel.shownCounts(counts, for: .modify) == counts)
-  }
-
-  @Test func aBinaryFileShowsNoCounts() {
-    #expect(DiffFileLabel.shownCounts(DiffFileLabel.Counts(added: 1, removed: 2), for: .binary) == nil)
-  }
-
-  @Test func aLabelNamesTheLastPartOfThePath() {
-    #expect(DiffFileLabel.name(ofPath: "Sources/Board/BoardColumn.swift") == "BoardColumn.swift")
   }
 
   @Test func theRendererKeepsOnlyTheSelectedFile() throws {

@@ -573,7 +573,6 @@ struct ToolCallBody: View, Equatable {
       ToolCallChildLink(entry: entry)
       if !locations.isEmpty {
         ToolCallLocationChips(locations: locations)
-          .toolCallLocationChipStyle(AgentLocationChipStyle())
           .contentContainer(identifier: ToolCallView.locationsIdentifier(for: id))
       }
       if let rawInput = entry.rawInput {
