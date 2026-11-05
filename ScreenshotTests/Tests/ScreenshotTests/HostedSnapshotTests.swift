@@ -54,9 +54,9 @@ import Testing
   }
 
   /// The thread with the time of each row (`.transcriptTiming()`), over the
-  /// timed turn of ``TimingGalleryFixtures``: the start time of each entry in
-  /// EditorKit's `DateText`, the duration of each entry that ended in
-  /// `DurationText`, and the duration of the thought in its title.
+  /// timed turn of ``TimingGalleryFixtures``: the start time of each entry
+  /// and the duration of each entry that ended, in one line such as
+  /// "6:13 AM · 1m 15s", and the duration of the thought in its title.
   @Test func theThreadWithTheTimeOfEachRow() async throws {
     let session = try await TimingGalleryFixtures.openSession()
     defer { session.close() }

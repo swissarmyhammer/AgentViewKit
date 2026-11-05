@@ -291,7 +291,7 @@ import Testing
     try await session.sendToolCallUpdate(title: Self.timedCallTitle, status: .completed)
     await harness.render { entry.timing.endedAt != nil }
 
-    let expected = call.showsDuration ? EntryTimingView.durationFormat.format(.seconds(call.seconds)) : nil
+    let expected = call.showsDuration ? ToolCallEntry.durationRowFormat.format(.seconds(call.seconds)) : nil
     #expect(harness.rowValue(row) == expected)
   }
 

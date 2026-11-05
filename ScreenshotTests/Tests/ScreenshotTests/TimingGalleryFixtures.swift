@@ -9,8 +9,8 @@ import Testing
 ///
 /// The thread holds a user message, a thought, a tool call that runs and
 /// then completes, and a last agent message that the idle state ends. Each
-/// row shows its start time in EditorKit's `DateText`, and each entry that
-/// took a shown time shows its duration in `DurationText`. The thought's
+/// row shows its start time, and each entry that took a shown time shows its
+/// duration after it, in one line such as "6:13 AM · 1m 15s". The thought's
 /// title tells its duration in words.
 @MainActor
 enum TimingGalleryFixtures {

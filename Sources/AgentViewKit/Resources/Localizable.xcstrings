@@ -2102,6 +2102,7 @@
       }
     },
     "Started at %@" : {
+      "comment" : "The VoiceOver label of the time of a transcript entry with no duration: its start time.",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2112,6 +2113,7 @@
       }
     },
     "Started at %@, took %@" : {
+      "comment" : "The VoiceOver label of the time of a transcript entry: its start time, and its duration in words.",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3241,6 +3243,17 @@
         }
       }
     },
+    "Took %@" : {
+      "comment" : "The VoiceOver label of the time of a transcript entry with no start time: its duration in words.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Took %@"
+          }
+        }
+      }
+    },
     "Tool" : {
       "localizations" : {
         "en" : {
@@ -3557,6 +3570,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "another session"
+          }
+        }
+      }
+    },
+    "entry-timing.duration" : {
+      "comment" : "The time of a transcript entry with no start time: its duration, such as 1m 15s.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@"
+          }
+        }
+      }
+    },
+    "entry-timing.start" : {
+      "comment" : "The time of a transcript entry with no duration: its start time, such as 6:13 AM.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@"
+          }
+        }
+      }
+    },
+    "entry-timing.start-and-duration" : {
+      "comment" : "The time of a transcript entry: its start time, such as 6:13 AM, and its duration, such as 1m 15s.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$@"
           }
         }
       }
