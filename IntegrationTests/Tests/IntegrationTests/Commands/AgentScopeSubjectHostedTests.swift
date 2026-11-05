@@ -2,6 +2,7 @@
 import AgentViewKitTestSupport
 import AppKit
 import EditorCommands
+import EditorCommandsTestSupport
 import EditorCommandsUI
 import EditorTestSupport
 import FoundationModelsACPClient
@@ -197,6 +198,71 @@ import Testing
 
       #expect(pasteboard.string(forType: .string) == AgentCommandScopeHostedTests.message)
     }
+  }
+
+  // MARK: - Keys of the probe
+
+  /// The chord that the key tests bind to the probe: a chord that no agent
+  /// verb binds.
+  static let probeChord = AgentCommandDeclinedKeyHostedTests.chord
+
+  /// Binds ``probeChord`` at the thread path of `model` to the probe, and
+  /// then to a recording command, so the probe is the first binding.
+  ///
+  /// - Parameters:
+  ///   - model: The session model of the thread scope.
+  ///   - system: The command system of the window.
+  /// - Returns: The log of the recording command.
+  static func bindProbeChord(at model: SessionModel, in system: CommandSystem) -> CommandRunLog {
+    let thread = AgentCommandScopeHostedTests.path(of: model)
+    system.registry.bindKey(probeChord.asSequence, to: .command(probeID), mode: .cua, at: thread)
+    let fallbacks = CommandRunLog()
+    system.registry.register(
+      .makeRecording(id: AgentCommandDeclinedKeyHostedTests.fallbackID, keys: [.cua: probeChord], log: fallbacks),
+      at: thread)
+    return fallbacks
+  }
+
+  /// The decision for the fixture (^zb5td6w): the probe declines only where
+  /// its scope gives no subject, which is also where it is unavailable, so a
+  /// key there goes on to the next binding of the chord. Where the scope
+  /// gives a subject, the probe takes the key.
+  @Test func aKeyOfTheProbeWhereTheScopeGivesNoSubjectRunsTheNextBinding() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let model = session.model
+    let system = CommandSystem()
+    let harness = AgentCommandScopeHostedTests.mount(session: session, system: system, outerScope: false)
+    defer { harness.close() }
+    harness.render()
+    let log = Self.registerProbe(of: AgentScopeKind.message, as: TranscriptEntry.self, at: model, in: system)
+    let fallbacks = Self.bindProbeChord(at: model, in: system)
+
+    #expect(
+      system.registry.performKey(
+        Self.probeChord.asSequence, mode: .cua, at: AgentCommandScopeHostedTests.path(of: model)))
+
+    #expect(log.subjects.isEmpty)
+    #expect(fallbacks.runs.map(\.id) == [AgentCommandDeclinedKeyHostedTests.fallbackID])
+  }
+
+  @Test func aKeyOfTheProbeWhereTheScopeGivesASubjectStaysWithTheProbe() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let model = session.model
+    let system = CommandSystem()
+    let harness = AgentCommandScopeHostedTests.mount(session: session, system: system, outerScope: false)
+    defer { harness.close() }
+    try await AgentCommandScopeHostedTests.sendScopeMessage(to: session, rendering: harness)
+    let log = Self.registerProbe(of: AgentScopeKind.message, as: TranscriptEntry.self, at: model, in: system)
+    let fallbacks = Self.bindProbeChord(at: model, in: system)
+    let entry = try #require(model.transcript.first)
+    let message = AgentCommandScopeHostedTests.path(of: model).appending(AgentScopeKind.message(rowKey: entry.rowKey))
+
+    #expect(system.registry.performKey(Self.probeChord.asSequence, mode: .cua, at: message))
+
+    #expect(log.subjects.count == 1)
+    #expect(fallbacks.runs.isEmpty)
   }
 }
 

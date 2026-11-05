@@ -17,14 +17,27 @@ final class RecordingAttachmentFileService: AttachmentFileService {
   /// Each run, in call order.
   private(set) var calls: [Call] = []
 
+  /// What ``run(_:on:)`` returns: `true` for a service that starts each
+  /// action, `false` for one that cannot start any, as when the workspace
+  /// does not open a file.
+  let startsAction: Bool
+
+  /// Makes a service with no recorded run.
+  ///
+  /// - Parameter startsAction: What each run returns. The default is
+  ///   `true`.
+  init(startsAction: Bool = true) {
+    self.startsAction = startsAction
+  }
+
   /// Records the run, and opens nothing.
   ///
   /// - Parameters:
   ///   - verb: The verb of the command.
   ///   - attachment: The attachment of the scope of the command.
-  /// - Returns: `true`, always.
+  /// - Returns: ``startsAction``.
   func run(_ verb: AgentAttachmentVerb, on attachment: Attachment) -> Bool {
     calls.append(Call(verb: verb, attachment: attachment))
-    return true
+    return startsAction
   }
 }

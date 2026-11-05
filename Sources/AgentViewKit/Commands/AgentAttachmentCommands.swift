@@ -156,11 +156,24 @@ nonisolated struct AgentAttachmentCommand: EditorCommands.Command {
     }
   }
 
+  /// Runs the verb on the attachment of the scope with the service of the
+  /// target.
+  ///
+  /// The run declines where the command cannot run, the same checks as
+  /// ``availability(in:)``: a key then goes on to the next binding of its
+  /// chord (EditorKit ^jaxzzkn). A run that reaches the service handles the
+  /// invocation, also when the service cannot start the action (it logs the
+  /// failure): the user aimed the key at this attachment, so the key does not
+  /// go on to another command of the chord (^zb5td6w).
+  ///
+  /// - Parameter context: The context of the invocation.
+  /// - Returns: `true` when the service ran the verb.
   func run(in context: CommandContext) -> Bool {
     MainActor.assumeIsolated {
       guard let service = target?.service, let attachment, verb.availability(for: attachment).isAvailable
       else { return false }
-      return service.run(verb, on: attachment)
+      _ = service.run(verb, on: attachment)
+      return true
     }
   }
 
