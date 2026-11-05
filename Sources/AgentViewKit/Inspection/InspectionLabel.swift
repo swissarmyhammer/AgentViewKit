@@ -47,16 +47,21 @@ extension Inspection {
   /// The inspection of a model whose first group is named as the inspection:
   /// `label` names both, so the name is written one time.
   ///
+  /// The inspection takes the explicit `id`, so the view part of the scheme
+  /// id of each row stays the same when the type of the model is renamed.
+  ///
   /// - Parameters:
   ///   - label: The name of the first group; its text is the title of the
   ///     inspection.
+  ///   - id: The id of the inspection: the view part of the scheme id of each
+  ///     row, such as `tool-call`. It never follows the locale.
   ///   - name: The name of one object, or `nil` to name it by the title. A
   ///     block whose name gives `nil` takes the title too.
   ///   - fields: The fields of the first group.
   ///   - more: The groups after the first one.
   /// - Returns: The inspection.
   static func named(
-    _ label: FieldLabel, name: (@MainActor (Object) -> String?)? = nil,
+    _ label: FieldLabel, id: String, name: (@MainActor (Object) -> String?)? = nil,
     @FieldBuilder<Object> fields: () -> [AnyField<Object>],
     @InspectionBuilder<Object> more: () -> [FieldGroup<Object>] = { [] }
   ) -> Inspection<Object> {
@@ -66,7 +71,7 @@ extension Inspection {
     let rest = more()
     let title = label.text
     let objectName = name.map { name in { @MainActor (object: Object) -> String in name(object) ?? title } }
-    return Inspection(title: title, name: objectName) {
+    return Inspection(id: id, title: title, name: objectName) {
       first
       for group in rest { group }
     }

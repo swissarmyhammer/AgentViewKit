@@ -72,7 +72,8 @@ enum ConfigOptionFields {
   // MARK: - Inspection
 
   /// The inspection of the options of `sections`: one group for each
-  /// category section, with one row for each option.
+  /// category section, with one row for each option. Its id is the view id
+  /// of ``ConfigOptionsView``, `config-options`.
   ///
   /// - Parameters:
   ///   - title: The title of the block.
@@ -83,7 +84,7 @@ enum ConfigOptionFields {
   static func inspection(
     title: String, sections: [ConfigOptionsView.CategorySection], reporting report: ObservationReport<String>?
   ) -> Inspection<SessionModel> {
-    Inspection(title: title) {
+    Inspection(id: ConfigOptionsView.viewIdentifier, title: title) {
       for section in sections {
         FieldGroup(.verbatim(section.title)) {
           for option in section.options {
