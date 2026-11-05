@@ -462,8 +462,8 @@ Elicitation is how a server asks the user for input mid-tool-call. It reaches th
 |---|---|---|
 | `string` with `minLength`, `maxLength`, `pattern` | text | EditorKit input, single or multi-line |
 | `string` with `format: email` or `uri` | text, validated | EditorKit input plus validation |
-| `string` with `format: date` or `date-time` | date | `DatePicker` |
-| `number` or `integer` with `minimum`, `maximum` | number | stepper, or slider when both bounds exist |
+| `string` with `format: date` or `date-time` | date | EditorKit `DateField` (typed date, calendar button) |
+| `number` or `integer` with `minimum`, `maximum` | number | EditorKit `NumberField` with a stepper, or a slider with an EditorKit `NumberText` readout when both bounds exist |
 | `boolean` | boolean | `Toggle` |
 | `enum` or titled `oneOf` | single-choice | radio group up to 5, menu above |
 | `array` with `items.enum` or `items.anyOf` plus `minItems`, `maxItems` | multi-choice | checkbox group |

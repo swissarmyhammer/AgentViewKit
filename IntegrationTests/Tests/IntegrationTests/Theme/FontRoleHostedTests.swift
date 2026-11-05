@@ -10,14 +10,19 @@ import SwiftUI
 import Testing
 
 /// Checks that each kit view draws its text in the font role of its job
-/// (``FontRoleExpectations``): the chrome in the `ui` role, the prose and the
-/// text a person types in the `display` role, and the code in the `code` role.
+/// (``FontRoleExpectations``): the chrome and the value inputs of a form (a
+/// number and a date, EditorKit's `NumberField`, `NumberText` and `DateField`)
+/// in the `ui` role, the prose and the text a person writes in the `display`
+/// role, and the code in the `code` role.
 @Suite(.serialized, .hostedSerially) @MainActor struct FontRoleHostedTests {
   /// The text of the editors and the fields of the tests.
   static let text = "Hello"
 
   /// The title of the empty state of the tests.
   static let emptyStateTitle = "Start here"
+
+  /// The answer of the date field of the tests.
+  static let dateAnswer = "2026-11-05"
 
   /// The longest answer of a text field that shows one line
   /// (``ElicitationTextField/multiLineThreshold``).
@@ -59,6 +64,34 @@ import Testing
     try FontRoleExpectations.expectText(
       of: EditorCompletionRow(item: item, isSelected: false, identifier: EditorKitPromptEditor.completionRowIdentifier),
       identifier: EditorKitPromptEditor.completionRowIdentifier, drawsIn: .ui)
+  }
+
+  /// The number input of a stepper field is EditorKit's `NumberField`, which
+  /// draws in the `ui` role.
+  @Test func theNumberInputOfAnElicitationNumberFieldDrawsInTheUIRole() throws {
+    let schema = ElicitationTestFields.field(.number(integer: true, minimum: nil, maximum: nil))
+    let field = ElicitationNumberField(
+      context: ElicitationFieldContext(schema: schema, value: .constant(.number(3))))
+    try FontRoleExpectations.expectEditor(in: field, drawsIn: .ui)
+  }
+
+  /// The readout beside the slider of a bounded field is EditorKit's
+  /// `NumberText`, which draws in the `ui` role.
+  @Test func theReadoutOfAnElicitationSliderDrawsInTheUIRole() throws {
+    let schema = ElicitationTestFields.field(.number(integer: true, minimum: 0, maximum: 10))
+    let field = ElicitationNumberField(
+      context: ElicitationFieldContext(schema: schema, value: .constant(.number(3))))
+    try FontRoleExpectations.expectText(
+      of: field, identifier: ElicitationNumberField.readoutIdentifier(for: schema.name), drawsIn: .ui)
+  }
+
+  /// The input of a date field is EditorKit's `DateField`, which draws in the
+  /// `ui` role.
+  @Test func theInputOfAnElicitationDateFieldDrawsInTheUIRole() throws {
+    let schema = ElicitationTestFields.field(.date(dateTime: false))
+    let field = ElicitationDateField(
+      context: ElicitationFieldContext(schema: schema, value: .constant(.string(Self.dateAnswer))))
+    try FontRoleExpectations.expectEditor(in: field, drawsIn: .ui)
   }
 
   // MARK: - ui face family
@@ -123,13 +156,6 @@ import Testing
 
   @Test func aMultiLineElicitationFieldDrawsInTheDisplayRole() throws {
     let field = Self.elicitationField(ElicitationTestFields.text())
-    try FontRoleExpectations.expectEditor(in: field, drawsIn: .display)
-  }
-
-  @Test func theNumberInputOfAnElicitationNumberFieldDrawsInTheDisplayRole() throws {
-    let schema = ElicitationTestFields.field(.number(integer: true, minimum: nil, maximum: nil))
-    let field = ElicitationNumberField(
-      context: ElicitationFieldContext(schema: schema, value: .constant(.number(3))))
     try FontRoleExpectations.expectEditor(in: field, drawsIn: .display)
   }
 

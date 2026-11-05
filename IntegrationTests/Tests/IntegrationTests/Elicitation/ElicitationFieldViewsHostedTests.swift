@@ -1,6 +1,7 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
+import EditorInspectorTestSupport
 import EditorSwiftUI
 import EditorTestSupport
 import FoundationModelsACP
@@ -154,8 +155,7 @@ struct HostedTextField: View {
     let harness = Self.mount(schema, box: AnswerBox(.number(3)))
     defer { harness.close() }
 
-    let control = harness.element(identifier: ElicitationFieldView.controlIdentifier(for: "count"))
-    #expect(control?.value == "3")
+    #expect(harness.inspectorDriver.value(of: ElicitationFieldView.controlIdentifier(for: "count")) == "3")
     #expect(harness.accessibilityElements().contains { $0.role == NSAccessibility.Role.incrementor.rawValue })
   }
 
@@ -166,13 +166,11 @@ struct HostedTextField: View {
     let box = AnswerBox(.number(3))
     let harness = Self.mount(schema, box: box)
     defer { harness.close() }
-    let textView = try SingleLineFieldChecks.textView(
-      identifier: ElicitationFieldView.controlIdentifier(for: "count"), in: harness)
 
     box.value = .number(7)
     harness.render()
 
-    #expect(textView.string == "7")
+    #expect(harness.inspectorDriver.textView(ElicitationFieldView.controlIdentifier(for: "count"))?.string == "7")
   }
 
   /// The integer input reads the answer as the nearest whole number, and an
@@ -198,6 +196,16 @@ struct HostedTextField: View {
     #expect(number == number.rounded())
   }
 
+  /// The readout beside the slider shows the answer in the number format of
+  /// the locale.
+  @Test func theReadoutOfTheSliderShowsTheAnswer() {
+    let schema = Self.field("level", .number(integer: true, minimum: 2, maximum: 10))
+    let harness = Self.mount(schema, box: AnswerBox(.number(5)))
+    defer { harness.close() }
+
+    #expect(harness.element(identifier: ElicitationNumberField.readoutIdentifier(for: "level"))?.label == "5")
+  }
+
   // MARK: - Toggle
 
   @Test func theToggleWritesABoolean() throws {
@@ -211,29 +219,89 @@ struct HostedTextField: View {
 
   // MARK: - Date
 
-  @Test func theDateButtonWritesAFullDateAndTheClearButtonRemovesIt() throws {
-    let box = AnswerBox()
-    let harness = Self.mount(Self.field("day", .date(dateTime: false)), box: box)
+  /// The locale of a hosted date field: fixed, so that the field shows and
+  /// reads the same numeric date on every machine.
+  static let dateLocale = Locale(identifier: "en_US")
+
+  /// The `date` answer of the date tests.
+  static let dayAnswer = "2026-11-05"
+
+  /// ``dayAnswer`` as the input of a date field shows it in ``dateLocale``.
+  static let dayText = "11/5/2026"
+
+  /// The `date-time` answer that the date-time test picks, on a whole minute,
+  /// as the picker of a date and a time sets it.
+  static let dateTimeAnswer = "2026-11-05T14:30:00Z"
+
+  /// Mounts one date field in ``dateLocale`` and in UTC.
+  ///
+  /// - Parameters:
+  ///   - schema: The schema of the date field.
+  ///   - box: The box of the answer.
+  /// - Returns: The harness of the field.
+  static func mountDate(_ schema: ElicitationFieldSchema, box: AnswerBox) -> HostedViewHarness<some View> {
+    let harness = HostedViewHarness(
+      HostedField(schema: schema, box: box)
+        .environment(\.locale, dateLocale)
+        .environment(\.timeZone, .gmt),
+      size: fieldSize)
+    harness.render()
+    return harness
+  }
+
+  @Test func theDateInputShowsTheAnswerInTheNumericDateOfTheLocale() {
+    let harness = Self.mountDate(Self.field("day", .date(dateTime: false)), box: AnswerBox(.string(Self.dayAnswer)))
     defer { harness.close() }
 
-    try harness.press(identifier: ElicitationFieldView.controlIdentifier(for: "day"))
-    let text = try #require(box.value?.stringValue)
-    #expect(text.wholeMatch(of: #/\d{4}-\d{2}-\d{2}/#) != nil)
-    #expect(harness.element(identifier: ElicitationFieldView.controlIdentifier(for: "day")) != nil)
+    #expect(harness.inspectorDriver.textView(ElicitationFieldView.controlIdentifier(for: "day"))?.string == Self.dayText)
+  }
 
-    try harness.press(identifier: ElicitationDateField.clearIdentifier(for: "day"))
+  @Test func aTypedDateWritesAFullDate() throws {
+    let box = AnswerBox()
+    let harness = Self.mountDate(Self.field("day", .date(dateTime: false)), box: box)
+    defer { harness.close() }
+    let control = ElicitationFieldView.controlIdentifier(for: "day")
+
+    try harness.inspectorDriver.replace(with: Self.dayText, in: control)
+    try harness.inspectorDriver.commit(control)
+
+    #expect(box.value == .string(Self.dayAnswer))
+  }
+
+  /// A commit of the empty input removes the answer, so an optional date can
+  /// stay empty.
+  @Test func anEmptyDateRemovesTheAnswer() throws {
+    let box = AnswerBox(.string(Self.dayAnswer))
+    let harness = Self.mountDate(Self.field("day", .date(dateTime: false)), box: box)
+    defer { harness.close() }
+    let control = ElicitationFieldView.controlIdentifier(for: "day")
+
+    try harness.inspectorDriver.replace(with: "", in: control)
+    try harness.inspectorDriver.commit(control)
+
     #expect(box.value == nil)
   }
 
-  @Test func theDateTimeButtonWritesAValidDateTime() throws {
-    let schema = Self.field("when", .date(dateTime: true))
+  /// A pick in the calendar of a `date-time` field writes the RFC 3339 time
+  /// of the pick, in UTC.
+  @Test func aPickedDateTimeWritesItsTimeInUTC() async throws {
     let box = AnswerBox()
-    let harness = Self.mount(schema, box: box)
-    defer { harness.close() }
+    // The calendar opens a popover, which needs a window that is ordered in,
+    // as EditorKit's own hosted window is.
+    let (window, hosting) = makeHostedWindow(
+      rootView: HostedField(schema: Self.field("when", .date(dateTime: true)), box: box)
+        .environment(\.locale, Self.dateLocale)
+        .environment(\.timeZone, .gmt),
+      width: Self.fieldSize.width, height: Self.fieldSize.height)
+    defer { closeHostedWindow(window) }
+    let picked = try #require(ISO8601Time.date(from: Self.dateTimeAnswer))
 
-    try harness.press(identifier: ElicitationFieldView.controlIdentifier(for: "when"))
-    #expect(box.value != nil)
-    #expect(ElicitationValidator.validate(box.value, against: schema).isSatisfied)
+    try await withAccessibilityTree {
+      try await InspectorDriver(window: window, root: hosting)
+        .pick(picked, in: ElicitationFieldView.controlIdentifier(for: "when"))
+    }
+
+    #expect(box.value == .string(Self.dateTimeAnswer))
   }
 
   // MARK: - Single choice

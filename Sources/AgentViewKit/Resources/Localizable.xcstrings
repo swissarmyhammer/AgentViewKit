@@ -1541,16 +1541,6 @@
         }
       }
     },
-    "Remove Date" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Remove Date"
-          }
-        }
-      }
-    },
     "Remove this attachment" : {
       "localizations" : {
         "en" : {
@@ -1847,26 +1837,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Session Options"
-          }
-        }
-      }
-    },
-    "Set Date" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Set Date"
-          }
-        }
-      }
-    },
-    "Set Date and Time" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Set Date and Time"
           }
         }
       }
