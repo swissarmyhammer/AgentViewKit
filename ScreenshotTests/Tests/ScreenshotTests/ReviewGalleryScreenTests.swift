@@ -46,6 +46,7 @@
       try await hosted.theChipRowsInANarrowColumn()
       try await hosted.theCodeBlock()
       try await hosted.theTerminalOutput()
+      try await hosted.theCommandOutput()
       try await hosted.theElicitationForm()
       try await hosted.theAttachmentInspector()
       try await hosted.theDiff()

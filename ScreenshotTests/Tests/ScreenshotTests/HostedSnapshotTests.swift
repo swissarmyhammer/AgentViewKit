@@ -166,6 +166,16 @@ import Testing
     try await Self.generate(TerminalView(entry: entry), named: "terminal", size: SnapshotFixtures.terminalSize)
   }
 
+  /// The output of a command that failed, whose line of the problem is wider
+  /// than the block and wraps to its width.
+  @Test func theCommandOutput() async throws {
+    let output = CommandOutputView(
+      command: PreviewFixtures.lintCommand, output: PreviewFixtures.lintOutput,
+      exitCode: PreviewFixtures.failingExitCode)
+
+    try await Self.generate(output, named: "command-output", size: SnapshotFixtures.commandOutputSize)
+  }
+
   /// A diff of a patch: the file chips over EditorKit's one-value preview of
   /// the selected file.
   @Test func theDiff() async throws {

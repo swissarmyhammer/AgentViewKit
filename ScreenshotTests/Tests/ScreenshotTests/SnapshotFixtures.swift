@@ -61,6 +61,9 @@ enum SnapshotFixtures {
   /// The height of the image of the terminal output, in points.
   static let terminalHeight: CGFloat = 200
 
+  /// The height of the image of the command output, in points.
+  static let commandOutputHeight: CGFloat = 220
+
   /// The height of the image of the elicitation form, in points.
   static let elicitationHeight: CGFloat = 620
 
@@ -96,6 +99,9 @@ enum SnapshotFixtures {
 
   /// The size of the image of the terminal output, in points.
   static let terminalSize = CGSize(width: narrowWidth, height: terminalHeight)
+
+  /// The size of the image of the command output, in points.
+  static let commandOutputSize = CGSize(width: narrowWidth, height: commandOutputHeight)
 
   /// The size of the image of the elicitation form, in points.
   static let elicitationSize = CGSize(width: wideWidth, height: elicitationHeight)

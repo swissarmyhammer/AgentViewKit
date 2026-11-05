@@ -8,7 +8,9 @@ import SwiftUI
 ///
 /// The view shows a header with the filename or the language and a Copy
 /// button. Below the header, an EditorKit editor shows the code with line
-/// numbers. The editor grows to the height of the code. When EditorKit has a
+/// numbers. The editor takes the height of the code and wraps a long line to
+/// its width, with no scroll of its own, so its host scrolls the block
+/// (`EditorView.sizedToContent()`). When EditorKit has a
 /// tree-sitter grammar for the language, the editor colors the code with it.
 /// If not, and ``GrammarBundle`` ships a TextMate grammar for the language,
 /// the editor colors the code with that grammar.
@@ -123,7 +125,7 @@ public struct CodeBlockView: View {
   @ViewBuilder
   private func editor(model: EditorModel) -> some View {
     let view = EditorView(model: model)
-      .editorSizingMode(.intrinsic)
+      .sizedToContent()
       .editorGutter(LineNumbers())
     if let grammarID {
       view.editorSyntax(grammarID)
