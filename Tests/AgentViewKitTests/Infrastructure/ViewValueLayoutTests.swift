@@ -28,8 +28,13 @@ import Testing
   @Test func theButtonTokensHaveNoPaddingByte() {
     StoredLayout<EditorStyle.Buttons>(
       \.labelSpacing, \.pressedOpacity, \.disabledOpacity, \.captionStyle, \.toolbarCaptionStyle, \.tint,
-      \.subduedTint, \.destructiveTint, \.toolbarTint, \.hoverTint, \.selectedTint, \.density, \.toolbarDensity
+      \.subduedTint, \.destructiveTint, \.toolbarTint, \.hoverTint, \.selectedTint, \.spinnerSizes, \.density,
+      \.toolbarDensity
     ).expectNoPaddingByte()
+  }
+
+  @Test func theSpinnerSizesHaveNoPaddingByte() {
+    StoredLayout<EditorStyle.SpinnerSizes>(\.compact, \.balanced, \.detailed).expectNoPaddingByte()
   }
 
   @Test func theTileTokensHaveNoPaddingByte() {
