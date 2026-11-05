@@ -32,6 +32,14 @@ comments:
     - gallery: `HostedSnapshotTests.theThread` passed on a throwaway worktree of clean main ffab978f (now removed). On this branch the failing step was the gallery's thread SCREEN: its diff edit came after the code-block reply, and the 240 pt preview pushed the code block out of the rows the pinned thread draws. The cause was this card; 90a51911 moves the edit above the reply.
     - next: /review. Not pushed or merged.
   timestamp: 2026-11-04T20:30:56.156151+00:00
+- actor: claude-code
+  id: 01m6nqz08zpqaeat09nvjts459
+  text: 'User decision (2026-11-05): diffs are one-column unified. DiffView drops side-by-side, since it''s shown in inspectors that are generally too narrow for two columns. No EK request for a PreviewField layout setting.'
+  timestamp: 2026-11-05T11:37:02.495396+00:00
+- actor: claude-code
+  id: 01m6nr0rnzyg0ddrysdbm3hxps
+  text: 'User decision (2026-11-05): no fixed 240 pt diff box. Previews grow to their full content height and the inspector or thread scrolls: "scrolling in a little field is ass compared to scrolling the whole inspector." EK''s PreviewField always applies `.previewFrame()` (PreviewField.swift:71), so I''ve asked editorkit-b5 for intrinsic sizing on PreviewField, for diff and code/text and the inspector''s `.preview` row. This card holds until that SHA lands, then: update, use the intrinsic sizing in DiffView, tool calls and AttachmentInspector, re-capture, and drop any test that pinned the 240 pt height. Testudo waits on this card''s origin SHA for the AttachmentInspector id change.'
+  timestamp: 2026-11-05T11:38:00.255481+00:00
 position_column: doing
 position_ordinal: '8680'
 title: 'Adopt EditorKit one-value preview (^jn3qmmy): delete AVK''s single diff preview'
