@@ -52,7 +52,7 @@ public struct SessionListView: View {
   public static let loadMoreIdentifier = "session-list-load-more"
 
   /// The symbol of the "Load More" row.
-  static let loadMoreSymbol = SharedSymbol.loadMore
+  static let loadMoreSymbol = AgentSymbol.loadMore
 
   /// The accessibility identifier of the Refresh button.
   public static let refreshIdentifier = "session-list-refresh"
@@ -214,7 +214,7 @@ public struct SessionListView: View {
         Button {
           start(Self.refreshIdentifier) { await refresh() }
         } label: {
-          Label(String(localized: "Refresh", bundle: .module), systemImage: SharedSymbol.reload)
+          Label(String(localized: "Refresh", bundle: .module), systemImage: EditorSymbol.action(.reload).systemImage)
             .labelStyle(.iconOnly)
         }
         .help(String(localized: "Refresh", bundle: .module))
@@ -223,7 +223,7 @@ public struct SessionListView: View {
       if let onNewSession {
         Button(action: onNewSession) {
           Label(
-            String(localized: "New Session", bundle: .module), systemImage: SharedSymbol.newSession
+            String(localized: "New Session", bundle: .module), systemImage: AgentSymbol.newSession
           )
             .labelStyle(.iconOnly)
         }
@@ -243,7 +243,7 @@ public struct SessionListView: View {
     if !connection.canListSessions {
       ThemedEmptyState(
         title: Text("Session List Not Available", bundle: .module),
-        systemImage: SharedSymbol.sessionList,
+        systemImage: AgentSymbol.sessionList,
         description: Text("The agent does not list its sessions.", bundle: .module)
       )
       .onChrome()
@@ -252,7 +252,7 @@ public struct SessionListView: View {
     } else if connection.sessions.isEmpty {
       ThemedEmptyState(
         title: Text("No Sessions", bundle: .module),
-        systemImage: SharedSymbol.conversation,
+        systemImage: AgentSymbol.conversation,
         description: Text("The sessions of the agent show here.", bundle: .module)
       )
       .onChrome()

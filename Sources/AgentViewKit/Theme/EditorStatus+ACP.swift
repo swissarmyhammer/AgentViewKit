@@ -128,18 +128,16 @@ nonisolated extension EditorStatus {
   /// - Parameter label: The label of the state, such as "Closed".
   /// - Returns: The disconnected symbol in the cancelled tone.
   private static func disconnected(label: String) -> EditorStatus {
-    EditorStatus(systemName: SharedSymbol.disconnected, tone: .cancelled, label: label)
+    EditorStatus(systemName: AgentSymbol.disconnected, tone: .cancelled, label: label)
   }
 
   /// A connection, or a server, that failed.
   ///
   /// - Parameter detail: Why the connection failed, or `nil` when no reason
   ///   is known.
-  /// - Returns: The error symbol in the failed tone, with EditorKit's label
-  ///   of a failure.
+  /// - Returns: EditorKit's failed status, with the reason as its detail.
   private static func connectionFailed(detail: String?) -> EditorStatus {
-    EditorStatus(
-      systemName: SharedSymbol.error, tone: .failed, label: EditorStatus(EditorSymbol.Status.failed).label, detail: detail)
+    EditorStatus(.failed, detail: detail)
   }
 
   // MARK: - Helpers

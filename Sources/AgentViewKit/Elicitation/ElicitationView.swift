@@ -65,12 +65,12 @@ public struct ElicitationView: View {
   public static let failureIdentifier = "elicitation-failure"
 
   /// The symbol of the Submit button, which accepts the elicitation.
-  static let submitSymbol = SharedSymbol.accept
+  static let submitSymbol = AgentSymbol.accept
   /// The symbol of the Decline button, which rejects the elicitation.
-  static let declineSymbol = SharedSymbol.reject
+  static let declineSymbol = AgentSymbol.reject
   /// The symbol of the Cancel button, which closes the elicitation with no
   /// answer.
-  static let cancelSymbol = SharedSymbol.dismiss
+  static let cancelSymbol = EditorSymbol.action(.dismiss).systemImage
 
   /// The accessibility identifier of the tab of the field named `name`.
   ///
@@ -451,7 +451,7 @@ public struct ElicitationView: View {
 /// so the line shows on form cards, on URL cards and on waiting cards.
 public struct ElicitationHeader: View {
   /// The symbol of the header.
-  static let symbol = SharedSymbol.question
+  static let symbol = AgentSymbol.question
 
   /// The name of the server that each header shows. An elicitation over ACP
   /// comes from the agent.

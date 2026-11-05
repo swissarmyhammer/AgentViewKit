@@ -97,15 +97,15 @@ public struct AgentAuthView: View {
   public static let signOutIdentifier = "agent-auth-sign-out"
 
   /// The symbol of the title.
-  static let symbol = SharedSymbol.signIn
+  static let symbol = AgentSymbol.signIn
   /// The symbol of each Sign In button.
-  static let signInSymbol = SharedSymbol.signIn
+  static let signInSymbol = AgentSymbol.signIn
   /// The symbol of each Run button.
   static let runSymbol = EditorSymbol.tool(.execute).systemImage
   /// The symbol of the Reconnect button.
-  static let reconnectSymbol = SharedSymbol.reload
+  static let reconnectSymbol = EditorSymbol.action(.reload).systemImage
   /// The symbol of the Sign Out button.
-  static let signOutSymbol = SharedSymbol.signOut
+  static let signOutSymbol = AgentSymbol.signOut
 
   /// A call that the card runs, as the key of its progress.
   enum Operation: Hashable {

@@ -567,7 +567,7 @@ public struct ElicitationDateField: View {
         )
         .labelsHidden()
         .accessibilityIdentifier(context.controlIdentifier)
-        Button(Self.removeDateTitle, systemImage: SharedSymbol.remove) {
+        Button(Self.removeDateTitle, systemImage: AgentSymbol.remove) {
           value.wrappedValue = nil
         }
         .labelStyle(.iconOnly)
@@ -718,7 +718,7 @@ public struct ElicitationSingleChoiceField: View {
         } label: {
           Label(
             choice.title,
-            systemImage: isSelected ? SharedSymbol.selected : SharedSymbol.notChosen
+            systemImage: isSelected ? AgentSymbol.selected : AgentSymbol.notChosen
           )
         }
         // The nearest button style wins: on the glass of a deck the button is

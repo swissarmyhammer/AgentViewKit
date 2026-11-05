@@ -112,7 +112,10 @@ import Testing
 
     #expect(
       Set(severities.map(NoticeBanner.symbolName(for:)))
-        == [SharedSymbol.information, SharedSymbol.warning, SharedSymbol.error, ItemStatus.unknown.systemImage])
+        == [
+          EditorSymbol.severity(.information).systemImage, EditorSymbol.severity(.warning).systemImage,
+          EditorSymbol.severity(.error).systemImage, ItemStatus.unknown.systemImage,
+        ])
     #expect(Set(severities.map(NoticeBanner.severityLabel)).count == severities.count)
   }
 

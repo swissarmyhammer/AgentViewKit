@@ -76,7 +76,7 @@ public struct ToolCallLocationChips: View {
 
   /// A chip for each location, in a flow layout that wraps the chips to the next line.
   public var body: some View {
-    ChipFlowLayout(spacing: editorStyle.spacing.xs) {
+    EditorChipRows(spacing: editorStyle.spacing.xs) {
       ForEach(locations) { location in
         chip(location)
       }

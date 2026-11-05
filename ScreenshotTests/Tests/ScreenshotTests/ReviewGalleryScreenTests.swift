@@ -43,6 +43,7 @@
       try await hosted.theStatusBanner()
       try await hosted.theStatusOfEachKind()
       try await hosted.theTitleLinesOfTheBars()
+      try await hosted.theChipRowsInANarrowColumn()
       try await hosted.theCodeBlock()
       try await hosted.theTerminalOutput()
       try await hosted.theElicitationForm()

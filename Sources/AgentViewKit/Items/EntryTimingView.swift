@@ -43,7 +43,7 @@ public struct EntryTimingView: View, PrefixedAccessibilityIdentifier {
   public static let shortestShownDuration: TimeInterval = 0.5
 
   /// The SF Symbol name of the time.
-  static let symbolName = SharedSymbol.entryTime
+  static let symbolName = AgentSymbol.entryTime
 
   /// The largest number of units in a spoken duration, such as "1 minute,
   /// 15 seconds".

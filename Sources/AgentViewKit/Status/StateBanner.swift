@@ -1,4 +1,5 @@
 import EditorStyle
+import EditorSwiftUI
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
@@ -45,7 +46,7 @@ public struct StateBanner: View {
   public static let showErrorIdentifier = "state-banner-show-error"
 
   /// The symbol of the Show Error button.
-  static let showErrorSymbol = SharedSymbol.details
+  static let showErrorSymbol = AgentSymbol.details
 
   /// The session model whose `agentState` the bar shows.
   let session: SessionModel
@@ -219,7 +220,7 @@ extension StateBanner {
     title: String(localized: "The agent needs your input", bundle: .module),
     explanation: String(
       localized: "Answer the request to let the agent continue.", bundle: .module),
-    symbolName: SharedSymbol.userAction,
+    symbolName: AgentSymbol.userAction,
     identifier: "state-banner-requires-action")
 
   /// The text for an idle state with the stop reason `max_tokens`.
@@ -228,7 +229,7 @@ extension StateBanner {
     explanation: String(
       localized: "The model used its maximum number of output tokens. Ask it to continue.",
       bundle: .module),
-    symbolName: SharedSymbol.maxTokens,
+    symbolName: AgentSymbol.maxTokens,
     identifier: "state-banner-max-tokens")
 
   /// The text for an idle state with the stop reason `max_turn_requests`.
@@ -237,14 +238,14 @@ extension StateBanner {
     explanation: String(
       localized: "The response used its maximum number of model requests. Send a message to continue.",
       bundle: .module),
-    symbolName: SharedSymbol.maxTurnRequests,
+    symbolName: AgentSymbol.maxTurnRequests,
     identifier: "state-banner-max-turn-requests")
 
   /// The text for an idle state with the stop reason `refusal`.
   private static let refusalMessage = StatusBar.Message(
     title: String(localized: "The model refused to continue", bundle: .module),
     explanation: String(localized: "Change the request and send it again.", bundle: .module),
-    symbolName: SharedSymbol.refusal,
+    symbolName: AgentSymbol.refusal,
     identifier: "state-banner-refusal")
 
   /// The accessibility identifier of the text for an idle state with the
@@ -267,7 +268,7 @@ extension StateBanner {
         ?? String(
           localized: "The response stopped because of a failure in the agent. Send the request again.",
           bundle: .module),
-      symbolName: SharedSymbol.error,
+      symbolName: EditorSymbol.severity(.error).systemImage,
       identifier: failedTurnIdentifier, severity: .failure)
   }
 }

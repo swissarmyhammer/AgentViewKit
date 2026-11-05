@@ -1,17 +1,17 @@
-import AgentViewKitStyle
 import Foundation
 
 /// The agent symbols of the kit: each SF Symbol of a concept that only the
 /// views of an agent thread show.
 ///
-/// The shared symbols of the view kits, such as the error and the Reload
-/// button, are in ``AgentViewKitStyle/SharedSymbol``. The symbols of a tool
-/// kind, a file kind and a status are EditorKit's `EditorSymbol`, and the kit
-/// reads them there, also for a button of the same concept, such as Edit. This
-/// extension adds the concepts of the kit to the same table, so a view of
-/// the kit reads each symbol as `SharedSymbol.<concept>`. A symbol name is
-/// written in the two table files only: no other source file of the kit
-/// writes a symbol name, and the two files write each name one time.
+/// The symbols that the view kits share are EditorKit's `EditorSymbol`, and
+/// the kit reads them there and draws them with `EditorSymbolImage`: a tool
+/// kind, a file kind and a status (also for a button of the same concept,
+/// such as Edit), the severity of a notice, a closed session, and the Reload,
+/// Dismiss, link and disclosure marks. This table holds the concepts that
+/// only the kit shows, so a view of the kit reads each of them as
+/// `AgentSymbol.<concept>`. A symbol name of the kit is written in this file
+/// only: no other source file of the kit writes a symbol name, and this file
+/// writes each name one time.
 ///
 /// No symbol of the table is a clock symbol (`clock`, each `clock.*` symbol,
 /// `timer`, `alarm`): a clock is a scheduled task (EditorKit `style.md`).
@@ -24,7 +24,7 @@ import Foundation
 /// for work that the user cancelled, `.unknown` for a value that the kit does
 /// not know, and `ItemPriority.low`, `.medium` and `.high` for the priority
 /// of a plan entry.
-nonisolated extension SharedSymbol {
+nonisolated enum AgentSymbol {
   // MARK: - Agent state and stop reasons
 
   /// The symbol of a request to the user: an agent that waits for the user,

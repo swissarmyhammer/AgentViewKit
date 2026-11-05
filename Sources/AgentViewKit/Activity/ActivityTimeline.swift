@@ -49,7 +49,7 @@ public struct ActivityTimeline: View {
   static let detailSuffix = "-detail"
 
   /// The SF Symbol name of the empty state.
-  static let emptySymbolName = SharedSymbol.activity
+  static let emptySymbolName = AgentSymbol.activity
 
   /// The session model whose transcript the timeline shows.
   let session: SessionModel

@@ -60,7 +60,7 @@ public struct ErrorView: View {
     Content(
       title: String(localized: "The agent sent an error", bundle: .module),
       detail: String(localized: "Error \(String(code)): \(message)", bundle: .module),
-      symbolName: SharedSymbol.error)
+      symbolName: EditorSymbol.severity(.error).systemImage)
   }
 
   /// The title line of the error with its symbol in the error tone, and the data of the error below it.

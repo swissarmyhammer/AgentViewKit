@@ -100,7 +100,7 @@ public struct TerminalView: View {
     var symbolName: String {
       switch self {
       case .code: (outcome?.symbol ?? .status(.unknown)).systemImage
-      case .signal: SharedSymbol.signal
+      case .signal: AgentSymbol.signal
       case .unknown: EditorSymbol.status(.unknown).systemImage
       }
     }

@@ -52,15 +52,16 @@ import SwiftUI
 /// line. With a session, the header is a container, so each dropdown stays
 /// reachable.
 ///
-/// The symbol and the chevron are each a ``DecorativeSymbolImage``: they have
-/// the `.secondary` style, not the accent of the EditorKit theme (D113 answer
-/// 5).
+/// The symbol is a ``DecorativeSymbolImage``, and the chevron is EditorKit's
+/// `EditorSymbolImage` of `EditorSymbol.action(.disclosure)`, hidden from
+/// accessibility: both have the secondary style of their place, not the
+/// accent of the EditorKit theme (D113 answer 5).
 public struct AgentInfoHeader: View {
   /// The accessibility identifier of the header.
   public static let identifier = "agent-info-header"
 
   /// The symbol of the header.
-  static let symbol = SharedSymbol.agent
+  static let symbol = AgentSymbol.agent
 
   /// The connection model whose agent info the header shows.
   let connection: ConnectionModel
@@ -212,8 +213,9 @@ struct AgentBreadcrumb: View {
       agentSegment
         .layoutPriority(Self.agentPriority)
       if path.isEmpty, let sessionTitle {
-        DecorativeSymbolImage(name: SharedSymbol.disclosure)
+        EditorSymbolImage(.action(.disclosure))
           .imageScale(.small)
+          .accessibilityHidden(true)
         Text(sessionTitle)
           .font(editorTheme.font(for: .ui, style: .headline))
           .lineLimit(1)

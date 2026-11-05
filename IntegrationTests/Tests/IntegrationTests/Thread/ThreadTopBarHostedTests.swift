@@ -3,6 +3,7 @@
   import AgentViewKitTestSupport
   import AppKit
   import EditorStyle
+  import EditorSwiftUI
   import EditorTestSupport
   import SwiftUI
   import Testing
@@ -64,7 +65,8 @@
     static func explanationHeight(of explanation: String) -> CGFloat {
       func height(_ text: String) -> CGFloat {
         let message = StatusBar.Message(
-          title: "Title", explanation: text, symbolName: SharedSymbol.information, identifier: "message")
+          title: "Title", explanation: text, symbolName: EditorSymbol.severity(.information).systemImage,
+          identifier: "message")
         return StyleViewHost.size(of: StatusBar(message: message, action: nil), width: explanationMeasureWidth).height
       }
       return height(explanation) - height("")

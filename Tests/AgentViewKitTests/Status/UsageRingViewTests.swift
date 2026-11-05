@@ -36,13 +36,13 @@ import Testing
   }
 
   @Test func aRingThatIsNotFullShowsTheUsageSymbol() {
-    #expect(UsageRingView.symbolName(numerator: 1200, denominator: 4000) == SharedSymbol.usage)
-    #expect(UsageRingView.symbolName(numerator: 10, denominator: 0) == SharedSymbol.usage)
+    #expect(UsageRingView.symbolName(numerator: 1200, denominator: 4000) == AgentSymbol.usage)
+    #expect(UsageRingView.symbolName(numerator: 10, denominator: 0) == AgentSymbol.usage)
   }
 
   @Test func aFullRingShowsTheFullSymbol() {
-    #expect(UsageRingView.symbolName(numerator: 4000, denominator: 4000) == SharedSymbol.usageFull)
-    #expect(UsageRingView.symbolName(numerator: 5000, denominator: 4000) == SharedSymbol.usageFull)
+    #expect(UsageRingView.symbolName(numerator: 4000, denominator: 4000) == AgentSymbol.usageFull)
+    #expect(UsageRingView.symbolName(numerator: 5000, denominator: 4000) == AgentSymbol.usageFull)
   }
 
   @Test func theCostTextUsesTheCurrency() {

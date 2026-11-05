@@ -58,7 +58,7 @@ import Testing
 
   @Test func aFlowLayoutStartsANewRowWhenAViewDoesNotFit() {
     let spacing = Self.style.spacing.xs
-    let flow = ChipFlowLayout(spacing: spacing) {
+    let flow = EditorChipRows(spacing: spacing) {
       Self.block
       Self.block
     }

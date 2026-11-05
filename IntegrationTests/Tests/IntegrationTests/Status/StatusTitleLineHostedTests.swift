@@ -60,13 +60,15 @@ import Testing
   /// - Returns: The message.
   static func message(title: String = title, explanation: String) -> StatusBar.Message {
     StatusBar.Message(
-      title: title, explanation: explanation, symbolName: SharedSymbol.error, identifier: textIdentifier)
+      title: title, explanation: explanation, symbolName: EditorSymbol.severity(.error).systemImage,
+      identifier: textIdentifier)
   }
 
   /// A button of a bar. A press does nothing.
   static var action: StatusBar.Action {
     StatusBar.Action(
-      title: "Reload", systemImage: SharedSymbol.reload, identifier: buttonIdentifier, isEnabled: true, perform: {})
+      title: "Reload", systemImage: EditorSymbol.action(.reload).systemImage, identifier: buttonIdentifier,
+      isEnabled: true, perform: {})
   }
 
   /// Shows `view` at the top of a window, at `width`.

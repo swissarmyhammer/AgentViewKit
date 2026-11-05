@@ -1,4 +1,5 @@
 import AgentViewKit
+import EditorSwiftUI
 import SwiftUI
 
 /// The bar of a failed request of a demo tab: a ``StatusBar`` with a failure
@@ -21,7 +22,8 @@ struct DemoFailureLabel: View {
   var body: some View {
     StatusBar(
       message: StatusBar.Message(
-        title: Self.title, explanation: DemoFailureText.text(of: error), symbolName: SharedSymbol.error,
+        title: Self.title, explanation: DemoFailureText.text(of: error),
+        symbolName: EditorSymbol.severity(.error).systemImage,
         identifier: identifier, severity: .failure),
       action: nil
     )

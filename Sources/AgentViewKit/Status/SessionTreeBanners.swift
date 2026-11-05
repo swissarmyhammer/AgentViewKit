@@ -1,4 +1,5 @@
 import EditorStyle
+import EditorSwiftUI
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
@@ -46,7 +47,7 @@ public struct WaitingDescendantBanner: View {
     StatusBar.Message(
       title: String(localized: "Another session needs you", bundle: .module),
       explanation: entry.path.joined(separator: SessionJumpList.pathSeparator),
-      symbolName: SharedSymbol.warning, identifier: identifier, severity: .warning)
+      symbolName: EditorSymbol.severity(.warning).systemImage, identifier: identifier, severity: .warning)
   }
 
   /// The bar for the descendant that waits, or nothing.
@@ -55,7 +56,7 @@ public struct WaitingDescendantBanner: View {
       StatusBar(
         message: Self.message(for: entry),
         action: StatusBar.Action(
-          title: String(localized: "Show", bundle: .module), systemImage: SharedSymbol.disclosure,
+          title: String(localized: "Show", bundle: .module), systemImage: EditorSymbol.action(.disclosure).systemImage,
           identifier: Self.jumpIdentifier, isEnabled: true
         ) { jump(entry.sessionId) }
       )
@@ -96,7 +97,7 @@ public struct UnconfirmedSessionBanner: View {
     case .restoreFailed(let reason):
       return StatusBar.Message(
         title: String(localized: "This sub-session did not restore", bundle: .module), explanation: reason,
-        symbolName: SharedSymbol.warning, identifier: identifier, severity: .warning)
+        symbolName: EditorSymbol.severity(.warning).systemImage, identifier: identifier, severity: .warning)
     case .unconfirmed:
       return information(
         title: String(localized: "The state of this sub-session is not known yet", bundle: .module),
@@ -111,7 +112,8 @@ public struct UnconfirmedSessionBanner: View {
   /// A neutral message of the banner.
   private static func information(title: String, explanation: String) -> StatusBar.Message {
     StatusBar.Message(
-      title: title, explanation: explanation, symbolName: SharedSymbol.information, identifier: identifier,
+      title: title, explanation: explanation, symbolName: EditorSymbol.severity(.information).systemImage,
+      identifier: identifier,
       severity: .information)
   }
 
