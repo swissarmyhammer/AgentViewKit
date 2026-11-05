@@ -6,8 +6,7 @@ import SwiftUI
 import Testing
 
 /// Hosted tests of the editing of the number input of an
-/// ``ElicitationNumberField``: an EditorKit field
-/// (`SingleLineField(model:id:value:format:)`) beside a stepper, in an
+/// ``ElicitationNumberField``: EditorKit's `NumberField` beside a stepper, in an
 /// ``ElicitationView`` under a root command scope, so the window has its undo
 /// stack.
 ///

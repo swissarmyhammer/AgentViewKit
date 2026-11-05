@@ -24,15 +24,9 @@ import SwiftUI
 /// test finds one element to type into, and the placeholder as its
 /// accessibility label. While the field is empty, EditorKit gives the text
 /// view the placeholder as its accessibility hint too.
-///
-/// A field made with a value and a format edits that value, as a SwiftUI
-/// `TextField` with a value and a format does (EditorKit
-/// `SingleLineField(model:id:value:format:)`): typing changes only the text,
-/// and each commit writes the value when the whole text is one value of the
-/// format. Return and Command-Return call `onSubmit` after that write.
 struct AgentOneLineField: View {
-  /// The EditorKit field: a text field over the model, or a value field.
-  private let field: SingleLineField
+  /// The model of the text of the field.
+  let model: EditorModel
 
   /// The accessibility identifier of the text view, and the id of the
   /// `editor:` scope of the field.
@@ -60,54 +54,15 @@ struct AgentOneLineField: View {
     model: EditorModel, identifier: String, placeholder: String,
     onSubmit: @escaping (String) -> Void = { _ in }
   ) {
-    self.init(
-      field: SingleLineField(model: model, id: identifier), identifier: identifier,
-      placeholder: placeholder, onSubmit: onSubmit)
-  }
-
-  /// Makes a field that edits `value` through `format`, with `model` as the
-  /// model of its text.
-  ///
-  /// - Parameters:
-  ///   - model: The model of the text of the field.
-  ///   - identifier: The accessibility identifier of the text view, and the
-  ///     id of the `editor:` scope of the field.
-  ///   - placeholder: The text that the empty field shows, and the
-  ///     accessibility label of the text view.
-  ///   - value: The value that the field edits.
-  ///   - format: The format that the field shows the value in and reads the
-  ///     text with.
-  ///   - onSubmit: The action that Return and Command-Return call with the
-  ///     text of the field, after the commit writes the value.
-  init<Format: ParseableFormatStyle>(
-    model: EditorModel, identifier: String, placeholder: String,
-    value: Binding<Format.FormatInput>, format: Format,
-    onSubmit: @escaping (String) -> Void
-  ) where Format.FormatOutput == String {
-    self.init(
-      field: SingleLineField(model: model, id: identifier, value: value, format: format),
-      identifier: identifier, placeholder: placeholder, onSubmit: onSubmit)
-  }
-
-  /// Makes a field that shows `field` with the slots of a kit field.
-  ///
-  /// - Parameters:
-  ///   - field: The EditorKit field.
-  ///   - identifier: The accessibility identifier of the text view.
-  ///   - placeholder: The placeholder and accessibility label of the field.
-  ///   - onSubmit: The action that Return and Command-Return call.
-  private init(
-    field: SingleLineField, identifier: String, placeholder: String,
-    onSubmit: @escaping (String) -> Void
-  ) {
-    self.field = field
+    self.model = model
     self.identifier = identifier
     self.placeholder = placeholder
     self.onSubmit = onSubmit
   }
 
-  /// The field, with ``onSubmit`` as the action of the commits that submit
-  /// it (`SingleLineField.onFieldSubmit(_:)`).
+  /// The field, with the slots of a one-line input of the kit
+  /// (``EditorSlotComposing/agentOneLineInput(identifier:placeholder:onSubmit:)``),
+  /// in the edge of a kit text input.
   ///
   /// EditorKit holds the commit callback in the mounted view, not in the
   /// model of the field. So `onSubmit` can capture the view that shows the
@@ -115,12 +70,8 @@ struct AgentOneLineField: View {
   /// (``OwnModelSlot``): the model still goes when the field leaves the
   /// window, and its entries leave the window undo stack.
   var body: some View {
-    field
-      .onFieldSubmit(onSubmit)
-      .editorSizingMode(.intrinsic)
-      .editorPlaceholder(placeholder)
-      .editorTextAccessibilityIdentifier(identifier)
-      .editorTextAccessibilityLabel(placeholder)
+    SingleLineField(model: model, id: identifier)
+      .agentOneLineInput(identifier: identifier, placeholder: placeholder, onSubmit: onSubmit)
       .agentTextInputEdge()
   }
 }
@@ -151,7 +102,7 @@ extension EditorCommit {
   }
 }
 
-extension SingleLineField {
+extension EditorSlotComposing {
   /// This field, with `action` as the action of the commits that submit it:
   /// the one submit-on-commit rule of the one-line fields of the kit
   /// (`EditorCommit.submittedText`).
@@ -164,11 +115,34 @@ extension SingleLineField {
   /// - Parameter action: The action that a submit calls with the text of the
   ///   field.
   /// - Returns: The same field, with its commit callback set.
-  func onFieldSubmit(_ action: @escaping (String) -> Void) -> SingleLineField {
+  func onFieldSubmit(_ action: @escaping (String) -> Void) -> Self {
     onEditorCommit { commit in
       guard let text = commit.submittedText else { return }
       action(text)
     }
+  }
+
+  /// This EditorKit one-line field (a `SingleLineField`, a `NumberField` or
+  /// a `DateField`) with the slots of a one-line input of the kit: it sizes
+  /// to its content, shows `placeholder` while it is empty, and its text view
+  /// carries `identifier` and `placeholder` as its label. Return and
+  /// Command-Return call `onSubmit` (``onFieldSubmit(_:)``).
+  ///
+  /// - Parameters:
+  ///   - identifier: The accessibility identifier of the text view.
+  ///   - placeholder: The text that the empty field shows, and the
+  ///     accessibility label of the text view.
+  ///   - onSubmit: The action that Return and Command-Return call with the
+  ///     text of the field.
+  /// - Returns: The same field, with the slots set.
+  func agentOneLineInput(
+    identifier: String, placeholder: String, onSubmit: @escaping (String) -> Void
+  ) -> Self {
+    onFieldSubmit(onSubmit)
+      .editorSizingMode(.intrinsic)
+      .editorPlaceholder(placeholder)
+      .editorTextAccessibilityIdentifier(identifier)
+      .editorTextAccessibilityLabel(placeholder)
   }
 }
 
