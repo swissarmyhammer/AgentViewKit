@@ -9,12 +9,15 @@ import Testing
 @testable import AgentViewKit
 
 /// The window of one test: two rows that open on `trigger`, beside a scope that
-/// stands for the tab of the host, in a real key window off the screen.
+/// stands for the tab of the host, in the harness window, which is never
+/// ordered in and never key.
 ///
-/// SwiftUI starts a tap gesture only in a key window, and `NSApp.currentEvent`
-/// holds an event only on the path of the event queue. So a click here goes
-/// through the queue of the app, as a click of a person does, and not through
-/// `HostedViewHarness.click(at:timeLimit:)`.
+/// A test drives a row through its accessibility action and the keys. Only the
+/// tests of ``AgentRowListOpenPointerHostedTests`` click: SwiftUI starts a tap
+/// gesture only in a key window, and `NSApp.currentEvent` holds an event only
+/// on the path of the event queue, so their click goes through the queue of the
+/// app (`HostedViewHarness.sendClick(atWindowPoint:)`), which makes the window
+/// key off the screen.
 @MainActor private struct OpenBed {
   /// The ids of the rows, in list order.
   static let ids = ["first", "second"]
@@ -37,32 +40,33 @@ import Testing
   /// The harness that shows the window.
   let harness: HostedViewHarness<AnyView>
 
-  /// Mounts the list and the tab, and makes the window key.
+  /// Mounts the list and the tab, and waits for the beacons of their scopes.
   ///
   /// - Parameters:
   ///   - trigger: What opens a row.
+  ///   - opens: Whether the rows open, or the list has no `onOpen`.
   ///   - movesFocusOnOpen: Whether an open gives the focus to the tab, as a
   ///     host does when it shows the opened item.
-  init(trigger: AgentRowOpenTrigger, movesFocusOnOpen: Bool = true) async throws {
+  init(trigger: AgentRowOpenTrigger, opens: Bool = true, movesFocusOnOpen: Bool = true) async throws {
     let system = CommandSystem()
     let opened = ReportRecorder<String>()
     let report = opened.report
     self.system = system
     self.opened = opened
+    let open = { (id: String) in
+      report(id)
+      if movesFocusOnOpen { _ = system.geometry.requestFocus(at: Self.tabPath) }
+    }
     harness = HostedViewHarness(
       AnyView(
         HStack {
-          AgentRowList(Self.ids, id: \.self, scope: Self.scope, openOn: trigger) { id in
-            report(id)
-            if movesFocusOnOpen { _ = system.geometry.requestFocus(at: Self.tabPath) }
-          } row: { id in
+          AgentRowList(Self.ids, id: \.self, scope: Self.scope, openOn: trigger, onOpen: opens ? open : nil) { id in
             Text(id).accessibilityIdentifier(id)
           }
           Color.clear.commandScope(segment: Self.tabPath.segments[0])
         }
         .commandSystem(system)),
       size: Self.size)
-    harness.window.makeKeyAndOrderFront(nil)
     await RunLoopBlockFence.afterPendingBlocks()
     try #require(waitForLiveBeacons([Self.tabPath, Self.rowPath(0), Self.rowPath(1)], in: system))
   }
@@ -107,18 +111,73 @@ import Testing
   }
 }
 
-/// `openOn: .click` of ``AgentRowList``: one click opens a row, wherever it
-/// lands on the row, and the focus stays where `onOpen` puts it.
+/// `openOn: .click` of ``AgentRowList``, through the accessibility action of a
+/// row and the keys: the action opens a row, and Return and the arrows act on
+/// the focused row.
 @Suite(.serialized, .hostedSerially) @MainActor struct AgentRowListOpenHostedTests {
-  @Test func oneClickOnTheTextOpensTheRow() async throws {
+  @Test func theOpenActionOpensTheRow() async throws {
     let bed = try await OpenBed(trigger: .click)
     defer { bed.harness.close() }
 
-    try await bed.harness.sendClick(atWindowPoint: bed.textCenter(ofRow: 1))
+    try bed.harness.performCustomAction(named: AgentRowClicks.openActionName, identifier: OpenBed.ids[1])
 
     #expect(bed.opened.values == [OpenBed.ids[1]])
   }
 
+  /// An assistive client opens a row of a list that opens on a double click
+  /// with one action, as Return does.
+  @Test func theOpenActionOpensARowOfADoubleClickList() async throws {
+    let bed = try await OpenBed(trigger: .doubleClick)
+    defer { bed.harness.close() }
+
+    try bed.harness.performCustomAction(named: AgentRowClicks.openActionName, identifier: OpenBed.ids[0])
+
+    #expect(bed.opened.values == [OpenBed.ids[0]])
+  }
+
+  /// A list with no `onOpen` names the action of a row Select, and it selects
+  /// the row, as a click does.
+  @Test func theSelectActionOfARowThatDoesNotOpenSelectsIt() async throws {
+    let bed = try await OpenBed(trigger: .click, opens: false)
+    defer { bed.harness.close() }
+
+    try bed.harness.performCustomAction(named: AgentRowClicks.selectActionName, identifier: OpenBed.ids[1])
+
+    #expect(bed.focusedScope() == OpenBed.rowPath(1))
+  }
+
+  @Test func returnOpensTheSelectedRow() async throws {
+    let bed = try await OpenBed(trigger: .click)
+    defer { bed.harness.close() }
+    try #require(bed.system.geometry.requestFocus(at: OpenBed.rowPath(1)))
+    bed.harness.render()
+
+    try bed.harness.sendKey(.return)
+
+    #expect(bed.opened.values == [OpenBed.ids[1]])
+  }
+
+  @Test func theDownArrowMovesTheSelection() async throws {
+    let bed = try await OpenBed(trigger: .click)
+    defer { bed.harness.close() }
+    try #require(bed.system.geometry.requestFocus(at: OpenBed.rowPath(0)))
+    bed.harness.render()
+
+    try bed.harness.sendKey(.downArrow)
+
+    #expect(bed.focusedScope() == OpenBed.rowPath(1))
+  }
+}
+
+/// The mouse of ``AgentRowOpenTrigger``, which only a real click reaches: one
+/// click opens a row wherever it lands on the row, the click count of the event
+/// tells the clicks of a double click apart, and the press of a click leaves
+/// the focus where `onOpen` puts it.
+///
+/// Each test clicks through the event queue of the app, so it makes the window
+/// key, off the screen. Each suite whose name ends in `PointerHostedTests`
+/// holds such a click.
+@Suite(.serialized, .hostedSerially) @MainActor struct AgentRowListOpenPointerHostedTests {
   @Test func oneClickOnThePaddingOpensTheRow() async throws {
     let bed = try await OpenBed(trigger: .click)
     defer { bed.harness.close() }
@@ -164,28 +223,6 @@ import Testing
     try await bed.harness.sendClick(atWindowPoint: bed.textCenter(ofRow: 0))
 
     #expect(bed.focusedScope() != OpenBed.rowPath(0))
-  }
-
-  @Test func returnOpensTheSelectedRow() async throws {
-    let bed = try await OpenBed(trigger: .click)
-    defer { bed.harness.close() }
-    try #require(bed.system.geometry.requestFocus(at: OpenBed.rowPath(1)))
-    bed.harness.render()
-
-    try bed.harness.sendKey(.return)
-
-    #expect(bed.opened.values == [OpenBed.ids[1]])
-  }
-
-  @Test func theDownArrowMovesTheSelection() async throws {
-    let bed = try await OpenBed(trigger: .click)
-    defer { bed.harness.close() }
-    try #require(bed.system.geometry.requestFocus(at: OpenBed.rowPath(0)))
-    bed.harness.render()
-
-    try bed.harness.sendKey(.downArrow)
-
-    #expect(bed.focusedScope() == OpenBed.rowPath(1))
   }
 
   /// The default stays: one click selects the row and opens nothing.

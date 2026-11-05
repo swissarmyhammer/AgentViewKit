@@ -229,9 +229,14 @@ struct HostedTextField: View {
   /// ``dayAnswer`` as the input of a date field shows it in ``dateLocale``.
   static let dayText = "11/5/2026"
 
-  /// The `date-time` answer that the date-time test picks, on a whole minute,
-  /// as the picker of a date and a time sets it.
+  /// The `date-time` answer that the date-time test types, on a whole minute,
+  /// as the input of a date and a time sets it.
   static let dateTimeAnswer = "2026-11-05T14:30:00Z"
+
+  /// ``dateTimeAnswer`` as the input of a date-time field types it in
+  /// ``dateLocale`` and in UTC: the numeric date and the short time, with a
+  /// plain space before PM.
+  static let dateTimeText = "11/5/2026, 2:30 PM"
 
   /// Mounts one date field in ``dateLocale`` and in UTC.
   ///
@@ -282,24 +287,16 @@ struct HostedTextField: View {
     #expect(box.value == nil)
   }
 
-  /// A pick in the calendar of a `date-time` field writes the RFC 3339 time
-  /// of the pick, in UTC.
-  @Test func aPickedDateTimeWritesItsTimeInUTC() async throws {
+  /// A typed date and time of a `date-time` field writes its RFC 3339 time,
+  /// in UTC.
+  @Test func aTypedDateTimeWritesItsTimeInUTC() throws {
     let box = AnswerBox()
-    // The calendar opens a popover, which needs a window that is ordered in,
-    // as EditorKit's own hosted window is.
-    let (window, hosting) = makeHostedWindow(
-      rootView: HostedField(schema: Self.field("when", .date(dateTime: true)), box: box)
-        .environment(\.locale, Self.dateLocale)
-        .environment(\.timeZone, .gmt),
-      width: Self.fieldSize.width, height: Self.fieldSize.height)
-    defer { closeHostedWindow(window) }
-    let picked = try #require(ISO8601Time.date(from: Self.dateTimeAnswer))
+    let harness = Self.mountDate(Self.field("when", .date(dateTime: true)), box: box)
+    defer { harness.close() }
+    let control = ElicitationFieldView.controlIdentifier(for: "when")
 
-    try await withAccessibilityTree {
-      try await InspectorDriver(window: window, root: hosting)
-        .pick(picked, in: ElicitationFieldView.controlIdentifier(for: "when"))
-    }
+    try harness.inspectorDriver.replace(with: Self.dateTimeText, in: control)
+    try harness.inspectorDriver.commit(control)
 
     #expect(box.value == .string(Self.dateTimeAnswer))
   }

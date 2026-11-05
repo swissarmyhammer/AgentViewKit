@@ -9,7 +9,7 @@ import Testing
 @testable import AgentViewKit
 
 /// The window of one test: a sectioned list that opens its rows on one click, in
-/// a real key window off the screen.
+/// the harness window, which is never ordered in and never key.
 @MainActor private struct SectionBed {
   /// The section of the first rows.
   static let pinned = AgentRowSection(id: "pinned", title: "Pinned", items: ["pinnedRow"])
@@ -38,7 +38,8 @@ import Testing
   /// The harness that shows the window.
   let harness: HostedViewHarness<AnyView>
 
-  /// Mounts a compact list of `sections` and makes the window key.
+  /// Mounts a compact list of `sections`, and lets SwiftUI land the updates
+  /// of the mount.
   ///
   /// - Parameters:
   ///   - sections: The sections of the list.
@@ -57,7 +58,6 @@ import Testing
         .environment(\.editorStyle, style)
         .commandSystem(system)),
       size: Self.size)
-    harness.window.makeKeyAndOrderFront(nil)
     await RunLoopBlockFence.afterPendingBlocks()
   }
 
@@ -95,15 +95,6 @@ import Testing
     let responder = harness.window.firstResponder as? NSView
     let frame = responder.flatMap { WindowSpace.rect(of: $0) }
     return frame != nil && system.geometry.rect(of: Self.path(ofRow: id)) == frame
-  }
-
-  /// Clicks the center of the element with `identifier`.
-  ///
-  /// - Parameter identifier: The accessibility identifier.
-  func click(_ identifier: String) async throws {
-    let frame = try #require(harness.frame(identifier: identifier))
-    let point = harness.window.convertPoint(fromScreen: NSPoint(x: frame.midX, y: frame.midY))
-    try await harness.sendClick(atWindowPoint: point)
   }
 
   /// The frame of the header of `section`, or `nil` when it does not show.
@@ -304,11 +295,11 @@ import Testing
     #expect(bed.showsRow(first.items[0]))
   }
 
-  @Test func oneClickOpensARowOfTheSecondSection() async throws {
+  @Test func theOpenActionOpensARowOfTheSecondSection() async throws {
     let bed = await SectionBed()
     defer { bed.harness.close() }
 
-    try await bed.click(SectionBed.recent.items[1])
+    try bed.harness.performCustomAction(named: AgentRowClicks.openActionName, identifier: SectionBed.recent.items[1])
 
     #expect(bed.opened.values == [SectionBed.recent.items[1]])
   }
@@ -323,12 +314,16 @@ import Testing
     #expect(bed.opened.values == [SectionBed.recent.items[0]])
   }
 
-  @Test func aClickOnAHeaderOpensNothing() async throws {
+  /// A header is no row: it has no open action, so it opens nothing.
+  @Test func aHeaderHasNoOpenAction() async throws {
     let bed = await SectionBed()
     defer { bed.harness.close() }
+    let header = AgentRowSectionHeader.identifier(for: SectionBed.recent.id)
+    let open = AgentRowClicks.openActionName
 
-    try await bed.click(AgentRowSectionHeader.identifier(for: SectionBed.recent.id))
-
+    #expect(throws: HostedViewHarnessError.noCustomAction(name: open, identifier: header)) {
+      try bed.harness.performCustomAction(named: open, identifier: header)
+    }
     #expect(bed.opened.values.isEmpty)
   }
 

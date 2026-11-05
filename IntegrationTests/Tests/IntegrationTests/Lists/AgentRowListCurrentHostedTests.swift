@@ -111,7 +111,8 @@ private struct BedList: View {
 }
 
 /// The window of one test: three rows that open on a click, beside a scope that
-/// stands for the tab of the host, in a real key window off the screen.
+/// stands for the tab of the host, in the harness window, which is never
+/// ordered in and never key.
 @MainActor private struct RowBed {
   /// The ids of the rows, in list order.
   static let ids = ["first", "second", "third"]
@@ -146,7 +147,7 @@ private struct BedList: View {
   /// The harness that shows the window.
   let harness: HostedViewHarness<AnyView>
 
-  /// Mounts the list and the tab, and makes the window key.
+  /// Mounts the list and the tab, and waits for the beacons of their scopes.
   ///
   /// - Parameters:
   ///   - layout: The init of the list.
@@ -169,7 +170,6 @@ private struct BedList: View {
         }
         .commandSystem(system)),
       size: Self.size)
-    harness.window.makeKeyAndOrderFront(nil)
     await RunLoopBlockFence.afterPendingBlocks()
     try #require(waitForLiveBeacons([Self.tabPath] + Self.ids.map(Self.path(ofRow:)), in: system))
   }
@@ -340,11 +340,11 @@ private nonisolated let densities: [AgentRowDensity] = [.regular, .compact]
     #expect(try #require(harness.element(identifier: RowBed.ids[1])).isSelected)
   }
 
-  @Test func aClickLeavesTheMarkToTheHost() async throws {
+  @Test func theOpenActionLeavesTheMarkToTheHost() async throws {
     let bed = try await RowBed(current: RowBed.ids[1])
     defer { bed.harness.close() }
 
-    try await bed.harness.sendClick(atWindowPoint: bed.topInsetPoint(ofRow: RowBed.ids[0]))
+    try bed.harness.performCustomAction(named: AgentRowClicks.openActionName, identifier: RowBed.ids[0])
     await bed.settle()
 
     #expect(bed.opened.values == [RowBed.ids[0]])
@@ -387,6 +387,21 @@ private nonisolated let densities: [AgentRowDensity] = [.regular, .compact]
     #expect(titles.contains(RowScopeMenu.scopeTitle(RowBed.scope.rowSegment(for: id).id)))
   }
 
+  @Test func aWrappedRowStaysACurrentRow() async throws {
+    let bed = try await RowBed(current: RowBed.ids[1], rowMenu: .aroundRow)
+    defer { bed.harness.close() }
+
+    #expect(try bed.reportsSelected(RowBed.ids[1]))
+  }
+}
+
+/// The hit test of a wrapped row, which only a real click reaches: the menu
+/// that `.wrappingRows(_:)` puts around a row takes no click from the inset.
+///
+/// The click goes through the event queue of the app, so it makes the window
+/// key, off the screen (`HostedViewHarness.sendClick(atWindowPoint:)`). Each
+/// suite whose name ends in `PointerHostedTests` holds such a click.
+@Suite(.serialized, .hostedSerially) @MainActor struct AgentRowListInsetPointerHostedTests {
   @Test func aClickOnTheInsetStillOpensAWrappedRow() async throws {
     let bed = try await RowBed(rowMenu: .aroundRow)
     defer { bed.harness.close() }
@@ -395,12 +410,5 @@ private nonisolated let densities: [AgentRowDensity] = [.regular, .compact]
     await bed.settle()
 
     #expect(bed.opened.values == [RowBed.ids[0]])
-  }
-
-  @Test func aWrappedRowStaysACurrentRow() async throws {
-    let bed = try await RowBed(current: RowBed.ids[1], rowMenu: .aroundRow)
-    defer { bed.harness.close() }
-
-    #expect(try bed.reportsSelected(RowBed.ids[1]))
   }
 }

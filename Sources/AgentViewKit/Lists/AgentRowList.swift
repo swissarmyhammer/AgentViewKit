@@ -151,7 +151,9 @@ public enum AgentRowDensity: Hashable, Sendable {
 /// When no ancestor installs a command system, the list uses one of its own.
 ///
 /// The row content gives its own accessibility elements, so VoiceOver reads
-/// each row as the content tells.
+/// each row as the content tells. Each of those elements has the accessibility
+/// action Open, which opens the row as Return does, or Select in a list with no
+/// `onOpen`, which selects the row. VoiceOver lists it in its Actions menu.
 ///
 /// The list scrolls itself, so give it a bounded height: the content of a
 /// sidebar column, or any frame with a height. Do not put it in a SwiftUI
@@ -593,6 +595,14 @@ struct AgentRowListRow<Content: View>: View {
 /// press of a click: the press of the second click of a double click would take
 /// the focus back from the item that the first click opened. A `nav.*` move and
 /// a jump still focus the row, through its scope.
+///
+/// Under each trigger, the row has the accessibility action
+/// ``openActionName``, which opens the row as Return does, or
+/// ``selectActionName`` in a list with no `onOpen`, which selects it.
+/// VoiceOver lists it in its Actions menu. The action is a named one, and not
+/// the press, because SwiftUI gives it to each accessibility element of the row
+/// content: a press there would take the place of the press of a button in the
+/// row, such as the delete button of a session row.
 struct AgentRowClicks: ViewModifier {
   /// What opens the row with the mouse.
   let trigger: AgentRowOpenTrigger
@@ -603,7 +613,22 @@ struct AgentRowClicks: ViewModifier {
   /// The action that opens the row, or `nil` for a row that does not open.
   let open: (() -> Void)?
 
+  /// The name of the accessibility action of a row that opens.
+  static var openActionName: String { String(localized: "Open", bundle: .module) }
+
+  /// The name of the accessibility action of a row that does not open.
+  static var selectActionName: String { String(localized: "Select", bundle: .module) }
+
   func body(content: Content) -> some View {
+    clicks(on: content)
+      .accessibilityAction(named: Text(open == nil ? Self.selectActionName : Self.openActionName), activate)
+  }
+
+  /// `content` with the clicks of the trigger.
+  ///
+  /// - Parameter content: The row.
+  /// - Returns: The row, with its clicks.
+  @ViewBuilder private func clicks(on content: Content) -> some View {
     switch trigger {
     case .doubleClick:
       content
@@ -622,11 +647,16 @@ struct AgentRowClicks: ViewModifier {
   ///
   /// A tap gesture of one tap ends on each click of a double click. The click
   /// count of the event tells them apart with no wait, so the first click
-  /// opens at once. An action with no event, such as a press of an assistive
-  /// client, counts as a first click.
+  /// opens at once. An action with no event counts as a first click.
   private func openOnFirstClick() {
     let clickCount = NSApp.currentEvent?.clickCount ?? AgentRowListLayout.firstClickCount
     guard clickCount == AgentRowListLayout.firstClickCount else { return }
+    activate()
+  }
+
+  /// Opens the row, or selects it when it does not open: one click of a list
+  /// that opens on a click, and the accessibility action of the row.
+  private func activate() {
     (open ?? select)()
   }
 }
