@@ -26,23 +26,20 @@ with its live effect and its Reduce Motion rule, and keep no symbol table of
 their own for those concepts. The change to a file of a diff is
 EditorKit's `FileDiff.Operation`, which ``DiffSummary/FileSummary`` holds, and
 the kind of the file is EditorKit's `EditorSymbol.FileKind(diffOperation:)`.
-The library adds only the word of an operation, such as "Added", for the
-label that VoiceOver reads. A status, its symbol and its label, is EditorKit's
+The library adds only the word of an operation, such as "Added", for a
+view kit that names a change in its own words. A status, its symbol and its label, is EditorKit's
 `EditorStatus`, which EditorKit's `EditorStatusLabel` draws.
 
 Each chip of a file or a folder path is EditorKit's `PathChip`: the file
 chips of a diff, the location chips of a tool call and the path rows of the
-inspector. ``ToolCallLocationChips`` is the compound view that lays the chips
-of the locations of a tool call out in rows. A kit that selects a path chip
-puts its selection surface in ``SurfaceCorners/pathChip``. ``DiffFileChip``
-and ``DiffFileLabel`` stay only for SnapshotViewKit, which still draws them,
-until it draws `PathChip`.
+inspector. The library keeps no chip of its own for a path. A kit that
+selects a path chip puts its selection surface in
+``SurfaceCorners/pathChip``.
 
 A view of the library takes the behaviour of a kit through a style protocol
 of the environment, in the shape of `ButtonStyle`. AgentViewKit gives the
 button of a ``StatusBar`` the focus scope of a bar control with
-``SwiftUI/View/statusBarActionStyle(_:)``, and gives each location chip the
-inspector of its file with ``SwiftUI/View/toolCallLocationChipStyle(_:)``.
+``SwiftUI/View/statusBarActionStyle(_:)``.
 
 ## Topics
 
@@ -68,16 +65,6 @@ inspector of its file with ``SwiftUI/View/toolCallLocationChipStyle(_:)``.
 - ``SwiftUI/View/statusBarActionStyle(_:)``
 - ``StreamBannerContent``
 - ``ReloadPhase``
-
-### Chips
-
-- ``ToolCallLocationChips``
-- ``ToolCallLocationChipConfiguration``
-- ``ToolCallLocationChipStyle``
-- ``PlainToolCallLocationChipStyle``
-- ``SwiftUI/View/toolCallLocationChipStyle(_:)``
-- ``DiffFileChip``
-- ``DiffFileLabel``
 
 ### Diffs
 

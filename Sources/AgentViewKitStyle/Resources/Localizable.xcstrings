@@ -1,16 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "%@ %@ file" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ %2$@ file"
-          }
-        }
-      }
-    },
     "%@ diff, +%lld −%lld" : {
       "localizations" : {
         "en" : {

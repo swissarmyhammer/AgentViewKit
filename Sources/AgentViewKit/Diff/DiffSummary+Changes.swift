@@ -8,8 +8,7 @@ import OSLog
 /// An ACP `Diff` has a list of structured changes, and it can have patch text.
 /// When it has no `git_patch` text, ``DiffView`` shows the file of each
 /// change from these summaries. A summary of a structured change has no
-/// hunks, so its counts are zero, and ``FileSummary/changeAccessibilityLabel``
-/// tells the change in place of the counts.
+/// hunks, so its counts are zero, and the chip of the file shows no counts.
 nonisolated extension DiffSummary {
   /// The key of the path in the members of a change that the kit does not
   /// know.

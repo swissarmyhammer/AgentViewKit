@@ -16,22 +16,9 @@ enum StylePreviewFixtures {
   /// The name of a sample file.
   static let fileName = "BoardColumn.swift"
 
-  /// The width of a narrow column, in points. A status bar or a row of chips
-  /// in this column wraps.
+  /// The width of a narrow column, in points. A status bar in this column
+  /// wraps.
   static let narrowWidth: CGFloat = 320
-
-  /// The line of the sample location that has one.
-  static let locationLine = 42
-
-  /// The sample locations of a tool call: a file with a line, and a file
-  /// with none.
-  static let locations = [
-    ToolCallLocationChips.Location(
-      path: "/Users/preview/Board/Sources/Board/BoardColumn.swift", line: locationLine,
-      identifier: "preview-location-0"),
-    ToolCallLocationChips.Location(
-      path: "/Users/preview/Board/Package.swift", line: nil, identifier: "preview-location-1"),
-  ]
 
   /// The `toolCallId` of a sample tool call.
   static let toolCallID = "call-board-7"

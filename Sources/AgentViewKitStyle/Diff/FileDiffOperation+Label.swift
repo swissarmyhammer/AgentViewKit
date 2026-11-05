@@ -4,10 +4,9 @@ import Foundation
 nonisolated extension FileDiff.Operation {
   /// The word that tells the operation, such as "Added".
   ///
-  /// An operation that the view kit does not know gives "Changed".
-  /// ``DiffSummary/FileSummary/changeAccessibilityLabel`` reads it, and a
-  /// view kit that names a change in its own words reads it for an
-  /// operation it does not know.
+  /// An operation that the view kit does not know gives "Changed". A view
+  /// kit that names a change in its own words reads it for an operation it
+  /// does not know, as SnapshotViewKit does.
   public var label: String {
     switch self {
     case .add: String(localized: "Added", bundle: .module)

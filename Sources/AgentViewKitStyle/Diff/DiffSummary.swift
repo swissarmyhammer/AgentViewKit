@@ -83,13 +83,6 @@ public nonisolated enum DiffSummary {
     public var accessibilityLabel: String {
       DiffSummary.accessibilityLabel(language: language, added: added, removed: removed)
     }
-
-    /// The label that VoiceOver reads for a file of a diff with no patch text.
-    ///
-    /// The label is "<operation> <language> file", such as "Added Swift file".
-    public var changeAccessibilityLabel: String {
-      String(localized: "\(operation.label) \(language) file", bundle: .module)
-    }
   }
 
   // MARK: - Markers
