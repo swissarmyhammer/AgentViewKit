@@ -47,8 +47,17 @@ comments:
     - gaps: (1) The card's "Delete DiffFileChip, DiffFileLabel and ToolCallLocationChips" and "No AVK copy of the harvested chips is left" are not met. AVK draws none of them now, but SVK b03783e still uses DiffFileChip (init, radius), DiffFileLabel (+Counts) and ToolCallLocationChips/Location, so they stay public until SVK draws PathChip (the coordinator sequences that; no shims). (2) The inspector list path rows (ToolCallEntry locations, SessionModel additional directories) wait for an EK list-of-paths kind, ^b9xgnm7.
     - next: the coordinator sends 3766ba72 to SVK for the FileDiff.Operation push pair; then /review.
   timestamp: 2026-11-05T11:07:09.664515+00:00
-position_column: doing
-position_ordinal: '8880'
+- actor: claude-code
+  id: 01m6ns5a95kv14vgke40g4wkcd
+  text: |-
+    ### finish — clean
+    - Merged into main (5f52457d). The full review found 1 finding (InspectionPath.none renamed to rootFolder, a4c83f14).
+    - test on a4c83f14: root 969+65 passed; IntegrationTests 945 passed (5 known issues). Pushed as origin 1ee8d77f, paired with SVK ^s4bpnr8.
+    - Included the DiffFileLabel move to FileDiff.Operation and the deletion of DiffSummary.Operation and the FileKind extension (card 01M6MC49DJK635FC4YG62MN27A folded in).
+    - Left for later: DiffFileChip, DiffFileLabel and ToolCallLocationChips stay public until SVK draws PathChip; list path rows wait on EK's list-of-paths kind (^b9xgnm7).
+  timestamp: 2026-11-05T11:57:57.925698+00:00
+position_column: done
+position_ordinal: ffffff9f80
 title: 'Adopt EditorKit path/file chip (^b6cqtr6): delete AVK''s file chips'
 ---
 **Blocked** on EK card ^b6cqtr6 (on EK origin at 2524005e). It lands EK's path/file chip, harvested from AVK. editorkit-b5 sends the SHA. Don't start before then.
