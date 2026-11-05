@@ -1,8 +1,13 @@
 ---
 assignees:
 - claude-code
-position_column: todo
-position_ordinal: '8e80'
+comments:
+- actor: claude-code
+  id: 01m6pef6zzp1828tt2vr7577ba
+  text: 'Unblocked: EK b4f6d9e5 (^ndc5zww) is on origin, carrying EditorButton / EditorToolbarButton / command-id forms / .labelStyle(.editorAdaptive) / \.editorStyle.buttons. Picked up; worktree merged AVK main c905c28e.'
+  timestamp: 2026-11-05T18:10:22.335313+00:00
+position_column: doing
+position_ordinal: 9a80
 title: Move AVK's buttons onto EditorKit's EditorButton / EditorToolbarButton (no clipped captions)
 ---
 **Blocked** on EK's themed button components (editorkit-b5, 2026-11-05); EK sends the SHA. New rule from the user for every kit:
