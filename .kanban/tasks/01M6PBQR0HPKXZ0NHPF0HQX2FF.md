@@ -37,6 +37,14 @@ comments:
     - evidence: no AVK files changed. `.none` capture (ScreenshotTests HostedSnapshotTests, 20 tests passed) shows the same contact as `.viewportWidth`; cause is EK gutter geometry: EditorSwiftUI/TextOnlyGutter.swift:132, EditorSwiftUI/EditorSlots.swift:289-291, EditorText/GutterRecycling.swift:209, EditorText/GutterGlyphRuns.swift:91, EditorText/Lanes.swift:226-228 (EK 40928bc8).
     - next: editorkit-b5 adds the gutter/text gap in EK; then re-capture `code-block` light and dark here.
   timestamp: 2026-11-05T19:24:47.676465+00:00
+- actor: claude-code
+  id: 01m6pm9rhyyekskx9z1nspf6zs
+  text: |-
+    EK ^p1bmgyk (local, in review, 2026-11-05) adds `EditorStyle.gutterGap` (8 pt default) between the gutter and the text; it fixes "1def" with no CodeBlockView change. When the SHA lands:
+    - run `swift package update`;
+    - add `\.gutterGap` to `ViewValueLayoutTests.theStyleHasNoPaddingByte`;
+    - re-capture `code-block` light and dark.
+  timestamp: 2026-11-05T19:52:15.166797+00:00
 position_column: doing
 position_ordinal: 9d80
 title: 'Code block: the line numbers touch the code with no gap (gallery, EK b707d51a)'

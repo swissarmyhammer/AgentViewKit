@@ -22,11 +22,20 @@ comments:
     - Gap (EK, not built): EditorButton draws a fixed SF Symbol, so SpeechInputButton lost its live input-level waveform (variableValue). AgentAuthView shows its ProgressView beside the disabled button instead of inside it.
     - Floating-container buttons that are their own glass (scroll pill, suggestion chips, composer accessory) declare .editorButtonSurface(.content) to keep the glass style.
   timestamp: 2026-11-05T18:57:51.043963+00:00
+- actor: claude-code
+  id: 01m6pm3czg1xc63w4dt1514j8v
+  text: |-
+    Also from the mandated update: DiffLongLineHostedTests failed (2 tests, 3 issues) on unchanged AVK main with EK 81415956. I proved this by running it with the AVK sources reverted. EK PreviewField deliberately dropped `.diffWrapMode(.none)`, so long diff lines now wrap. The two "one line fragment" tests were replaced by `theLongLineWrapsOntoMoreThanOneRow`; the row-alignment test still passes. Demo app (Examples/AgentViewKitDemo) builds with xcodebuild (no UI tests run). Gallery images were captured once in ~/Library/Caches/AgentViewKit/screenshot-check/generated/HostedSnapshotTests/buttons-{narrow,wide}-{light,dark}.png. At 240 pt Show Error, Cancel, Submit and Show all collapse to icons, and no caption is cut.
+
+    ### implement — changed
+    - evidence: commit a3224dc7, 47 files (+486/−677). Root `swift test`: 995 + 50 tests pass. `swift test --package-path IntegrationTests`: 965 tests pass (5 expected known issues). ScreenshotTests button captures pass. Zero AVK warnings.
+    - next: /review
+  timestamp: 2026-11-05T19:48:46.704253+00:00
 position_column: doing
 position_ordinal: 9a80
 title: Move AVK's buttons onto EditorKit's EditorButton / EditorToolbarButton (no clipped captions)
 ---
-**Blocked** on EK's themed button components (editorkit-b5, 2026-11-05); EK sends the SHA. New rule from the user for every kit:
+**Unblocked** (2026-11-05): EK's themed button components are on origin at b4f6d9e5 (^ndc5zww), which includes the b707d51a headless harness. New rule from the user for every kit:
 - A button with too little room hides its caption and keeps its icon.
 - A caption cut off, with or without "…", is never acceptable.
 - Every kit uses EK's themed button components.
@@ -45,6 +54,6 @@ Theme comes only through `\.editorStyle`. Call sites add no `.tint`, `.font` or 
 - Don't build an AVK version of any of this.
 
 ## Tests
-- [ ] A hosted test per button family that at a squeezed width the caption is hidden (icon only), never cut off, while the accessibility label and tooltip keep the name. Drive it through accessibility, never the mouse, and don't steal focus.
-- [ ] Gallery captures at narrow (about 240 pt) and wide widths, light and dark, showing icon-only collapse.
-- [ ] Full AVK suite green.
+- [x] A hosted test per button family that at a squeezed width the caption is hidden (icon only), never cut off, while the accessibility label and tooltip keep the name. Drive it through accessibility, never the mouse, and don't steal focus.
+- [x] Gallery captures at narrow (about 240 pt) and wide widths, light and dark, showing icon-only collapse.
+- [x] Full AVK suite green.
