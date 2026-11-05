@@ -6,6 +6,10 @@ comments:
   id: 01m6pef6zzp1828tt2vr7577ba
   text: 'Unblocked: EK b4f6d9e5 (^ndc5zww) is on origin, carrying EditorButton / EditorToolbarButton / command-id forms / .labelStyle(.editorAdaptive) / \.editorStyle.buttons. Picked up; worktree merged AVK main c905c28e.'
   timestamp: 2026-11-05T18:10:22.335313+00:00
+- actor: claude-code
+  id: 01m6pf4xrs2kaqt0n97bpp3hmt
+  text: 'Research: all three packages resolve EK at 81415956 (contains b4f6d9e5). ~45 raw Button sites. Per EK style.md "What stays a raw Button": rows/chips whose content is the button (ActivityTimeline row, ToolCallView row, ElicitationTabChip, InlineCitation pill, LinkView card, SessionJumpList rows, elicitation radio rows), menu items (AgentRowList/HostPathContextMenu context menus, SessionBreadcrumb dropdown choices) stay raw. Origin mains: KVK uses StatusBarActionStyle/StatusBarActionConfiguration/statusBarActionStyle (BoardCommandBarActionStyle); SVK uses GlassStatusBarActionStyle (TimelineStatusBarActionStyle); Testudo uses none. So those public types stay; RequestAction/RequestActionStyle/requestActionStyle/requestActionPlace are internal and go. Command-id form fits AttachmentActions (always dispatches through the attachment scope); MessageActions copyThread runs the command when a command target exists. TerminalView''s .controlSize(.mini) is on a ProgressView, not a button, so no density gap is needed.'
+  timestamp: 2026-11-05T18:22:13.785275+00:00
 position_column: doing
 position_ordinal: 9a80
 title: Move AVK's buttons onto EditorKit's EditorButton / EditorToolbarButton (no clipped captions)

@@ -27,8 +27,8 @@ comments:
     - Upstream: nothing needed (every id has a public rawValue / UUID). EK b707d51a was not in this run (EK resolved at 73033d2).
     - next: /review
   timestamp: 2026-11-05T17:13:17.312019+00:00
-position_column: doing
-position_ordinal: '9780'
+position_column: done
+position_ordinal: ffffffaf80
 title: Inspector object ids of transcript entries and sessions are debug descriptions
 ---
 Found while working ^j5c8yfv (AttachmentInspector scheme ids).
