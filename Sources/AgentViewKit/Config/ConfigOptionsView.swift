@@ -40,9 +40,12 @@ import SwiftUI
 /// the options of each session, and the inspection of a type is the same for
 /// each session, so the form builds its own inspection from the options that
 /// the model holds. The rows take EditorKit's scheme ids: the view is
-/// ``viewIdentifier``, the object is the session, the group is the id of the
-/// category section and the field is the id of the option, such as
-/// `inspection:config-options/object:<session>/field:model.model`.
+/// ``viewIdentifier``, the object is the raw session id
+/// (``InspectableClientModel/inspectorObjectID`` of the session, escaped by
+/// EditorKit's `InspectorScheme`), the group is the id of the category
+/// section and the field is the id of the option. For the option `model` of
+/// the session `sess_1`, the row is
+/// `inspection:config-options/object:sess_1/field:model.model`.
 public struct ConfigOptionsView: View {
   /// The presentation of a ``ConfigOptionsView``.
   public enum Style: Sendable, Hashable {
@@ -209,7 +212,7 @@ public struct ConfigOptionsView: View {
       .accessibilityIdentifier(Self.menuIdentifier)
     case .form:
       InspectorView(
-        session,
+        InspectedClientModel(session),
         ConfigOptionFields.inspection(title: Self.formTitle, sections: sections, reporting: reportRequestStart),
         id: Self.viewIdentifier)
     }

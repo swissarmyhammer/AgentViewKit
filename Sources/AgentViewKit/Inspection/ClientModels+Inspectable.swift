@@ -3,9 +3,15 @@ import EditorSwiftUI
 import FoundationModelsACP
 import FoundationModelsACPClient
 
-// The `Inspectable` conformances of the session, the connection and the MCP
-// server models of FoundationModelsACPClient, so a host shows each one in an
-// EditorKit `InspectorView`.
+// The inspections of the session, the connection and the MCP server models
+// of FoundationModelsACPClient, so a host shows each one in an EditorKit
+// `InspectorView`.
+//
+// The session is an ``InspectableClientModel``: the inspector shows it
+// through an ``InspectedClientModel``, whose id is the raw session id, such
+// as `sess_1`, in place of the debug description of its `SessionId`. The
+// connection has no id, so EditorKit names it by its position,
+// `connection-1`; the id of an MCP server is its name, a `String`.
 //
 // Each row is read-only, and each get block reads the model when the row
 // draws, so an update of the agent redraws the row. The config options of a
@@ -18,26 +24,30 @@ import FoundationModelsACPClient
 // yet: they are a list of paths, which EditorKit's inspector has no kind for
 // (^b9xgnm7).
 
-extension SessionModel: @retroactive Inspectable {
+extension SessionModel: InspectableClientModel {
+  /// The object id of the session: its raw session id, such as `sess_1`.
+  public var inspectorObjectID: String { sessionId.rawValue }
+
   /// The title, the status, the id and the working directory of the
   /// session, and its use of the context window, its subagents and its
   /// transcript.
-  public static var inspection: Inspection<SessionModel> {
+  public static var inspection: Inspection<InspectedClientModel<SessionModel>> {
     .named(
-      FieldLabel(localized: "Session", bundle: .module), id: "session", name: { $0.title ?? $0.sessionId.rawValue }
+      FieldLabel(localized: "Session", bundle: .module), id: ClientInspectionID.session,
+      name: { $0.model.title ?? $0.model.sessionId.rawValue }
     ) {
-      Field(InspectionLabel.title) { $0.title }
-      Field(InspectionLabel.status) { $0.status.text }
-      Field(FieldLabel(localized: "Id", bundle: .module)) { $0.sessionId.rawValue }
-      Field(FieldLabel(localized: "Closed", bundle: .module)) { $0.isClosed }
-      InspectionPath.workingDirectory { $0.cwd }
+      Field(InspectionLabel.title) { $0.model.title }
+      Field(InspectionLabel.status) { $0.model.status.text }
+      Field(FieldLabel(localized: "Id", bundle: .module)) { $0.model.sessionId.rawValue }
+      Field(FieldLabel(localized: "Closed", bundle: .module)) { $0.model.isClosed }
+      InspectionPath.workingDirectory { $0.model.cwd }
     } more: {
       FieldGroup(FieldLabel(localized: "Agent", bundle: .module)) {
-        Field(FieldLabel(localized: "Context Used", bundle: .module)) { $0.usage?.used }
-        Field(FieldLabel(localized: "Context Size", bundle: .module)) { $0.usage?.size }
-        Field(FieldLabel(localized: "Subagents", bundle: .module)) { $0.children.count }
-        Field(FieldLabel(localized: "Entries", bundle: .module)) { $0.transcript.count }
-        Field(FieldLabel(localized: "MCP Servers", bundle: .module)) { $0.mcpServers.map(\.name) }
+        Field(FieldLabel(localized: "Context Used", bundle: .module)) { $0.model.usage?.used }
+        Field(FieldLabel(localized: "Context Size", bundle: .module)) { $0.model.usage?.size }
+        Field(FieldLabel(localized: "Subagents", bundle: .module)) { $0.model.children.count }
+        Field(FieldLabel(localized: "Entries", bundle: .module)) { $0.model.transcript.count }
+        Field(FieldLabel(localized: "MCP Servers", bundle: .module)) { $0.model.mcpServers.map(\.name) }
       }
     }
   }
@@ -46,7 +56,7 @@ extension SessionModel: @retroactive Inspectable {
 extension ConnectionModel: @retroactive Inspectable {
   /// The state of the connection, the agent, and its sessions.
   public static var inspection: Inspection<ConnectionModel> {
-    .named(FieldLabel(localized: "Connection", bundle: .module), id: "connection") {
+    .named(FieldLabel(localized: "Connection", bundle: .module), id: ClientInspectionID.connection) {
       Field(FieldLabel(localized: "State", bundle: .module)) { EditorStatus($0.state) }
       Field(FieldLabel(localized: "Agent", bundle: .module)) { $0.initializeResponse?.info.name }
       Field(FieldLabel(localized: "Open Sessions", bundle: .module)) { $0.openSessions.count }
@@ -58,7 +68,9 @@ extension ConnectionModel: @retroactive Inspectable {
 extension MCPServerItem: @retroactive Inspectable {
   /// The name, the transport and the status of the server.
   public static var inspection: Inspection<MCPServerItem> {
-    Inspection(id: "mcp-server", title: String(localized: "MCP Server", bundle: .module), name: { $0.name }) {
+    Inspection(
+      id: ClientInspectionID.mcpServer, title: String(localized: "MCP Server", bundle: .module), name: { $0.name }
+    ) {
       FieldGroup(FieldLabel(localized: "Server", bundle: .module)) {
         Field(InspectionLabel.name) { $0.name }
         Field(FieldLabel(localized: "Transport", bundle: .module)) { $0.transport.map(ConnectionRow.label(for:)) }

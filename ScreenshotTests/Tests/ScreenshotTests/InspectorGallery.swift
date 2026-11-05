@@ -72,6 +72,18 @@ enum InspectorGallery {
       several = AnyView(InspectorView(objects))
     }
 
+    /// Makes the subject of a client model type, which the view shows
+    /// through its `InspectedClientModel`.
+    ///
+    /// - Parameters:
+    ///   - name: The name of the subject.
+    ///   - first: The model of the single image, and the first of the
+    ///     Mixed image.
+    ///   - second: The second model of the Mixed image.
+    init<Model: InspectableClientModel>(_ name: String, _ first: Model, _ second: Model) {
+      self.init(name, InspectedClientModel(first), InspectedClientModel(second))
+    }
+
     /// Makes the subject of a view that shows one object.
     ///
     /// - Parameters:
