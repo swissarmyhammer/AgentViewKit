@@ -46,39 +46,16 @@ public struct UserMessageView: View, PrefixedAccessibilityIdentifier {
   public var body: some View {
     VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
       TranscriptMessageView(entry: .user(entry))
-      SendStateLabel(state: entry.sendState)
-        .accessibilityIdentifier(Self.sendStateIdentifier(for: entry.id.rowKey))
+      sendStateLabel
     }
   }
 
-  /// The send state of a user message entry: pending, sent, or failed
-  /// (plan.md §3.2 "Prompt helper").
-  ///
-  /// The label is one accessibility element. Its label is the title of the
+  /// The send state of the entry: pending, sent, or failed (plan.md §3.2
+  /// "Prompt helper"), as a ``StatusCaption`` of its status token. The
+  /// label is one accessibility element. Its label is the label of the
   /// state.
-  struct SendStateLabel: View {
-    /// The send state to show.
-    let state: SendState
-
-
-    /// The text of a send state.
-    ///
-    /// - Parameter state: The send state.
-    /// - Returns: "Sending", "Sent", or "Not sent".
-    static func title(of state: SendState) -> String {
-      switch state {
-      case .pending: String(localized: "Sending", bundle: .module)
-      case .sent: String(localized: "Sent", bundle: .module)
-      case .failed: String(localized: "Not sent", bundle: .module)
-      }
-    }
-
-    var body: some View {
-      let symbol = EditorSymbol.status(.init(state))
-      return StatusCaptionLabel(title: Self.title(of: state), symbolName: symbol.systemImage, tone: symbol.tone)
-      .accessibilityElement(children: .ignore)
-      .accessibilityLabel(Self.title(of: state))
-    }
+  private var sendStateLabel: some View {
+    StatusCaption(status: EditorStatus(entry.sendState), identifier: Self.sendStateIdentifier(for: entry.id.rowKey))
   }
 }
 

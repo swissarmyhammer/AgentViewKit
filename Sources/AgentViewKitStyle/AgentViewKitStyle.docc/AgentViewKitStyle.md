@@ -23,10 +23,11 @@ The symbols of a tool kind, a file kind and a status are EditorKit's
 EditorKit's `EditorSymbolImage`, in a tone of the theme, with its live effect
 and its Reduce Motion rule. ``SharedSymbol`` keeps the names of the concepts
 that EditorKit does not hold, such as a warning notice or a Reload button.
-Its tool-kind and file names and ``StatusSymbolImage`` stay for the view kits
-that still read them, until those kits draw EditorKit's symbols. The kind of
-the file of a diff is `EditorSymbol.FileKind(_:)`, which the library adds for
-a ``DiffSummary/Operation``.
+Its tool-kind and file names stay for the view kits that still read them,
+until those kits draw EditorKit's symbols. The kind of the file of a diff is
+`EditorSymbol.FileKind(_:)`, which the library adds for a
+``DiffSummary/Operation``. A status, its symbol and its label, is EditorKit's
+`EditorStatus`, which EditorKit's `EditorStatusLabel` draws.
 
 Each chip of a file or a folder path is EditorKit's `PathChip`: the file
 chips of a diff, the location chips of a tool call and the path rows of the
@@ -59,7 +60,6 @@ inspector of its file with ``SwiftUI/View/toolCallLocationChipStyle(_:)``.
 ### Symbols
 
 - ``SharedSymbol``
-- ``StatusSymbolImage``
 
 ### The status bar
 

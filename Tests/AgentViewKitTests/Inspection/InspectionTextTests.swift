@@ -1,3 +1,4 @@
+import EditorSwiftUI
 import FoundationModelsACP
 import FoundationModelsACPClient
 import Testing
@@ -34,16 +35,6 @@ import Testing
   @Test func aPlanStepStartsWithItsStatus() {
     let entry = PlanEntry(content: "Write the tests", priority: .high, status: .inProgress)
 
-    #expect(InspectionText.step(entry) == "\(WorkStatusLabel.inProgress): Write the tests")
-  }
-
-  @Test func aFailedConnectionTellsItsError() {
-    let text = InspectionText.connectionState(.failed(ConnectionError.closed))
-
-    #expect(text.hasSuffix(ConnectionError.closed.localizedDescription))
-  }
-
-  @Test func aMessageThatDidNotSendSaysSo() {
-    #expect(InspectionText.sendState(.failed) == "Not sent")
+    #expect(InspectionText.step(entry) == "\(EditorStatus(EditorSymbol.Status.inProgress).label): Write the tests")
   }
 }

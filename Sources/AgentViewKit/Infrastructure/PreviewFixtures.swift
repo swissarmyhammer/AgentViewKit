@@ -431,7 +431,7 @@ enum PreviewFixtures {
   /// (``ToolStatusSymbol/lostWireValue``) and a status that the kit does not
   /// know.
   static let toolCallStatuses: [FoundationModelsACP.ToolCallStatus] = [
-    .pending, .inProgress, .completed, .failed, .cancelled, .unknown(ToolStatusSymbol.lostWireValue),
+    .pending, .inProgress, .paused, .completed, .failed, .cancelled, .unknown(ToolStatusSymbol.lostWireValue),
     .unknown(unknownWireValue),
   ]
 

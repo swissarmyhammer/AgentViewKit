@@ -340,7 +340,7 @@
 
     // MARK: - Connection
 
-    @Test func theConnectionChipShowsOnlyForACallThatWaitsForAServer() async throws {
+    @Test func theServerStatusShowsOnlyForACallThatWaitsForAServer() async throws {
       let fields = #""title": "Search", "kind": "search", "status": "pending""#
       let (session, waiting) = try await Self.openCall(id: "waiting-call", fields: fields)
       defer { session.close() }
@@ -359,10 +359,10 @@
       defer { harness.close() }
       harness.render()
 
-      let chips = harness.accessibilityElements().filter {
-        $0.identifier == ConnectionStatusChip.identifier(for: .connecting)
+      let statuses = harness.accessibilityElements().filter {
+        $0.identifier == ConnectionRow.statusIdentifier(for: .connecting)
       }
-      #expect(chips.count == 1)
+      #expect(statuses.count == 1)
     }
   }
 

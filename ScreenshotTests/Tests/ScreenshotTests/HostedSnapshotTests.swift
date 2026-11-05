@@ -113,6 +113,12 @@ import Testing
     try await Self.generate(banner, named: "session-notice", size: SnapshotFixtures.cardSize)
   }
 
+  /// Each view of the kit that shows a status, in each status, drawn with
+  /// EditorKit's status token (``StatusGalleryFixtures``).
+  @Test func theStatusOfEachKind() async throws {
+    try await Self.generate(StatusGalleryFixtures.gallery, named: "statuses", size: StatusGalleryFixtures.size)
+  }
+
   @Test func theStatusBanner() async throws {
     let banner = StateBanner(session: SnapshotFixtures.runningSession)
 
