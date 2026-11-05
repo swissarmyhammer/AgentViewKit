@@ -12,7 +12,7 @@ import UniformTypeIdentifiers
 
 /// A host of TestudoApp in the host inspector mode: a thread view with a chip
 /// in its composer slot, and the inspector of the host, which shows the
-/// selected file in an ``AttachmentInspector``.
+/// selected files in an ``AttachmentInspector``.
 struct HostInspectorWithAttachmentActions: View {
   /// The scripted session that the thread view shows.
   let session: ScriptedSession
@@ -28,8 +28,8 @@ struct HostInspectorWithAttachmentActions: View {
       AttachmentView(attachment)
     }
     .inspector(isPresented: .constant(true)) {
-      if let selection = state.selection {
-        AttachmentInspector(selection.attachment)
+      if !state.selection.isEmpty {
+        AttachmentInspector(state.selection.map(\.attachment))
       }
     }
     .agentAttachmentInspector(.host($state.selection))
@@ -123,7 +123,7 @@ struct HostInspectorWithAttachmentActions: View {
     defer { harness.close() }
     harness.render()
     try harness.perform(.press, on: AttachmentView.identifier(for: .chip))
-    try #require(state.selection?.attachment == attachment)
+    try #require(state.selection.map(\.attachment) == [attachment])
     harness.render()
     try #require(Shared.shownName(of: attachment, in: harness) == "blob.bin")
 

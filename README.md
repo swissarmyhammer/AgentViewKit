@@ -370,23 +370,29 @@ struct ThemedHost<Content: View>: View {
 
 ### The attachment inspector
 
-A tap on an attachment or an image in `AgentThreadView` shows the file in an
-inspector. By default (`.builtIn`), the thread view shows the file in its own
-trailing `.inspector`. Do not use the default in a window that has its own
+A click on an attachment or an image in `AgentThreadView` shows the file in an
+inspector. The thread selects files as an EditorKit list does: a click selects
+one file, a Command-click adds a file or takes it out, and a Shift-click adds
+each file from the anchor to the clicked one, in transcript order. Each file
+view has the accessibility actions Select, Add to Selection and Extend
+Selection, which do the same. By default (`.builtIn`), the thread view shows the
+files in its own trailing `.inspector`. Do not use the default in a window that has its own
 inspector, such as a `NavigationSplitView` with an inspector: two inspectors in
 one window can make AppKit stop the app.
 
 Such a window applies `.agentAttachmentInspector(.host($selection))` one time
-at its root. Then the thread views apply no inspector. A tap writes an
-`AgentAttachmentSelection` to the binding: the file and the `sessionId` of the
-thread that the user pressed. Thus more than one thread view can share one
-binding. Show the file in your inspector, for example with
+at its root. Then the thread views apply no inspector. The binding holds a list
+of `AgentAttachmentSelection` values in selection order: each one is a file and
+the `sessionId` of the thread that the user pressed. Thus more than one thread
+view can share one binding. A click replaces the list; a Command-click or a
+Shift-click changes only the files of its thread. Show the files in your
+inspector, for example with
 `AttachmentInspector`, an EditorKit `InspectorView` of the file with its
 preview, whose actions Open, Reveal in Finder, Share, Save and Quick Look work
 in each mode. `AttachmentInspector([files])` folds several files into one
 form, whose preview reads "Mixed". Each action is an EditorKit command of the scope
 of the attachment, so the context menu and the command palette run it too. A
-write of `nil` closes the inspector.
+write of an empty list closes the inspector.
 
 ```swift
 import AgentViewKit
@@ -398,8 +404,8 @@ struct InspectorWindow: View {
   let connection: ConnectionModel
   let session: SessionModel
 
-  /// The file that the inspector of the window shows, or `nil`.
-  @State private var selection: AgentAttachmentSelection?
+  /// The files that the inspector of the window shows, in selection order.
+  @State private var selection: [AgentAttachmentSelection] = []
 
   var body: some View {
     NavigationSplitView {
@@ -408,19 +414,19 @@ struct InspectorWindow: View {
       AgentThreadView(session: session, connection: connection)
     }
     .inspector(isPresented: isInspectorPresented) {
-      if let selection {
-        AttachmentInspector(selection.attachment)
+      if !selection.isEmpty {
+        AttachmentInspector(selection.map(\.attachment))
       }
     }
     // One time at the root of the window: the thread views apply no
-    // inspector, and a tap writes the file and its session to `selection`.
+    // inspector, and a click writes the file and its session to `selection`.
     .agentAttachmentInspector(.host($selection))
   }
 
   /// `true` while the window has a selection. The close of the inspector
   /// writes `false`, and that removes the selection.
   private var isInspectorPresented: Binding<Bool> {
-    Binding(get: { selection != nil }, set: { if !$0 { selection = nil } })
+    Binding(get: { !selection.isEmpty }, set: { if !$0 { selection = [] } })
   }
 }
 ```

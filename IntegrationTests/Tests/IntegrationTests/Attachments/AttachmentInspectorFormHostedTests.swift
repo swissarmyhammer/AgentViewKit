@@ -69,7 +69,7 @@ import Testing
     -> HostedViewHarness<AttachmentInspector>
   {
     try AttachmentInspectorHostedTests.mountInspectorContent(
-      of: InspectorSelection(attachment: attachment), size: size)
+      of: InspectorSelection(attachments: [attachment]), size: size)
   }
 
   /// Writes the file of the inspector to `directory`, and makes its

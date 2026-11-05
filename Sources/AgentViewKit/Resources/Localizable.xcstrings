@@ -231,6 +231,16 @@
         }
       }
     },
+    "Add to Selection" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add to Selection"
+          }
+        }
+      }
+    },
     "Agent" : {
       "localizations" : {
         "en" : {
@@ -797,6 +807,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Export Thread"
+          }
+        }
+      }
+    },
+    "Extend Selection" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Extend Selection"
           }
         }
       }

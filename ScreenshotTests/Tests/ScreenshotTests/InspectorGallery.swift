@@ -110,7 +110,8 @@ enum InspectorGallery {
     let host = Subject(
       "attachment-host", one: AttachmentInspector(attachment), several: AttachmentInspector([attachment, second]))
 
-    try await recordBuiltInAttachmentInspector(attachment, in: gallery)
+    try await recordBuiltInAttachmentInspector([attachment], named: "one", in: gallery)
+    try await recordBuiltInAttachmentInspector([attachment, second], named: "mixed", in: gallery)
     for subject in [host] + (try fixtures.subjects) {
       try await record(subject, in: gallery)
     }
@@ -139,18 +140,21 @@ enum InspectorGallery {
 
   /// Records the built-in attachment inspector
   /// (``AttachmentInspectorMode/builtIn``): the trailing inspector column of
-  /// `.attachmentInspector(selection:)` beside a transcript.
+  /// `.attachmentInspector(selection:)` beside a transcript, with one
+  /// selected file or several, which the column folds into one form
+  /// (card ^4138tmp).
   ///
   /// - Parameters:
-  ///   - attachment: The selected file.
+  ///   - attachments: The selected files, in selection order.
+  ///   - count: The name of the count in the image name: `one` or `mixed`.
   ///   - gallery: The review gallery.
   /// - Throws: The error of a capture or of a write.
   private static func recordBuiltInAttachmentInspector(
-    _ attachment: AgentViewKit.Attachment, in gallery: ReviewGallery
+    _ attachments: [AgentViewKit.Attachment], named count: String, in gallery: ReviewGallery
   ) async throws {
-    let selection = InspectorSelection(attachment: attachment)
+    let selection = InspectorSelection(attachments: attachments)
     try await gallery.record(
-      suite: suite, named: "inspector-attachment-builtin", size: builtInSize, settle: hideQuickLook
+      suite: suite, named: "inspector-attachment-builtin-\(count)", size: builtInSize, settle: hideQuickLook
     ) { _ in
       GlassSnapshotTests.backdrop
         .attachmentInspector(selection: selection)

@@ -397,7 +397,7 @@
         mount.hideViews(of: [QLPreviewView.self])
       }) { _ in
         demoThread(session, connection: connection)
-          .environment(\.inspectorSelection, InspectorSelection(attachment: attachment))
+          .environment(\.inspectorSelection, InspectorSelection(attachments: [attachment]))
       }
       return try await body(screen)
     }

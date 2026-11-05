@@ -10,11 +10,14 @@ import UniformTypeIdentifiers
 /// registration, the view uses the default renderer of the type. See
 /// ``renderer(for:)``.
 ///
-/// A tap on the view selects the attachment in the ``InspectorSelection`` of
-/// the environment. Then the inspector shows the file. In an
+/// A click on the view selects the attachment in the ``InspectorSelection``
+/// of the environment. Then the inspector shows the file. A Command-click
+/// adds the attachment to the selection or takes it out, and a Shift-click
+/// adds each file from the anchor to it, in transcript order; the actions
+/// Add to Selection and Extend Selection do the same. In an
 /// ``AgentThreadView`` in the host mode
-/// (``SwiftUI/View/agentAttachmentInspector(_:)``), the tap writes an
-/// ``AgentAttachmentSelection`` to the binding of the host.
+/// (``SwiftUI/View/agentAttachmentInspector(_:)``), a press changes the list
+/// of ``AgentAttachmentSelection`` values of the binding of the host.
 ///
 /// The view is the scope of its attachment (`agentAttachment:<id>`, AVK-11):
 /// its context menu and the command palette show the ``AgentAttachmentVerb``
@@ -138,11 +141,13 @@ public struct AttachmentView: View {
     }
   }
 
-  /// Selects the attachment for the inspector of the environment: the
-  /// inspector of the host in the host mode of a thread view, otherwise the
-  /// inspector selection.
-  private func select() {
-    selectForInspector(attachment)
+  /// Changes the selection of the inspector of the environment for a press
+  /// on the attachment: the inspector of the host in the host mode of a
+  /// thread view, otherwise the inspector selection.
+  ///
+  /// - Parameter change: The kind of the press.
+  private func select(_ change: AttachmentSelectionChange) {
+    selectForInspector(attachment, change: change)
   }
 }
 
@@ -167,8 +172,19 @@ struct AttachmentSurfaceCornersKey: PreferenceKey {
 /// Makes a file view select its file for the inspector, and shows the
 /// selected state while the inspector shows that file (card ^dn1m56r).
 ///
-/// A tap and the default accessibility action run `action`. While the
-/// inspector of the environment shows `file`
+/// A press runs `action` with the kind of the press, the selection model of
+/// EditorKit's lists (card ^4138tmp): a click and the default accessibility
+/// action select, a Command-click adds or takes out
+/// (``AttachmentSelectionChange/toggle``), and a Shift-click extends
+/// (``AttachmentSelectionChange/extend``). The view has a named
+/// accessibility action for each kind, Select, Add to Selection and Extend
+/// Selection, so VoiceOver and a test do what each click does.
+///
+/// The view places its file in the ``TranscriptFileOrder`` of the
+/// environment, with the position of its row and its frame in that row, so
+/// that an extend reads the files of the thread in transcript order.
+///
+/// While the inspector of the environment shows `file`
 /// (``AttachmentSelectAction/isSelected(_:)``), the view sits on the shared
 /// selection surface of EditorKit: the accent at a low opacity behind the
 /// view while the window is key, and the inactive grey while it is not. The
@@ -189,17 +205,62 @@ struct InspectorSelectable: ViewModifier {
   /// The corners of the surface of the view.
   let corners: SurfaceCorners
 
-  /// The action that selects the file for the inspector.
-  let action: () -> Void
+  /// The action that changes the selection of the inspector for a press of
+  /// a kind.
+  let action: (AttachmentSelectionChange) -> Void
 
   @Environment(\.attachmentSelect) private var selectForInspector
+  @Environment(\.transcriptFileOrder) private var order
+  @Environment(\.transcriptRowPosition) private var row
+
+  /// The id of the view in the transcript order.
+  @State private var viewID = UUID()
 
   func body(content: Content) -> some View {
-    content
+    let isInRow = row != nil
+    return content
       .selectableSurface(selectForInspector.isSelected(file), corners: corners)
-      .onTapGesture(perform: action)
-      .accessibilityAction(.default, action)
+      .gesture(pressGesture)
+      .accessibilityAction(.default) { action(.select) }
+      .accessibilityActions {
+        ForEach(AttachmentSelectionChange.allCases, id: \.self) { change in
+          Button(change.actionName) { action(change) }
+        }
+      }
       .help(String(localized: "Show in the inspector", bundle: .module))
+      .onGeometryChange(for: CGRect.self, of: { Self.frame(of: $0, isInRow: isInRow) }) { frame in
+        order?.place(file, row: row, frame: frame, view: viewID)
+      }
+      .onDisappear { order?.remove(view: viewID) }
+  }
+
+  /// The press on the view: a Shift-click extends, a Command-click toggles,
+  /// and a click selects. A Shift-click with Command held extends.
+  private var pressGesture: some Gesture {
+    tap(.shift, .extend)
+      .exclusively(before: tap(.command, .toggle))
+      .exclusively(before: TapGesture().onEnded { action(.select) })
+  }
+
+  /// A click with a modifier key.
+  ///
+  /// - Parameters:
+  ///   - modifier: The modifier key of the click.
+  ///   - change: The kind of the press that the click runs.
+  /// - Returns: The tap gesture.
+  private func tap(_ modifier: EventModifiers, _ change: AttachmentSelectionChange) -> some Gesture {
+    TapGesture().modifiers(modifier).onEnded { action(change) }
+  }
+
+  /// The frame of a view in the transcript order: in its row, or in the
+  /// window outside each row.
+  ///
+  /// - Parameters:
+  ///   - proxy: The geometry of the view.
+  ///   - isInRow: Whether the view is in a row of a thread.
+  /// - Returns: The frame.
+  private nonisolated static func frame(of proxy: GeometryProxy, isInRow: Bool) -> CGRect {
+    isInRow ? proxy.frame(in: .named(TranscriptFileOrder.rowSpace)) : proxy.frame(in: .global)
   }
 }
 

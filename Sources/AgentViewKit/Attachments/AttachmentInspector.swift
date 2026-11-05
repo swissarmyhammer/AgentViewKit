@@ -3,46 +3,92 @@ import EditorSwiftUI
 import Observation
 import SwiftUI
 
-/// The attachment that the trailing inspector shows (plan.md §3.6).
+/// The attachments that the trailing inspector shows (plan.md §3.6), in
+/// selection order (card ^4138tmp).
 ///
-/// A tap on an ``AttachmentView`` selects its attachment. The inspector is
-/// open while the selection holds an attachment.
+/// A press on an ``AttachmentView`` changes the selection with the selection
+/// model of EditorKit's lists: a click selects only its attachment
+/// (``select(_:)``), a Command-click adds it or takes it out
+/// (``toggle(_:)``), and a Shift-click adds each attachment from the anchor
+/// to it, in transcript order (``extend(to:in:)``). The anchor is the
+/// attachment of the last select or toggle. The inspector is open while the
+/// selection holds an attachment, and it folds several into one form
+/// (``AttachmentInspector``).
 @MainActor @Observable
 public final class InspectorSelection {
-  /// The selected attachment, or `nil` when the inspector is closed.
-  public private(set) var attachment: Attachment?
+  /// The selection, with its anchor.
+  private var list: AttachmentSelectionList
 
-  /// Makes a selection.
+  /// The selected attachments, in selection order. The inspector is closed
+  /// while the list is empty.
+  public var attachments: [Attachment] { list.files }
+
+  /// Makes a selection, anchored at its last attachment.
   ///
-  /// - Parameter attachment: The first selected attachment, or `nil`.
-  public init(attachment: Attachment? = nil) {
-    self.attachment = attachment
+  /// - Parameter attachments: The first selected attachments, in selection
+  ///   order.
+  public init(attachments: [Attachment] = []) {
+    list = AttachmentSelectionList(files: attachments)
   }
 
-  /// Selects an attachment, and so opens the inspector.
+  /// Selects only an attachment, and so opens the inspector.
   ///
   /// - Parameter attachment: The attachment to show.
   public func select(_ attachment: Attachment) {
-    self.attachment = attachment
+    apply(.select, to: attachment) { [] }
+  }
+
+  /// Adds an attachment to the end of the selection, or takes it out when
+  /// the selection holds it, as a Command-click does.
+  ///
+  /// - Parameter attachment: The attachment.
+  public func toggle(_ attachment: Attachment) {
+    apply(.toggle, to: attachment) { [] }
+  }
+
+  /// Adds each attachment of `order` from the anchor to `attachment` that
+  /// the selection does not hold yet, in the order of `order`, as a
+  /// Shift-click does. With no anchor, or when `order` does not hold the
+  /// anchor or `attachment`, the extend adds only `attachment`.
+  ///
+  /// - Parameters:
+  ///   - attachment: The attachment that the range reaches to.
+  ///   - order: The attachments that the range reads, in transcript order.
+  public func extend(to attachment: Attachment, in order: [Attachment]) {
+    apply(.extend, to: attachment) { order }
   }
 
   /// Removes the selection, and so closes the inspector.
   public func clear() {
-    attachment = nil
+    list = AttachmentSelectionList()
+  }
+
+  /// Applies one change of the selection model.
+  ///
+  /// - Parameters:
+  ///   - change: The kind of the change.
+  ///   - attachment: The attachment of the press.
+  ///   - order: The attachments of the thread in transcript order.
+  func apply(_ change: AttachmentSelectionChange, to attachment: Attachment, order: () -> [Attachment]) {
+    list.apply(change, to: attachment, order: order)
   }
 }
 
 extension EnvironmentValues {
-  /// The selection that a tap on an attachment writes to, or `nil` when no
+  /// The selection that a press on an attachment changes, or `nil` when no
   /// inspector shows attachments.
   @Entry public var inspectorSelection: InspectorSelection?
 }
 
 extension View {
-  /// Shows the selected attachment in a trailing inspector.
+  /// Shows the selected attachments in a trailing inspector, folded into one
+  /// form when there are several.
   ///
   /// The modifier gives `selection` to the environment of this view, so that
-  /// a tap on an ``AttachmentView`` in this view opens the inspector.
+  /// a press on an ``AttachmentView`` in this view opens the inspector. It
+  /// gives a ``TranscriptFileOrder`` to the views in it too, unless the
+  /// environment has one, so that a Shift-click extends the selection over
+  /// the files in this view.
   /// ``AgentThreadView`` applies this modifier in the
   /// ``AttachmentInspectorMode/builtIn`` mode, the default. A window that has
   /// its own inspector gives the ``AttachmentInspectorMode/host(_:)`` mode
@@ -70,6 +116,13 @@ private struct AttachmentInspectorModifier: ViewModifier {
   /// The selection to show.
   let selection: InspectorSelection
 
+  /// The transcript order of the environment, which a thread view gives.
+  @Environment(\.transcriptFileOrder) private var ambientOrder
+
+  /// The transcript order of the files in this view when the environment
+  /// has none.
+  @State private var ownOrder = TranscriptFileOrder()
+
   /// The top and bottom safe area insets around the inspector.
   @State private var outerInsets = VerticalInsets()
 
@@ -78,12 +131,13 @@ private struct AttachmentInspectorModifier: ViewModifier {
   @State private var innerInsets = VerticalInsets()
 
   func body(content: Content) -> some View {
-    // The body reads the attachment itself, so that a new selection
+    // The body reads the attachments itself, so that a new selection
     // evaluates the body again. A read in a binding closure is not tracked.
-    let attachment = selection.attachment
+    let attachments = selection.attachments
     let missing = outerInsets.excess(over: innerInsets)
     content
       .environment(\.inspectorSelection, selection)
+      .environment(\.transcriptFileOrder, ambientOrder ?? ownOrder)
       .safeAreaPadding(.top, missing.top)
       .safeAreaPadding(.bottom, missing.bottom)
       // The padded view reads the safe area of its parent, so the padding of
@@ -91,9 +145,9 @@ private struct AttachmentInspectorModifier: ViewModifier {
       .onGeometryChange(for: VerticalInsets.self, of: VerticalInsets.init(safeAreaOf:)) {
         innerInsets = $0
       }
-      .inspector(isPresented: isPresented(for: attachment)) {
-        if let attachment {
-          AttachmentInspector(attachment)
+      .inspector(isPresented: isPresented(for: attachments)) {
+        if !attachments.isEmpty {
+          AttachmentInspector(attachments)
         }
       }
       .onGeometryChange(for: VerticalInsets.self, of: VerticalInsets.init(safeAreaOf:)) {
@@ -104,11 +158,11 @@ private struct AttachmentInspectorModifier: ViewModifier {
   /// A binding that is `true` while the selection holds an attachment. A
   /// write of `false` clears the selection.
   ///
-  /// - Parameter attachment: The selected attachment that the body read.
+  /// - Parameter attachments: The selected attachments that the body read.
   /// - Returns: The binding.
-  private func isPresented(for attachment: Attachment?) -> Binding<Bool> {
+  private func isPresented(for attachments: [Attachment]) -> Binding<Bool> {
     Binding(
-      get: { attachment != nil },
+      get: { !attachments.isEmpty },
       set: { isPresented in
         if !isPresented {
           selection.clear()
