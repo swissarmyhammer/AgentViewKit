@@ -12,7 +12,7 @@ import SwiftUI
 /// ``CitationPayload``, in payload order. A row has the number of the source,
 /// the link of the source, and the snippet of the source. The link is a
 /// ``LinkView`` card that opens the source in the browser, after the link
-/// mark (``SharedSymbol/link``).
+/// mark (EditorKit's `EditorSymbol.action(.link)`).
 ///
 /// The footer is open by default. When an ``InlineCitation`` of the same
 /// ``SwiftUI/View/citationScope()`` selects a source, the footer opens, the
@@ -110,7 +110,7 @@ public struct SourcesView: View {
       Label {
         Text("Sources (\(payload.sources.count))", bundle: .module)
       } icon: {
-        Image(systemName: SharedSymbol.sources)
+        Image(systemName: AgentSymbol.sources)
       }
       .font(editorTheme.font(for: .ui, style: .subheadline))
       .foregroundStyle(themeSecondary)
@@ -177,11 +177,12 @@ private struct SourceRow: View {
 /// the source in the browser.
 ///
 /// A link does not use the accent as its text color: the accent is only for
-/// the selection and the focus (card ^y2mrfxt). The link mark
-/// (``SharedSymbol/link``) marks the link in its place, with the color of
-/// `\.themeSecondary` and the symbol weight of the shared style. Unlike a
-/// `DecorativeSymbolImage`, the mark is an accessibility element with the
-/// label "Link", because it tells what the card after it is.
+/// the selection and the focus (card ^y2mrfxt). The link mark marks the link
+/// in its place: EditorKit's `EditorSymbolImage` of
+/// `EditorSymbol.action(.link)`, in the placed secondary color and the
+/// symbol weight of the shared style. Unlike a `DecorativeSymbolImage`, the
+/// mark is an accessibility element with the label "Link", because it tells
+/// what the card after it is.
 private struct SourceLink: View {
   /// The one-based number of the source.
   let index: Int
@@ -190,13 +191,10 @@ private struct SourceLink: View {
   let source: CitationSource
 
   @Environment(\.editorStyle) private var editorStyle
-  @Environment(\.themeSecondary) private var themeSecondary
 
   var body: some View {
     HStack(spacing: editorStyle.spacing.xs) {
-      Image(systemName: SharedSymbol.link)
-        .foregroundStyle(themeSecondary)
-        .fontWeight(editorStyle.symbolWeight)
+      EditorSymbolImage(.action(.link))
         .accessibilityLabel(Text("Link", bundle: .module))
         .accessibilityIdentifier(SourcesView.linkMarkIdentifier(index: index))
       LinkView(link: link)

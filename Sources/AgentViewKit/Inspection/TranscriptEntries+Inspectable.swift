@@ -1,4 +1,5 @@
 import EditorInspector
+import EditorSwiftUI
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
@@ -11,9 +12,12 @@ import FoundationModelsACPClient
 // Each row is read-only: the agent owns each entry. Each get block reads the
 // entry when the row draws, so an update of the agent redraws the row. The
 // rows use the kinds of EditorKit's inspector only; no AgentViewKit view
-// goes inside an inspector. The fields that wait for an EditorKit kind are
-// not here yet: the tool call status (the status token, ^0cqh945), and the
-// locations and the working directory (the path kind, ^hpxbqhx).
+// goes inside an inspector. A status is EditorKit's status token
+// (`EditorStatus`), which the inspector shows as a read-only `.status` row.
+// The working directory of a terminal is EditorKit's path kind
+// (``InspectionPath``). The locations of a tool call are not here yet: they
+// are a list of paths, which EditorKit's inspector has no kind for
+// (^b9xgnm7).
 
 extension ObservableTranscriptEntry {
   /// The group of the start and end times of the entry, as the client saw
@@ -21,24 +25,28 @@ extension ObservableTranscriptEntry {
   ///
   /// The duration row is EditorKit's duration kind, in the format of the
   /// time of a transcript row (`EntryTimingView.durationFormat`). It shows
-  /// only for an entry that has ended, as the client model gives a duration
-  /// only then.
+  /// where the transcript row shows a duration
+  /// (``EntryTimingView/shownDuration(_:)``): for an entry that has ended,
+  /// after at least ``EntryTimingView/shortestShownDuration`` (half a
+  /// second). A shorter duration rounds to zero seconds and shows no row.
   static var timeGroup: FieldGroup<Self> {
     FieldGroup(InspectionLabel.time) {
       Field(InspectionLabel.started) { $0.timing.startedAt }
       Field(InspectionLabel.ended) { $0.timing.endedAt }
       Field(InspectionLabel.duration) { Duration.seconds($0.timing.duration ?? .zero) }
         .durationFormat(EntryTimingView.durationFormat)
-        .visible { $0.timing.duration != nil }
+        .visible { EntryTimingView.shownDuration($0.timing.duration) != nil }
     }
   }
 }
 
 extension ToolCallEntry: @retroactive Inspectable {
-  /// The title, the kind and the tool name of the call, and its times.
+  /// The title, the status, the kind and the tool name of the call, and its
+  /// times.
   public static var inspection: Inspection<ToolCallEntry> {
     .named(FieldLabel(localized: "Tool Call", bundle: .module), name: { $0.shownTitle }) {
       Field(InspectionLabel.title) { $0.shownTitle }
+      Field(InspectionLabel.status) { EditorStatus($0.shownStatus) }
       Field(FieldLabel(localized: "Kind", bundle: .module)) { $0.shownKind.wireValue }
       Field(FieldLabel(localized: "Tool", bundle: .module)) { $0.name }
     } more: {
@@ -48,7 +56,8 @@ extension ToolCallEntry: @retroactive Inspectable {
 }
 
 extension TerminalEntry: @retroactive Inspectable {
-  /// The command, the exit and the output of the terminal, and its times.
+  /// The command, the exit, the output and the working directory of the
+  /// terminal, and its times.
   public static var inspection: Inspection<TerminalEntry> {
     .named(FieldLabel(localized: "Terminal", bundle: .module), name: { $0.command }) {
       Field(FieldLabel(localized: "Command", bundle: .module)) { $0.command }
@@ -57,6 +66,7 @@ extension TerminalEntry: @retroactive Inspectable {
       }
       Field(FieldLabel(localized: "Output", bundle: .module)) { $0.text }
         .multiline()
+      InspectionPath.workingDirectory { $0.cwd }
     } more: {
       timeGroup
     }
@@ -118,7 +128,7 @@ extension UserMessageEntry: @retroactive Inspectable {
       title: String(localized: "User Message", bundle: .module), content: { $0.content },
       messageID: { $0.messageId?.rawValue }
     ) {
-      Field(FieldLabel(localized: "Send State", bundle: .module)) { InspectionText.sendState($0.sendState) }
+      Field(FieldLabel(localized: "Send State", bundle: .module)) { EditorStatus($0.sendState) }
     }
   }
 }
@@ -173,7 +183,7 @@ extension CompactionEntry: @retroactive Inspectable {
   /// The status, the summary and the error of the compaction, and its times.
   public static var inspection: Inspection<CompactionEntry> {
     .named(FieldLabel(localized: "Compaction", bundle: .module)) {
-      Field(InspectionLabel.status) { CompactionEntryView.statusLabel(for: $0.status) }
+      Field(InspectionLabel.status) { EditorStatus($0.status) }
       Field(FieldLabel(localized: "Summary", bundle: .module)) { InspectionText.text(of: $0.summary) }
         .multiline()
       Field(FieldLabel(localized: "Error", bundle: .module)) { $0.error }

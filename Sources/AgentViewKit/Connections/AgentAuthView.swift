@@ -96,16 +96,14 @@ public struct AgentAuthView: View {
   /// The accessibility identifier of the Sign Out button.
   public static let signOutIdentifier = "agent-auth-sign-out"
 
-  /// The symbol of the title.
-  static let symbol = SharedSymbol.signIn
-  /// The symbol of each Sign In button.
-  static let signInSymbol = SharedSymbol.signIn
+  /// The symbol of a sign-in: the title and each Sign In button.
+  static let symbol = AgentSymbol.signIn
   /// The symbol of each Run button.
-  static let runSymbol = SharedSymbol.terminal
+  static let runSymbol = EditorSymbol.tool(.execute).systemImage
   /// The symbol of the Reconnect button.
-  static let reconnectSymbol = SharedSymbol.reload
+  static let reconnectSymbol = EditorSymbol.action(.reload).systemImage
   /// The symbol of the Sign Out button.
-  static let signOutSymbol = SharedSymbol.signOut
+  static let signOutSymbol = AgentSymbol.signOut
 
   /// A call that the card runs, as the key of its progress.
   enum Operation: Hashable {
@@ -320,7 +318,7 @@ public struct AgentAuthView: View {
     switch row {
     case .agent(let method):
       actionButton(
-        String(localized: "Sign In", bundle: .module), systemImage: Self.signInSymbol,
+        String(localized: "Sign In", bundle: .module), systemImage: Self.symbol,
         operation: .method(method.methodId),
         accessibilityLabel: String(localized: "Sign in with \(method.name)", bundle: .module),
         identifier: Self.signInIdentifier(for: method.methodId)

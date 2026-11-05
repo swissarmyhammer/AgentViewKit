@@ -113,6 +113,20 @@ import Testing
     try await Self.generate(banner, named: "session-notice", size: SnapshotFixtures.cardSize)
   }
 
+  /// Each view of the kit that shows a status, in each status, drawn with
+  /// EditorKit's status token (``StatusGalleryFixtures``).
+  @Test func theStatusOfEachKind() async throws {
+    try await Self.generate(StatusGalleryFixtures.gallery, named: "statuses", size: StatusGalleryFixtures.size)
+  }
+
+  /// The location chips of a tool call and the file chips of a diff in a
+  /// narrow column, each in EditorKit's `EditorChipRows`, wrapping to more
+  /// than one row (``ChipRowsGalleryFixtures``).
+  @Test func theChipRowsInANarrowColumn() async throws {
+    try await Self.generate(
+      ChipRowsGalleryFixtures.gallery, named: "chip-rows-narrow", size: ChipRowsGalleryFixtures.size)
+  }
+
   @Test func theStatusBanner() async throws {
     let banner = StateBanner(session: SnapshotFixtures.runningSession)
 
@@ -122,6 +136,13 @@ import Testing
   @Test func theTitleLinesOfTheBars() async throws {
     try await Self.generate(
       SnapshotFixtures.titleLineBars, named: "status-bar-title-lines", size: SnapshotFixtures.titleLineBarsSize)
+  }
+
+  /// The permission-mode picker, the menu buttons of the config options and
+  /// the tools, and the choice and toggle controls that their menus hold.
+  @Test func theConfigAndToolControls() async throws {
+    try await Self.generate(
+      SnapshotFixtures.configControls, named: "config-controls", size: SnapshotFixtures.configControlsSize)
   }
 
   @Test func theCodeBlock() async throws {

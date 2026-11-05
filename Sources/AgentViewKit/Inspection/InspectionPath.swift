@@ -1,0 +1,39 @@
+import EditorInspector
+import Foundation
+import FoundationModelsACP
+
+/// The path rows of the inspectors of the client models, and the URL that
+/// each row shows.
+///
+/// EditorKit's inspector shows a `URL` field as a `PathChip`, with the folder
+/// symbol for a URL with a directory path (`EditorSymbol.FileKind(location:)`).
+/// The client models hold their paths as ACP `AbsolutePath`s, so each path
+/// row makes its URL here.
+enum InspectionPath {
+  /// The root folder, `/`: the stand-in URL of a path row whose model has no
+  /// path. The row shows only when the model has a path, so no row shows it.
+  static let rootFolder = URL(filePath: "/", directoryHint: .isDirectory)
+
+  /// The URL of a folder, such as the working directory of a session: a
+  /// file URL with a directory path, so its chip shows the folder symbol.
+  ///
+  /// - Parameter path: The path of the folder, or `nil` when the model does
+  ///   not know it.
+  /// - Returns: The URL of the folder, or ``rootFolder`` for `nil`.
+  static func folder(_ path: AbsolutePath?) -> URL {
+    guard let path else { return rootFolder }
+    return URL(filePath: path.rawValue, directoryHint: .isDirectory)
+  }
+
+  /// The Working Directory row of a model: the path chip of its folder,
+  /// shown only while the model knows the folder.
+  ///
+  /// - Parameter directory: The working directory of a model, or `nil`.
+  /// - Returns: The read-only path field.
+  static func workingDirectory<Object: AnyObject>(
+    _ directory: @escaping @MainActor (Object) -> AbsolutePath?
+  ) -> Field<Object, URL> {
+    Field(InspectionLabel.workingDirectory) { folder(directory($0)) }
+      .visible { directory($0) != nil }
+  }
+}

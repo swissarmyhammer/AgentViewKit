@@ -1,5 +1,6 @@
 import EditorCommandsUI
 import EditorStyle
+import EditorSwiftUI
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
@@ -205,7 +206,7 @@ extension SessionStreamBanner {
     title: String(localized: "The session is closed", bundle: .module),
     explanation: String(
       localized: "The agent sends no more updates. You can read the transcript.", bundle: .module),
-    symbolName: SharedSymbol.closed,
+    symbolName: EditorSymbol.session(.closed).systemImage,
     identifier: closedIdentifier)
 
   /// The text of the replay marker: work that goes on, so its symbol moves.
@@ -213,7 +214,7 @@ extension SessionStreamBanner {
     title: String(localized: "Loading the history", bundle: .module),
     explanation: String(
       localized: "The agent sends the history of the session again.", bundle: .module),
-    symbolName: SharedSymbol.replaying,
+    symbolName: AgentSymbol.replaying,
     identifier: replayingIdentifier, isOngoing: true)
 
   /// The text of the missed-updates banner: a state that needs care, so a
@@ -250,7 +251,7 @@ extension SessionStreamBanner {
     explanation: String(
       localized: "The agent replayed only the history that it keeps. Older messages can be missing.",
       bundle: .module),
-    symbolName: SharedSymbol.partialHistory,
+    symbolName: AgentSymbol.partialHistory,
     identifier: partialHistoryIdentifier)
 }
 

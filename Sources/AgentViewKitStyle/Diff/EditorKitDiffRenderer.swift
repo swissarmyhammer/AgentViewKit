@@ -1,4 +1,5 @@
 import EditorDiff
+import EditorSwiftUI
 import SwiftUI
 
 /// The layout of the EditorKit diff renderer (plan.md §4.1, decision 12).
@@ -77,7 +78,7 @@ public struct EditorKitDiffRenderer: View {
     case .failure(let error):
       DiffContentView(
         note: UnreadablePatch(error).localizedDescription,
-        systemImage: SharedSymbol.error, identifier: Self.unreadablePatchIdentifier)
+        systemImage: EditorSymbol.severity(.error).systemImage, identifier: Self.unreadablePatchIdentifier)
     }
   }
 

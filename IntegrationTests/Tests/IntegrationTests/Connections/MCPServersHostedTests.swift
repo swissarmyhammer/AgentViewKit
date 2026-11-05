@@ -103,16 +103,16 @@ import Testing
     }
   }
 
-  /// The status chip in the row of a server.
+  /// The status in the row of a server.
   ///
-  /// The harness gives the elements in depth-first order. Thus the chip of
+  /// The harness gives the elements in depth-first order. Thus the status of
   /// a row comes after the row element and before the next row element.
   ///
   /// - Parameters:
   ///   - name: The name of the server.
   ///   - harness: The harness of the view.
-  /// - Returns: The chip, or `nil` when the row or its chip is absent.
-  static func chip(inRowOf name: String, in harness: HostedViewHarness<some View>)
+  /// - Returns: The status, or `nil` when the row or its status is absent.
+  static func status(inRowOf name: String, in harness: HostedViewHarness<some View>)
     -> AccessibilityElementSnapshot?
   {
     let elements = harness.accessibilityElements()
@@ -122,7 +122,7 @@ import Testing
       let end =
         rest.firstIndex { $0.identifier?.hasPrefix(ConnectionRow.identifierPrefix) == true }
         ?? rest.endIndex
-      return rest[..<end].first { $0.identifier?.hasPrefix(ConnectionStatusChip.identifierPrefix) == true }
+      return rest[..<end].first { $0.identifier?.hasPrefix(ConnectionRow.statusIdentifierPrefix) == true }
     }
   }
 
@@ -139,29 +139,29 @@ import Testing
       ])
   }
 
-  @Test func aFailedStatusShowsInTheChipOfItsRowWithTheReason() async throws {
+  @Test func aFailedStatusShowsInItsRowWithTheReason() async throws {
     let session = try await Self.openSessionWithTwoServers()
     defer { session.close() }
     let harness = Self.mount(session: session)
     defer { harness.close() }
-    let connected = ConnectionStatusChip.identifier(for: .connected)
-    #expect(Self.chip(inRowOf: Self.filesName, in: harness)?.identifier == connected)
+    let connected = ConnectionRow.statusIdentifier(for: .connected)
+    #expect(Self.status(inRowOf: Self.filesName, in: harness)?.identifier == connected)
 
     try await session.sendUpdate(
       Self.makeStatusUpdate(
         name: Self.filesName, transport: Self.stdioTransport, status: "failed", reason: Self.failureReason))
-    let failed = ConnectionStatusChip.identifier(for: .failed(reason: nil))
+    let failed = ConnectionRow.statusIdentifier(for: .failed(reason: nil))
     let model = session.model
     await harness.render {
       Self.server(Self.filesName, has: .failed(reason: Self.failureReason), in: model)
     }
 
-    let chip = try #require(Self.chip(inRowOf: Self.filesName, in: harness))
-    #expect(chip.identifier == failed)
-    #expect(chip.label == "Failed")
-    #expect(chip.value == Self.failureReason)
-    let webChip = Self.chip(inRowOf: Self.webName, in: harness)
-    #expect(webChip?.identifier == ConnectionStatusChip.identifier(for: .connecting))
+    let status = try #require(Self.status(inRowOf: Self.filesName, in: harness))
+    #expect(status.identifier == failed)
+    #expect(status.label == "Failed")
+    #expect(status.value == Self.failureReason)
+    let webStatus = Self.status(inRowOf: Self.webName, in: harness)
+    #expect(webStatus?.identifier == ConnectionRow.statusIdentifier(for: .connecting))
   }
 
   @Test func theRowsShowTheNamesAndTheTransportsInTheOrderOfTheList() async throws {

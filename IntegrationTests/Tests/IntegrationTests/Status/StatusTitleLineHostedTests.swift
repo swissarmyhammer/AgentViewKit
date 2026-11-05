@@ -1,5 +1,6 @@
 import AgentViewKitStyle
 import EditorStyle
+import EditorSwiftUI
 import EditorTestSupport
 import SwiftUI
 import Testing
@@ -59,13 +60,13 @@ import Testing
   /// - Returns: The message.
   static func message(title: String = title, explanation: String) -> StatusBar.Message {
     StatusBar.Message(
-      title: title, explanation: explanation, symbolName: SharedSymbol.error, identifier: textIdentifier)
+      title: title, explanation: explanation, symbolName: EditorSymbol.severity(.error).systemImage,
+      identifier: textIdentifier)
   }
 
   /// A button of a bar. A press does nothing.
   static var action: StatusBar.Action {
-    StatusBar.Action(
-      title: "Reload", systemImage: SharedSymbol.reload, identifier: buttonIdentifier, isEnabled: true, perform: {})
+    StatusBarFixtures.reloadAction(identifier: buttonIdentifier)
   }
 
   /// Shows `view` at the top of a window, at `width`.
@@ -108,7 +109,7 @@ import Testing
     let layout = StatusTitleLayout(
       title: title, explanation: explanation, textLabel: title, identifier: textIdentifier
     ) {
-      StatusSymbolImage(name: SharedSymbol.error, color: .secondary)
+      EditorSymbolImage(.status(.failed))
         .accessibilityIdentifier(symbolIdentifier)
     } action: {
       StatusBarActionButton(action: action).buttonStyle(.glass)

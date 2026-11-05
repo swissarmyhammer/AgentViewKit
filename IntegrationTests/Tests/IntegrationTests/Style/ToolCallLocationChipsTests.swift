@@ -36,15 +36,6 @@ import Testing
     #expect(ToolCallLocationChips.Location.text(path: Self.path, line: nil) == Self.path)
   }
 
-  @Test func theShortTextIsTheFileNameWithTheLine() {
-    #expect(Self.lineLocation.shortText == "main.swift:\(Self.line)")
-    #expect(Self.fileLocation.shortText == "main.swift")
-  }
-
-  @Test func theFullTextIsThePathWithTheLine() {
-    #expect(Self.lineLocation.fullText == "\(Self.path):\(Self.line)")
-  }
-
   @Test func theIdentityOfALocationIsTheIdentifierOfItsChip() {
     #expect(Self.lineLocation.id == "location-0")
   }

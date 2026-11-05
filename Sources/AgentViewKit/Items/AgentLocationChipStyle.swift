@@ -36,8 +36,8 @@ private struct AgentLocationChip: View {
     let file = Attachment(url: URL(filePath: configuration.location.path))
     configuration.chip
       .modifier(
-        InspectorSelectable(file: file, corners: ToolCallLocationChips.corners) { selectForInspector(file) })
-      .agentAttachmentScope(file, focusRingCorners: ToolCallLocationChips.corners)
+        InspectorSelectable(file: file, corners: .pathChip) { selectForInspector(file) })
+      .agentAttachmentScope(file, focusRingCorners: .pathChip)
   }
 }
 

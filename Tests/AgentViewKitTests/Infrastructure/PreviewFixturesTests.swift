@@ -3,6 +3,7 @@ import AgentViewKitTestSupport
 import AppKit
 import EditorDiff
 import EditorStyle
+import EditorSwiftUI
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
@@ -84,24 +85,17 @@ import Testing
     let statuses = PreviewFixtures.toolCallStatuses
 
     #expect(
-      Set(statuses.map(ToolStatusSymbol.name(for:)))
-        == [
-          ItemStatus.pending.systemImage, ItemStatus.inProgress.systemImage, ItemStatus.completed.systemImage, SharedSymbol.error,
-          ItemStatus.cancelled.systemImage, SharedSymbol.warning, ItemStatus.unknown.systemImage,
-        ])
-    #expect(Set(statuses.map(ToolStatusSymbol.label(for:))).count == statuses.count)
+      Set(statuses.map(EditorSymbol.Status.init))
+        == [.pending, .inProgress, .paused, .completed, .failed, .cancelled, .lost, .unknown])
+    #expect(Set(statuses.map { EditorStatus($0).summary }).count == statuses.count)
   }
 
   @Test func thePlanEntryStatusesShowEachStatusSymbolWithItsOwnLabel() {
     let statuses = PreviewFixtures.planEntryStatuses
 
     #expect(
-      Set(statuses.map(TaskListView.statusSymbol))
-        == [
-          ItemStatus.pending.systemImage, ItemStatus.inProgress.systemImage, ItemStatus.completed.systemImage, ItemStatus.cancelled.systemImage,
-          ItemStatus.unknown.systemImage,
-        ])
-    #expect(Set(statuses.map(TaskListView.statusLabel)).count == statuses.count)
+      Set(statuses.map(EditorSymbol.Status.init)) == [.pending, .inProgress, .completed, .cancelled, .unknown])
+    #expect(Set(statuses.map { EditorStatus($0).summary }).count == statuses.count)
   }
 
   @Test func thePlanEntryPrioritiesShowEachPrioritySymbolWithItsOwnLabel() {
@@ -118,7 +112,10 @@ import Testing
 
     #expect(
       Set(severities.map(NoticeBanner.symbolName(for:)))
-        == [SharedSymbol.information, SharedSymbol.warning, SharedSymbol.error, ItemStatus.unknown.systemImage])
+        == [
+          EditorSymbol.severity(.information).systemImage, EditorSymbol.severity(.warning).systemImage,
+          EditorSymbol.severity(.error).systemImage, ItemStatus.unknown.systemImage,
+        ])
     #expect(Set(severities.map(NoticeBanner.severityLabel)).count == severities.count)
   }
 

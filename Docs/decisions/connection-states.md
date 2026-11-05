@@ -62,11 +62,14 @@ The status of each MCP server is the `status` of an `MCPServerItem` in
   server, in the order of the list. It shows an empty state when the
   environment has no session model or the list is empty.
 - `ConnectionRow` shows the `name` and the `transport` of the server
-  (`stdio` or `HTTP`) and a `ConnectionStatusChip` with its `status`.
-- The status chip has the static text trait. An element with no role does
-  not give its accessibility value, and the value of a failed chip is the
-  reason.
-- `ToolCallView` shows a `ConnectionStatusChip` for a tool call that waits
+  (`stdio` or `HTTP`) and its `status`, as EditorKit's `EditorStatusLabel`
+  of the status token of the server (`EditorStatus`), with the identifier
+  `ConnectionRow.statusIdentifier(for:)`. The kit's own status chip is gone
+  (^0cqh945): EditorKit's status token is the same symbol and label.
+- The status label is one element with the static text trait. An element
+  with no role does not give its accessibility value, and the value of a
+  failed server is the reason, which is also the help tag.
+- `ToolCallView` shows the same status label for a tool call that waits
   for a server, when the host gives `toolCallConnectionState`. ACP does not
   link a tool call to a server, so only the host can give that link.
 

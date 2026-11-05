@@ -35,15 +35,15 @@ import Testing
   /// The id of the terminal of the tests.
   static let terminalID = "inspect-terminal"
 
+  /// The working directory of the terminal of the tests.
+  static let terminalFolder = "/tmp/inspect-terminal"
+
   /// The id of the agent message of the tests.
   static let messageID = "inspect-message"
 
-  /// The first time of the clock of a timed test.
-  static let start = Date(timeIntervalSinceReferenceDate: 800_000_000)
-
-  /// The time from the start of the timed tool call to its completion, in
-  /// seconds.
-  static let toolCallSeconds: TimeInterval = 75
+  /// A time from the start of a tool call to its completion that is
+  /// shorter than `EntryTimingView.shortestShownDuration`, in seconds.
+  nonisolated static let tooShortSeconds: TimeInterval = 0.2
 
   /// The title, and thus the `toolCallId`, of the timed tool call.
   static let timedCallTitle = "Read README.md"
@@ -104,6 +104,44 @@ import Testing
     #expect(harness.rowValue(row) == "Read Package.swift")
   }
 
+  @Test func theStatusRowOfAToolCallFollowsItsStatus() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    try await session.sendToolCallUpdate(title: Self.timedCallTitle, status: .inProgress)
+    let entry = try await Self.entry(ToolCallEntry.self, in: session)
+    let harness = Self.mount(entry)
+    defer { harness.close() }
+    let row = Self.row(of: entry, group: "tool-call", field: "status")
+    #expect(harness.rowValue(row) == EditorStatus(EditorSymbol.Status.inProgress).label)
+
+    try await session.sendToolCallUpdate(title: Self.timedCallTitle, status: .completed)
+    await harness.render { entry.shownStatus == .completed }
+
+    #expect(harness.rowValue(row) == EditorStatus(EditorSymbol.Status.completed).label)
+  }
+
+  @Test func theStatusRowOfAnMCPServerShowsTheReasonOfAFailure() async throws {
+    let session = try await MCPServersHostedTests.openSessionWithTwoServers()
+    defer { session.close() }
+    let model = session.model
+    let server = try #require(model.mcpServers.first { $0.name == MCPServersHostedTests.filesName })
+    let harness = Self.mount(server)
+    defer { harness.close() }
+    let row = Self.row(of: server, group: "server", field: "status")
+
+    try await session.sendUpdate(
+      MCPServersHostedTests.makeStatusUpdate(
+        name: MCPServersHostedTests.filesName, transport: MCPServersHostedTests.stdioTransport, status: "failed",
+        reason: MCPServersHostedTests.failureReason))
+    await harness.render {
+      MCPServersHostedTests.server(
+        MCPServersHostedTests.filesName, has: .failed(reason: MCPServersHostedTests.failureReason), in: model)
+    }
+
+    #expect(harness.rowValue(row) == EditorStatus(EditorSymbol.Status.failed).label)
+    #expect(harness.inspectorDriver.statusDetail(of: row) == MCPServersHostedTests.failureReason)
+  }
+
   @Test func theExitRowOfATerminalFollowsItsExit() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
@@ -121,6 +159,36 @@ import Testing
     #expect(
       harness.rowValue(Self.row(of: entry, group: "terminal", field: "exit-status"))
         == TerminalView.ExitSummary(code: 0, signal: nil).label)
+  }
+
+  @Test func theWorkingDirectoryRowOfATerminalShowsItsFolder() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    try await session.sendUpdate(
+      #"""
+      {"sessionUpdate": "terminal_update", "terminalId": "\#(Self.terminalID)", "command": "ls",
+       "cwd": "\#(Self.terminalFolder)"}
+      """#)
+    let entry = try await Self.entry(TerminalEntry.self, in: session)
+    let harness = Self.mount(entry)
+    defer { harness.close() }
+
+    #expect(
+      harness.rowValue(Self.row(of: entry, group: "terminal", field: "working-directory"))
+        == InspectionPath.folder(entry.cwd).path(percentEncoded: false))
+  }
+
+  @Test func theWorkingDirectoryRowOfASessionShowsItsFolder() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let model = session.model
+    let cwd = try #require(model.cwd)
+    let harness = Self.mount(model)
+    defer { harness.close() }
+
+    #expect(
+      harness.rowValue(Self.row(of: model, group: "session", field: "working-directory"))
+        == InspectionPath.folder(cwd).path(percentEncoded: false))
   }
 
   @Test func theTextRowOfAnAgentMessageFollowsItsChunks() async throws {
@@ -168,7 +236,7 @@ import Testing
     try await session.sendUpdate(Self.planUpdate(status: "completed"))
     await harness.render { entry.entries.first?.status == .completed }
 
-    #expect(harness.rowValue(Self.row(of: entry, group: "plan", field: "steps")) == "\(WorkStatusLabel.completed): Read")
+    #expect(harness.rowValue(Self.row(of: entry, group: "plan", field: "steps")) == "\(EditorStatus(EditorSymbol.Status.completed).label): Read")
   }
 
   @Test func theContextRowOfASessionFollowsItsUsage() async throws {
@@ -186,23 +254,53 @@ import Testing
     #expect(harness.rowValue(row) == "48")
   }
 
-  @Test func theDurationRowOfAToolCallShowsTheTimeToItsCompletion() async throws {
-    let clock = FixedClock(start: Self.start)
+  /// A tool call of a timed test: the time from its start to its
+  /// completion, and whether its inspection then shows a duration row.
+  struct TimedCall: Sendable, CustomTestStringConvertible {
+    /// The time from the start of the call to its completion, in seconds.
+    let seconds: TimeInterval
+
+    /// Whether the Time group shows a duration row once the call completed.
+    let showsDuration: Bool
+
+    /// The name of the case in the test report.
+    var testDescription: String { "\(seconds) s" }
+  }
+
+  /// The timed calls of the duration test: one that takes a step of the
+  /// clock and shows its duration, and one that ends before
+  /// `EntryTimingView.shortestShownDuration` and shows no row.
+  nonisolated static let timedCalls = [
+    TimedCall(seconds: TimedSessionClock.stepSeconds, showsDuration: true),
+    TimedCall(seconds: tooShortSeconds, showsDuration: false),
+  ]
+
+  @Test(arguments: timedCalls)
+  func theDurationRowOfAToolCallShowsTheTimeToItsCompletion(call: TimedCall) async throws {
+    let clock = FixedClock(start: TimedSessionClock.start)
     let session = try await ScriptedSession.open(now: clock.now)
     defer { session.close() }
     try await session.sendToolCallUpdate(title: Self.timedCallTitle, status: .inProgress)
     let entry = try await Self.entry(ToolCallEntry.self, in: session)
     let harness = Self.mount(entry)
     defer { harness.close() }
-    let row = Self.row(of: entry, group: "time", field: "duration")
+    let row = Self.durationRow(of: entry)
     #expect(harness.rowValue(row) == nil)
 
-    clock.advance(by: Self.toolCallSeconds)
+    clock.advance(by: call.seconds)
     try await session.sendToolCallUpdate(title: Self.timedCallTitle, status: .completed)
     await harness.render { entry.timing.endedAt != nil }
 
-    let expected = DurationFieldFormat(units: .minutesSeconds).format(.seconds(Self.toolCallSeconds))
+    let expected = call.showsDuration ? EntryTimingView.durationFormat.format(.seconds(call.seconds)) : nil
     #expect(harness.rowValue(row) == expected)
+  }
+
+  /// The scheme id of the duration row of the Time group of `entry`.
+  ///
+  /// - Parameter entry: The inspected tool call.
+  /// - Returns: The id that the row carries.
+  static func durationRow(of entry: ToolCallEntry) -> String {
+    row(of: entry, group: "time", field: "duration")
   }
 
   /// A `plan_update` with one step, `Read`.
@@ -232,7 +330,7 @@ import Testing
     let harness = Self.mount(entry)
     defer { harness.close() }
 
-    #expect(harness.rowValue(Self.row(of: entry, group: "message", field: "send-state")) == InspectionText.sendState(entry.sendState))
+    #expect(harness.rowValue(Self.row(of: entry, group: "message", field: "send-state")) == EditorStatus(entry.sendState).label)
   }
 
   @Test func aConnectionShowsItsState() {
@@ -242,7 +340,7 @@ import Testing
 
     #expect(
       harness.rowValue(Self.row(of: connection, group: "connection", field: "state"))
-        == InspectionText.connectionState(connection.state))
+        == EditorStatus(connection.state).label)
   }
 
   @Test func anMCPServerShowsItsTransport() throws {

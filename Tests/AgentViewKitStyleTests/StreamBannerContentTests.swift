@@ -1,4 +1,5 @@
 import AgentViewKitStyle
+import EditorSwiftUI
 import Foundation
 import SwiftUI
 import Testing
@@ -40,7 +41,7 @@ import Testing
     #expect(content.title == "Updates are missing")
     #expect(content.explanation == Self.missed)
     #expect(content.severity == .warning)
-    #expect(content.symbolName == SharedSymbol.warning)
+    #expect(content.symbolName == EditorSymbol.severity(.warning).systemImage)
   }
 
   @Test func anEndWithAnErrorIsAFailure() throws {
@@ -50,7 +51,7 @@ import Testing
     #expect(content.title == "The updates stopped with an error")
     #expect(content.explanation == "Lost: \(Self.error)")
     #expect(content.severity == .failure)
-    #expect(content.symbolName == SharedSymbol.error)
+    #expect(content.symbolName == EditorSymbol.severity(.error).systemImage)
   }
 
   @Test func aFailedReloadIsAFailure() throws {
@@ -60,7 +61,7 @@ import Testing
     #expect(content.title == "Updates are still missing")
     #expect(content.explanation == "The reload failed: \(Self.error)")
     #expect(content.severity == .failure)
-    #expect(content.symbolName == SharedSymbol.error)
+    #expect(content.symbolName == EditorSymbol.severity(.error).systemImage)
   }
 
   @Test func aFailedReloadWinsOverTheErrorOfTheStream() throws {
@@ -129,7 +130,9 @@ import Testing
 /// Checks the Reload button of a bar.
 @Suite @MainActor struct StatusBarReloadTests {
   @Test func theReloadActionHasTheReloadSymbol() {
-    #expect(StatusBar.Action.reload(identifier: "r", isEnabled: true) {}.systemImage == SharedSymbol.reload)
+    let action = StatusBar.Action.reload(identifier: "r", isEnabled: true) {}
+
+    #expect(action.systemImage == EditorSymbol.action(.reload).systemImage)
   }
 
   @Test func theReloadActionHasOneTitle() {

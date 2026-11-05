@@ -1,5 +1,6 @@
 #if DEBUG
   @testable import AgentViewKit
+  import EditorDiff
   import FoundationModelsACP
   import Testing
 
@@ -31,7 +32,7 @@
 
     /// The one file of ``patch``.
     static var patchFile: DiffSummary.FileSummary {
-      DiffSummary.FileSummary(path: relativePath, operation: .modified, hunks: [])
+      DiffSummary.FileSummary(path: relativePath, operation: .modify, hunks: [])
     }
 
     // MARK: - Files of a diff
@@ -51,7 +52,7 @@
     // MARK: - Location paths
 
     @Test func theSamePathNamesTheFile() {
-      let file = DiffSummary.FileSummary(path: Self.absolutePath, operation: .added, hunks: [])
+      let file = DiffSummary.FileSummary(path: Self.absolutePath, operation: .add, hunks: [])
 
       #expect(file.hasPath(Self.absolutePath))
     }
@@ -65,7 +66,7 @@
     }
 
     @Test func anotherAbsolutePathDoesNotNameAnAbsoluteFile() {
-      let file = DiffSummary.FileSummary(path: Self.absolutePath, operation: .added, hunks: [])
+      let file = DiffSummary.FileSummary(path: Self.absolutePath, operation: .add, hunks: [])
 
       #expect(!file.hasPath("/other" + Self.absolutePath))
     }

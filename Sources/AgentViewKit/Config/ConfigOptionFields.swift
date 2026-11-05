@@ -1,44 +1,8 @@
 import EditorCommandsUI
 import EditorInspector
+import EditorSwiftUI
 import FoundationModelsACP
 import FoundationModelsACPClient
-
-/// One value of a select config option, as the picker of an inspector row
-/// shows it.
-///
-/// The picker of an `EditorInspector` row shows the description of each
-/// choice, so the description is the name of the value, with the name of its
-/// group when the values of the option are in groups.
-nonisolated struct ConfigChoice: Hashable, Sendable, CustomStringConvertible {
-  /// The id of the value, which `session/set_config_option` sends.
-  let value: SessionConfigValueId
-
-  /// The name of the value that the picker shows.
-  let description: String
-
-  /// The choice of a row whose option the session no longer reports.
-  static let missing = ConfigChoice(
-    value: SessionConfigValueId(rawValue: ""), description: String(localized: "None", bundle: .module))
-
-  /// The choices of a select option, in the order of the agent. The choices
-  /// of a group follow the choices of the group before it.
-  ///
-  /// - Parameter choices: The values of the select option.
-  /// - Returns: One choice for each value.
-  static func choices(of choices: ConfigSelectChoices) -> [ConfigChoice] {
-    switch choices {
-    case .flat(let values):
-      values.map { ConfigChoice(value: $0.value, description: $0.name) }
-    case .grouped(let groups):
-      groups.flatMap { group in
-        group.options.map { value in
-          ConfigChoice(
-            value: value.value, description: String(localized: "\(value.name) (\(group.name))", bundle: .module))
-        }
-      }
-    }
-  }
-}
 
 /// The values that the inspector rows of ``ConfigOptionsView`` read from the
 /// config options of a session, and the inspection of those rows.
@@ -70,27 +34,28 @@ enum ConfigOptionFields {
     return select
   }
 
-  /// The choices of the select option of `id`.
+  /// The options of the `ChoiceField` of the select option of `id`.
   ///
   /// - Parameters:
   ///   - id: The id of the option.
   ///   - options: The options of the session.
-  /// - Returns: The choices, or none when the option is not a select whose
-  ///   values the kit can read.
-  static func choices(of id: SessionConfigId, in options: [SessionConfigOption]) -> [ConfigChoice] {
-    select(id, in: options)?.choices.map(ConfigChoice.choices(of:)) ?? []
+  /// - Returns: One option for each value, or none when the option is not a
+  ///   select whose values the kit can read.
+  static func options(
+    of id: SessionConfigId, in options: [SessionConfigOption]
+  ) -> [ChoiceOption<SessionConfigValueId>] {
+    select(id, in: options)?.choices?.choiceOptions ?? []
   }
 
-  /// The current choice of the select option of `id`.
+  /// The current value of the select option of `id`.
   ///
   /// - Parameters:
   ///   - id: The id of the option.
   ///   - options: The options of the session.
-  /// - Returns: The choice of the current value, or `nil` when the option
-  ///   is not a select or its current value is none of its choices.
-  static func choice(of id: SessionConfigId, in options: [SessionConfigOption]) -> ConfigChoice? {
-    guard let current = select(id, in: options)?.currentValue else { return nil }
-    return choices(of: id, in: options).first { $0.value == current }
+  /// - Returns: The id of the value, or `nil` when the option is not a
+  ///   select.
+  static func value(of id: SessionConfigId, in options: [SessionConfigOption]) -> SessionConfigValueId? {
+    select(id, in: options)?.currentValue
   }
 
   /// The current value of the boolean option of `id`.
@@ -131,7 +96,12 @@ enum ConfigOptionFields {
     }
   }
 
-  /// The picker row of a select option, or `nil` for another type.
+  /// The value of a row whose option the session no longer reports. No
+  /// option of the row has it, so the row shows no choice until the
+  /// inspection drops the row.
+  private static let goneValue = SessionConfigValueId(rawValue: "")
+
+  /// The choice row of a select option, or `nil` for another type.
   ///
   /// - Parameters:
   ///   - option: The option.
@@ -139,13 +109,13 @@ enum ConfigOptionFields {
   /// - Returns: The row.
   private static func selectField(
     _ option: SessionConfigOption, reporting report: ObservationReport<String>?
-  ) -> Field<SessionModel, ConfigChoice>? {
+  ) -> Field<SessionModel, SessionConfigValueId>? {
     guard case .select = option.type else { return nil }
     let id = option.configId
-    return Field(.verbatim(option.name)) { session in choice(of: id, in: session.configOptions ?? []) ?? .missing }
-      .choices { session in choices(of: id, in: session.configOptions ?? []) }
-      .editing { session, choice in
-        session.startSetConfigOption(id, to: .id(choice.value), reporting: report)
+    return Field(.verbatim(option.name)) { session in value(of: id, in: session.configOptions ?? []) ?? goneValue }
+      .options { session in options(of: id, in: session.configOptions ?? []) }
+      .editing { session, value in
+        session.startSetConfigOption(id, to: .id(value), reporting: report)
       }
       .help(option.description ?? option.name)
       .identifier(id.rawValue)

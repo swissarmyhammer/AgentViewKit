@@ -1,4 +1,5 @@
 import EditorStyle
+import EditorSwiftUI
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -198,8 +199,7 @@ struct ReasoningBlock<Content: View>: View {
       title(duration: duration)
       Spacer(minLength: editorStyle.spacing.s)
       Button(action: toggle) {
-        Image(systemName: SharedSymbol.disclosure)
-          .fontWeight(editorStyle.symbolWeight)
+        EditorSymbolImage(.action(.disclosure))
           .rotationEffect(expanded ? ReasoningView.expandedChevronAngle : .zero)
       }
       .buttonStyle(.borderless)

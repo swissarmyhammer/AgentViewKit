@@ -233,6 +233,10 @@ comments:
     - evidence: `swift test --package-path IntegrationTests` 937 tests, 2 issues, both the known ^6y6ydyb failure (63 s). These are test-only changes, so the root suite was not rerun. Files: IntegrationTests/Tests/IntegrationTests/{Helpers/HostedViewHarness+InspectorDriver.swift, Config/ConfigOptionsSessionModelHostedTests.swift, Input/ToolTogglesHostedTests.swift, Inspection/ClientModelInspectionHostedTests.swift, Inspection/InspectorPanelHostedTests.swift}.
     - next: push.
   timestamp: 2026-11-04T19:29:21.696989+00:00
+- actor: claude-code
+  id: 01m6m16p28bq30qeqvcqgk0zq1
+  text: Ticked "Entry duration row" (^xb69s3d). The Time group of each transcript entry now has a `.duration` row in minutes and seconds (`.durationFormat(EntryTimingView.durationFormat)`), with `.visible` set so it shows only once `timing.duration` exists. Started/Ended stay optional dates (EK's `.date` kind takes a non-optional Date). ClientModelInspectionHostedTests.theDurationRowOfAToolCallShowsTheTimeToItsCompletion covers it.
+  timestamp: 2026-11-04T19:40:02.504528+00:00
 position_column: doing
 position_ordinal: '80'
 title: 'All AVK inspection through EditorKit''s EditorInspector: AttachmentInspector, config and tool forms, ACPClient conformances'
@@ -281,11 +285,12 @@ The SHA does not need relaying to KVK/SVK/Testudo; editorkit-b5 sends it to them
 
 ## Waiting on EK ^eghwsfh (field kinds and InspectorDriver)
 ^eghwsfh landed at df2ba2a9 (scheme ids, `FieldLabel`, `InspectorDriver`). It has no preview, status, path or duration kind, so those items wait for the AVK adoption card named:
-- [ ] AttachmentInspector on `InspectorView`: needs the one-value preview kind (^qw7ws1y). Until then it stays on EK's `InspectorForm`/`InspectorActionRow`/`.inspectorPreviewFrame()`, and AttachmentInspector*HostedTests keep their checks.
-- [ ] AttachmentInspector several-files (Mixed) gallery images: these need the same preview kind.
-- [ ] ToolCallEntry status row: status token (^0cqh945). MCPServerItem status row: status token.
-- [ ] Path rows: ToolCallEntry locations, the TerminalEntry working directory, and the SessionModel working and additional directories. They need the path kind (^hpxbqhx).
-- [ ] Entry duration row: duration kind (^xb69s3d). Started/Ended show today as optional dates.
+- [x] AttachmentInspector on `InspectorView`: needs the one-value preview kind (^qw7ws1y). Done in ^qw7ws1y on EK 0cbc4834: an EK `InspectorView` of its files (`AttachmentInspector(_:)` and `AttachmentInspector([files])`) with a `.preview` row (`PreviewValue.file`) and, for one file, the actions in an EK `InspectorActionRow`, in both AttachmentInspectorModes; the private QuickLookPreview is gone. Its hosted tests read the rows by scheme id on the shared harness helpers and press the actions through `InspectorDriver.pressAction`; the changed checks are written on ^qw7ws1y.
+- [x] AttachmentInspector several-files (Mixed) gallery images: these need the same preview kind. Done in ^qw7ws1y: `inspector-attachment-host-{narrow,wide}-{one,mixed}` (240 pt and 640 pt, Light and Dark), beside `inspector-attachment-builtin`.
+- [x] ToolCallEntry status row: status token (^0cqh945). MCPServerItem status row: status token. Done in ^0cqh945 on EK 458b877a: `Field(InspectionLabel.status) { EditorStatus($0.shownStatus) }` in the Tool Call group and `{ EditorStatus($0.status) }` in the MCP server's Server group, both read-only `.status` rows (`EditorStatusLabel`, the failure reason as the detail). The Send State, Compaction Status and Connection State rows moved from text to `.status` too. Hosted: `theStatusRowOfAToolCallFollowsItsStatus` and `theStatusRowOfAnMCPServerShowsTheReasonOfAFailure` (`statusDetail(of:)`).
+- [x] Path rows for one path: the TerminalEntry working directory and the SessionModel working directory. Done in ^hpxbqhx on EK 061f30e1: a read-only `.path` row (`InspectionPath.workingDirectory`, EK `PathChip` with the folder symbol), shown while the model knows the folder. Unit: `InspectionPathTests`. Hosted: `theWorkingDirectoryRowOfATerminalShowsItsFolder` and `theWorkingDirectoryRowOfASessionShowsItsFolder`.
+- [ ] Path rows for lists: ToolCallEntry locations and the SessionModel additional directories. EK has no list-of-paths kind and an `Inspection` is fixed per type, so these wait for ^b9xgnm7.
+- [x] Entry duration row: duration kind (^xb69s3d). Started/Ended show today as optional dates. Done in ^xb69s3d on EK a2ae6249. Each transcript entry's Time group has a `.duration` row in minutes and seconds (`EntryTimingView.durationFormat`, the format the timing line uses), and the row shows once the entry has ended. Started/Ended stay optional dates, because EK's `.date` kind takes a non-optional `Date`.
 - [x] Choosing a config option in a picker row in hosted tests: `InspectorDriver.choose(_:in:)` chooses with no pop-up, and `selectingTheCurrentValueSendsNothing` is restored on it.
 - [x] Move ClientModelInspectionHostedTests, InspectorPanelHostedTests, ConfigOptionsSessionModelHostedTests (form rows) and ToolTogglesHostedTests (list rows) onto `InspectorDriver` and the `…/inspection:<view>/object:<id>/field:<group>.<label>` ids.
 - [ ] Landing the removal of AVK's InspectorForm/InspectorActionRow/inspectorPreviewFrame waits for SVK to move to `import EditorInspector` (the coordinator sequences the push).

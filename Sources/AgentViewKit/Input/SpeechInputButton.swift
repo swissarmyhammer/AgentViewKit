@@ -85,13 +85,13 @@ public struct SpeechInputButton: View {
   private var label: some View {
     switch phase {
     case .recording:
-      Image(systemName: SharedSymbol.listening, variableValue: level)
+      Image(systemName: AgentSymbol.listening, variableValue: level)
         .fontWeight(editorStyle.symbolWeight)
     case .idle:
-      Image(systemName: SharedSymbol.microphone)
+      Image(systemName: AgentSymbol.microphone)
         .fontWeight(editorStyle.symbolWeight)
     case .denied:
-      Image(systemName: SharedSymbol.microphoneUnavailable)
+      Image(systemName: AgentSymbol.microphoneUnavailable)
         .fontWeight(editorStyle.symbolWeight)
     }
   }

@@ -60,9 +60,10 @@ public struct ErrorView: View {
     Content(
       title: String(localized: "The agent sent an error", bundle: .module),
       detail: String(localized: "Error \(String(code)): \(message)", bundle: .module),
-      symbolName: SharedSymbol.error)
+      symbolName: EditorSymbol.severity(.error).systemImage)
   }
 
+  /// The title line of the error with its symbol in the error tone, and the data of the error below it.
   public var body: some View {
     let content = Self.content(code: entry.code.wireValue, message: entry.message)
     ContentTileStack {
@@ -73,7 +74,7 @@ public struct ErrorView: View {
         textLabel: String(localized: "\(content.title), \(content.detail)", bundle: .module),
         identifier: Self.identifier
       ) {
-        StatusSymbolImage(name: content.symbolName, color: editorTheme.severityError)
+        EditorSymbolImage(systemName: content.symbolName, tone: .error)
           .accessibilityHidden(true)
       }
     } body: {

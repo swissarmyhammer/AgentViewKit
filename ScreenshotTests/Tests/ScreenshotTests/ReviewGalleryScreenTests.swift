@@ -41,7 +41,9 @@
       try await hosted.theRequestDeckInTheBar()
       try await hosted.theSessionNotice()
       try await hosted.theStatusBanner()
+      try await hosted.theStatusOfEachKind()
       try await hosted.theTitleLinesOfTheBars()
+      try await hosted.theChipRowsInANarrowColumn()
       try await hosted.theCodeBlock()
       try await hosted.theTerminalOutput()
       try await hosted.theElicitationForm()
@@ -54,6 +56,7 @@
       try await glass.theComposerWhileTheAgentRuns()
       try await glass.theRequestDeckInTheBar()
       try await glass.theFloatingControlsOfTheThread()
+      try await glass.theCompletionListOfTheComposer()
       try await InspectorGallery.record(in: gallery)
     }
 

@@ -1,3 +1,4 @@
+import EditorSwiftUI
 import Foundation
 import OSLog
 import SwiftUI
@@ -176,19 +177,19 @@ public struct StreamBannerContent: Equatable, Sendable {
       title = String(localized: "Updates are still missing", bundle: .module)
       explanation = String(localized: "The reload failed: \(error)", bundle: .module)
       severity = .failure
-      symbolName = SharedSymbol.error
+      symbolName = EditorSymbol.severity(.error).systemImage
     } else if let streamError {
       kind = .streamFailed
       title = String(localized: "The updates stopped with an error", bundle: .module)
       explanation = streamErrorExplanation(streamError)
       severity = .failure
-      symbolName = SharedSymbol.error
+      symbolName = EditorSymbol.severity(.error).systemImage
     } else {
       kind = .missedUpdates
       title = String(localized: "Updates are missing", bundle: .module)
       explanation = missedUpdatesExplanation
       severity = .warning
-      symbolName = SharedSymbol.warning
+      symbolName = EditorSymbol.severity(.warning).systemImage
     }
   }
 
@@ -224,13 +225,14 @@ extension StatusBar.Action {
   ///     the phase is still this reload, so the host writes
   ///     ``ReloadPhase/idle`` to drop each reload in flight.
   ///   - perform: The work of the reload.
-  /// - Returns: The button, with the ``SharedSymbol/reload`` symbol.
+  /// - Returns: The button, with the `EditorSymbol.action(.reload)` symbol.
   public static func reload(
     identifier: String, isEnabled: Bool, phase: Binding<ReloadPhase>? = nil,
     perform: @escaping @MainActor () async throws -> Void
   ) -> StatusBar.Action {
     StatusBar.Action(
-      title: String(localized: "Reload", bundle: .module), systemImage: SharedSymbol.reload, identifier: identifier,
+      title: String(localized: "Reload", bundle: .module), systemImage: EditorSymbol.action(.reload).systemImage,
+      identifier: identifier,
       isEnabled: isEnabled, hint: String(localized: "Reads the latest state again.", bundle: .module)
     ) {
       guard let phase else {

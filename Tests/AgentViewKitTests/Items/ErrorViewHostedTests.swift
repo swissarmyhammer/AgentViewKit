@@ -1,3 +1,4 @@
+import EditorSwiftUI
 import Testing
 
 @testable import AgentViewKit
@@ -13,7 +14,7 @@ import Testing
 
     #expect(content.title == "The agent sent an error")
     #expect(content.detail == "Error -32603: The disk is full.")
-    #expect(content.symbolName == SharedSymbol.error)
+    #expect(content.symbolName == EditorSymbol.severity(.error).systemImage)
   }
 
   @Test func differentCodesGiveDifferentDetails() {

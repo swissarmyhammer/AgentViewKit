@@ -1,4 +1,5 @@
 @testable import AgentViewKit
+import AgentViewKitTestSupport
 import Foundation
 import Testing
 
@@ -13,10 +14,10 @@ import Testing
   static let locale = Locale(identifier: "en_US")
 
   /// A start time of the tests.
-  static let start = Date(timeIntervalSinceReferenceDate: 800_000_000)
+  static let start = TimedSessionClock.start
 
   /// A duration of one minute and fifteen seconds.
-  static let minuteAndQuarter: TimeInterval = 75
+  static let minuteAndQuarter = TimedSessionClock.stepSeconds
 
   /// A duration of seven seconds.
   static let sevenSeconds: TimeInterval = 7

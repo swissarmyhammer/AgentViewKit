@@ -535,7 +535,7 @@ The list follows the inventory of [`plan.md`](plan.md) §9.
 - `AgentConnectionBanner`: the banner of `ConnectionModel.state`.
 - `AgentInfoHeader`: the name and the version of the agent from its `initialize` answer, and one crumb for each session of the path from the root to the shown session, each a dropdown of its siblings. VoiceOver reads the path, "Path: Agent, then Reviewer, then Linter".
 - `AgentAuthView`: the auth methods of an ACP agent, with sign-out.
-- `ConnectionsView`, `ConnectionRow`, `ConnectionStatusChip`: the MCP servers of a session, one row, and one status chip.
+- `ConnectionsView`, `ConnectionRow`: the MCP servers of a session, and one row with the status of its server as EditorKit's `EditorStatusLabel`.
 - `AuthorizationPresenter`: opens an authorization URL in `ASWebAuthenticationSession`.
 
 **Elicitation**

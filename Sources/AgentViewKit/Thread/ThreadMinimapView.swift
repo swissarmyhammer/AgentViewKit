@@ -437,7 +437,7 @@ public struct ThreadMinimapView: View {
   ///   entry, and `nil` for each other entry.
   private static func statusName(of entry: TranscriptEntry) -> String? {
     switch entry {
-    case .toolCall(let toolCall): ToolStatusSymbol.label(for: toolCall.shownStatus)
+    case .toolCall(let toolCall): EditorStatus(toolCall.shownStatus).summary
     case .error: String(localized: "Error", bundle: .module)
     case .userMessage, .agentMessage, .thought, .terminal, .plan, .unknown, .compaction, .sessionMessage: nil
     }
@@ -446,7 +446,11 @@ public struct ThreadMinimapView: View {
   /// The tick color of `entry`, from the EditorKit theme.
   ///
   /// The color of a tool call reads `ToolCallEntry.status`, so a status
-  /// change draws the rail again.
+  /// change draws the rail again. It is the color of the tone of the
+  /// EditorKit status of the call (`EditorSymbol.Status`), so a tick and the
+  /// status symbol of the row show one color. A neutral tone has no token of
+  /// the theme, so it takes the secondary foreground, as a neutral symbol
+  /// does.
   ///
   /// No tick uses the accent of the theme: the accent is only for the
   /// selection and the focus (card ^y2mrfxt), and a tick is neither. Thus a
@@ -461,7 +465,8 @@ public struct ThreadMinimapView: View {
     return switch entry {
     case .userMessage: theme.editorForeground
     case .agentMessage, .thought, .terminal, .plan, .sessionMessage: theme.secondaryForeground
-    case .toolCall(let toolCall): theme.statusColor(for: toolCall.shownStatus)
+    case .toolCall(let toolCall):
+      EditorSymbol.status(.init(toolCall.shownStatus)).tone.color(in: theme) ?? theme.secondaryForeground
     case .error: theme.severityError
     case .unknown, .compaction:
       theme.secondaryForeground.opacity(Self.quietTickOpacity)

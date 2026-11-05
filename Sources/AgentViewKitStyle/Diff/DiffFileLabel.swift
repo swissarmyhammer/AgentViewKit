@@ -1,3 +1,4 @@
+import EditorDiff
 import EditorStyle
 import EditorSwiftUI
 import EditorTheme
@@ -6,14 +7,19 @@ import SwiftUI
 /// The label of one changed file: the symbol of the change, the file name on
 /// one line with middle truncation, and the added and the removed line counts.
 ///
-/// The symbol has the symbol weight of `\.editorStyle` and the color of
-/// `\.themeSecondary`. The counts use the `diffAddedText` and `diffRemovedText`
-/// roles of the EditorKit theme. The text is the caption of the `ui` font role,
-/// with monospaced digits. ``DiffFileChip`` wraps the label in its button, and a
+/// The symbol is the EditorKit file symbol of the change, drawn by
+/// `EditorSymbolImage` in the neutral tone of its place. The counts use the
+/// `diffAddedText` and `diffRemovedText` roles of the EditorKit theme. The text
+/// is the caption of the `ui` font role, with monospaced digits. ``DiffFileChip`` wraps the label in its button, and a
 /// view kit shows it in a row of its own.
 ///
 /// The label draws no selection, no focus and no fill, and it has no padding of
 /// its own (EditorKit `style.md`, rule 10).
+///
+/// AgentViewKit draws each changed file as EditorKit's `PathChip`, and does
+/// not show this label. It stays only for SnapshotViewKit, which shows it in
+/// its checkpoint file rows and reads its ``Counts``, until it draws
+/// `PathChip` with `PathChip.LineCounts`.
 public struct DiffFileLabel: View {
   /// The added and the removed line counts of a file.
   public struct Counts: Equatable, Sendable {
@@ -35,7 +41,7 @@ public struct DiffFileLabel: View {
   }
 
   /// The change to the file, or `nil` when the change is not known.
-  let operation: DiffSummary.Operation?
+  let operation: FileDiff.Operation?
 
   /// The path of the file.
   let path: String
@@ -45,17 +51,16 @@ public struct DiffFileLabel: View {
 
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
-  @Environment(\.themeSecondary) private var themeSecondary
 
   /// Makes the label of one file.
   ///
   /// - Parameters:
   ///   - operation: The change to the file, or `nil` when the change is not
-  ///     known: the label shows the ``SharedSymbol/document`` symbol.
+  ///     known: the label shows the document symbol of EditorKit.
   ///   - path: The path of the file. The label shows its last part.
   ///   - counts: The line counts of the file, or `nil` for no counts. A binary
   ///     file has no lines, so it shows no counts.
-  public init(operation: DiffSummary.Operation?, path: String, counts: Counts?) {
+  public init(operation: FileDiff.Operation?, path: String, counts: Counts?) {
     self.operation = operation
     self.path = path
     self.counts = counts
@@ -64,10 +69,11 @@ public struct DiffFileLabel: View {
   /// The symbol of a change.
   ///
   /// - Parameter operation: The change to the file, or `nil`.
-  /// - Returns: The symbol of ``DiffFileChip/symbolName(for:)``, or the
-  ///   ``SharedSymbol/document`` symbol with no operation.
-  static func symbolName(for operation: DiffSummary.Operation?) -> String {
-    operation.map(DiffFileChip.symbolName(for:)) ?? SharedSymbol.document
+  /// - Returns: The file symbol of the kind of `operation`
+  ///   (EditorKit's `EditorSymbol.FileKind(diffOperation:)`), or the
+  ///   document symbol with no operation.
+  static func symbol(for operation: FileDiff.Operation?) -> EditorSymbol {
+    .file(operation.map(EditorSymbol.FileKind.init(diffOperation:)) ?? .document)
   }
 
   /// The counts that a file shows.
@@ -76,7 +82,7 @@ public struct DiffFileLabel: View {
   ///   - counts: The counts of the file, or `nil`.
   ///   - operation: The change to the file, or `nil`.
   /// - Returns: `counts`, or `nil` for a binary file.
-  static func shownCounts(_ counts: Counts?, for operation: DiffSummary.Operation?) -> Counts? {
+  static func shownCounts(_ counts: Counts?, for operation: FileDiff.Operation?) -> Counts? {
     operation == .binary ? nil : counts
   }
 
@@ -88,12 +94,10 @@ public struct DiffFileLabel: View {
     URL(fileURLWithPath: path).lastPathComponent
   }
 
+  /// The file symbol of the change, the file name and the line counts, in one caption row.
   public var body: some View {
     HStack(spacing: editorStyle.spacing.s) {
-      Image(systemName: Self.symbolName(for: operation))
-        .symbolRenderingMode(.hierarchical)
-        .fontWeight(editorStyle.symbolWeight)
-        .foregroundStyle(themeSecondary)
+      EditorSymbolImage(Self.symbol(for: operation))
       Text(Self.name(ofPath: path))
         .lineLimit(1)
         .truncationMode(.middle)
@@ -112,7 +116,7 @@ public struct DiffFileLabel: View {
 #Preview("The label of a file with counts, of a binary file and of an unknown change") {
   VStack(alignment: .leading) {
     DiffFileLabel(
-      operation: .modified, path: StylePreviewFixtures.fileName, counts: DiffFileLabel.Counts(added: 3, removed: 1))
+      operation: .modify, path: StylePreviewFixtures.fileName, counts: DiffFileLabel.Counts(added: 3, removed: 1))
     DiffFileLabel(operation: .binary, path: StylePreviewFixtures.fileName, counts: nil)
     DiffFileLabel(operation: nil, path: StylePreviewFixtures.fileName, counts: nil)
   }

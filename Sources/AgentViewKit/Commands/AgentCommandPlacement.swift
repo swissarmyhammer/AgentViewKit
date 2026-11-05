@@ -188,24 +188,24 @@ nonisolated extension AgentCommandVerb {
   /// The SF Symbol of the verb.
   public var icon: String {
     switch self {
-    case .send: SharedSymbol.send
-    case .cancel: SharedSymbol.stop
-    case .approvePending: SharedSymbol.accept
-    case .rejectPending: SharedSymbol.reject
-    case .previousRequest: SharedSymbol.previousRequest
-    case .nextRequest: SharedSymbol.nextRequest
-    case .jumpToNext: SharedSymbol.nextPrompt
-    case .jumpToPrevious: SharedSymbol.previousPrompt
-    case .copyThread: SharedSymbol.copyThread
-    case .copyMessage: SharedSymbol.copy
-    case .toggleExpandAll: SharedSymbol.expandAll
-    case .scrollToBottom: SharedSymbol.scrollToBottom
-    case .focusComposer: SharedSymbol.focusComposer
-    case .goToParent: SharedSymbol.parentSession
-    case .openChild: SharedSymbol.childSession
-    case .previousSibling: SharedSymbol.previousSibling
-    case .nextSibling: SharedSymbol.nextSibling
-    case .jumpToSession: SharedSymbol.jumpToSession
+    case .send: AgentSymbol.send
+    case .cancel: AgentSymbol.stop
+    case .approvePending: AgentSymbol.accept
+    case .rejectPending: AgentSymbol.reject
+    case .previousRequest: AgentSymbol.previousRequest
+    case .nextRequest: AgentSymbol.nextRequest
+    case .jumpToNext: AgentSymbol.nextPrompt
+    case .jumpToPrevious: AgentSymbol.previousPrompt
+    case .copyThread: AgentSymbol.copyThread
+    case .copyMessage: AgentSymbol.copy
+    case .toggleExpandAll: AgentSymbol.expandAll
+    case .scrollToBottom: AgentSymbol.scrollToBottom
+    case .focusComposer: AgentSymbol.focusComposer
+    case .goToParent: AgentSymbol.parentSession
+    case .openChild: AgentSymbol.childSession
+    case .previousSibling: AgentSymbol.previousSibling
+    case .nextSibling: AgentSymbol.nextSibling
+    case .jumpToSession: AgentSymbol.jumpToSession
     }
   }
 

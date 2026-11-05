@@ -248,7 +248,7 @@ public struct ElicitationTextField: View {
   /// The EditorKit input for `model`. The text view of the input carries
   /// the control identifier of the field, and the title of the field as its
   /// accessibility label. Return and Command-Return in a one-line input run
-  /// ``returnAction`` (`SingleLineField.onFieldSubmit(_:)`): in an
+  /// ``returnAction`` (`EditorSlotComposing.onFieldSubmit(_:)`): in an
   /// ``ElicitationView``, they press Submit. Esc and a focus loss end the
   /// edit, keep the answer, and press no action of the form.
   ///
@@ -289,19 +289,32 @@ public struct ElicitationTextField: View {
 /// Otherwise it shows a number input beside a stepper. An integer field
 /// moves in steps of one and writes whole numbers.
 ///
-/// The number input is a kit one-line field in its value form
-/// (``AgentOneLineField``, EditorKit `SingleLineField(model:id:value:format:)`).
-/// Its text view carries the control identifier of the field and the title
-/// of the field as its label. Typing changes only the text. A commit (Return,
-/// Esc, a focus loss) writes the number when the whole text is one number of
-/// the format of the field, and shows the number again in that format; other
-/// text keeps the last number. An integer field reads its text with an
-/// integer format, which reads a fraction as its whole part. Return and
-/// Command-Return then press Submit of the nearest ``ElicitationView`` when
-/// the form is complete, as in a one-line text field.
+/// The number input is EditorKit's `NumberField`, with the slots of a kit
+/// one-line input, in the `ui` font role of EditorKit. Its text view carries
+/// the control identifier of the field and the title of the field as its
+/// label. Typing changes only the text. A commit (Return, Esc, a focus loss)
+/// writes the number when the whole text is one number of the format of the
+/// field in the locale of the environment, and shows the number again in
+/// that format; other text keeps the last number. An integer field reads its
+/// text with the integer format, which reads a fraction as its whole part.
+/// Return and Command-Return then press Submit of the nearest
+/// ``ElicitationView`` when the form is complete, as in a one-line text
+/// field.
+///
+/// The readout beside the slider is EditorKit's `NumberText`, in the same
+/// role and locale.
 public struct ElicitationNumberField: View {
   /// The step of the stepper.
   public static let step: Double = 1
+
+  /// The accessibility identifier of the readout beside the slider of the
+  /// field named `name`.
+  ///
+  /// - Parameter name: The property name of the field.
+  /// - Returns: `elicitation-field-<name>-readout`.
+  static func readoutIdentifier(for name: String) -> String {
+    ElicitationFieldView.identifier(for: name) + "-readout"
+  }
 
   /// The largest width of the number input of the stepper, in points at the
   /// default theme font.
@@ -311,7 +324,7 @@ public struct ElicitationNumberField: View {
   let context: ElicitationFieldContext
 
   @Environment(\.editorStyle) private var editorStyle
-  @ThemeFontScale(.display) private var fontScale
+  @ThemeFontScale(.ui) private var fontScale
 
   /// The model of the text of the number input.
   @State private var inputModel = OwnModelSlot(editable: true)
@@ -342,8 +355,9 @@ public struct ElicitationNumberField: View {
         HStack(spacing: editorStyle.spacing.s) {
           slider(number, range: minimum...maximum, integer: integer)
             .accessibilityIdentifier(context.controlIdentifier)
-          Text(number.wrappedValue, format: .number)
+          NumberText(number.wrappedValue)
             .monospacedDigit()
+            .accessibilityIdentifier(Self.readoutIdentifier(for: context.schema.name))
         }
       } else {
         HStack(spacing: editorStyle.spacing.xs) {
@@ -375,29 +389,28 @@ public struct ElicitationNumberField: View {
         value: Binding(
           get: { Self.wholeNumber(nearest: number.wrappedValue) },
           set: { number.wrappedValue = Double($0) }),
-        format: IntegerFormatStyle<Int>.number)
+        format: .integer)
     } else {
-      numberInput(value: number, format: FloatingPointFormatStyle<Double>.number)
+      numberInput(value: number, format: .floatingPoint)
     }
   }
 
-  /// The kit one-line field that edits `value` through `format`. Return and
-  /// Command-Return run ``returnAction`` after the commit writes the value.
+  /// EditorKit's `NumberField` that edits `value` through `format`, with the
+  /// slots of a kit one-line input, in the edge of a kit text input. Return
+  /// and Command-Return run ``returnAction`` after the commit writes the
+  /// value.
   ///
   /// - Parameters:
   ///   - value: The value that the input edits.
   ///   - format: The format that the input shows the value in and reads the
   ///     text with.
   /// - Returns: The input.
-  private func numberInput<Format: ParseableFormatStyle>(
-    value: Binding<Format.FormatInput>, format: Format
-  ) -> some View where Format.FormatOutput == String {
-    AgentOneLineField(
-      model: inputModel.model(text: ""), identifier: context.controlIdentifier,
-      placeholder: context.schema.title, value: value, format: format
-    ) { _ in
-      returnAction?()
-    }
+  private func numberInput<Value>(value: Binding<Value>, format: ValueFieldFormat<Value>) -> some View {
+    NumberField(model: inputModel.model(text: ""), id: context.controlIdentifier, value: value, format: format)
+      .agentOneLineInput(identifier: context.controlIdentifier, placeholder: context.schema.title) { _ in
+        returnAction?()
+      }
+      .agentTextInputEdge()
   }
 
   /// The whole number nearest to `value`, or the nearest end of the range of
@@ -495,42 +508,32 @@ public struct ElicitationToggleField: View {
 
 /// The default view of a date field (plan.md §13.1).
 ///
-/// When there is no answer, the view shows a button that sets the answer to
-/// the current date. When there is an answer, the view shows a `DatePicker`
-/// and a button that removes the answer. A `date` field writes
-/// `YYYY-MM-DD`. A `date-time` field writes an RFC 3339 time in UTC.
+/// The view shows EditorKit's `DateField`, with the slots of a kit one-line
+/// input, in the `ui` font role of EditorKit: an input that types the
+/// numeric date of the locale of the environment (and the short time, for a
+/// `date-time` field), and a calendar button at its trailing edge that picks
+/// the date with the system date picker. Its text view carries the control
+/// identifier of the field and the title of the field as its label.
+///
+/// An empty input is no answer: a commit of the empty input removes the
+/// answer, so an optional date can stay empty. A commit of a date, or a pick,
+/// writes the answer: `YYYY-MM-DD` for a `date` field, and an RFC 3339 time
+/// in UTC for a `date-time` field. Return and Command-Return then press
+/// Submit of the nearest ``ElicitationView`` when the form is complete, as in
+/// a one-line text field.
 public struct ElicitationDateField: View {
-  /// The accessibility identifier of the button that removes the answer of
-  /// the field named `name`.
-  ///
-  /// - Parameter name: The property name of the field.
-  /// - Returns: `elicitation-field-<name>-clear`.
-  public static func clearIdentifier(for name: String) -> String {
-    ElicitationFieldView.identifier(for: name) + "-clear"
-  }
-
-  /// The title and the help text of the button that removes the answer.
-  static var removeDateTitle: String { String(localized: "Remove Date", bundle: .module) }
-
-  /// The title of the button that sets the answer to the current date.
-  ///
-  /// - Parameter dateTime: Whether the field has a time.
-  /// - Returns: "Set Date and Time" for a `date-time` field, or "Set Date"
-  ///   for a `date` field.
-  static func setDateTitle(dateTime: Bool) -> String {
-    if dateTime {
-      String(localized: "Set Date and Time", bundle: .module)
-    } else {
-      String(localized: "Set Date", bundle: .module)
-    }
-  }
-
   /// The context of the field.
   let context: ElicitationFieldContext
 
   @Environment(\.calendar) private var calendar
   @Environment(\.timeZone) private var timeZone
-  @Environment(\.editorStyle) private var editorStyle
+
+  /// The model of the text of the date input.
+  @State private var inputModel = OwnModelSlot(editable: true)
+
+  /// The action of Return and Command-Return in the date input: Submit of
+  /// the nearest ``ElicitationView``, or `nil` outside a form.
+  @Environment(\.elicitationReturnAction) private var returnAction
 
   /// Makes a date field.
   ///
@@ -542,48 +545,40 @@ public struct ElicitationDateField: View {
   public var body: some View {
     ElicitationFieldChrome(context: context) {
       if case .date(let dateTime) = context.schema.kind {
-        control(dateTime: dateTime)
+        input(dateTime: dateTime)
       }
     }
   }
 
-  /// The button or the picker.
+  /// EditorKit's `DateField` over the answer, with the slots of a kit
+  /// one-line input, in the edge of a kit text input.
   ///
   /// - Parameter dateTime: Whether the field has a time.
-  /// - Returns: The control.
-  @ViewBuilder
-  private func control(dateTime: Bool) -> some View {
-    let value = context.value
-    let coding = ElicitationDateCoding(calendar: localCalendar, dateTime: dateTime)
-    if let text = value.wrappedValue?.stringValue, let date = coding.date(from: text) {
-      HStack(spacing: editorStyle.spacing.s) {
-        DatePicker(
-          context.schema.title,
-          selection: Binding(
-            get: { date },
-            set: { value.wrappedValue = .string(coding.string(from: $0)) }
-          ),
-          displayedComponents: dateTime ? [.date, .hourAndMinute] : [.date]
-        )
-        .labelsHidden()
-        .accessibilityIdentifier(context.controlIdentifier)
-        Button(Self.removeDateTitle, systemImage: SharedSymbol.remove) {
-          value.wrappedValue = nil
-        }
-        .labelStyle(.iconOnly)
-        // The nearest button style wins: on the glass of a deck the button is
-        // bordered, and in content it keeps the borderless style.
-        .requestActionStyle(.standard)
-        .buttonStyle(.borderless)
-        .help(Self.removeDateTitle)
-        .accessibilityIdentifier(Self.clearIdentifier(for: context.schema.name))
-      }
-    } else {
-      Button(Self.setDateTitle(dateTime: dateTime)) {
-        value.wrappedValue = .string(coding.string(from: Date()))
-      }
-      .accessibilityIdentifier(context.controlIdentifier)
+  /// - Returns: The input.
+  private func input(dateTime: Bool) -> some View {
+    DateField(
+      model: inputModel.model(text: ""), id: context.controlIdentifier,
+      selection: dateBinding(ElicitationDateCoding(calendar: localCalendar, dateTime: dateTime)),
+      components: dateTime ? .dateAndTime : .date
+    )
+    .agentOneLineInput(identifier: context.controlIdentifier, placeholder: context.schema.title) { _ in
+      returnAction?()
     }
+    .agentTextInputEdge()
+  }
+
+  /// A binding that reads the answer as a date through `coding`, and writes
+  /// the text of a date, or no answer for no date.
+  ///
+  /// - Parameter coding: The conversion between a date and the answer.
+  /// - Returns: The binding. It reads `nil` when there is no answer, or when
+  ///   the answer is not a valid value.
+  private func dateBinding(_ coding: ElicitationDateCoding) -> Binding<Date?> {
+    let value = context.value
+    return Binding(
+      get: { value.wrappedValue?.stringValue.flatMap(coding.date(from:)) },
+      set: { value.wrappedValue = $0.map { .string(coding.string(from: $0)) } }
+    )
   }
 
   /// The calendar of the environment, in the time zone of the environment.
@@ -718,7 +713,7 @@ public struct ElicitationSingleChoiceField: View {
         } label: {
           Label(
             choice.title,
-            systemImage: isSelected ? SharedSymbol.selected : SharedSymbol.notChosen
+            systemImage: isSelected ? AgentSymbol.selected : AgentSymbol.notChosen
           )
         }
         // The nearest button style wins: on the glass of a deck the button is

@@ -2,34 +2,36 @@ import AgentViewKitStyle
 import EditorStyle
 import EditorSwiftUI
 import EditorTestSupport
-import EditorTheme
 import SwiftUI
 import Testing
 
 /// Checks the status bar through its public API: the message and its
-/// severity, the color of the symbol, the action and the style of its button.
+/// severity, the tone of the symbol, the action and the style of its button.
 @Suite @MainActor struct StatusBarTests {
-  /// A theme with the default role colors.
-  static let theme = UIFamilyTheme()
+  /// The accessibility identifier of the Reload button of the tests.
+  static let actionIdentifier = "reload"
 
   /// Makes a message of `severity`.
   ///
-  /// - Parameter severity: The severity of the message.
+  /// - Parameters:
+  ///   - severity: The severity of the message.
+  ///   - explanation: The explanation below the title. An empty explanation
+  ///     shows no line.
   /// - Returns: The message.
-  static func message(_ severity: StatusBar.Message.Severity) -> StatusBar.Message {
+  static func message(
+    _ severity: StatusBar.Message.Severity, explanation: String = "Explanation"
+  ) -> StatusBar.Message {
     StatusBar.Message(
-      title: "Title", explanation: "Explanation", symbolName: SharedSymbol.information, identifier: "message",
-      severity: severity)
+      title: "Title", explanation: explanation, symbolName: EditorSymbol.severity(.information).systemImage,
+      identifier: "message", severity: severity)
   }
 
-  /// Makes an action that takes a press.
+  /// Makes the Reload button of the tests, which takes a press.
   ///
-  /// - Parameter hint: The accessibility hint of the action.
+  /// - Parameter hint: The accessibility hint of the button.
   /// - Returns: The action.
   static func action(hint: String? = nil) -> StatusBar.Action {
-    StatusBar.Action(
-      title: "Reload", systemImage: SharedSymbol.reload, identifier: "reload", isEnabled: true, hint: hint,
-      perform: {})
+    StatusBarFixtures.reloadAction(identifier: actionIdentifier, hint: hint)
   }
 
   /// A style that records the identifier of each action it styles.
@@ -45,20 +47,20 @@ import Testing
 
   @Test func aMessageIsNeutralAndSettledByDefault() {
     let message = StatusBar.Message(
-      title: "Title", explanation: "Explanation", symbolName: SharedSymbol.information, identifier: "message")
+      title: "Title", explanation: "Explanation", symbolName: EditorSymbol.severity(.information).systemImage,
+      identifier: "message")
 
     #expect(message.severity == .neutral)
     #expect(!message.isOngoing)
   }
 
-  @Test func theSymbolColorComesFromTheSeverity() {
-    let colors: [(StatusBar.Message.Severity, Color)] = [
-      (.neutral, .secondary), (.information, Self.theme.severityInfo), (.warning, Self.theme.severityWarning),
-      (.failure, Self.theme.severityError),
+  @Test func theSymbolToneComesFromTheSeverity() {
+    let tones: [(StatusBar.Message.Severity, EditorSymbol.Tone)] = [
+      (.neutral, .neutral), (.information, .information), (.warning, .warning), (.failure, .error),
     ]
 
-    for (severity, color) in colors {
-      #expect(StatusBar.symbolColor(for: Self.message(severity), in: Self.theme) == color, "\(severity)")
+    for (severity, tone) in tones {
+      #expect(severity.tone == tone, "\(severity)")
     }
   }
 
@@ -113,7 +115,8 @@ import Testing
 
   @Test func theDismissButtonShowsOnlyItsSymbol() {
     let titled = StatusBar.Action(
-      title: "Dismiss", systemImage: SharedSymbol.dismiss, identifier: "dismiss", isEnabled: true, perform: {})
+      title: "Dismiss", systemImage: EditorSymbol.action(.dismiss).systemImage, identifier: "dismiss",
+      isEnabled: true, perform: {})
     let dismiss = StatusBar.Action.makeDismiss(identifier: "dismiss", perform: {})
 
     let iconOnly = StyleViewHost.fittingSize(of: StatusBar(message: Self.message(.neutral), action: dismiss))
@@ -130,8 +133,7 @@ import Testing
   }
 
   @Test func aBarWithNoExplanationShowsNoExplanationLine() {
-    let titleOnly = StatusBar.Message(
-      title: "Title", explanation: "", symbolName: SharedSymbol.information, identifier: "message")
+    let titleOnly = Self.message(.neutral, explanation: "")
     let withLine = StyleViewHost.fittingSize(of: StatusBar(message: Self.message(.neutral), action: nil))
     let without = StyleViewHost.fittingSize(of: StatusBar(message: titleOnly, action: nil))
 
@@ -140,18 +142,11 @@ import Testing
 
   @Test func aMessageKeepsItsAccessibilityLabelAndItsSymbolHelp() {
     let message = StatusBar.Message(
-      title: "Title", explanation: "Explanation", symbolName: SharedSymbol.information, identifier: "message",
+      title: "Title", explanation: "Explanation", symbolName: EditorSymbol.severity(.information).systemImage,
+      identifier: "message",
       accessibilityLabel: "Warning, Title", symbolHelp: "Warning")
 
     #expect(message.accessibilityLabel == "Warning, Title")
     #expect(message.symbolHelp == "Warning")
-  }
-
-  @Test func aStatusSymbolTakesTheSizeOfItsSymbol() {
-    let size = StyleViewHost.fittingSize(
-      of: StatusSymbolImage(name: SharedSymbol.error, color: .secondary).liveSymbolEffect(isActive: true))
-
-    #expect(size.width > 0)
-    #expect(size.height > 0)
   }
 }

@@ -19,7 +19,7 @@ struct ConversationEmptyContent: Equatable, Sendable {
   static var standard: ConversationEmptyContent {
     ConversationEmptyContent(
       title: String(localized: "No Messages", bundle: .module),
-      systemImage: SharedSymbol.conversation,
+      systemImage: AgentSymbol.conversation,
       markdown: String(localized: "Send a message to start the conversation.", bundle: .module)
     )
   }

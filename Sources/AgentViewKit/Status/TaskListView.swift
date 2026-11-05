@@ -80,37 +80,6 @@ public struct TaskListView: View {
 
   // MARK: - Labels
 
-  /// The name of a status, for the entry label and the help tag of the
-  /// status symbol.
-  ///
-  /// - Parameter status: The ACP status of an entry.
-  /// - Returns: The name of the status. An unknown status gives its wire
-  ///   string.
-  public static func statusLabel(_ status: FoundationModelsACP.PlanEntryStatus) -> String {
-    switch status {
-    case .pending: WorkStatusLabel.pending
-    case .inProgress: WorkStatusLabel.inProgress
-    case .completed: WorkStatusLabel.completed
-    case .cancelled: WorkStatusLabel.cancelled
-    case .unknown(let wireValue): WorkStatusLabel.unknown(for: wireValue)
-    }
-  }
-
-  /// The SF Symbol name of a status. An entry in progress shows its symbol
-  /// with the variable color effect.
-  ///
-  /// - Parameter status: The ACP status of an entry.
-  /// - Returns: The symbol name.
-  static func statusSymbol(_ status: FoundationModelsACP.PlanEntryStatus) -> String {
-    switch status {
-    case .pending: ItemStatus.pending.systemImage
-    case .inProgress: ItemStatus.inProgress.systemImage
-    case .completed: ItemStatus.completed.systemImage
-    case .cancelled: ItemStatus.cancelled.systemImage
-    case .unknown: ItemStatus.unknown.systemImage
-    }
-  }
-
   /// The SF Symbol name of a priority. Each priority has a different symbol,
   /// so that the priority does not show with color only.
   ///
@@ -148,7 +117,7 @@ public struct TaskListView: View {
   ///   holds it.
   /// - Returns: The text, the status, and the priority, separated by commas.
   public static func entryLabel(_ entry: FoundationModelsACP.PlanEntry) -> String {
-    "\(entry.content), \(statusLabel(entry.status)), \(priorityLabel(entry.priority))"
+    "\(entry.content), \(EditorStatus(entry.status).summary), \(priorityLabel(entry.priority))"
   }
 
   /// The header text of the ACP entries of a plan.
@@ -203,7 +172,6 @@ private struct PlanEntryRow: View {
   let entry: FoundationModelsACP.PlanEntry
 
   @Environment(\.editorStyle) private var editorStyle
-  @Environment(\.editorTheme) private var editorTheme
   @Environment(\.themeForeground) private var themeForeground
   @Environment(\.themeSecondary) private var themeSecondary
 
@@ -211,31 +179,26 @@ private struct PlanEntryRow: View {
     HStack(spacing: editorStyle.spacing.s) {
       statusSymbol
         .frame(width: Self.statusSymbolWidth)
-        .help(TaskListView.statusLabel(entry.status))
+        .help(EditorStatus(entry.status).summary)
       Text(entry.content)
         .strikethrough(entry.status == .cancelled)
         .foregroundStyle(entry.status == .cancelled ? themeSecondary : themeForeground)
       Spacer(minLength: editorStyle.spacing.s)
-      StatusSymbolImage(
-        name: TaskListView.prioritySymbol(entry.priority),
-        color: editorTheme.tint(for: entry.priority)
-      )
-      .help(TaskListView.priorityLabel(entry.priority))
+      EditorSymbolImage(systemName: TaskListView.prioritySymbol(entry.priority), tone: .init(entry.priority))
+        .help(TaskListView.priorityLabel(entry.priority))
     }
     .accessibilityElement(children: .ignore)
     .accessibilityLabel(TaskListView.entryLabel(entry))
     .accessibilityAddTraits(.isStaticText)
   }
 
-  /// The symbol of the status. An entry in progress shows its symbol with
-  /// the live symbol effect, as a running tool call does. Under Reduce
-  /// Motion, the symbol does not move.
+  /// The symbol of the status: the symbol of the EditorKit status token of
+  /// the ACP status (`EditorStatus`), in its tone. An entry in progress shows
+  /// its symbol with the live symbol effect, as a running tool call does.
+  /// Under Reduce Motion, the symbol does not move.
   private var statusSymbol: some View {
-    StatusSymbolImage(
-      name: TaskListView.statusSymbol(entry.status),
-      color: editorTheme.statusColor(for: entry.status)
-    )
-    .liveSymbolEffect(isActive: entry.status == .inProgress)
+    let status = EditorStatus(entry.status)
+    return EditorSymbolImage(systemName: status.systemImage, tone: status.tone, isLive: status.isLive)
   }
 }
 

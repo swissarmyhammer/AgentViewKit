@@ -138,6 +138,28 @@ enum SnapshotFixtures {
     SessionModel.preview(transcript: [.update(.stateUpdate(.running(RunningStateUpdate())))])
   }
 
+  /// The height of the image of the completion list of the composer, in
+  /// points: the height of the composer image, and above it the room of the
+  /// tallest completion list of the editor, so the list of the commands of
+  /// ``commandsSession`` fits above the field.
+  static let completionListHeight = composerHeight + EditorKitPromptEditor.completionListMaximumHeight
+
+  /// The size of the image of the completion list of the composer, in points.
+  static let completionListSize = CGSize(width: wideWidth, height: completionListHeight)
+
+  /// A session whose agent reports two slash commands: one that takes text,
+  /// whose row shows the hint of its input as the detail, and one that takes
+  /// no input, whose row shows no detail.
+  static var commandsSession: SessionModel {
+    SessionModel.preview(availableCommands: [
+      .command(
+        Command(
+          description: "Compact the thread", name: "compact",
+          input: .text(TextCommandInput(hint: "instructions")))),
+      .command(Command(description: "Make a plan", name: "plan")),
+    ])
+  }
+
   /// The size of the image of the request deck in the bar, in points.
   static let requestDeckSize = CGSize(width: 320, height: 320)
 
@@ -189,6 +211,44 @@ enum SnapshotFixtures {
       WithdrawnNoticeRow(notice: PreviewFixtures.withdrawnNotice, dismiss: {})
     }
     .padding(style.tile.margin)
+  }
+
+  /// The height of the image of the config and tool controls, in points.
+  static let configControlsHeight: CGFloat = 360
+
+  /// The size of the image of the config and tool controls, in points.
+  static let configControlsSize = CGSize(width: narrowWidth, height: configControlsHeight)
+
+  /// The tools of the image of the config and tool controls: one on and one
+  /// off.
+  static let controlTools = [
+    ToolToggle(id: ToolToggleID("web-search"), name: "Web search", isEnabled: true),
+    ToolToggle(id: ToolToggleID("terminal"), name: "Terminal", isEnabled: false),
+  ]
+
+  /// The single-value controls of the config views, built from EditorKit's
+  /// `ChoiceField` and `ToggleField`: the segmented
+  /// `PermissionModePicker`, the menu buttons of the menu styles of
+  /// `ConfigOptionsView` and `ToolToggles`, and the controls that those
+  /// menus hold, shown in the window because an image cannot open a menu.
+  /// The stack spaces the controls with the tile margin.
+  static var configControls: some View {
+    let session = PreviewFixtures.configuredSession
+    let margin = EditorStyle.default.tile.margin
+    return VStack(alignment: .leading, spacing: margin) {
+      PermissionModePicker(session: session)
+      HStack(spacing: margin) {
+        ConfigOptionsView(session: session, style: .menu)
+        ToolToggles(tools: controlTools, style: .menu) { _, _ in }
+      }
+      ForEach(session.configOptions ?? [], id: \.configId) { option in
+        ConfigOptionControl(option: option, session: session)
+      }
+      ForEach(controlTools) { tool in
+        ToolToggleMenuItem(tool: tool) { _, _ in }
+      }
+    }
+    .padding(margin)
   }
 
   /// A code-built session model that holds one warning notice with a

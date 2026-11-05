@@ -1,20 +1,14 @@
 import AgentViewKitTestSupport
-import AppKit
+import EditorSwiftUI
 import Foundation
 import FoundationModelsACP
 import Testing
 
 @testable import AgentViewKit
 
-@Suite @MainActor struct ToolKindSymbolTests {
+@Suite @MainActor struct ToolStatusSymbolTests {
   /// The ACP wire value of a call whose result is lost.
   nonisolated static let lostWireValue = "_lost"
-
-  /// Each ACP kind, with one unknown kind.
-  nonisolated static let kinds: [FoundationModelsACP.ToolKind] = [
-    .read, .edit, .delete, .move, .search, .execute, .think, .fetch, .switchMode, .other,
-    .unknown("custom_kind"),
-  ]
 
   /// Each ACP status, with the lost status and one other unknown status.
   nonisolated static let statuses: [FoundationModelsACP.ToolCallStatus] = [
@@ -22,47 +16,24 @@ import Testing
     .unknown("custom_status"),
   ]
 
-  // MARK: - Kinds
-
-  @Test func eachKindMapsToADistinctSymbol() {
-    NameChecks.expectDistinctNames(Self.kinds.map(ToolKindSymbol.name(for:)))
-  }
-
-  @Test(arguments: kinds)
-  func eachKindSymbolIsASystemSymbol(kind: FoundationModelsACP.ToolKind) {
-    let name = ToolKindSymbol.name(for: kind)
-    #expect(NSImage(systemSymbolName: name, accessibilityDescription: nil) != nil, "\(name)")
-  }
-
-  @Test func allUnknownKindsShareOneSymbol() {
-    #expect(ToolKindSymbol.name(for: .unknown("a")) == ToolKindSymbol.name(for: .unknown("b")))
-  }
-
   // MARK: - Statuses
 
-  @Test func eachStatusMapsToADistinctSymbolAndLabel() {
-    NameChecks.expectDistinctNames(Self.statuses.map(ToolStatusSymbol.name(for:)))
-    NameChecks.expectDistinctNames(Self.statuses.map(ToolStatusSymbol.label(for:)))
+  @Test func eachStatusHasADistinctText() {
+    NameChecks.expectDistinctNames(Self.statuses.map { EditorStatus($0).summary })
   }
 
-  @Test(arguments: statuses)
-  func eachStatusSymbolIsASystemSymbol(status: FoundationModelsACP.ToolCallStatus) {
-    let name = ToolStatusSymbol.name(for: status)
-    #expect(NSImage(systemSymbolName: name, accessibilityDescription: nil) != nil, "\(name)")
-  }
-
-  @Test func theStatusLabelsAreTheExpectedText() {
+  @Test func theStatusTextsAreTheExpectedText() {
     let expected: [(FoundationModelsACP.ToolCallStatus, String)] = [
       (.pending, "Pending"),
       (.inProgress, "In progress"),
       (.completed, "Completed"),
       (.failed, "Failed"),
       (.cancelled, "Cancelled"),
-      (.unknown(Self.lostWireValue), "Result lost"),
-      (.unknown("custom_status"), "Unknown status: custom_status"),
+      (.unknown(Self.lostWireValue), "Lost"),
+      (.unknown("custom_status"), "Unknown: custom_status"),
     ]
-    for (status, label) in expected {
-      #expect(ToolStatusSymbol.label(for: status) == label)
+    for (status, text) in expected {
+      #expect(EditorStatus(status).summary == text)
     }
   }
 
@@ -75,12 +46,12 @@ import Testing
       (.unknown("other"), .unknown("other")),
     ]
     for (toolStatus, planStatus) in pairs {
-      #expect(ToolStatusSymbol.label(for: toolStatus) == TaskListView.statusLabel(planStatus))
+      #expect(EditorStatus(toolStatus).summary == EditorStatus(planStatus).summary)
     }
   }
 
   @Test func onlyPendingAndRunningCallsAreLive() {
-    let live = Self.statuses.filter(ToolStatusSymbol.isLive)
+    let live = Self.statuses.filter { EditorStatus($0).isLive }
     #expect(live == [.pending, .inProgress])
   }
 
@@ -92,7 +63,7 @@ import Testing
         == "Read README.md, In progress")
     #expect(
       ToolCallView.accessibilityLabel(title: "", status: .unknown(Self.lostWireValue))
-        == "Tool call, Result lost")
+        == "Tool call, Lost")
   }
 
   // MARK: - Command output

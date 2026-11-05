@@ -56,11 +56,11 @@ public nonisolated enum AgentAttachmentVerb: String, CaseIterable, Sendable {
   /// The SF Symbol of the verb.
   public var icon: String {
     switch self {
-    case .openAttachment: SharedSymbol.open
-    case .revealAttachment: SharedSymbol.folder
-    case .shareAttachment: SharedSymbol.share
-    case .saveAttachment: SharedSymbol.save
-    case .quickLookAttachment: SharedSymbol.quickLook
+    case .openAttachment: AgentSymbol.open
+    case .revealAttachment: AgentSymbol.folder
+    case .shareAttachment: AgentSymbol.share
+    case .saveAttachment: AgentSymbol.save
+    case .quickLookAttachment: AgentSymbol.quickLook
     }
   }
 

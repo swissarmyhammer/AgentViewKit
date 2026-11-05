@@ -1,6 +1,5 @@
 import EditorStyle
 import EditorSwiftUI
-import EditorTheme
 import SwiftUI
 
 /// The bar of one status message: a title line, and an explanation below it.
@@ -33,11 +32,12 @@ import SwiftUI
 /// accessibility label. The bar has no outer padding: the layout that holds it
 /// gives the space around it (`style.md`, rule 10).
 ///
-/// The symbol takes its color from the ``Message/severity`` of the message:
-/// the error, warning or information color of the EditorKit theme, the status
-/// colors of the theme (D112), or the `.secondary` style for a neutral
-/// message. No symbol uses the accent of the theme: the accent is only for
-/// the selection and the focus (card ^y2mrfxt).
+/// The symbol is an EditorKit `EditorSymbolImage` in the tone of the
+/// ``Message/severity`` of the message (``Message/Severity/tone``): the
+/// error, warning or information color of the EditorKit theme (D112), or the
+/// secondary style of its place for a neutral message. No symbol uses the
+/// accent of the theme: the accent is only for the selection and the focus
+/// (card ^y2mrfxt).
 ///
 /// The symbol of a message of work that goes on (``Message/isOngoing``)
 /// shows EditorKit's live symbol effect (`liveSymbolEffect(isActive:)` of
@@ -63,6 +63,19 @@ public struct StatusBar: View {
       /// A message of a failure, such as a failed turn or a failed
       /// connection. Its symbol has the error color of the theme.
       case failure
+
+      /// The EditorKit tone the symbol of a message of this severity draws
+      /// in: `EditorSymbol.Tone.neutral` for a neutral message, which
+      /// draws in the secondary style of its place, and the information,
+      /// warning or error token of the theme for each other severity.
+      public var tone: EditorSymbol.Tone {
+        switch self {
+        case .neutral: .neutral
+        case .information: .information
+        case .warning: .warning
+        case .failure: .error
+        }
+      }
     }
 
     /// The short title of the bar.
@@ -100,7 +113,7 @@ public struct StatusBar: View {
     ///   - explanation: The explanation below the title. An empty explanation
     ///     shows no line.
     ///   - symbolName: The SF Symbol name of the bar. Read it from
-    ///     ``SharedSymbol``, or from `ItemStatus` of EditorStyle.
+    ///     EditorKit's `EditorSymbol`, or from `ItemStatus` of EditorStyle.
     ///   - identifier: The accessibility identifier of the text of the bar.
     ///   - severity: How much the message asks of the user. The default is
     ///     ``Severity/neutral``.
@@ -136,7 +149,7 @@ public struct StatusBar: View {
     public let title: String
 
     /// The SF Symbol name that the button shows before its text. Read it
-    /// from ``SharedSymbol``.
+    /// from EditorKit's `EditorSymbol`.
     public let systemImage: String
 
     /// The accessibility identifier of the button.
@@ -186,11 +199,11 @@ public struct StatusBar: View {
     /// - Parameters:
     ///   - identifier: The accessibility identifier of the button.
     ///   - perform: The closure that a press calls: it removes the bar.
-    /// - Returns: The button, which shows only the ``SharedSymbol/dismiss``
+    /// - Returns: The button, which shows only the `EditorSymbol.action(.dismiss)`
     ///   symbol.
     public static func makeDismiss(identifier: String, perform: @escaping () -> Void) -> Action {
       Action(
-        title: String(localized: "Dismiss", bundle: .module), systemImage: SharedSymbol.dismiss,
+        title: String(localized: "Dismiss", bundle: .module), systemImage: EditorSymbol.action(.dismiss).systemImage,
         identifier: identifier, isEnabled: true, isIconOnly: true, perform: perform)
     }
   }
@@ -205,7 +218,6 @@ public struct StatusBar: View {
   let identifier: String?
 
   @Environment(\.editorStyle) private var editorStyle
-  @Environment(\.editorTheme) private var editorTheme
   @Environment(\.statusBarActionStyle) private var actionStyle
 
   /// Makes the bar of one message.
@@ -221,30 +233,13 @@ public struct StatusBar: View {
     self.identifier = identifier
   }
 
-  /// The color of the symbol of `message`.
-  ///
-  /// - Parameters:
-  ///   - message: The message of the bar.
-  ///   - theme: The EditorKit theme.
-  /// - Returns: `severityError` of `theme` for a failure, `severityWarning`
-  ///   for a warning, `severityInfo` for information, and `Color.secondary`
-  ///   for a neutral message.
-  public static func symbolColor(for message: Message, in theme: any EditorTheme.Theme) -> Color {
-    switch message.severity {
-    case .neutral: Color.secondary
-    case .information: theme.severityInfo
-    case .warning: theme.severityWarning
-    case .failure: theme.severityError
-    }
-  }
-
+  /// The title line of the message, with its symbol in the tone of its severity, and the button of the action.
   public var body: some View {
     StatusTitleLayout(
       title: message.title, explanation: message.explanation, textLabel: message.textLabel,
       identifier: message.identifier
     ) {
-      StatusSymbolImage(name: message.symbolName, color: Self.symbolColor(for: message, in: editorTheme))
-        .liveSymbolEffect(isActive: message.isOngoing)
+      EditorSymbolImage(systemName: message.symbolName, tone: message.severity.tone, isLive: message.isOngoing)
         .help(message.symbolHelp ?? "")
         .accessibilityHidden(true)
     } action: {
@@ -252,7 +247,8 @@ public struct StatusBar: View {
         actionButton(action)
       }
     }
-    // A bar is chrome, so its explanation keeps the vibrant `.secondary`.
+    // A bar is chrome, so its explanation and a neutral symbol keep the
+    // vibrant `.secondary`.
     .onChrome()
     .contentTile()
     .inlineEdge(radius: editorStyle.radii.l)

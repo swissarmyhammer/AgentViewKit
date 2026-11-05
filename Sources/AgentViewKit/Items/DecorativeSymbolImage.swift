@@ -1,8 +1,7 @@
 import EditorStyle
 import SwiftUI
 
-/// A decorative symbol of a header: the symbol before its title, or the
-/// chevron between two segments of its breadcrumb.
+/// A decorative symbol of a header: the symbol before its title.
 ///
 /// The view shows the symbol with `\.placedSecondary` and the symbol
 /// weight of the shared style, and hides it from accessibility, because the
@@ -15,7 +14,7 @@ import SwiftUI
 /// accessibility trait reaches each of them. The symbol takes the font of the
 /// view that contains it.
 struct DecorativeSymbolImage: View {
-  /// The SF Symbol name. Read it from ``SharedSymbol`` or from the host.
+  /// The SF Symbol name. Read it from ``AgentSymbol`` or from the host.
   let name: String
 
   @Environment(\.editorStyle) private var editorStyle

@@ -122,12 +122,12 @@ public struct ElicitationURLConsentView: View {
   static let ephemeral = false
 
   /// The symbol of the warning.
-  static let warningSymbol = SharedSymbol.warning
+  static let warningSymbol = EditorSymbol.severity(.warning).systemImage
   /// The symbol of the Open in Browser button, which opens the URL in an
   /// other app.
-  static let openSymbol = SharedSymbol.open
+  static let openSymbol = AgentSymbol.open
   /// The symbol of the Retry button, which opens the browser again.
-  static let retrySymbol = SharedSymbol.reload
+  static let retrySymbol = EditorSymbol.action(.reload).systemImage
   /// The symbol of the Decline button: the symbol of the form.
   static let declineSymbol = ElicitationView.declineSymbol
   /// The symbol of the Cancel button: the symbol of the form.

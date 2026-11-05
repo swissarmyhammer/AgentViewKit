@@ -99,9 +99,9 @@ public struct TerminalView: View {
     /// The SF Symbol name of the footer.
     var symbolName: String {
       switch self {
-      case .code: outcome?.symbolName ?? ItemStatus.unknown.systemImage
-      case .signal: SharedSymbol.signal
-      case .unknown: ItemStatus.unknown.systemImage
+      case .code: (outcome?.symbol ?? .status(.unknown)).systemImage
+      case .signal: AgentSymbol.signal
+      case .unknown: EditorSymbol.status(.unknown).systemImage
       }
     }
   }
@@ -160,6 +160,7 @@ public struct TerminalView: View {
       limit: showsAll ? Int.max : rowLimit)
   }
 
+  /// The header with the command, the rows of the output that show, and the footer with the exit.
   public var body: some View {
     let output = output
     let rows = output.rows
@@ -196,8 +197,7 @@ public struct TerminalView: View {
   /// The row with the command and the working directory.
   private var header: some View {
     HStack(spacing: editorStyle.spacing.s) {
-      Image(systemName: SharedSymbol.terminal)
-        .foregroundStyle(themeSecondary)
+      EditorSymbolImage(.tool(.execute))
         .accessibilityHidden(true)
       Text(entry.command ?? String(localized: "Terminal", bundle: .module))
         .font(editorTheme.codeFont)

@@ -2,6 +2,8 @@
   @testable import AgentViewKit
   import AgentViewKitTestSupport
   import EditorStyle
+  import enum EditorSwiftUI.EditorSwiftUIStrings
+  import struct EditorSwiftUI.PathChip
   import EditorTestSupport
   import Foundation
   import FoundationModelsACP
@@ -32,6 +34,24 @@
 
     /// The path of the second file of the fixture patch.
     static let secondPath = "README.md"
+
+    /// The added and removed line counts of the first file of ``patch``.
+    static let firstCounts = PathChip.LineCounts(added: 2, removed: 1)
+
+    /// The added and removed line counts of the second file of ``patch``.
+    static let secondCounts = PathChip.LineCounts(added: 1, removed: 1)
+
+    /// The label that VoiceOver reads for the EditorKit `PathChip` of a file
+    /// with counts: the name of the file, and its counts.
+    ///
+    /// - Parameters:
+    ///   - path: The path of the file.
+    ///   - counts: The line counts of the file.
+    /// - Returns: The label.
+    static func chipLabel(of path: String, counts: PathChip.LineCounts) -> String {
+      EditorSwiftUIStrings.pathChipLabel(
+        name: URL(filePath: path).lastPathComponent, added: counts.added, removed: counts.removed)
+    }
 
     /// A patch with two files. The first file has two hunks.
     static let patch = """
@@ -162,7 +182,7 @@
 
       let detail = try #require(harness.frame(identifier: DiffView.detailIdentifier))
       for path in [Self.firstPath, Self.secondPath] {
-        let chip = try #require(harness.frame(identifier: DiffFileChip.identifier(for: path)))
+        let chip = try #require(harness.frame(identifier: DiffView.fileChipIdentifier(for: path)))
         // The y axis of the screen goes up, so the bottom edge of a chip is
         // `minY` and the top edge of the detail is `maxY`.
         #expect(chip.minY >= detail.maxY - Self.layoutTolerance, "chip \(path)")
@@ -173,8 +193,8 @@
       let harness = Self.mountDiff(log: CallLog(), installsRenderer: true)
       defer { harness.close() }
 
-      let first = try #require(harness.frame(identifier: DiffFileChip.identifier(for: Self.firstPath)))
-      let second = try #require(harness.frame(identifier: DiffFileChip.identifier(for: Self.secondPath)))
+      let first = try #require(harness.frame(identifier: DiffView.fileChipIdentifier(for: Self.firstPath)))
+      let second = try #require(harness.frame(identifier: DiffView.fileChipIdentifier(for: Self.secondPath)))
       #expect(abs(second.minY - first.minY) <= Self.layoutTolerance)
       #expect(second.minX >= first.maxX)
     }
@@ -183,8 +203,8 @@
       let harness = Self.mountDiff(log: CallLog(), installsRenderer: true, width: Self.narrowWidth)
       defer { harness.close() }
 
-      let first = try #require(harness.frame(identifier: DiffFileChip.identifier(for: Self.firstPath)))
-      let second = try #require(harness.frame(identifier: DiffFileChip.identifier(for: Self.secondPath)))
+      let first = try #require(harness.frame(identifier: DiffView.fileChipIdentifier(for: Self.firstPath)))
+      let second = try #require(harness.frame(identifier: DiffView.fileChipIdentifier(for: Self.secondPath)))
       // The y axis of the screen goes up, so a chip on the line below the
       // first chip has its top edge, `maxY`, under the bottom edge of the
       // first chip, `minY`.
@@ -194,22 +214,22 @@
 
     // MARK: - File chips
 
-    @Test func eachFileHasAChipWithItsLanguageAndCounts() {
+    @Test func eachFileHasAChipWithItsNameAndCounts() {
       let harness = Self.mountDiff(log: CallLog(), installsRenderer: false)
       defer { harness.close() }
 
-      let first = harness.element(identifier: DiffFileChip.identifier(for: Self.firstPath))
-      let second = harness.element(identifier: DiffFileChip.identifier(for: Self.secondPath))
-      #expect(first?.label == "Swift diff, +2 \u{2212}1")
-      #expect(second?.label == "Markdown diff, +1 \u{2212}1")
+      let first = harness.element(identifier: DiffView.fileChipIdentifier(for: Self.firstPath))
+      let second = harness.element(identifier: DiffView.fileChipIdentifier(for: Self.secondPath))
+      #expect(first?.label == Self.chipLabel(of: Self.firstPath, counts: Self.firstCounts))
+      #expect(second?.label == Self.chipLabel(of: Self.secondPath, counts: Self.secondCounts))
     }
 
     @Test func withOneFileTheChipShows() {
       let harness = DiffHarness.mount(DiffView(patch: Self.oneFilePatch), size: Self.tallSize)
       defer { harness.close() }
 
-      let chip = harness.element(identifier: DiffFileChip.identifier(for: Self.secondPath))
-      #expect(chip?.label == "Markdown diff, +1 \u{2212}1")
+      let chip = harness.element(identifier: DiffView.fileChipIdentifier(for: Self.secondPath))
+      #expect(chip?.label == Self.chipLabel(of: Self.secondPath, counts: Self.secondCounts))
     }
 
     @Test func aPressOnAChipGivesThatFileToTheRenderer() throws {
@@ -218,7 +238,7 @@
       let secondRenderer = Self.rendererIdentifier(for: Self.secondPath)
       #expect(harness.element(identifier: secondRenderer) == nil)
 
-      try harness.press(identifier: DiffFileChip.identifier(for: Self.secondPath))
+      try harness.press(identifier: DiffView.fileChipIdentifier(for: Self.secondPath))
 
       #expect(harness.element(identifier: secondRenderer) != nil)
       #expect(harness.element(identifier: Self.rendererIdentifier(for: Self.firstPath)) == nil)
@@ -294,7 +314,7 @@
       let harness = DiffHarness.mount(DiffView(patch: Self.patch), size: Self.tallSize)
       defer { harness.close() }
 
-      #expect(harness.element(identifier: DiffFileChip.identifier(for: Self.firstPath)) != nil)
+      #expect(harness.element(identifier: DiffView.fileChipIdentifier(for: Self.firstPath)) != nil)
       #expect(harness.element(identifier: DiffView.acceptIdentifier(for: 0)) == nil)
       #expect(harness.element(identifier: DiffView.rejectIdentifier(for: 0)) == nil)
       #expect(harness.element(identifier: DiffView.attachIdentifier) == nil)
@@ -311,8 +331,8 @@
       let harness = DiffHarness.mount(DiffView(diff: Self.structuredDiff), size: Self.tallSize)
       defer { harness.close() }
 
-      let file = harness.element(identifier: DiffFileChip.identifier(for: "/p/new.swift"))
-      #expect(file?.label == "Added Swift file")
+      let file = harness.element(identifier: DiffView.fileChipIdentifier(for: "/p/new.swift"))
+      #expect(file?.label == "new.swift")
       #expect(harness.element(identifier: DiffView.noPatchIdentifier) != nil)
       #expect(views(withAccessibilityIdentifier: EditorDiffIdentifier.root, in: harness.hostingView).isEmpty)
       #expect(harness.element(identifier: DiffView.attachIdentifier) == nil)
@@ -324,8 +344,8 @@
       let harness = DiffHarness.mount(DiffView(diff: diff), size: Self.tallSize)
       defer { harness.close() }
 
-      let first = harness.element(identifier: DiffFileChip.identifier(for: Self.firstPath))
-      #expect(first?.label == "Swift diff, +2 \u{2212}1")
+      let first = harness.element(identifier: DiffView.fileChipIdentifier(for: Self.firstPath))
+      #expect(first?.label == Self.chipLabel(of: Self.firstPath, counts: Self.firstCounts))
       #expect(!views(withAccessibilityIdentifier: EditorDiffIdentifier.root, in: harness.hostingView).isEmpty)
       #expect(harness.element(identifier: DiffView.noPatchIdentifier) == nil)
     }

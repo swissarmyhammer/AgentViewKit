@@ -11,16 +11,6 @@
         }
       }
     },
-    "%@ (%@)" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ (%2$@)"
-          }
-        }
-      }
-    },
     "%@ asks for input" : {
       "localizations" : {
         "en" : {
@@ -381,16 +371,6 @@
         }
       }
     },
-    "Cancelled" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cancelled"
-          }
-        }
-      }
-    },
     "Change the request and send it again." : {
       "localizations" : {
         "en" : {
@@ -487,16 +467,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Compaction"
-          }
-        }
-      }
-    },
-    "Completed" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Completed"
           }
         }
       }
@@ -831,16 +801,6 @@
         }
       }
     },
-    "Failed: %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Failed: %@"
-          }
-        }
-      }
-    },
     "Focus Composer" : {
       "localizations" : {
         "en" : {
@@ -927,16 +887,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Idle"
-          }
-        }
-      }
-    },
-    "In progress" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "In progress"
           }
         }
       }
@@ -1441,26 +1391,6 @@
         }
       }
     },
-    "Paused" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Paused"
-          }
-        }
-      }
-    },
-    "Pending" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pending"
-          }
-        }
-      }
-    },
     "Plan" : {
       "localizations" : {
         "en" : {
@@ -1641,16 +1571,6 @@
         }
       }
     },
-    "Remove Date" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Remove Date"
-          }
-        }
-      }
-    },
     "Remove this attachment" : {
       "localizations" : {
         "en" : {
@@ -1697,16 +1617,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Response complete"
-          }
-        }
-      }
-    },
-    "Result lost" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Result lost"
           }
         }
       }
@@ -1957,26 +1867,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Session Options"
-          }
-        }
-      }
-    },
-    "Set Date" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Set Date"
-          }
-        }
-      }
-    },
-    "Set Date and Time" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Set Date and Time"
           }
         }
       }
@@ -3491,16 +3381,6 @@
         }
       }
     },
-    "Unknown status: %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unknown status: %@"
-          }
-        }
-      }
-    },
     "Update" : {
       "localizations" : {
         "en" : {
@@ -3607,6 +3487,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Warning"
+          }
+        }
+      }
+    },
+    "Working Directory" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Working Directory"
           }
         }
       }

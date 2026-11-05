@@ -18,6 +18,26 @@ The inspector of the view kits is EditorKit's `EditorInspector`: the
 `InspectorActionRow` and `.inspectorPreviewFrame()`. The library keeps no
 copy of them, and a view kit imports `EditorInspector` itself.
 
+Each symbol the view kits share is EditorKit's `EditorSymbol`: a tool kind,
+a file kind, a status, the severity of a notice, a closed session, and the
+Reload, Dismiss, link and disclosure marks. The library and AgentViewKit draw
+each symbol with EditorKit's `EditorSymbolImage`, in a tone of the theme,
+with its live effect and its Reduce Motion rule, and keep no symbol table of
+their own for those concepts. The change to a file of a diff is
+EditorKit's `FileDiff.Operation`, which ``DiffSummary/FileSummary`` holds, and
+the kind of the file is EditorKit's `EditorSymbol.FileKind(diffOperation:)`.
+The library adds only the word of an operation, such as "Added", for the
+label that VoiceOver reads. A status, its symbol and its label, is EditorKit's
+`EditorStatus`, which EditorKit's `EditorStatusLabel` draws.
+
+Each chip of a file or a folder path is EditorKit's `PathChip`: the file
+chips of a diff, the location chips of a tool call and the path rows of the
+inspector. ``ToolCallLocationChips`` is the compound view that lays the chips
+of the locations of a tool call out in rows. A kit that selects a path chip
+puts its selection surface in ``SurfaceCorners/pathChip``. ``DiffFileChip``
+and ``DiffFileLabel`` stay only for SnapshotViewKit, which still draws them,
+until it draws `PathChip`.
+
 A view of the library takes the behaviour of a kit through a style protocol
 of the environment, in the shape of `ButtonStyle`. AgentViewKit gives the
 button of a ``StatusBar`` the focus scope of a bar control with
@@ -38,11 +58,6 @@ inspector of its file with ``SwiftUI/View/toolCallLocationChipStyle(_:)``.
 - ``SwiftUI/View/changeHighlightEdge(corners:isShowing:)``
 - ``SwiftUI/View/changeHighlightEdge(radius:isShowing:)``
 
-### Symbols
-
-- ``SharedSymbol``
-- ``StatusSymbolImage``
-
 ### The status bar
 
 - ``StatusBar``
@@ -54,15 +69,9 @@ inspector of its file with ``SwiftUI/View/toolCallLocationChipStyle(_:)``.
 - ``StreamBannerContent``
 - ``ReloadPhase``
 
-### Rows
-
-- ``CompletionRow``
-
 ### Chips
 
-- ``ChipFlowLayout``
 - ``ToolCallLocationChips``
-- ``ToolCallLocationChip``
 - ``ToolCallLocationChipConfiguration``
 - ``ToolCallLocationChipStyle``
 - ``PlainToolCallLocationChipStyle``

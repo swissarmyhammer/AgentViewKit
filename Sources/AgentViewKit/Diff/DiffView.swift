@@ -1,3 +1,4 @@
+import EditorDiff
 import EditorStyle
 import EditorSwiftUI
 import EditorTheme
@@ -56,6 +57,9 @@ public struct DiffView: View {
   /// file, the default renderer.
   public static let previewIdentifier = "diff-preview"
 
+  /// The start of the accessibility identifier of each file chip.
+  public static let fileChipPrefix = "diff-file-"
+
   /// The start of the accessibility identifier of each Accept button.
   static let acceptPrefix = "diff-accept-"
 
@@ -63,10 +67,10 @@ public struct DiffView: View {
   static let rejectPrefix = "diff-reject-"
 
   /// The symbol of each Accept button.
-  static let acceptSymbol = SharedSymbol.accept
+  static let acceptSymbol = AgentSymbol.accept
 
   /// The symbol of each Reject button.
-  static let rejectSymbol = SharedSymbol.reject
+  static let rejectSymbol = AgentSymbol.reject
 
   /// The patch text, or `nil` for a structured diff with no patch text.
   let patch: String?
@@ -167,6 +171,14 @@ public struct DiffView: View {
 
   // MARK: - Identifiers
 
+  /// The accessibility identifier of the chip of the file at `path`.
+  ///
+  /// - Parameter path: The path of the file.
+  /// - Returns: `diff-file-<path>`.
+  public static func fileChipIdentifier(for path: String) -> String {
+    AccessibilityIdentifier.make(prefix: fileChipPrefix, value: path)
+  }
+
   /// The accessibility identifier of the Accept button of a hunk.
   ///
   /// - Parameter index: The position of the hunk in the file, from zero.
@@ -205,13 +217,30 @@ public struct DiffView: View {
   /// - Parameter selected: The file that the renderer shows.
   /// - Returns: The chips view.
   private func fileChips(selected: DiffSummary.FileSummary?) -> some View {
-    ChipFlowLayout(spacing: editorStyle.spacing.xs) {
+    EditorChipRows(spacing: editorStyle.spacing.xs) {
       ForEach(files) { file in
-        DiffFileChip(file: file, hasPatch: patch != nil, isSelected: file.path == selected?.path) {
-          selectedPath = file.path
-        }
+        fileChip(file, isSelected: file.path == selected?.path)
       }
     }
+  }
+
+  /// The chip of one file: the EditorKit `PathChip` of the file, with the
+  /// symbol of its change, and its line counts when the diff has patch text.
+  /// A press selects the file, and the chip of the file that the renderer
+  /// shows sits on the shared selection surface, in the corners of the chip.
+  ///
+  /// - Parameters:
+  ///   - file: The file of the chip.
+  ///   - isSelected: Whether the renderer shows the file.
+  /// - Returns: The chip.
+  private func fileChip(_ file: DiffSummary.FileSummary, isSelected: Bool) -> some View {
+    let counts = patch == nil ? nil : PathChip.LineCounts(added: file.added, removed: file.removed)
+    return PathChip(file.path, kind: EditorSymbol.FileKind(diffOperation: file.operation), counts: counts) {
+      selectedPath = file.path
+    }
+    .accessibilityAddTraits(isSelected ? .isSelected : [])
+    .accessibilityIdentifier(Self.fileChipIdentifier(for: file.path))
+    .selectableSurface(isSelected, corners: .pathChip)
   }
 
   /// The renderer, the hunk actions, and the attach button, or the note of a
@@ -256,7 +285,7 @@ public struct DiffView: View {
         onAttach(DiffAttachment(file: file.path, lines: lines))
       } label: {
         Label(
-          String(localized: "Attach to prompt", bundle: .module), systemImage: SharedSymbol.attach)
+          String(localized: "Attach to prompt", bundle: .module), systemImage: AgentSymbol.attach)
       }
       .accessibilityIdentifier(Self.attachIdentifier)
     }

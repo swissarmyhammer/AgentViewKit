@@ -1,4 +1,6 @@
 import AgentViewKitTestSupport
+import EditorDiff
+import EditorSwiftUI
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
@@ -10,7 +12,7 @@ import Testing
 /// different concepts do not share a symbol.
 ///
 /// Each test reads the symbol names from the views of the kit: the banners,
-/// the stop reasons, the plan and its priorities, the MCP server chip, the
+/// the stop reasons, the plan and its priorities, the MCP server status, the
 /// diff, the command output, the message actions, the send state, the tool
 /// rows, the error card, the time of an entry, the permission options, the
 /// action buttons and the buttons that answer a request.
@@ -62,8 +64,8 @@ import Testing
       (.cancelled, .cancelled), (.unknown(ToolStatusSymbol.lostWireValue), .warning),
       (.unknown("custom_status"), .unknown),
     ]
-    return kinds.map { Use(concept: $1, place: "tool kind \($0)", name: ToolKindSymbol.name(for: $0)) }
-      + statuses.map { Use(concept: $1, place: "tool status \($0)", name: ToolStatusSymbol.name(for: $0)) }
+    return kinds.map { Use(concept: $1, place: "tool kind \($0)", name: EditorSymbol.tool(.init($0)).systemImage) }
+      + statuses.map { Use(concept: $1, place: "tool status \($0)", name: EditorSymbol.status(.init($0)).systemImage) }
   }
 
   /// The symbols of the agent state banner: each state and each ACP stop
@@ -142,7 +144,7 @@ import Testing
       (.pending, .pending), (.inProgress, .inProgress), (.completed, .completed), (.cancelled, .cancelled),
       (.unknown("custom_status"), .unknown),
     ]
-    return statuses.map { Use(concept: $1, place: "plan \($0)", name: TaskListView.statusSymbol($0)) }
+    return statuses.map { Use(concept: $1, place: "plan \($0)", name: EditorSymbol.status(.init($0)).systemImage) }
   }
 
   /// The symbols of the priority of a plan entry.
@@ -153,30 +155,32 @@ import Testing
     return priorities.map { Use(concept: $1, place: "priority \($0)", name: TaskListView.prioritySymbol($0)) }
   }
 
-  /// The symbols of the status chip of an MCP server.
-  static func connectionChipUses() -> [Use] {
+  /// The symbols of the status of an MCP server.
+  static func connectionStatusUses() -> [Use] {
     let statuses: [(MCPServerStatus, Concept)] = [
       (.notReported, .unknown), (.connecting, .inProgress), (.connected, .completed),
       (.failed(reason: nil), .error), (.closed, .disconnected),
     ]
-    return statuses.map { Use(concept: $1, place: "MCP chip \($0)", name: ConnectionStatusChip.symbolName(for: $0)) }
+    return statuses.map { Use(concept: $1, place: "MCP status \($0)", name: EditorStatus($0).systemImage) }
   }
 
   /// The symbols of the file operations of a diff.
   static func diffUses() -> [Use] {
-    let operations: [(DiffSummary.Operation, Concept)] = [
-      (.added, .addedFile), (.deleted, .deletedFile), (.modified, .modifiedFile),
-      (.renamed(from: "old.swift"), .renamedFile), (.copied(from: "old.swift"), .copiedFile),
+    let operations: [(FileDiff.Operation, Concept)] = [
+      (.add, .addedFile), (.delete, .deletedFile), (.modify, .modifiedFile),
+      (.rename(from: "old.swift"), .renamedFile), (.copy(from: "old.swift"), .copiedFile),
       (.unknown("custom"), .unknown),
     ]
-    return operations.map { Use(concept: $1, place: "diff \($0)", name: DiffFileChip.symbolName(for: $0)) }
+    return operations.map { Use(concept: $1, place: "diff \($0)", name: EditorSymbol.file(.init(diffOperation: $0)).systemImage) }
   }
 
   /// The symbols of the footer of a command output and of a terminal.
   static func commandOutputUses() -> [Use] {
     let outcomes: [(CommandOutputView.ExitOutcome, Concept)] = [(.success, .completed), (.failure, .error)]
     let exits: [(TerminalView.ExitSummary, Concept)] = [(.signal("SIGINT"), .signal), (.unknown, .unknown)]
-    return outcomes.map { Use(concept: $1, place: "command output \($0)", name: $0.symbolName) }
+    return outcomes.map {
+      Use(concept: $1, place: "command output \($0)", name: $0.symbol.systemImage)
+    }
       + exits.map { Use(concept: $1, place: "terminal exit \($0)", name: $0.symbolName) }
   }
 
@@ -192,7 +196,7 @@ import Testing
   static func sendStateUses() -> [Use] {
     let states: [(SendState, Concept)] = [(.pending, .pending), (.sent, .completed), (.failed, .error)]
     return states.map {
-      Use(concept: $1, place: "send state \($0)", name: UserMessageView.SendStateLabel.symbol(of: $0))
+      Use(concept: $1, place: "send state \($0)", name: EditorSymbol.status(.init($0)).systemImage)
     }
   }
 
@@ -231,7 +235,7 @@ import Testing
       Use(concept: .details, place: "banner Show Error", name: StateBanner.showErrorSymbol),
       Use(concept: .loadMore, place: "session list Load More", name: SessionListView.loadMoreSymbol),
       Use(concept: .showAll, place: "output Show All", name: OutputCapRow.showAllSymbol),
-      Use(concept: .signIn, place: "auth Sign In", name: AgentAuthView.signInSymbol),
+      Use(concept: .signIn, place: "auth Sign In", name: AgentAuthView.symbol),
       Use(concept: .terminal, place: "auth Run", name: AgentAuthView.runSymbol),
       Use(concept: .reload, place: "auth Reconnect", name: AgentAuthView.reconnectSymbol),
       Use(concept: .signOut, place: "auth Sign Out", name: AgentAuthView.signOutSymbol),
@@ -285,7 +289,7 @@ import Testing
   /// Each use that the tests read.
   static func allUses() throws -> [Use] {
     toolUses() + (try stateBannerUses()) + stopReasonUses() + otherBannerUses() + planUses() + priorityUses()
-      + connectionChipUses() + diffUses() + commandOutputUses() + messageActionUses() + sendStateUses() + cardUses()
+      + connectionStatusUses() + diffUses() + commandOutputUses() + messageActionUses() + sendStateUses() + cardUses()
       + permissionOptionUses() + actionButtonUses() + requestButtonUses() + usageRingUses()
   }
 
@@ -317,7 +321,7 @@ import Testing
     let banner = StateBanner.message(
       for: try StateBannerStopReasonTests.idleUpdate(stopReason: "max_turn_requests"))
 
-    #expect(ToolKindSymbol.name(for: .switchMode) != banner.symbolName)
+    #expect(EditorSymbol.tool(.switchMode).systemImage != banner.symbolName)
   }
 
   @Test func eachPlanPriorityShowsADifferentSymbol() {
@@ -337,6 +341,6 @@ import Testing
   }
 
   @Test func eachMCPServerStatusShowsADifferentSymbol() {
-    NameChecks.expectDistinctNames(Self.connectionChipUses().map(\.name))
+    NameChecks.expectDistinctNames(Self.connectionStatusUses().map(\.name))
   }
 }

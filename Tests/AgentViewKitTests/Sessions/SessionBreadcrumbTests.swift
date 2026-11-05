@@ -1,4 +1,5 @@
 import AgentViewKitTestSupport
+import EditorSwiftUI
 import EditorTestSupport
 import Foundation
 import FoundationModelsACP
@@ -255,7 +256,8 @@ import Testing
     try await session.sendInOrder([.permission(id: 1, sessionId: child.sessionId)], to: child)
 
     #expect(SessionBreadcrumb.mark(of: child.pathEntry, isCurrent: true) == "checkmark")
-    #expect(SessionBreadcrumb.mark(of: child.pathEntry, isCurrent: false) == SharedSymbol.warning)
+    #expect(
+      SessionBreadcrumb.mark(of: child.pathEntry, isCurrent: false) == EditorSymbol.severity(.warning).systemImage)
   }
 
   @Test func theBannerFindsAWaitingSiblingAndAWaitingAncestor() async throws {

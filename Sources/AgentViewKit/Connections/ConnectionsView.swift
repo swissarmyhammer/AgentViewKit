@@ -51,7 +51,7 @@ public struct ConnectionsView: View {
     } else {
       ThemedEmptyState(
         title: Text("No MCP Servers", bundle: .module),
-        systemImage: SharedSymbol.connection,
+        systemImage: AgentSymbol.connection,
         description: Text("The MCP servers of the session show here.", bundle: .module)
       )
       .accessibilityElement(children: .combine)

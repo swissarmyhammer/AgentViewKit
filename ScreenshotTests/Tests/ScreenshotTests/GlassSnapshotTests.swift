@@ -157,4 +157,18 @@ import Testing
   @Test func theFloatingControlsOfTheThread() async throws {
     try await Self.generate(Self.floatingControls, named: "floating-controls", size: Self.controlsSize)
   }
+
+  /// The completion list of the composer, open on a slash over the two
+  /// commands of ``SnapshotFixtures/commandsSession``, on its own glass above
+  /// the field. Each row is EditorKit's `EditorCompletionRow`, with the name
+  /// of the command and, for `/compact`, the hint of its input as the
+  /// detail. The first row is selected.
+  @Test func theCompletionListOfTheComposer() async throws {
+    let composer = CompletionListComposer()
+
+    try await ReviewGalleryScreenTests.gallery.record(
+      suite: "GlassSnapshotTests", named: "composer-completion-list", size: SnapshotFixtures.completionListSize,
+      settle: { mount in try await composer.openList(in: mount) },
+      content: { _ in composer.makeComposer() })
+  }
 }

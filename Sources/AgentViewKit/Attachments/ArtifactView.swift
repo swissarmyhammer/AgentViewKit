@@ -54,7 +54,7 @@ public struct ArtifactView: View {
     let attachment = Self.attachment(of: artifact)
     ContentTileStack {
       HStack(spacing: editorStyle.spacing.s) {
-        Label(artifact.title, systemImage: SharedSymbol.artifact)
+        Label(artifact.title, systemImage: AgentSymbol.artifact)
           .font(editorTheme.font(for: .ui, style: .headline))
           .lineLimit(1)
           .accessibilityIdentifier(Self.titleIdentifier)

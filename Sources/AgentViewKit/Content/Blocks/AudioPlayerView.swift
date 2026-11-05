@@ -67,7 +67,7 @@ public struct AudioPlayerView: View {
     case .failed:
       Label(
         String(localized: "The audio cannot play", bundle: .module),
-        systemImage: SharedSymbol.audioFailure
+        systemImage: AgentSymbol.audioFailure
       )
         .foregroundStyle(themeSecondary)
         .accessibilityIdentifier(Self.failureIdentifier)

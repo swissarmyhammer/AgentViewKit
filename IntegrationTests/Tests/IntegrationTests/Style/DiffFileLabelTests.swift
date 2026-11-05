@@ -1,4 +1,5 @@
 import AgentViewKitStyle
+import EditorDiff
 import SwiftUI
 import Testing
 
@@ -11,8 +12,8 @@ import Testing
   static let counts = DiffFileLabel.Counts(added: 12, removed: 3)
 
   @Test func theCountsWidenTheLabel() {
-    let with = StyleViewHost.fittingSize(of: DiffFileLabel(operation: .modified, path: Self.path, counts: Self.counts))
-    let without = StyleViewHost.fittingSize(of: DiffFileLabel(operation: .modified, path: Self.path, counts: nil))
+    let with = StyleViewHost.fittingSize(of: DiffFileLabel(operation: .modify, path: Self.path, counts: Self.counts))
+    let without = StyleViewHost.fittingSize(of: DiffFileLabel(operation: .modify, path: Self.path, counts: nil))
 
     #expect(with.width > without.width)
   }
@@ -20,7 +21,7 @@ import Testing
   @Test func aBinaryFileDrawsNoCounts() {
     let binary = StyleViewHost.fittingSize(of: DiffFileLabel(operation: .binary, path: Self.path, counts: Self.counts))
     let modified = StyleViewHost.fittingSize(
-      of: DiffFileLabel(operation: .modified, path: Self.path, counts: Self.counts))
+      of: DiffFileLabel(operation: .modify, path: Self.path, counts: Self.counts))
 
     #expect(binary.width < modified.width)
   }

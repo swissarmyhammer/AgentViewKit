@@ -3,9 +3,9 @@ import EditorSwiftUI
 import Testing
 
 /// Tests of the one submit-on-commit rule of the one-line fields of the kit
-/// (`EditorCommit.submittedText`): the rule that ``AgentOneLineField`` and the
-/// one-line ``ElicitationTextField`` both read through
-/// `SingleLineField.onFieldSubmit(_:)`.
+/// (`EditorCommit.submittedText`): the rule that ``AgentOneLineField``, the
+/// one-line ``ElicitationTextField`` and the number and date inputs of a form
+/// read through `EditorSlotComposing.onFieldSubmit(_:)`.
 ///
 /// Return (`.submit`) and Command-Return (`.submitNow`) submit the text of
 /// the commit. Esc (`.leave`) and a focus loss (`.focusLoss`) submit

@@ -1,5 +1,6 @@
 import EditorCommandsUI
 import EditorStyle
+import EditorSwiftUI
 import FoundationModelsACPClient
 import OSLog
 import SwiftUI
@@ -73,11 +74,11 @@ public struct MessageActions: View {
     /// The SF Symbol of the button.
     var systemImage: String {
       switch self {
-      case .copy: SharedSymbol.copy
-      case .copyThread: SharedSymbol.copyThread
-      case .export: SharedSymbol.share
-      case .retry: SharedSymbol.reload
-      case .edit: SharedSymbol.edit
+      case .copy: AgentSymbol.copy
+      case .copyThread: AgentSymbol.copyThread
+      case .export: AgentSymbol.share
+      case .retry: EditorSymbol.action(.reload).systemImage
+      case .edit: EditorSymbol.tool(.edit).systemImage
       }
     }
   }

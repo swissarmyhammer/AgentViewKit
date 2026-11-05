@@ -1,5 +1,6 @@
 import EditorCommands
 import EditorDiff
+import EditorSwiftUI
 import SwiftUI
 import Testing
 
@@ -46,30 +47,17 @@ import Testing
   }
 
   @Test func eachOperationHasALabel() {
-    let operations: [DiffSummary.Operation] = [
-      .added, .deleted, .modified, .renamed(from: "a"), .copied(from: "a"), .binary, .unknown("x"),
+    let operations: [FileDiff.Operation] = [
+      .add, .delete, .modify, .rename(from: "a"), .copy(from: "a"), .binary, .unknown("x"),
     ]
 
     #expect(operations.map(\.label) == ["Added", "Deleted", "Modified", "Renamed", "Copied", "Binary", "Changed"])
   }
 
   @Test func theChangeLabelOfAFileNamesItsOperationAndItsLanguage() {
-    let file = DiffSummary.FileSummary(path: Self.firstPath, operation: .added, hunks: [])
+    let file = DiffSummary.FileSummary(path: Self.firstPath, operation: .add, hunks: [])
 
     #expect(file.changeAccessibilityLabel == "Added Swift file")
-  }
-
-  @Test func theIdentifierOfAFileChipIsThePrefixAndThePath() {
-    #expect(DiffFileChip.identifier(for: Self.firstPath) == DiffFileChip.identifierPrefix + Self.firstPath)
-  }
-
-  @Test func eachFileOperationHasTheSymbolOfItsConcept() {
-    #expect(DiffFileChip.symbolName(for: .added) == SharedSymbol.addedFile)
-    #expect(DiffFileChip.symbolName(for: .deleted) == SharedSymbol.deletedFile)
-    #expect(DiffFileChip.symbolName(for: .modified) == SharedSymbol.modifiedFile)
-    #expect(DiffFileChip.symbolName(for: .renamed(from: "a")) == SharedSymbol.renamedFile)
-    #expect(DiffFileChip.symbolName(for: .copied(from: "a")) == SharedSymbol.copiedFile)
-    #expect(DiffFileChip.symbolName(for: .binary) == SharedSymbol.binary)
   }
 
   @Test func aBinaryFileOfAPatchHasTheBinaryOperation() {
@@ -95,21 +83,21 @@ import Testing
   }
 
   @Test func theBinaryOperationHasItsWord() {
-    #expect(DiffSummary.Operation.binary.label == "Binary")
+    #expect(FileDiff.Operation.binary.label == "Binary")
   }
 
   @Test func aLabelWithNoOperationShowsTheDocumentSymbol() {
-    #expect(DiffFileLabel.symbolName(for: nil) == SharedSymbol.document)
+    #expect(DiffFileLabel.symbol(for: nil) == .file(.document))
   }
 
   @Test func aLabelWithAnOperationShowsTheSymbolOfTheOperation() {
-    #expect(DiffFileLabel.symbolName(for: .added) == SharedSymbol.addedFile)
+    #expect(DiffFileLabel.symbol(for: .add) == .file(.added))
   }
 
   @Test func aLabelKeepsItsCounts() {
     let counts = DiffFileLabel.Counts(added: 1, removed: 2)
 
-    #expect(DiffFileLabel.shownCounts(counts, for: .modified) == counts)
+    #expect(DiffFileLabel.shownCounts(counts, for: .modify) == counts)
   }
 
   @Test func aBinaryFileShowsNoCounts() {

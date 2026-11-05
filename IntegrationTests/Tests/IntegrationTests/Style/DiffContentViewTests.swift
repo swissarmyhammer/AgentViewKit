@@ -33,7 +33,8 @@ import Testing
     let record = StyleRecord<Font?>()
 
     StyleViewHost.layOut(
-      DiffContentView(note: "Binary file changed", systemImage: SharedSymbol.binary, identifier: "note")
+      DiffContentView(
+        note: "Binary file changed", systemImage: EditorSymbol.file(.binary).systemImage, identifier: "note")
         .labelStyle(FontRecordingLabelStyle(record: record))
         .editorTheme(.system))
 

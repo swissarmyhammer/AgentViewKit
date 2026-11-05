@@ -1,4 +1,5 @@
 import EditorStyle
+import EditorSwiftUI
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -59,7 +60,7 @@ public struct AgentConnectionBanner: View {
       StatusBar.Message(
         title: String(localized: "The connection to the agent failed", bundle: .module),
         explanation: error.localizedDescription,
-        symbolName: SharedSymbol.error,
+        symbolName: EditorSymbol.severity(.error).systemImage,
         identifier: failedIdentifier, severity: .failure)
     case .connecting, .connected:
       nil
@@ -72,7 +73,7 @@ public struct AgentConnectionBanner: View {
     explanation: String(
       localized: "No connection to the agent is open. The agent receives no messages.",
       bundle: .module),
-    symbolName: SharedSymbol.disconnected,
+    symbolName: AgentSymbol.disconnected,
     identifier: disconnectedIdentifier)
 }
 

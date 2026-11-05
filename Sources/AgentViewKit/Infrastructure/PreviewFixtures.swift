@@ -1,6 +1,7 @@
 import AVFoundation
 import AppKit
 import EditorStyle
+import EditorSwiftUI
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
@@ -389,18 +390,19 @@ enum PreviewFixtures {
       for each of the three packages that the build needs. Sign in to the registry again, then send the \
       request again.
       """,
-    symbolName: SharedSymbol.error,
+    symbolName: EditorSymbol.severity(.error).systemImage,
     identifier: "preview-status-long", severity: .failure)
 
   /// A failure message with a short title and the long explanation of
   /// ``longStatusMessage``, so that the explanation wraps below the title line.
   static let longExplanationStatusMessage = StatusBar.Message(
-    title: "The agent stopped", explanation: longStatusMessage.explanation, symbolName: SharedSymbol.error,
+    title: "The agent stopped", explanation: longStatusMessage.explanation,
+    symbolName: EditorSymbol.severity(.error).systemImage,
     identifier: "preview-status-long-explanation", severity: .failure)
 
   /// A message with a title and no explanation.
   static let titleOnlyStatusMessage = StatusBar.Message(
-    title: "The agent stopped", explanation: "", symbolName: SharedSymbol.error,
+    title: "The agent stopped", explanation: "", symbolName: EditorSymbol.severity(.error).systemImage,
     identifier: "preview-status-title-only", severity: .failure)
 
   /// The width of a narrow column, in points. A status bar or a sign-in card
@@ -431,7 +433,7 @@ enum PreviewFixtures {
   /// (``ToolStatusSymbol/lostWireValue``) and a status that the kit does not
   /// know.
   static let toolCallStatuses: [FoundationModelsACP.ToolCallStatus] = [
-    .pending, .inProgress, .completed, .failed, .cancelled, .unknown(ToolStatusSymbol.lostWireValue),
+    .pending, .inProgress, .paused, .completed, .failed, .cancelled, .unknown(ToolStatusSymbol.lostWireValue),
     .unknown(unknownWireValue),
   ]
 
@@ -451,12 +453,14 @@ enum PreviewFixtures {
   /// and a severity that the kit does not know.
   static let noticeSeverities: [NoticeSeverity] = [.info, .warning, .error, .unknown(unknownWireValue)]
 
-  /// The status symbols of the kit (``SharedSymbol``), for the preview of
+  /// The status symbols of the kit (EditorKit's `EditorSymbol` and `ItemStatus`), for the preview of
   /// ``PreviewSymbolSheet``. Each row of that sheet shows the symbol and its
   /// name.
   static let statusSymbolNames = [
-    ItemStatus.pending.systemImage, ItemStatus.inProgress.systemImage, ItemStatus.completed.systemImage, SharedSymbol.error,
-    ItemStatus.cancelled.systemImage, ItemStatus.unknown.systemImage, SharedSymbol.warning, SharedSymbol.information,
+    ItemStatus.pending.systemImage, ItemStatus.inProgress.systemImage, ItemStatus.completed.systemImage,
+    EditorSymbol.severity(.error).systemImage,
+    ItemStatus.cancelled.systemImage, ItemStatus.unknown.systemImage, EditorSymbol.severity(.warning).systemImage,
+    EditorSymbol.severity(.information).systemImage,
   ]
 
   /// A decorative symbol of the kit, with the header that shows it.
@@ -473,7 +477,7 @@ enum PreviewFixtures {
   /// ``ConversationEmptyState``.
   static let headerSymbols = [
     HeaderSymbol(header: "Agent header", name: AgentInfoHeader.symbol),
-    HeaderSymbol(header: "Empty conversation", name: SharedSymbol.conversation),
+    HeaderSymbol(header: "Empty conversation", name: AgentSymbol.conversation),
   ]
 
   /// The name of the agent of ``authConnection(methods:agentName:openSessions:)``.

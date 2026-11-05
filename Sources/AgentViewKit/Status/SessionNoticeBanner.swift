@@ -106,9 +106,9 @@ struct NoticeBanner: View {
   /// - Returns: The symbol name.
   static func symbolName(for severity: NoticeSeverity) -> String {
     switch severity {
-    case .info: SharedSymbol.information
-    case .warning: SharedSymbol.warning
-    case .error: SharedSymbol.error
+    case .info: EditorSymbol.severity(.information).systemImage
+    case .warning: EditorSymbol.severity(.warning).systemImage
+    case .error: EditorSymbol.severity(.error).systemImage
     case .unknown: ItemStatus.unknown.systemImage
     }
   }
@@ -185,8 +185,7 @@ extension StatusBar.Message.Severity {
   /// The severity of the bar of a notice.
   ///
   /// - Parameter severity: The severity of the notice. A severity that the kit
-  ///   does not know informs, as the tint of the theme has it
-  ///   (`Theme.tint(for:)`).
+  ///   does not know informs.
   init(notice severity: NoticeSeverity) {
     switch severity {
     case .info, .unknown: self = .information

@@ -1,3 +1,4 @@
+import EditorSwiftUI
 import Foundation
 import FoundationModelsACP
 import Testing
@@ -12,12 +13,12 @@ import Testing
   static let locale = Locale(identifier: "en_US")
 
   @Test func aPausedToolCallHasItsLabelAndItsSymbol() {
-    #expect(ToolStatusSymbol.label(for: .paused) == "Paused")
-    #expect(ToolStatusSymbol.name(for: .paused) == SharedSymbol.stalled)
+    #expect(EditorStatus(FoundationModelsACP.ToolCallStatus.paused).label == "Paused")
+    #expect(EditorSymbol.Status(FoundationModelsACP.ToolCallStatus.paused) == .paused)
   }
 
   @Test func aPausedToolCallIsNotLiveAndHasNoResult() {
-    #expect(!ToolStatusSymbol.isLive(.paused))
+    #expect(!EditorStatus(FoundationModelsACP.ToolCallStatus.paused).isLive)
     #expect(!ThreadAccessibility.hasResult(.paused))
   }
 

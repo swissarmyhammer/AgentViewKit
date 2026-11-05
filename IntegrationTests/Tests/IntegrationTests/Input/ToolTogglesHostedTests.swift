@@ -90,7 +90,7 @@ import Testing
     let harness = Self.mountList()
     defer { harness.close() }
 
-    let identifiers = harness.fieldIDs(
+    let identifiers = harness.inspectorDriver.fieldIDs(
       inBlock: InspectorScheme.blockIdentifier(view: ToolToggles.listIdentifier, object: Self.listObject))
     #expect(identifiers == [Self.row(Self.searchID), Self.row(Self.issueID)])
   }
@@ -109,6 +109,21 @@ import Testing
     harness.render()
 
     #expect(harness.element(identifier: ToolToggles.menuIdentifier) != nil)
+  }
+
+  /// A hosted window cannot open the menu, so the test shows the toggle of
+  /// one tool as the menu holds it.
+  @Test func aToggleOfTheMenuCallsOnToggleWithTheIdAndTheNewValue() async throws {
+    let recorder = ReportRecorder<Call>()
+    let harness = HostedViewHarness(
+      ToolToggleMenuItem(tool: Self.tools[1]) { recorder.report(Call(id: $0, isEnabled: $1)) })
+    defer { harness.close() }
+    harness.render()
+
+    try harness.press(identifier: ToolToggles.toggleIdentifier(for: Self.issueID))
+    await ObservationWait.until { !recorder.values.isEmpty }
+
+    #expect(recorder.values == [.init(id: Self.issueID, isEnabled: true)])
   }
 
   // MARK: - Composer
