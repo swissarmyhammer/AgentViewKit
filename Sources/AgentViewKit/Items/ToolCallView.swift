@@ -417,7 +417,6 @@ private struct ToolCallHeader: View {
 
   @Environment(\.toolCallConnectionState) private var connectionState
   @Environment(\.editorStyle) private var editorStyle
-  @Environment(\.themeSecondary) private var themeSecondary
 
   var body: some View {
     let id = entry.id.rowKey
@@ -451,10 +450,7 @@ private struct ToolCallHeader: View {
         .truncationMode(.middle)
       Spacer(minLength: editorStyle.spacing.s)
       statusGlyph
-      Image(systemName: SharedSymbol.disclosure)
-        .symbolRenderingMode(.hierarchical)
-        .fontWeight(editorStyle.symbolWeight)
-        .foregroundStyle(themeSecondary)
+      EditorSymbolImage(.action(.disclosure))
         .rotationEffect(expanded ? ReasoningView.expandedChevronAngle : .zero)
     }
     .contentShape(Rectangle())
@@ -746,7 +742,7 @@ private struct ToolCallWaitingStatus: View {
     } label: {
       Label(
         String(localized: "Waiting for your answer", bundle: .module),
-        systemImage: SharedSymbol.question)
+        systemImage: AgentSymbol.question)
     }
     .buttonStyle(.borderless)
     .font(editorTheme.font(for: .ui, style: .callout))
@@ -841,7 +837,9 @@ struct ToolCallChildLink: View {
   var body: some View {
     let status = entry.status
     if let child = entry.childSession, !child.isClosed, let openSession {
-      Button(String(localized: "Open session", bundle: .module), systemImage: SharedSymbol.disclosure) {
+      Button(
+        String(localized: "Open session", bundle: .module), systemImage: EditorSymbol.action(.disclosure).systemImage
+      ) {
         openSession(child.sessionId)
       }
       .accessibilityIdentifier(Self.identifier(for: entry.id.rowKey))

@@ -1,4 +1,5 @@
 import AgentViewKitStyle
+import EditorSwiftUI
 import Testing
 
 /// Checks the Dismiss action of a dismissible ``StatusBar``.
@@ -6,7 +7,7 @@ import Testing
   @Test func theDismissActionHasTheDismissSymbol() {
     let action = StatusBar.Action.makeDismiss(identifier: "dismiss", perform: {})
 
-    #expect(action.systemImage == SharedSymbol.dismiss)
+    #expect(action.systemImage == EditorSymbol.action(.dismiss).systemImage)
   }
 
   @Test func theDismissActionHasItsIdentifier() {
@@ -29,7 +30,8 @@ import Testing
 
   @Test func anActionShowsItsTitleByDefault() {
     let action = StatusBar.Action(
-      title: "Retry", systemImage: SharedSymbol.reload, identifier: "retry", isEnabled: true, perform: {})
+      title: "Retry", systemImage: EditorSymbol.action(.reload).systemImage, identifier: "retry", isEnabled: true,
+      perform: {})
 
     #expect(!action.isIconOnly)
   }

@@ -1,4 +1,5 @@
 import EditorStyle
+import EditorSwiftUI
 import Foundation
 
 /// The sample data of the `#Preview`s of the style library.
@@ -68,17 +69,19 @@ enum StylePreviewFixtures {
       symbolName: ItemStatus.inProgress.systemImage, identifier: "preview-status-neutral", isOngoing: true),
     StatusBar.Message(
       title: "The board is read-only", explanation: "A second window edits the board.",
-      symbolName: SharedSymbol.information, identifier: "preview-status-information", severity: .information),
+      symbolName: EditorSymbol.severity(.information).systemImage, identifier: "preview-status-information",
+      severity: .information),
     StatusBar.Message(
       title: "Some updates are missing", explanation: "Reload the board to see them.",
-      symbolName: SharedSymbol.warning, identifier: "preview-status-warning", severity: .warning),
+      symbolName: EditorSymbol.severity(.warning).systemImage, identifier: "preview-status-warning",
+      severity: .warning),
     failureStatusMessage,
   ]
 
   /// A failure message.
   static let failureStatusMessage = StatusBar.Message(
     title: "The board did not load", explanation: "The server did not answer. Reload the board.",
-    symbolName: SharedSymbol.error, identifier: "preview-status-failure", severity: .failure)
+    symbolName: EditorSymbol.severity(.error).systemImage, identifier: "preview-status-failure", severity: .failure)
 
   /// A message whose title and explanation are long, so that the bar wraps
   /// them in ``narrowWidth``.
@@ -88,19 +91,21 @@ enum StylePreviewFixtures {
       The server answered 401 Unauthorized for each of the three columns of the board. Sign in again, \
       then reload the board.
       """,
-    symbolName: SharedSymbol.error, identifier: "preview-status-long", severity: .failure)
+    symbolName: EditorSymbol.severity(.error).systemImage, identifier: "preview-status-long", severity: .failure)
 
   /// A message with a short title and a long explanation, so that the
   /// explanation wraps below the title line in ``narrowWidth``.
   static let longExplanationStatusMessage = StatusBar.Message(
     title: "The board did not load",
     explanation: longStatusMessage.explanation,
-    symbolName: SharedSymbol.error, identifier: "preview-status-long-explanation", severity: .failure)
+    symbolName: EditorSymbol.severity(.error).systemImage, identifier: "preview-status-long-explanation",
+    severity: .failure)
 
   /// A message with a title and no explanation.
   static let titleOnlyStatusMessage = StatusBar.Message(
     title: "The board is read-only", explanation: "",
-    symbolName: SharedSymbol.information, identifier: "preview-status-title-only", severity: .information)
+    symbolName: EditorSymbol.severity(.information).systemImage, identifier: "preview-status-title-only",
+    severity: .information)
 
   /// Makes the Reload button of a bar. A press does nothing.
   ///
@@ -108,7 +113,8 @@ enum StylePreviewFixtures {
   /// - Returns: The button.
   static func statusAction(isEnabled: Bool) -> StatusBar.Action {
     StatusBar.Action(
-      title: "Reload", systemImage: SharedSymbol.reload, identifier: "preview-status-action", isEnabled: isEnabled,
+      title: "Reload", systemImage: EditorSymbol.action(.reload).systemImage, identifier: "preview-status-action",
+      isEnabled: isEnabled,
       hint: "Loads the board again.", perform: {})
   }
 }

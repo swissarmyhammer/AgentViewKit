@@ -33,7 +33,7 @@ public enum ConversationLayout {
   static let visibilityThreshold = 0.01
 
   /// The SF Symbol name of the load-earlier row.
-  static let loadEarlierSymbolName = SharedSymbol.loadEarlier
+  static let loadEarlierSymbolName = AgentSymbol.loadEarlier
 
   /// The number of items that the list shows.
   ///

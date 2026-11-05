@@ -113,7 +113,7 @@ public struct StatusBar: View {
     ///   - explanation: The explanation below the title. An empty explanation
     ///     shows no line.
     ///   - symbolName: The SF Symbol name of the bar. Read it from
-    ///     ``SharedSymbol``, or from `ItemStatus` of EditorStyle.
+    ///     EditorKit's `EditorSymbol`, or from `ItemStatus` of EditorStyle.
     ///   - identifier: The accessibility identifier of the text of the bar.
     ///   - severity: How much the message asks of the user. The default is
     ///     ``Severity/neutral``.
@@ -149,7 +149,7 @@ public struct StatusBar: View {
     public let title: String
 
     /// The SF Symbol name that the button shows before its text. Read it
-    /// from ``SharedSymbol``.
+    /// from EditorKit's `EditorSymbol`.
     public let systemImage: String
 
     /// The accessibility identifier of the button.
@@ -199,11 +199,11 @@ public struct StatusBar: View {
     /// - Parameters:
     ///   - identifier: The accessibility identifier of the button.
     ///   - perform: The closure that a press calls: it removes the bar.
-    /// - Returns: The button, which shows only the ``SharedSymbol/dismiss``
+    /// - Returns: The button, which shows only the `EditorSymbol.action(.dismiss)`
     ///   symbol.
     public static func makeDismiss(identifier: String, perform: @escaping () -> Void) -> Action {
       Action(
-        title: String(localized: "Dismiss", bundle: .module), systemImage: SharedSymbol.dismiss,
+        title: String(localized: "Dismiss", bundle: .module), systemImage: EditorSymbol.action(.dismiss).systemImage,
         identifier: identifier, isEnabled: true, isIconOnly: true, perform: perform)
     }
   }

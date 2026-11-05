@@ -86,7 +86,7 @@ public struct ImageView: View {
         .agentAttachmentScope(file, focusRingCorners: Self.corners)
         .task(id: file.url) { await Self.writeFile(of: data, named: file.name) }
     } else {
-      Label(name, systemImage: SharedSymbol.imageFailure)
+      Label(name, systemImage: AgentSymbol.imageFailure)
         .foregroundStyle(themeSecondary)
         .accessibilityIdentifier(Self.placeholderIdentifier)
     }

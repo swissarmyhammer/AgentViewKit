@@ -104,7 +104,7 @@ public struct ConfigOptionsView: View {
   ]
 
   /// The SF Symbol of the menu button.
-  static let menuSymbolName = SharedSymbol.options
+  static let menuSymbolName = AgentSymbol.options
 
   /// The session model whose options the view shows.
   let session: SessionModel

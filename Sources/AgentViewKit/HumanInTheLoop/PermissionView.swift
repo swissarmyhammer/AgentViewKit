@@ -85,18 +85,18 @@ public struct PermissionView: View {
   public static let terminalLinkIdentifier = "permission-terminal-link"
 
   /// The symbol of the title.
-  static let symbol = SharedSymbol.userAction
+  static let symbol = AgentSymbol.userAction
   /// The symbol of a tool call subject.
   static let toolCallSymbol = EditorSymbol.tool(.other).systemImage
   /// The symbol of a command subject.
   static let commandSymbol = EditorSymbol.tool(.execute).systemImage
   /// The symbol of the working directory.
-  static let directorySymbol = SharedSymbol.folder
+  static let directorySymbol = AgentSymbol.folder
   /// The symbol of the button that shows or hides the terminal.
   static let terminalLinkSymbol = EditorSymbol.tool(.execute).systemImage
   /// The symbol of the Send button of the comment field. The comment goes
   /// out as the next prompt, so the button shows the symbol of a send.
-  static let commentSubmitSymbol = SharedSymbol.send
+  static let commentSubmitSymbol = AgentSymbol.send
   /// The text that the empty comment field shows, the accessibility label of
   /// the field, and its accessibility hint while it is empty, from the String
   /// Catalog of the kit.
@@ -115,10 +115,10 @@ public struct PermissionView: View {
   ///   does not know.
   static func optionSymbol(for kind: PermissionOptionKind) -> String {
     switch kind {
-    case .allowOnce: SharedSymbol.accept
-    case .allowAlways: SharedSymbol.acceptAlways
-    case .rejectOnce: SharedSymbol.reject
-    case .rejectAlways: SharedSymbol.rejectAlways
+    case .allowOnce: AgentSymbol.accept
+    case .allowAlways: AgentSymbol.acceptAlways
+    case .rejectOnce: AgentSymbol.reject
+    case .rejectAlways: AgentSymbol.rejectAlways
     case .unknown: ItemStatus.unknown.systemImage
     }
   }

@@ -190,7 +190,7 @@ public struct AttachmentChips: View {
             Button {
               remove(attachment.id)
             } label: {
-              Label(String(localized: "Remove", bundle: .module), systemImage: SharedSymbol.remove)
+              Label(String(localized: "Remove", bundle: .module), systemImage: AgentSymbol.remove)
                 .labelStyle(.iconOnly)
             }
             .buttonStyle(.borderless)
@@ -218,7 +218,7 @@ public struct AttachmentChips: View {
   /// - Parameter attachment: The attachment that the agent does not accept.
   /// - Returns: The mark.
   private func notAcceptedMark(for attachment: Attachment) -> some View {
-    Label(String(localized: "Not accepted", bundle: .module), systemImage: SharedSymbol.warning)
+    Label(String(localized: "Not accepted", bundle: .module), systemImage: EditorSymbol.severity(.warning).systemImage)
       .labelStyle(.iconOnly)
       .foregroundStyle(editorTheme.severityWarning)
       .help(

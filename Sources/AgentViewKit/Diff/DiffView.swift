@@ -59,10 +59,10 @@ public struct DiffView: View {
   static let rejectPrefix = "diff-reject-"
 
   /// The symbol of each Accept button.
-  static let acceptSymbol = SharedSymbol.accept
+  static let acceptSymbol = AgentSymbol.accept
 
   /// The symbol of each Reject button.
-  static let rejectSymbol = SharedSymbol.reject
+  static let rejectSymbol = AgentSymbol.reject
 
   /// The patch text, or `nil` for a structured diff with no patch text.
   let patch: String?
@@ -277,7 +277,7 @@ public struct DiffView: View {
         onAttach(DiffAttachment(file: file.path, lines: lines))
       } label: {
         Label(
-          String(localized: "Attach to prompt", bundle: .module), systemImage: SharedSymbol.attach)
+          String(localized: "Attach to prompt", bundle: .module), systemImage: AgentSymbol.attach)
       }
       .accessibilityIdentifier(Self.attachIdentifier)
     }

@@ -18,13 +18,12 @@ The inspector of the view kits is EditorKit's `EditorInspector`: the
 `InspectorActionRow` and `.inspectorPreviewFrame()`. The library keeps no
 copy of them, and a view kit imports `EditorInspector` itself.
 
-The symbols of a tool kind, a file kind and a status are EditorKit's
-`EditorSymbol`, and the library and AgentViewKit draw each symbol with
-EditorKit's `EditorSymbolImage`, in a tone of the theme, with its live effect
-and its Reduce Motion rule. ``SharedSymbol`` keeps the names of the concepts
-that EditorKit does not hold, such as a warning notice or a Reload button.
-Its tool-kind and file names stay for the view kits that still read them,
-until those kits draw EditorKit's symbols. The change to a file of a diff is
+Each symbol the view kits share is EditorKit's `EditorSymbol`: a tool kind,
+a file kind, a status, the severity of a notice, a closed session, and the
+Reload, Dismiss, link and disclosure marks. The library and AgentViewKit draw
+each symbol with EditorKit's `EditorSymbolImage`, in a tone of the theme,
+with its live effect and its Reduce Motion rule, and keep no symbol table of
+their own for those concepts. The change to a file of a diff is
 EditorKit's `FileDiff.Operation`, which ``DiffSummary/FileSummary`` holds, and
 the kind of the file is EditorKit's `EditorSymbol.FileKind(diffOperation:)`.
 The library adds only the word of an operation, such as "Added", for the
@@ -58,10 +57,6 @@ inspector of its file with ``SwiftUI/View/toolCallLocationChipStyle(_:)``.
 - ``SwiftUI/View/selectableSurface(_:corners:)``
 - ``SwiftUI/View/changeHighlightEdge(corners:isShowing:)``
 - ``SwiftUI/View/changeHighlightEdge(radius:isShowing:)``
-
-### Symbols
-
-- ``SharedSymbol``
 
 ### The status bar
 

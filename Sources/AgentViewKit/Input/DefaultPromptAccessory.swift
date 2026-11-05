@@ -93,7 +93,7 @@ public struct DefaultPromptAccessory: View {
     Button {
       submit()
     } label: {
-      Label(String(localized: "Send", bundle: .module), systemImage: SharedSymbol.send)
+      Label(String(localized: "Send", bundle: .module), systemImage: AgentSymbol.send)
         .labelStyle(.iconOnly)
         .fontWeight(editorStyle.symbolWeight)
     }
@@ -111,7 +111,7 @@ public struct DefaultPromptAccessory: View {
     Button {
       session?.startCancel(reporting: reportRequestStart)
     } label: {
-      Label(String(localized: "Stop", bundle: .module), systemImage: SharedSymbol.stop)
+      Label(String(localized: "Stop", bundle: .module), systemImage: AgentSymbol.stop)
         .labelStyle(.iconOnly)
         .fontWeight(editorStyle.symbolWeight)
     }

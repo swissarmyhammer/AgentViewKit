@@ -10,7 +10,7 @@ import SwiftUI
 /// has more rows than the row limit.
 struct OutputCapRow: View {
   /// The symbol of the Show All button.
-  static let showAllSymbol = SharedSymbol.showAll
+  static let showAllSymbol = AgentSymbol.showAll
 
   /// The rows that show.
   let rows: CommandOutputView.VisibleRows

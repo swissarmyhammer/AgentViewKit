@@ -93,16 +93,18 @@ struct SessionBreadcrumb: View {
 
   var body: some View {
     ForEach(BreadcrumbSegment.segments(of: path, collapsed: collapsed)) { segment in
-      DecorativeSymbolImage(name: SharedSymbol.disclosure)
+      EditorSymbolImage(.action(.disclosure))
         .imageScale(.small)
+        .accessibilityHidden(true)
       switch segment {
       case .crumb(let session): crumb(session)
       case .overflow(let sessions): overflow(sessions)
       }
     }
     if let shown, shown.children.contains(where: { !$0.isClosed }) {
-      DecorativeSymbolImage(name: SharedSymbol.disclosure)
+      EditorSymbolImage(.action(.disclosure))
         .imageScale(.small)
+        .accessibilityHidden(true)
       childrenDropdown(of: shown)
     }
   }
@@ -142,9 +144,9 @@ struct SessionBreadcrumb: View {
         .lineLimit(1)
         .truncationMode(.middle)
       if needsAttention {
-        DecorativeSymbolImage(name: SharedSymbol.warning)
+        EditorSymbolImage(.severity(.warning))
           .imageScale(.small)
-          .foregroundStyle(editorTheme.severityWarning)
+          .accessibilityHidden(true)
       }
     }
   }
@@ -239,7 +241,7 @@ struct SessionBreadcrumb: View {
   /// - Returns: The SF Symbol name.
   static func mark(of entry: SessionPathEntry, isCurrent: Bool) -> String {
     if isCurrent { return "checkmark" }
-    return entry.needsAttention ? SharedSymbol.warning : "circle"
+    return entry.needsAttention ? EditorSymbol.severity(.warning).systemImage : "circle"
   }
 
   /// The scope of the crumb of a session, so the crumb takes the keyboard

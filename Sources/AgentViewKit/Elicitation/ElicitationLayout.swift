@@ -83,7 +83,7 @@ public struct ElicitationLayout: View {
   /// The symbol of a tab with an answer.
   static let answeredSymbol = ItemStatus.completed.systemImage
   /// The symbol of a tab with no answer.
-  static let notAnsweredSymbol = SharedSymbol.notChosen
+  static let notAnsweredSymbol = AgentSymbol.notChosen
   /// The radius step of a tab chip: the medium radius, the corners of a chip
   /// of the kit. The edge of the chip, the shared selection surface of the
   /// selected tab and the focus ring of the tab button all have this shape.

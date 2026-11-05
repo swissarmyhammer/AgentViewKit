@@ -16,7 +16,7 @@ public struct ScrollToBottomPill: View {
   public static let identifier = "scroll-to-bottom-pill"
 
   /// The SF Symbol name of the pill.
-  static let symbolName = SharedSymbol.scrollToBottom
+  static let symbolName = AgentSymbol.scrollToBottom
 
   /// The number of items that arrived after the list became unpinned.
   let newItemCount: Int

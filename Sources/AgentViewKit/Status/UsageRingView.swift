@@ -125,11 +125,11 @@ public struct UsageRingView: View {
   /// - Parameters:
   ///   - numerator: The part of the whole.
   ///   - denominator: The whole.
-  /// - Returns: ``SharedSymbol/usageFull`` when the part fills the whole,
-  ///   and ``SharedSymbol/usage`` otherwise.
+  /// - Returns: ``AgentSymbol/usageFull`` when the part fills the whole,
+  ///   and ``AgentSymbol/usage`` otherwise.
   static func symbolName(numerator: Int, denominator: Int) -> String {
     let filled = fraction(numerator: numerator, denominator: denominator)
-    return isFull(filled) ? SharedSymbol.usageFull : SharedSymbol.usage
+    return isFull(filled) ? AgentSymbol.usageFull : AgentSymbol.usage
   }
 
   // MARK: - Body

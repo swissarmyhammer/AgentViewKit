@@ -20,7 +20,7 @@ public struct SuggestionsView: View {
   public static let chipIdentifierPrefix = "prompt-suggestion-"
 
   /// The symbol of each chip.
-  static let chipSymbol = SharedSymbol.suggestion
+  static let chipSymbol = AgentSymbol.suggestion
 
   /// The suggested prompts, in the order to show.
   let suggestions: [String]

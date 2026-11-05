@@ -559,14 +559,14 @@ private struct DeckHeader: View {
   @ViewBuilder
   private var position: some View {
     stepButton(
-      verb: .previousRequest, symbol: SharedSymbol.previousRequest, neighbor: \.previous,
+      verb: .previousRequest, symbol: AgentSymbol.previousRequest, neighbor: \.previous,
       identifier: RequestDeck.previousIdentifier)
     Text(String(localized: "\(layout.position) of \(layout.count)", bundle: .module))
       .monospacedDigit()
       .accessibilityLabel(layout.positionLabel)
       .accessibilityIdentifier(RequestDeck.positionIdentifier)
     stepButton(
-      verb: .nextRequest, symbol: SharedSymbol.nextRequest, neighbor: \.next,
+      verb: .nextRequest, symbol: AgentSymbol.nextRequest, neighbor: \.next,
       identifier: RequestDeck.nextIdentifier)
   }
 

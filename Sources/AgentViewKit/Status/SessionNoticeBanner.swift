@@ -106,9 +106,9 @@ struct NoticeBanner: View {
   /// - Returns: The symbol name.
   static func symbolName(for severity: NoticeSeverity) -> String {
     switch severity {
-    case .info: SharedSymbol.information
-    case .warning: SharedSymbol.warning
-    case .error: SharedSymbol.error
+    case .info: EditorSymbol.severity(.information).systemImage
+    case .warning: EditorSymbol.severity(.warning).systemImage
+    case .error: EditorSymbol.severity(.error).systemImage
     case .unknown: ItemStatus.unknown.systemImage
     }
   }
