@@ -21,8 +21,6 @@ import Testing
   /// The title of the empty state of the tests.
   static let emptyStateTitle = "Start here"
 
-  /// The answer of the date field of the tests.
-  static let dateAnswer = "2026-11-05"
 
   /// The longest answer of a text field that shows one line
   /// (``ElicitationTextField/multiLineThreshold``).
@@ -90,7 +88,7 @@ import Testing
   @Test func theInputOfAnElicitationDateFieldDrawsInTheUIRole() throws {
     let schema = ElicitationTestFields.field(.date(dateTime: false))
     let field = ElicitationDateField(
-      context: ElicitationFieldContext(schema: schema, value: .constant(.string(Self.dateAnswer))))
+      context: ElicitationFieldContext(schema: schema, value: .constant(.string(ElicitationFieldViewsHostedTests.dayAnswer))))
     try FontRoleExpectations.expectEditor(in: field, drawsIn: .ui)
   }
 
