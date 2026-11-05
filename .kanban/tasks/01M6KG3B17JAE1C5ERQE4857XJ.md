@@ -237,8 +237,22 @@ comments:
   id: 01m6m16p28bq30qeqvcqgk0zq1
   text: Ticked "Entry duration row" (^xb69s3d). The Time group of each transcript entry now has a `.duration` row in minutes and seconds (`.durationFormat(EntryTimingView.durationFormat)`), with `.visible` set so it shows only once `timing.duration` exists. Started/Ended stay optional dates (EK's `.date` kind takes a non-optional Date). ClientModelInspectionHostedTests.theDurationRowOfAToolCallShowsTheTimeToItsCompletion covers it.
   timestamp: 2026-11-04T19:40:02.504528+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m6p1tqyrhknagaz57t7dg9cs
+  text: |-
+    ### finish — clean (2026-11-05)
+    Everything this card tracked is on origin main (a2c82683):
+    - AVK's inspector copies are gone (EK EditorInspector).
+    - ConfigOptionsView and ToolToggles are on InspectorView.
+    - ACPClient models conform as `@retroactive Inspectable`.
+    - Status, path, duration and preview rows use EK field kinds.
+    - AttachmentInspector is on InspectorView with a content-sized `.preview` row.
+    - Tests are on InspectorDriver.
+    - Gallery images are in place.
+    The one remaining item, list path rows (tool-call locations and additional directories), is its own card ^b9xgnm7, waiting on EK's list-of-paths field kind.
+  timestamp: 2026-11-05T14:29:28.664811+00:00
+position_column: done
+position_ordinal: ffffffa980
 title: 'All AVK inspection through EditorKit''s EditorInspector: AttachmentInspector, config and tool forms, ACPClient conformances'
 ---
 Rescoped 2026-11-04 by the user's call (relayed by editorkit-b5): the core inspector and `Inspectable` live in EditorKit, so every kit gets them, and **all inspection in AVK goes through EditorInspector**.

@@ -1,8 +1,8 @@
 ---
 assignees:
 - claude-code
-position_column: todo
-position_ordinal: 8d80
+position_column: doing
+position_ordinal: '9280'
 title: Move AVK's hosted tests onto EditorKit's harness.perform(_:on:)
 ---
 EK ^e0jrvyt is on EK origin at 2b0d42e2: `harness.perform(.press | .increment | .custom(name) | .focus | .pick(…), on: id)` in EditorTestSupport. It's headless: no activation, no window brought front, no key window, and menus show for one run-loop turn then close. Its lookup is stricter, requiring exactly one match.

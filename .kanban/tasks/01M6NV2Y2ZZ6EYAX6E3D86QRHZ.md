@@ -32,8 +32,8 @@ comments:
     - evidence: 7a3d72fb on worktree-agent-abe93fb5c14c9482e (not pushed, not merged)
     - next: /review
   timestamp: 2026-11-05T13:40:18.744432+00:00
-position_column: doing
-position_ordinal: 8f80
+position_column: done
+position_ordinal: ffffffa780
 title: Move back, forward and chat symbols from AgentSymbol onto EditorKit's EditorSymbol
 ---
 **Blocked** on EK's card (being built, 2026-11-05) that adds `.action(.back)`, `.action(.forward)` and a chat or conversation symbol to EditorSymbol. editorkit-b5 sends the SHA. Second-kit rule: Testudo uses `chevron.backward`/`chevron.forward` (SAHKit InspectorAreaView) and `bubble.left.and.bubble.right` (SAHKit WindowLayout), so these leave AVK's internal AgentSymbol.

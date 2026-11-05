@@ -44,13 +44,24 @@ comments:
   id: 01m6ntvqsxcrspsat6y6m2ankk
   text: 'Waiting on EK ^sjjykvg''s origin SHA (coordinator, 2026-11-05). The user approved dropping side-by-side, and decided there is no fixed-height preview: diffs, code and text grow to their full content height and the thread or inspector scrolls. When the SHA lands: merge AVK origin main (symbols, status, path chip, SharedSymbol and ChipFlowLayout are gone; DiffFileLabel is on FileDiff.Operation); seed .build from the main checkout; `swift package update`, keeping the codecontext pin at ffa5a66 if it is still needed; drop the 240 pt assumptions (the DiffView, DiffRendererSlot and ARCHITECTURE docs say "at the preview height", SnapshotFixtures.diffHeight, and the reason given for 90a51911''s thread-screen reorder); add a hosted test that a diff in a tool call and in the inspector has no inner vertical scroll view (`scrollsAsOne`) and grows when its content grows; capture the gallery again; then commit. The AttachmentInspector QuickLook row keeps EK''s previewHeight. AVK has no `.inspectorPreviewFrame()` call left, because PreviewField frames the `.file` value itself.'
   timestamp: 2026-11-05T12:27:41.245486+00:00
-position_column: doing
-position_ordinal: '8680'
+- actor: claude-code
+  id: 01m6p0wr9dwqgz1fd47wq0whmt
+  text: |-
+    ### implement — changed
+    - evidence: branch worktree-agent-af0599b4bf942a9b5 at 8e852778 (864e4e83 merges AVK origin main a1fe3d0d). EK fca868d4 (^sjjykvg) in all three packages, no pins (codecontext resolves to 0bc7bddc). `swift test`: 980 + 54 passed, zero AVK warnings. `swift test --package-path IntegrationTests`: 951 tests in 125 suites passed (5 known issues), no AVK warnings. ScreenshotTests: 27 passed, run once; the gallery shows the content-sized diff in the thread and in `diff-*`, and the attachment one/Mixed images. The nested .build folders are deleted.
+    - Content-sized diff: the docs no longer say "preview height" (DiffView, DiffRendererSlot, ARCHITECTURE, SnapshotFixtures.diffHeight, and the reason for the thread-screen order). New `DiffGrowthHostedTests`: a diff in a tool call (FrameRecorder) and in an inspector preview row (`InspectorDriver.frame(of:)`) scrolls as one with its host (`scrollsAsOne`) and grows while it shows when the model's patch grows. No mouse and no focus. Checked RED: with `.frame(height: 120)` on the preview, all three tool-call checks fail.
+    - Deleted, after re-grepping KVK fa69244, SVK 2f84cf5 and TestudoApp 8dffa20 origin mains (no use): `DiffContentView`, `EditorKitDiffRenderer` (with `unreadablePatchIdentifier`), `DiffLayout`, `\.diffLayout`, `.diffLayout(_:)`, their docc entries and previews, `StylePreviewFixtures.unreadablePatch`, IntegrationTests `DiffContentViewTests`, and the style/hosted layout and renderer tests. The file-filter and parse-line checks moved to `DiffPreviewSourceTests` on `DiffView.diff(of:file:)`. `UnreadablePatch` moved into AgentViewKit (internal) together with its catalog string. No shims. Docs/decisions/diff-renderer.md is marked superseded in part.
+    - Kept, because AVK uses them: `DiffSummary.parse(gitPatch:)` (`DiffView(patch:)` and the `DiffFileChip` preview) and the `diffRenderer` slot.
+    - Noticed: the content-sized EK diff shows a text caret at the start of its first line in the captures (EK's read-only diff view).
+    - next: /review.
+  timestamp: 2026-11-05T14:13:05.965129+00:00
+position_column: done
+position_ordinal: ffffffa680
 title: 'Adopt EditorKit one-value preview (^jn3qmmy): delete AVK''s single diff preview'
 ---
-**Unblocked:** the Blocked line is obsolete. EK ^jn3qmmy is on EK origin at 8b13a962. AVK builds on EK 4767505c (which also fixes the EditorStyle padding), with foundationmodelscodecontext pinned to ffa5a66 in the three gitignored Package.resolved files.
+**Unblocked:** EK ^jn3qmmy (8b13a962) and ^sjjykvg (content-sized previews) are on EK origin. AVK builds on EK fca868d4.
 
-Boundary (user, 2026-11-04): the diff preview belongs to EK. The compound `DiffView` stays in AVK.
+Boundary (user, 2026-11-04): the diff preview belongs to EK. The compound `DiffView` stays in AVK. User decision (2026-11-05): diffs are one unified column (side by side dropped), and there is no fixed-height preview box. Diffs, code and text grow to their full content height, and the thread or inspector scrolls.
 
 ## What
 - `swift package update` (all dependencies together) once the SHA lands.
@@ -58,17 +69,14 @@ Boundary (user, 2026-11-04): the diff preview belongs to EK. The compound `DiffV
 - Rebuild the compound `DiffView` in AVK on EK's preview.
 - Update the docc pages.
 - Also the waiting item of ^e4857xj: AttachmentInspector on EK's `InspectorView`, with a `.preview` row and EK action rows, in every AttachmentInspectorMode; its hosted tests on InspectorDriver; the attachment gallery images, several files showing Mixed, Light and Dark, about 240 pt and wide.
+- (2026-11-05) Content-sized diffs: drop the 240 pt assumptions; add a hosted test that a diff in a tool call and in an inspector has no inner vertical scroll and grows live. Then delete `DiffContentView`, `EditorKitDiffRenderer`, `DiffLayout` and `\.diffLayout`, which no kit uses any more.
 
-## Kept for later removal (a kit still uses them; no shim added)
-SnapshotViewKit origin/main uses these, so they stay in AgentViewKitStyle until SVK moves to EK's `PreviewField`:
-- `DiffContentView` — SVK `Sources/SnapshotViewKit/Files/CheckpointFileDiff.swift` (the diff and the note).
-- `EditorKitDiffRenderer` — the view in SVK `ScreenshotTests/.../SnapshotViewKitReviewScreens+SharedStyle.swift`; `diff(of:file:)` and `line(of:)` in SVK `Sources/SnapshotViewKit/Files/CheckpointFileDiffContent.swift`.
-- `DiffLayout`, `\.diffLayout`, `.diffLayout(_:)` — SVK's screenshot (`.diffLayout(.inline)`).
-- AVK's own `DiffView` still calls `EditorKitDiffRenderer.diff(of:file:)` for the file filter; move that filter into `DiffView` when the type goes.
-- AttachmentInspector's private QuickLookPreview is deleted (EK's `PreviewField` `.file` harvested it). KVK uses none of these.
+## Deleted (no kit uses them: KVK fa69244, SVK 2f84cf5, TestudoApp 8dffa20)
+`DiffContentView`, `EditorKitDiffRenderer` (and `unreadablePatchIdentifier`), `DiffLayout`, `\.diffLayout`, `.diffLayout(_:)`, with their docc entries, previews and tests; AttachmentInspector's private QuickLookPreview. The file filter is now `DiffView.diff(of:file:)`. `UnreadablePatch` moved into AgentViewKit along with its string.
+Kept because AVK uses them: `DiffSummary.parse(gitPatch:)` (`DiffView(patch:)` and the `DiffFileChip` preview) and the `diffRenderer` slot.
 
 ## Acceptance Criteria
-- [x] No AVK copy of the single diff preview is left in `DiffView` or the attachment inspector (the two kept Style types serve SVK only, listed above).
+- [x] No AVK copy of the single diff preview is left.
 - [x] `DiffView` and the attachment preview use EK's preview, with EK's theming.
 - [x] The review gallery shows the diff and attachment previews, light and dark.
 
@@ -77,13 +85,13 @@ SnapshotViewKit origin/main uses these, so they stay in AgentViewKitStyle until 
 - [x] Diff preview tests move onto EK's API, or are dropped where EK covers them. Each dropped check is written on the card.
 
 ## Dropped or changed checks
-- `DiffRendererDefaultHostedTests.theSideBySideLayoutShowsTheEditorKitColumns` dropped: EK's `PreviewField` draws its diff inline only (`PreviewValue.diff` has no layout, and EK's `diffLayout` is a copy modifier on its DiffView, not an environment value), so `DiffView` no longer follows `\.diffLayout`. Follow-up below.
-- `DiffRendererDefaultHostedTests.anUnreadablePatchShowsTheLineOfTheParseError` reads the preview failure through `InspectorDriver.previewFailure(of: DiffView.previewIdentifier)` instead of the `diff-patch-unreadable` note.
-- `AttachmentInspectorFormHostedTests.theContentOfTheInspectorIsAScrollingForm`: `inspector-form` now stands on the InspectorView's group, so the check finds the scroll area under it instead of on it.
-- `AttachmentFocusHostedTests.aFocusableViewOfTheInspectorTakesTheFocusOfItsScope` replaced by an `.inspector` case of `theBeaconOfTheScopeHoldsTheFocus`: EK's `InspectorView` never takes the focus itself, so the beacon of the attachment scope holds it.
-- The name checks of the attachment suites read EK's name row (`AttachmentInspector.nameIdentifier(of:)`, the scheme id) by its value; the action presses go through `InspectorDriver.pressAction`.
-- Gallery: the thread screen's diff edit now stands above the code-block reply. The 240 pt preview below the reply pushed the code block out of the rows the pinned thread draws (`SnapshotFixtures.codeBlockModel`, `cache.contains(id)`).
+- `DiffRendererDefaultHostedTests`: the side-by-side columns test, the layout-setting tests and the file-filter tests are dropped. Side by side is gone by the user's decision; the file-filter and parse-line checks now live as unit tests in `DiffPreviewSourceTests` on `DiffView.diff(of:file:)`. The unreadable patch is read through `InspectorDriver.previewFailure(of: DiffView.previewIdentifier)`. `theInlineLayoutHasNoColumns` becomes `theDiffIsOneUnifiedColumn`.
+- `DiffStyleTests`: the renderer and layout tests are dropped along with their types. IntegrationTests `DiffContentViewTests` is deleted along with its type.
+- `AttachmentInspectorFormHostedTests.theContentOfTheInspectorIsAScrollingForm`: `inspector-form` stands on the InspectorView's group, so the check finds the scroll area under it.
+- `AttachmentFocusHostedTests.aFocusableViewOfTheInspectorTakesTheFocusOfItsScope` becomes an `.inspector` case of `theBeaconOfTheScopeHoldsTheFocus`: EK's `InspectorView` never takes the focus itself.
+- The attachment suites read EK's name row by its value (`AttachmentInspector.nameIdentifier(of:)`), and press the actions through `InspectorDriver.pressAction`.
+- Gallery: the thread screen's diff edit stands above the code-block reply, because the full-height diff below the reply pushed the code block out of the rows the pinned thread draws.
 
 ## Follow-ups
-- EK: a layout for the diff of `PreviewField` (inline / side by side), so `DiffView` can follow `\.diffLayout` again.
-- TestudoApp: `TestudoUITestSupport/InspectorScreen.swift` hard-codes `inspector-name`; the name row now carries EK's scheme id (`AttachmentInspector.nameIdentifier(of:)`). `inspector-form` is kept.
+- TestudoApp: `TestudoUITestSupport/InspectorScreen.swift` hard-codes `inspector-name`; the name row now carries EK's scheme id (`AttachmentInspector.nameIdentifier(of:)`). `inspector-form` is kept. (The coordinator relays this.)
+- EK: the content-sized diff shows a text caret at the start of its first line in the gallery captures.

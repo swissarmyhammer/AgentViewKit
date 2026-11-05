@@ -41,8 +41,32 @@ comments:
     - evidence: a1f7c619 on worktree-agent-abe93fb5c14c9482e (not pushed, not merged)
     - next: /review
   timestamp: 2026-11-05T14:06:44.134023+00:00
-position_column: doing
-position_ordinal: '9180'
+- actor: claude-code
+  id: 01m6p0m3mwsx85vwx1kbekr314
+  text: 'Correction to the implement record above: the evidence is 6 files (the six listed), not 7. Nested IntegrationTests/.build and ScreenshotTests/.build deleted after the runs.'
+  timestamp: 2026-11-05T14:08:22.684333+00:00
+- actor: claude-code
+  id: 01m6p1d2qcxrgjqy77qhcf65m7
+  text: |-
+    Review findings fixed in cf780e14 (fast-forwarded the branch to main 5dda03c3 first; IntegrationTests re-seeded and updated, EK now resolves at 73033d2).
+    - Finding 1: new Helpers/FallbackKeyBinding.swift, `FallbackKeyBinding.bind(_:to:at:fallbackAt:in:)` (chord, command id, scope path, host path) plus `fallbackID`. The attachment bed, the thread test and `bindProbeChord` now call it; `AgentCommandDeclinedKeyHostedTests.fallbackID` is gone.
+    - Finding 2: new Helpers/AgentRowListBedSupport.swift, `AgentRowListBedSupport.windowSize`. The four AgentRowList beds (Decline, Open, Row, Section) each had the same 300x300 literal; all four now use the shared constant.
+    - Finding 3: `AgentRowListScope.path(ofRow:)` in the same helper file. DeclineBed.rowPath, OpenBed.rowPath, RowBed.path(ofRow:) and SectionBed.path(ofRow:) call it, and so does ConnectionsNavigationHostedTests.rowPaths, which had the same copy.
+
+    ### implement — changed
+    - evidence: 10 files — IntegrationTests/Tests/IntegrationTests/Helpers/FallbackKeyBinding.swift, Helpers/AgentRowListBedSupport.swift, Attachments/AttachmentDeclinedKeyHostedTests.swift, Commands/AgentCommandDeclinedKeyHostedTests.swift, Commands/AgentScopeSubjectHostedTests.swift, Connections/ConnectionsNavigationHostedTests.swift, Lists/AgentRowListCurrentHostedTests.swift, Lists/AgentRowListDeclinedKeyHostedTests.swift, Lists/AgentRowListOpenHostedTests.swift, Lists/AgentRowListSectionsHostedTests.swift
+    - next: main fast-forward
+
+    ### test — green
+    - evidence: `swift test --package-path IntegrationTests` 954 tests in 127 suites passed (5 known issues, pre-existing), zero failures, no warnings from AVK targets; root suite not run (test-only change)
+    - next: main fast-forward
+
+    ### commit — changed
+    - evidence: cf780e14 on worktree-agent-abe93fb5c14c9482e (child of 5dda03c3; not pushed). Nested IntegrationTests/.build deleted.
+    - next: fast-forward main to cf780e14
+  timestamp: 2026-11-05T14:22:00.940192+00:00
+position_column: done
+position_ordinal: ffffffa880
 title: Check AVK key commands against EditorKit's declined-key fall-through (^jaxzzkn)
 ---
 **Blocked** on EK ^jaxzzkn (in review, 2026-11-05); editorkit-b5 sends the SHA. A behaviour change, not an API change: when a key's command `run` returns false, the key passes on — the next same-id outer definition first, then the next eligible binding, then the host. Calling a specific id (menu, palette, context menu, commandClick, intent) still targets only that command, and false means it failed.
@@ -67,3 +91,8 @@ EK's `CommandRegistry.attempt` checks a command's availability on the same built
 ## Tests
 - [x] For each site, a hosted test that a declined key reaches the next binding, or is held, as decided. Drive it through accessibility or key events, never the mouse.
 - [x] The full AVK suite is green; RequestDeck:153, AgentNavigation:89/92 and SingleLineFieldChecks:172 still pass.
+
+## Review Findings (2026-11-05)
+- [x] IntegrationTests/Tests/IntegrationTests/Commands/AgentScopeSubjectHostedTests.swift:218 reuse — `bindProbeChord(at:in:)` repeats the bind-a-chord-then-register-a-recording-fallback setup that the attachment and thread beds also write. Extract one test helper that takes the chord, the bound command id, the scope path and the host path, and call it from all three.
+- [x] IntegrationTests/Tests/IntegrationTests/Lists/AgentRowListDeclinedKeyHostedTests.swift:23 magic-numbers — `CGSize(width: 300, height: 300)`. Name it, or reuse an existing bed-size constant.
+- [x] AgentRowListDeclinedKeyHostedTests.swift:81 reuse — `DeclineBed.rowPath(_:)` duplicates `OpenBed.rowPath`. Move one row-path helper, taking the scope and ids, into shared test support, and have DeclineBed, OpenBed, RowBed and SectionBed call it.
