@@ -80,24 +80,42 @@ public struct EntryTimingView: View, PrefixedAccessibilityIdentifier {
     return duration
   }
 
-  /// The format of a start time, which the line shows and the label tells:
-  /// the short time of the day, with no date, such as "6:13 AM".
+  /// The format of a start time, which the line shows, the label tells and
+  /// the Started and Ended rows of an inspector show: the short time of the
+  /// day, with no date, such as "6:13 AM".
+  ///
+  /// The format fixes no locale and no time zone. A view that shows it
+  /// gives the ones of its environment, as the inspector does; the text of
+  /// the line gives its own (``startStyle(locale:timeZone:)``).
+  static var startStyle: Date.FormatStyle { Date.FormatStyle(date: .omitted, time: .shortened) }
+
+  /// The ``startStyle`` in a locale and a time zone.
   ///
   /// - Parameters:
   ///   - locale: The locale of the text.
   ///   - timeZone: The time zone of the clock time.
   /// - Returns: The time format of `locale` and `timeZone`.
   static func startStyle(locale: Locale, timeZone: TimeZone) -> Date.FormatStyle {
-    Date.FormatStyle(date: .omitted, time: .shortened, locale: locale, timeZone: timeZone)
+    var style = startStyle.locale(locale)
+    style.timeZone = timeZone
+    return style
   }
 
-  /// The format of a duration that the line shows: the narrow units of the
-  /// duration, with no unit of zero, such as "1m 15s".
+  /// The format of a duration that the line and the Duration row of an
+  /// inspector show: the narrow units of the duration, with no unit of zero,
+  /// such as "1m 15s".
+  ///
+  /// The format fixes no locale. A view that shows it gives the one of its
+  /// environment, as the inspector does; the text of the line gives its own
+  /// (``lineDurationStyle(locale:)``).
+  static var lineDurationStyle: Duration.UnitsFormatStyle { durationStyle(width: .narrow, zeroValueUnits: .hide) }
+
+  /// The ``lineDurationStyle`` in a locale.
   ///
   /// - Parameter locale: The locale of the text.
   /// - Returns: The narrow duration format of `locale`.
   static func lineDurationStyle(locale: Locale) -> Duration.UnitsFormatStyle {
-    durationStyle(locale: locale, width: .narrow, zeroValueUnits: .hide)
+    lineDurationStyle.locale(locale)
   }
 
   /// The format of a duration that a label tells: at most
@@ -107,28 +125,27 @@ public struct EntryTimingView: View, PrefixedAccessibilityIdentifier {
   /// - Parameter locale: The locale of the text.
   /// - Returns: The wide duration format of `locale`.
   static func spokenDurationStyle(locale: Locale) -> Duration.UnitsFormatStyle {
-    durationStyle(locale: locale, width: .wide, maximumUnitCount: largestUnitCount)
+    durationStyle(width: .wide, maximumUnitCount: largestUnitCount).locale(locale)
   }
 
   /// The one builder of the duration formats of the view: the units of
-  /// ``durationUnits``, with the fraction of a second rounded away.
+  /// ``durationUnits``, with the fraction of a second rounded away. The
+  /// format fixes no locale; each caller gives its own.
   ///
   /// - Parameters:
-  ///   - locale: The locale of the text.
   ///   - width: The width of the unit names.
   ///   - zeroValueUnits: Whether units of zero show.
   ///   - maximumUnitCount: The largest number of units that show, or `nil`
   ///     for each unit.
-  /// - Returns: The duration format of `locale`.
+  /// - Returns: The duration format.
   private static func durationStyle(
-    locale: Locale, width: Duration.UnitsFormatStyle.UnitWidth,
+    width: Duration.UnitsFormatStyle.UnitWidth,
     zeroValueUnits: Duration.UnitsFormatStyle.ZeroValueUnitsDisplayStrategy = .hide,
     maximumUnitCount: Int? = nil
   ) -> Duration.UnitsFormatStyle {
     Duration.UnitsFormatStyle(
       allowedUnits: durationUnits, width: width, maximumUnitCount: maximumUnitCount,
-      zeroValueUnits: zeroValueUnits, fractionalPart: .hide(rounded: secondsRounding)
-    ).locale(locale)
+      zeroValueUnits: zeroValueUnits, fractionalPart: .hide(rounded: secondsRounding))
   }
 
   /// The text of the duration that a label shows, with whole words, for a

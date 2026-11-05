@@ -55,21 +55,6 @@
     /// The text of the host view that the one-row tests wrap.
     static let hostText = "Host row"
 
-    /// The difference, in seconds, between the offset from GMT of the
-    /// machine's time zone at ``start`` and the offset of the zone that the
-    /// time zone test gives the environment: three hours, so the two zones
-    /// show two different clock times of ``start``.
-    static let zoneShiftSeconds = 3 * 60 * 60
-
-    /// A time zone whose clock time of ``start`` is not the clock time of the
-    /// machine's time zone: its offset from GMT is ``zoneShiftSeconds`` more.
-    ///
-    /// - Returns: The zone, or `nil` when the offset is out of the range of a
-    ///   time zone.
-    static func zoneOtherThanTheMachines() -> TimeZone? {
-      TimeZone(secondsFromGMT: TimeZone.current.secondsFromGMT(for: start) + zoneShiftSeconds)
-    }
-
     /// A chunk update of the tests.
     ///
     /// - Parameters:
@@ -350,7 +335,7 @@
     }
 
     @Test func theStartTellsTheClockTimeOfTheTimeZoneOfTheEnvironment() async throws {
-      let zone = try #require(Self.zoneOtherThanTheMachines())
+      let zone = try #require(TimedSessionClock.zoneOtherThanTheMachines())
       let clock = FixedClock(start: Self.start)
       let session = try await Self.openSession(clock: clock)
       defer { session.close() }
