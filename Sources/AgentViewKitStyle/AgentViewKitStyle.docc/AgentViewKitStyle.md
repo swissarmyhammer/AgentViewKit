@@ -71,7 +71,6 @@ inspector of its file with ``SwiftUI/View/toolCallLocationChipStyle(_:)``.
 
 ### Chips
 
-- ``ChipFlowLayout``
 - ``ToolCallLocationChips``
 - ``ToolCallLocationChipConfiguration``
 - ``ToolCallLocationChipStyle``

@@ -119,6 +119,14 @@ import Testing
     try await Self.generate(StatusGalleryFixtures.gallery, named: "statuses", size: StatusGalleryFixtures.size)
   }
 
+  /// The location chips of a tool call and the file chips of a diff in a
+  /// narrow column, each in EditorKit's `EditorChipRows`, wrapping to more
+  /// than one row (``ChipRowsGalleryFixtures``).
+  @Test func theChipRowsInANarrowColumn() async throws {
+    try await Self.generate(
+      ChipRowsGalleryFixtures.gallery, named: "chip-rows-narrow", size: ChipRowsGalleryFixtures.size)
+  }
+
   @Test func theStatusBanner() async throws {
     let banner = StateBanner(session: SnapshotFixtures.runningSession)
 

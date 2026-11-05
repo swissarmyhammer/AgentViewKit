@@ -209,7 +209,7 @@ public struct DiffView: View {
   /// - Parameter selected: The file that the renderer shows.
   /// - Returns: The chips view.
   private func fileChips(selected: DiffSummary.FileSummary?) -> some View {
-    ChipFlowLayout(spacing: editorStyle.spacing.xs) {
+    EditorChipRows(spacing: editorStyle.spacing.xs) {
       ForEach(files) { file in
         fileChip(file, isSelected: file.path == selected?.path)
       }
