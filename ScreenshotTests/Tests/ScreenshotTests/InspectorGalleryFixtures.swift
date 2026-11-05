@@ -9,6 +9,10 @@ import Testing
 /// The models of the inspector images: two of each client model, with
 /// different values, from a scripted session whose agent sends one update of
 /// each kind of entry twice.
+///
+/// The scripted session is the first session of the images, with two
+/// additional directories, so its inspector shows the Additional Directories
+/// paths row.
 @MainActor
 struct InspectorGalleryFixtures {
   /// The scripted session whose transcript holds the entries.
@@ -26,9 +30,17 @@ struct InspectorGalleryFixtures {
       "agent_thought_chunk", messageID: "thought-1", block: WireBlockJSON.makeText("The loop ends one step late.")),
     WireBlockJSON.makeChunk("agent_thought_chunk", messageID: "thought-2", block: WireBlockJSON.makeText("Run the suite.")),
     WireBlockJSON.makeToolCallUpdate(
-      id: "call-1", fields: #""title": "Read Sources/Parser/Lexer.swift", "kind": "read", "status": "completed""#),
+      id: "call-1",
+      fields: #"""
+        "title": "Read Sources/Parser/Lexer.swift", "kind": "read", "status": "completed",
+        "locations": [{"path": "\#(lexerFile)"}]
+        """#),
     WireBlockJSON.makeToolCallUpdate(
-      id: "call-2", fields: #""title": "Edit Sources/Parser/Lexer.swift", "kind": "edit", "status": "in_progress""#),
+      id: "call-2",
+      fields: #"""
+        "title": "Edit Sources/Parser/Lexer.swift", "kind": "edit", "status": "in_progress",
+        "locations": [{"path": "\#(lexerFile)", "line": 42}, {"path": "\#(lexerTestsFile)"}]
+        """#),
     #"""
     {"sessionUpdate": "terminal_update", "terminalId": "terminal-1", "command": "swift build",
      "cwd": "\#(packageFolder)", "exitStatus": {"exitCode": 0}}
@@ -44,27 +56,35 @@ struct InspectorGalleryFixtures {
     #"{"sessionUpdate": "x_index_update", "note": "second"}"#,
   ]
 
-  /// The working directory of the first session and the first terminal, so
-  /// their inspectors show a Working Directory path row.
+  /// The working directory of the first terminal, so its inspector shows a
+  /// Working Directory path row.
   private static let packageFolder = "/Users/preview/Developer/Parser"
 
+  /// The file of the location of the first tool call, and of the first
+  /// location of the second one, so their inspectors show a Locations paths
+  /// row.
+  private static let lexerFile = "/Users/preview/Developer/Parser/Sources/Parser/Lexer.swift"
+
+  /// The file of the second location of the second tool call: the Mixed
+  /// image shows the Locations row of the two calls as Mixed.
+  private static let lexerTestsFile = "/Users/preview/Developer/Parser/Tests/ParserTests/LexerTests.swift"
+
+  /// The additional directories of the first session: two folders beside
+  /// its working directory, so its inspector shows an Additional
+  /// Directories paths row.
+  private static let additionalFolders = ["/Users/preview/Developer/Lexer", "/Users/preview/Developer/Grammar"]
+
   /// The working directory of the second session and the second terminal: a
-  /// folder other than ``packageFolder``, so the Mixed images show the row
-  /// as Mixed.
+  /// folder other than the working directory of the first one, so the Mixed
+  /// images show the row as Mixed.
   private static let testsFolder = "/Users/preview/Developer/Parser/Tests"
 
   /// The number of entries of one kind that a subject shows: one, and a
   /// second beside it for the Mixed image.
   private static let pairCount = 2
 
-  /// The session of the first image: the usage session of the previews, in
-  /// ``packageFolder``.
-  private static var firstSession: SessionModel {
-    .preview(cwd: AbsolutePath(rawValue: packageFolder), transcript: [.update(.usageUpdate(PreviewFixtures.usage))])
-  }
-
   /// The second session of the Mixed images: the configured session of the
-  /// previews, in ``testsFolder``.
+  /// previews, in ``testsFolder``, with no additional directory.
   private static var secondSession: SessionModel {
     .preview(cwd: AbsolutePath(rawValue: testsFolder), configOptions: PreviewFixtures.configOptions)
   }
@@ -94,7 +114,9 @@ struct InspectorGalleryFixtures {
     #"{"sessionUpdate": "session_message", "messageId": "\#(id)", "senderSessionId": "\#(from)", "content": [\#(WireBlockJSON.makeText(text))]}"#
   }
 
-  /// Opens the scripted session and sends ``updates``.
+  /// Opens the scripted session and sends ``updates``, then the usage of
+  /// the previews, so the inspector of the session shows its use of the
+  /// context window.
   ///
   /// The updates play as a ``TimedTurn``, one step each, so the Time group
   /// of each entry shows a known start and end, and the duration row of
@@ -103,9 +125,13 @@ struct InspectorGalleryFixtures {
   /// - Returns: The fixtures, once each entry is in the transcript.
   /// - Throws: The error of the session or of the transport.
   static func open() async throws -> InspectorGalleryFixtures {
-    let turn = try await TimedTurn.open()
+    let turn = try await TimedTurn.open(additionalDirectories: additionalFolders.map(AbsolutePath.init))
     for update in updates {
       try await turn.addEntry(update)
+    }
+    let model = turn.model
+    try await turn.step({ try await turn.session.send(update: .usageUpdate(PreviewFixtures.usage)) }) {
+      model.usage != nil
     }
     return InspectorGalleryFixtures(session: turn.session)
   }
@@ -128,7 +154,7 @@ struct InspectorGalleryFixtures {
         InspectorGallery.Subject(
           "config-options", view: ConfigOptionsView(session: PreviewFixtures.configuredSession, style: .form)),
         InspectorGallery.Subject("tool-toggles", view: ToolToggles(tools: tools, style: .list) { _, _ in }),
-        InspectorGallery.Subject("session", Self.firstSession, Self.secondSession),
+        InspectorGallery.Subject("session", session.model, Self.secondSession),
         InspectorGallery.Subject("connection", ConnectionModel.preview(), ConnectionModel.preview(state: .connecting)),
         InspectorGallery.Subject("mcp-server", try #require(servers.first), try #require(servers.last)),
         try pair("user-message", UserMessageEntry.self),

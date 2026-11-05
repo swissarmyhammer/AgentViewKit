@@ -228,6 +228,16 @@
         }
       }
     },
+    "Additional Directories" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Additional Directories"
+          }
+        }
+      }
+    },
     "Agent" : {
       "localizations" : {
         "en" : {
@@ -997,6 +1007,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Loading the history"
+          }
+        }
+      }
+    },
+    "Locations" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Locations"
           }
         }
       }

@@ -5,10 +5,11 @@ import FoundationModelsACP
 /// The path rows of the inspectors of the client models, and the URL that
 /// each row shows.
 ///
-/// EditorKit's inspector shows a `URL` field as a `PathChip`, with the folder
-/// symbol for a URL with a directory path (`EditorSymbol.FileKind(location:)`).
-/// The client models hold their paths as ACP `AbsolutePath`s, so each path
-/// row makes its URL here.
+/// EditorKit's inspector shows a `URL` field as a `PathChip`, and a `[URL]`
+/// field as a `PathChip` for each URL, with the folder symbol for a URL with
+/// a directory path and the document symbol otherwise
+/// (`EditorSymbol.FileKind(location:)`). The client models hold their paths
+/// as ACP `AbsolutePath`s, so each path row makes its URLs here.
 enum InspectionPath {
   /// The root folder, `/`: the stand-in URL of a path row whose model has no
   /// path. The row shows only when the model has a path, so no row shows it.
@@ -23,6 +24,15 @@ enum InspectionPath {
   static func folder(_ path: AbsolutePath?) -> URL {
     guard let path else { return rootFolder }
     return URL(filePath: path.rawValue, directoryHint: .isDirectory)
+  }
+
+  /// The URL of a file, such as a location of a tool call: a file URL with
+  /// no directory path, so its chip shows the document symbol.
+  ///
+  /// - Parameter path: The path of the file.
+  /// - Returns: The URL of the file.
+  static func file(_ path: AbsolutePath) -> URL {
+    URL(filePath: path.rawValue, directoryHint: .notDirectory)
   }
 
   /// The Working Directory row of a model: the path chip of its folder,

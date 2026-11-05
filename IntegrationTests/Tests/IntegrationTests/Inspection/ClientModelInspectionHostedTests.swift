@@ -38,6 +38,16 @@ import Testing
   /// The working directory of the terminal of the tests.
   static let terminalFolder = "/tmp/inspect-terminal"
 
+  /// The files of the locations of the tool call of the tests, in the
+  /// order of the agent.
+  static let locationFiles = ["/tmp/inspect-call/Package.swift", "/tmp/inspect-call/README.md"]
+
+  /// The line of each location of the tool call of the tests.
+  static let locationLine = 12
+
+  /// The additional directories of the session of the tests, in order.
+  static let additionalFolders = ["/tmp/inspect-session/Sources", "/tmp/inspect-session/Tests"]
+
   /// The id of the agent message of the tests.
   static let messageID = "inspect-message"
 
@@ -211,6 +221,66 @@ import Testing
     #expect(
       harness.rowValue(Self.row(of: model, group: "session", field: "working-directory"))
         == InspectionPath.folder(cwd).path(percentEncoded: false))
+  }
+
+  /// The `tool_call_update` of the tool call of the tests with a location
+  /// for each of ``locationFiles``, each at ``locationLine``.
+  static var locationsUpdate: String {
+    let locations = locationFiles.map { #"{"path": "\#($0)", "line": \#(locationLine)}"# }
+    return WireBlockJSON.makeToolCallUpdate(
+      id: toolCallID, fields: #""locations": [\#(locations.joined(separator: ", "))]"#)
+  }
+
+  /// The paths that the chips of the paths row `row` show, in order: the
+  /// accessibility value of each chip.
+  ///
+  /// - Parameters:
+  ///   - row: The scheme id of the paths row.
+  ///   - harness: The harness that shows the row.
+  /// - Returns: The paths.
+  static func chipPaths<Content: View>(in row: String, of harness: HostedViewHarness<Content>) -> [String] {
+    harness.inspectorDriver.pathChips(in: row).compactMap(accessibilityValue(of:))
+  }
+
+  @Test func theLocationsRowOfAToolCallFollowsItsLocations() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    try await session.sendUpdate(
+      WireBlockJSON.makeToolCallUpdate(id: Self.toolCallID, fields: #""title": "Read", "status": "pending""#))
+    let entry = try await Self.entry(ToolCallEntry.self, in: session)
+    let harness = Self.mount(entry)
+    defer { harness.close() }
+    let row = Self.row(of: entry, group: "tool-call", field: "locations")
+    #expect(harness.rowValue(row) == EditorInspectorStrings.noValue)
+
+    try await session.sendUpdate(Self.locationsUpdate)
+    await harness.render { entry.locations.count == Self.locationFiles.count }
+
+    #expect(Self.chipPaths(in: row, of: harness) == Self.locationFiles)
+  }
+
+  @Test func theAdditionalDirectoriesRowOfASessionShowsAChipForEachFolder() async throws {
+    let session = try await ScriptedSession.open(additionalDirectories: Self.additionalFolders.map(AbsolutePath.init))
+    defer { session.close() }
+    let model = session.model
+    let harness = Self.mount(model)
+    defer { harness.close() }
+
+    #expect(
+      Self.chipPaths(in: Self.row(of: model, group: "session", field: "additional-directories"), of: harness)
+        == model.additionalDirectories.map { InspectionPath.folder($0).path(percentEncoded: false) })
+  }
+
+  @Test func theAdditionalDirectoriesRowOfASessionWithNoneShowsTheDash() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let model = session.model
+    let harness = Self.mount(model)
+    defer { harness.close() }
+
+    #expect(
+      harness.rowValue(Self.row(of: model, group: "session", field: "additional-directories"))
+        == EditorInspectorStrings.noValue)
   }
 
   @Test func theTextRowOfAnAgentMessageFollowsItsChunks() async throws {

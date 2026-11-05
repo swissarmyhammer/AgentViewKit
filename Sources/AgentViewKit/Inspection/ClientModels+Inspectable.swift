@@ -19,18 +19,20 @@ import FoundationModelsACPClient
 // ``ConfigOptionsView`` in its form style shows them. The state of a
 // connection and the status of an MCP server are EditorKit's status token
 // (`EditorStatus`), which the inspector shows as a read-only `.status` row.
-// The working directory of a session is EditorKit's path kind
-// (``InspectionPath``). The additional directories of a session are not here
-// yet: they are a list of paths, which EditorKit's inspector has no kind for
-// (^b9xgnm7).
+// The working directory of a session is EditorKit's path kind, and its
+// additional directories are its paths kind, a path chip for each folder
+// (``InspectionPath``).
 
 extension SessionModel: InspectableClientModel {
   /// The object id of the session: its raw session id, such as `sess_1`.
   public var inspectorObjectID: String { sessionId.rawValue }
 
-  /// The title, the status, the id and the working directory of the
-  /// session, and its use of the context window, its subagents and its
-  /// transcript.
+  /// The title, the status, the id, the working directory and the
+  /// additional directories of the session, and its use of the context
+  /// window, its subagents and its transcript.
+  ///
+  /// The Additional Directories row shows a path chip for each folder, in
+  /// the order of the session, and a dash for a session with none.
   public static var inspection: Inspection<InspectedClientModel<SessionModel>> {
     .named(
       FieldLabel(localized: "Session", bundle: .module), id: ClientInspectionID.session,
@@ -41,6 +43,9 @@ extension SessionModel: InspectableClientModel {
       Field(FieldLabel(localized: "Id", bundle: .module)) { $0.model.sessionId.rawValue }
       Field(FieldLabel(localized: "Closed", bundle: .module)) { $0.model.isClosed }
       InspectionPath.workingDirectory { $0.model.cwd }
+      Field(FieldLabel(localized: "Additional Directories", bundle: .module)) { session in
+        session.model.additionalDirectories.map { InspectionPath.folder($0) }
+      }
     } more: {
       FieldGroup(FieldLabel(localized: "Agent", bundle: .module)) {
         Field(FieldLabel(localized: "Context Used", bundle: .module)) { $0.model.usage?.used }

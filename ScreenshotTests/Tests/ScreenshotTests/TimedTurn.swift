@@ -1,6 +1,7 @@
 import AgentViewKitTestSupport
 import EditorTestSupport
 import Foundation
+import FoundationModelsACP
 import FoundationModelsACPClient
 import Testing
 
@@ -31,11 +32,14 @@ struct TimedTurn {
 
   /// Opens the scripted session on a clock at `TimedSessionClock.start`.
   ///
+  /// - Parameter additionalDirectories: The additional workspace roots of
+  ///   the session.
   /// - Returns: The turn, with no event sent yet.
   /// - Throws: The error of the session.
-  static func open() async throws -> TimedTurn {
+  static func open(additionalDirectories: [AbsolutePath] = []) async throws -> TimedTurn {
     let clock = FixedClock(start: TimedSessionClock.start)
-    return TimedTurn(clock: clock, session: try await ScriptedSession.open(now: clock.now))
+    let session = try await ScriptedSession.open(additionalDirectories: additionalDirectories, now: clock.now)
+    return TimedTurn(clock: clock, session: session)
   }
 
   /// Sends one event, waits until the model takes it, and moves the clock

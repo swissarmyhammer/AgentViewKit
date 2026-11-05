@@ -12,6 +12,9 @@ import Testing
   /// The path of the folder of the tests.
   private static let folder = "/tmp/Project"
 
+  /// The path of the file of the tests.
+  private static let file = "/tmp/Project/Package.swift"
+
   /// The kind of the field with `key` in the group with `group` of
   /// `inspection`, or `nil` when it has no such field.
   ///
@@ -32,6 +35,26 @@ import Testing
 
   @Test func theWorkingDirectoryOfASessionIsAPathRow() {
     #expect(Self.kind(of: "working-directory", in: "session", of: SessionModel.inspection) == .path)
+  }
+
+  @Test func theLocationsOfAToolCallAreAPathsRow() {
+    #expect(Self.kind(of: "locations", in: "tool-call", of: ToolCallEntry.inspection) == .paths)
+  }
+
+  @Test func theAdditionalDirectoriesOfASessionAreAPathsRow() {
+    #expect(Self.kind(of: "additional-directories", in: "session", of: SessionModel.inspection) == .paths)
+  }
+
+  @Test func aFileHasTheDocumentSymbol() {
+    let url = InspectionPath.file(AbsolutePath(rawValue: Self.file))
+
+    #expect(EditorSymbol.FileKind(location: url) == .document)
+  }
+
+  @Test func aFileKeepsItsPath() {
+    let url = InspectionPath.file(AbsolutePath(rawValue: Self.file))
+
+    #expect(url.path(percentEncoded: false) == Self.file)
   }
 
   @Test func aFolderHasTheFolderSymbol() {
