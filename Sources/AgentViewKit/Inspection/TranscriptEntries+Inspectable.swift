@@ -52,7 +52,7 @@ extension ToolCallEntry: @retroactive Inspectable {
   /// The title, the status, the kind and the tool name of the call, and its
   /// times.
   public static var inspection: Inspection<ToolCallEntry> {
-    .named(FieldLabel(localized: "Tool Call", bundle: .module), name: { $0.shownTitle }) {
+    .named(FieldLabel(localized: "Tool Call", bundle: .module), id: "tool-call", name: { $0.shownTitle }) {
       Field(InspectionLabel.title) { $0.shownTitle }
       Field(InspectionLabel.status) { EditorStatus($0.shownStatus) }
       Field(FieldLabel(localized: "Kind", bundle: .module)) { $0.shownKind.wireValue }
@@ -67,7 +67,7 @@ extension TerminalEntry: @retroactive Inspectable {
   /// The command, the exit, the output and the working directory of the
   /// terminal, and its times.
   public static var inspection: Inspection<TerminalEntry> {
-    .named(FieldLabel(localized: "Terminal", bundle: .module), name: { $0.command }) {
+    .named(FieldLabel(localized: "Terminal", bundle: .module), id: "terminal", name: { $0.command }) {
       Field(FieldLabel(localized: "Command", bundle: .module)) { $0.command }
       Field(FieldLabel(localized: "Exit Status", bundle: .module)) { entry in
         entry.exitStatus.map { TerminalView.ExitSummary(code: $0.exitCode, signal: $0.signal).label }
@@ -88,6 +88,8 @@ enum MessageInspection {
   /// `extra` gives after them, and its times.
   ///
   /// - Parameters:
+  ///   - id: The id of the inspection: the view part of the scheme id of each
+  ///     row, such as `user-message`. It never follows the locale.
   ///   - title: The title of a block of the entry type.
   ///   - content: The content blocks of an entry.
   ///   - messageID: The id of the message of an entry, or `nil` while no
@@ -95,12 +97,12 @@ enum MessageInspection {
   ///   - extra: The fields that follow the text, before the id.
   /// - Returns: The inspection.
   static func inspection<Entry: ObservableTranscriptEntry>(
-    title: String, content: @escaping @MainActor (Entry) -> [FoundationModelsACP.ContentBlock],
+    id: String, title: String, content: @escaping @MainActor (Entry) -> [FoundationModelsACP.ContentBlock],
     messageID: @escaping @MainActor (Entry) -> String?,
     @FieldBuilder<Entry> extra: () -> [AnyField<Entry>] = { [] }
   ) -> Inspection<Entry> {
     let fields = textField(content) + extra() + idField(messageID)
-    return Inspection(title: title) {
+    return Inspection(id: id, title: title) {
       // A closure with a `return` takes no builder: the fields are built.
       FieldGroup(InspectionLabel.message) { return fields }
       Entry.timeGroup
@@ -133,7 +135,7 @@ extension UserMessageEntry: @retroactive Inspectable {
   /// The text, the send state and the id of the message, and its times.
   public static var inspection: Inspection<UserMessageEntry> {
     MessageInspection.inspection(
-      title: String(localized: "User Message", bundle: .module), content: { $0.content },
+      id: "user-message", title: String(localized: "User Message", bundle: .module), content: { $0.content },
       messageID: { $0.messageId?.rawValue }
     ) {
       Field(FieldLabel(localized: "Send State", bundle: .module)) { EditorStatus($0.sendState) }
@@ -145,7 +147,7 @@ extension AgentMessageEntry: @retroactive Inspectable {
   /// The text and the id of the message, and its times.
   public static var inspection: Inspection<AgentMessageEntry> {
     MessageInspection.inspection(
-      title: String(localized: "Agent Message", bundle: .module), content: { $0.content },
+      id: "agent-message", title: String(localized: "Agent Message", bundle: .module), content: { $0.content },
       messageID: { $0.messageId?.rawValue })
   }
 }
@@ -154,7 +156,7 @@ extension ThoughtEntry: @retroactive Inspectable {
   /// The text and the id of the thought, and its times.
   public static var inspection: Inspection<ThoughtEntry> {
     MessageInspection.inspection(
-      title: String(localized: "Thought", bundle: .module), content: { $0.content },
+      id: "thought", title: String(localized: "Thought", bundle: .module), content: { $0.content },
       messageID: { $0.messageId?.rawValue })
   }
 }
@@ -164,7 +166,7 @@ extension SessionMessageEntry: @retroactive Inspectable {
   /// recipient, its id, and its times.
   public static var inspection: Inspection<SessionMessageEntry> {
     MessageInspection.inspection(
-      title: String(localized: "Session Message", bundle: .module), content: { $0.content },
+      id: "session-message", title: String(localized: "Session Message", bundle: .module), content: { $0.content },
       messageID: { $0.messageId.rawValue }
     ) {
       Field(FieldLabel(localized: "From Session", bundle: .module)) { $0.senderSessionId?.rawValue }
@@ -176,7 +178,7 @@ extension SessionMessageEntry: @retroactive Inspectable {
 extension PlanTranscriptEntry: @retroactive Inspectable {
   /// The steps of the plan, each with its status, and its times.
   public static var inspection: Inspection<PlanTranscriptEntry> {
-    .named(FieldLabel(localized: "Plan", bundle: .module)) {
+    .named(FieldLabel(localized: "Plan", bundle: .module), id: "plan") {
       Field(FieldLabel(localized: "Steps", bundle: .module)) { entry in
         entry.entries.map(InspectionText.step).joined(separator: "\n")
       }
@@ -190,7 +192,7 @@ extension PlanTranscriptEntry: @retroactive Inspectable {
 extension CompactionEntry: @retroactive Inspectable {
   /// The status, the summary and the error of the compaction, and its times.
   public static var inspection: Inspection<CompactionEntry> {
-    .named(FieldLabel(localized: "Compaction", bundle: .module)) {
+    .named(FieldLabel(localized: "Compaction", bundle: .module), id: "compaction") {
       Field(InspectionLabel.status) { EditorStatus($0.status) }
       Field(FieldLabel(localized: "Summary", bundle: .module)) { InspectionText.text(of: $0.summary) }
         .multiline()
@@ -204,7 +206,7 @@ extension CompactionEntry: @retroactive Inspectable {
 extension ErrorEntry: @retroactive Inspectable {
   /// The code and the message of the error, and its times.
   public static var inspection: Inspection<ErrorEntry> {
-    .named(FieldLabel(localized: "Error", bundle: .module)) {
+    .named(FieldLabel(localized: "Error", bundle: .module), id: "error") {
       Field(FieldLabel(localized: "Code", bundle: .module)) { $0.code.wireValue }
       Field(InspectionLabel.message) { $0.message }
         .multiline()
@@ -217,7 +219,7 @@ extension ErrorEntry: @retroactive Inspectable {
 extension UnknownEntry: @retroactive Inspectable {
   /// The type of the update that the client does not know, and its times.
   public static var inspection: Inspection<UnknownEntry> {
-    Inspection(title: String(localized: "Unknown Update", bundle: .module)) {
+    Inspection(id: "unknown-update", title: String(localized: "Unknown Update", bundle: .module)) {
       FieldGroup(FieldLabel(localized: "Update", bundle: .module)) {
         Field(FieldLabel(localized: "Type", bundle: .module)) { $0.type }
       }

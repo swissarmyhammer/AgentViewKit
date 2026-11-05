@@ -23,7 +23,9 @@ extension SessionModel: @retroactive Inspectable {
   /// session, and its use of the context window, its subagents and its
   /// transcript.
   public static var inspection: Inspection<SessionModel> {
-    .named(FieldLabel(localized: "Session", bundle: .module), name: { $0.title ?? $0.sessionId.rawValue }) {
+    .named(
+      FieldLabel(localized: "Session", bundle: .module), id: "session", name: { $0.title ?? $0.sessionId.rawValue }
+    ) {
       Field(InspectionLabel.title) { $0.title }
       Field(InspectionLabel.status) { $0.status.text }
       Field(FieldLabel(localized: "Id", bundle: .module)) { $0.sessionId.rawValue }
@@ -44,7 +46,7 @@ extension SessionModel: @retroactive Inspectable {
 extension ConnectionModel: @retroactive Inspectable {
   /// The state of the connection, the agent, and its sessions.
   public static var inspection: Inspection<ConnectionModel> {
-    .named(FieldLabel(localized: "Connection", bundle: .module)) {
+    .named(FieldLabel(localized: "Connection", bundle: .module), id: "connection") {
       Field(FieldLabel(localized: "State", bundle: .module)) { EditorStatus($0.state) }
       Field(FieldLabel(localized: "Agent", bundle: .module)) { $0.initializeResponse?.info.name }
       Field(FieldLabel(localized: "Open Sessions", bundle: .module)) { $0.openSessions.count }
@@ -56,7 +58,7 @@ extension ConnectionModel: @retroactive Inspectable {
 extension MCPServerItem: @retroactive Inspectable {
   /// The name, the transport and the status of the server.
   public static var inspection: Inspection<MCPServerItem> {
-    Inspection(title: String(localized: "MCP Server", bundle: .module), name: { $0.name }) {
+    Inspection(id: "mcp-server", title: String(localized: "MCP Server", bundle: .module), name: { $0.name }) {
       FieldGroup(FieldLabel(localized: "Server", bundle: .module)) {
         Field(InspectionLabel.name) { $0.name }
         Field(FieldLabel(localized: "Transport", bundle: .module)) { $0.transport.map(ConnectionRow.label(for:)) }

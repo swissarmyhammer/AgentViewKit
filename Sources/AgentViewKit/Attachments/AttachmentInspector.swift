@@ -165,8 +165,15 @@ private nonisolated struct VerticalInsets: Equatable, Sendable {
 /// shows, because each action runs on one file.
 ///
 /// The rows take EditorKit's scheme ids, which ``nameIdentifier(of:)`` and
-/// ``previewIdentifier(of:)`` give, such as
-/// `inspection:inspected-attachment/object:<id>/field:attachment.preview`. The form takes
+/// ``previewIdentifier(of:)`` give:
+/// `inspection:attachment/object:<object id>/name` and
+/// `inspection:attachment/object:<object id>/field:attachment.preview`.
+/// `attachment` is the explicit id of the inspection, ``viewIdentifier``.
+/// The object id is the raw id of each attachment (``Identifier/rawValue``),
+/// with each `%`, `/`, `.` and `+` escaped as `%XX` by EditorKit's
+/// `InspectorScheme`; several files join their ids with `+`. For the
+/// attachment with the id `draft/notes.md`, the name row is
+/// `inspection:attachment/object:draft%2Fnotes%2Emd/name`. The form takes
 /// the ``formIdentifier``. It has the system margins and row insets, no
 /// padding of its own and no background, and it scrolls by itself unless
 /// the host owns the scrolling (`.inspectorScrolling(.host)`).
@@ -185,9 +192,10 @@ public struct AttachmentInspector: View {
   /// the preview and the actions.
   public static let formIdentifier = "inspector-form"
 
-  /// The id of the `InspectorView`: the id of its inspection, which is the
-  /// first part of the scheme id of each row.
-  public static var viewIdentifier: String { inspection.id }
+  /// The id of the `InspectorView` and of its inspection, `attachment`: the
+  /// view part of the scheme id of each row. It is explicit, so it does not
+  /// follow the name of a type.
+  public static let viewIdentifier = "attachment"
 
   /// The group part of the scheme id of the preview row: the key that
   /// EditorKit gives the one group of the inspection, named "Attachment".
@@ -205,9 +213,11 @@ public struct AttachmentInspector: View {
   }
 
   /// The inspection of the files: one group, named as the inspection, with
-  /// the preview of the file.
+  /// the preview of the file. Its id is ``viewIdentifier``.
   static var inspection: Inspection<InspectedAttachment> {
-    .named(FieldLabel(localized: "Attachment", bundle: .module), name: { $0.attachment.name }) {
+    .named(
+      FieldLabel(localized: "Attachment", bundle: .module), id: viewIdentifier, name: { $0.attachment.name }
+    ) {
       Field(FieldLabel(localized: "Preview", bundle: .module)) { PreviewValue.file($0.attachment.url) }
         .identifier(previewFieldIdentifier)
     }
@@ -236,8 +246,12 @@ public struct AttachmentInspector: View {
 
   /// The scheme id of the name row of the inspector of `attachments`.
   ///
+  /// The object id is the escaped raw id of each file, joined with `+`. For
+  /// the attachment with the id `draft/notes.md` the id is
+  /// `inspection:attachment/object:draft%2Fnotes%2Emd/name`.
+  ///
   /// - Parameter attachments: The files of the inspector, in selection order.
-  /// - Returns: `inspection:inspected-attachment/object:<id>/name`.
+  /// - Returns: `inspection:attachment/object:<object id>/name`.
   public static func nameIdentifier(of attachments: [Attachment]) -> String {
     let block = InspectorScheme.blockIdentifier(view: viewIdentifier, object: objectIdentifier(of: attachments))
     return InspectorScheme.identifier(of: namePart, inRow: block)
@@ -245,8 +259,13 @@ public struct AttachmentInspector: View {
 
   /// The scheme id of the preview row of the inspector of `attachments`.
   ///
+  /// The object id is the escaped raw id of each file, joined with `+`. For
+  /// the attachment with the id `draft/notes.md` the id is
+  /// `inspection:attachment/object:draft%2Fnotes%2Emd/field:attachment.preview`.
+  ///
   /// - Parameter attachments: The files of the inspector, in selection order.
-  /// - Returns: `inspection:inspected-attachment/object:<id>/field:attachment.preview`.
+  /// - Returns:
+  ///   `inspection:attachment/object:<object id>/field:attachment.preview`.
   public static func previewIdentifier(of attachments: [Attachment]) -> String {
     InspectorScheme.rowIdentifier(
       view: viewIdentifier, object: objectIdentifier(of: attachments), group: groupIdentifier,
@@ -254,7 +273,8 @@ public struct AttachmentInspector: View {
   }
 
   /// The object part of the scheme id of each row of the inspector of
-  /// `attachments`: the id of each file, joined.
+  /// `attachments`: the raw id of each file, escaped by EditorKit's
+  /// `InspectorScheme` and joined with `+`.
   ///
   /// - Parameter attachments: The files of the inspector, in selection order.
   /// - Returns: The object id.
@@ -289,15 +309,17 @@ public struct AttachmentInspector: View {
 /// One file of an ``AttachmentInspector``, as an object of its EditorKit
 /// `InspectorView`.
 ///
-/// Its id is the id of its attachment, so the scheme id of each row names
-/// the file from run to run.
+/// Its id is the raw id of its attachment, a `String`, so the object part
+/// of the scheme id of each row is that text, escaped, and names the file
+/// from run to run. An ``AttachmentID`` would describe itself as
+/// `Attachment(<raw id>)`, a debug description.
 @Observable
 final class InspectedAttachment: Identifiable {
   /// The file.
   let attachment: Attachment
 
-  /// The id of the attachment.
-  var id: AttachmentID { attachment.id }
+  /// The raw id of the attachment.
+  var id: String { attachment.id.rawValue }
 
   /// Makes the object of a file.
   ///
