@@ -115,9 +115,14 @@ public struct TaskListView: View {
   ///
   /// - Parameter entry: The entry, as the plan entry of a `SessionModel`
   ///   holds it.
-  /// - Returns: The text, the status, and the priority, separated by commas.
+  /// - Returns: The text, the status, and the priority in one localized
+  ///   string, such as "Change the parser, In progress, Medium priority".
   public static func entryLabel(_ entry: FoundationModelsACP.PlanEntry) -> String {
-    "\(entry.content), \(EditorStatus(entry.status).summary), \(priorityLabel(entry.priority))"
+    let status = EditorStatus(entry.status).summary
+    let priority = priorityLabel(entry.priority)
+    return String(
+      localized: "task-list.entry-label", defaultValue: "\(entry.content), \(status), \(priority)", bundle: .module,
+      comment: "The VoiceOver label of a step of a plan: its text, its status, then its priority.")
   }
 
   /// The header text of the ACP entries of a plan.

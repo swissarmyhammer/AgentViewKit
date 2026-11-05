@@ -305,7 +305,11 @@ public struct ToolCallView: View {
   public static func accessibilityLabel(
     title: String, status: FoundationModelsACP.ToolCallStatus
   ) -> String {
-    String(localized: "\(displayTitle(title)), \(EditorStatus(status).summary)", bundle: .module)
+    let shownTitle = displayTitle(title)
+    let summary = EditorStatus(status).summary
+    return String(
+      localized: "tool-call.label", defaultValue: "\(shownTitle), \(summary)", bundle: .module,
+      comment: "The VoiceOver label of a tool call: its title, then its status.")
   }
 
   /// The title that the row shows.

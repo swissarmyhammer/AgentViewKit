@@ -31,6 +31,9 @@ enum InspectionText {
   /// - Parameter entry: The step.
   /// - Returns: The text, such as `In progress: Write the tests`.
   static func step(_ entry: PlanEntry) -> String {
-    String(localized: "\(EditorStatus(entry.status).summary): \(entry.content)", bundle: .module)
+    let status = EditorStatus(entry.status).summary
+    return String(
+      localized: "inspection.plan-step", defaultValue: "\(status): \(entry.content)", bundle: .module,
+      comment: "A step of a plan in the inspector: its status, then its text.")
   }
 }

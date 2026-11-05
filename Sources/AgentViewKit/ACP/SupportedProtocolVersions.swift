@@ -1,3 +1,4 @@
+import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
 
@@ -40,12 +41,22 @@ public nonisolated enum SupportedProtocolVersions {
   /// - Parameters:
   ///   - received: The version that the agent answered with.
   ///   - requested: The version that the client sent.
-  /// - Returns: A message that names both versions and the accepted list.
+  /// - Returns: A message that names both versions and the accepted list,
+  ///   in one localized string, with the accepted versions in a list of the
+  ///   current locale.
   static func refusalMessage(received: ProtocolVersion, requested: ProtocolVersion) -> String {
-    let accepted = values.map(String.init).joined(separator: ", ")
-    return "The agent answered with ACP protocol version \(received.rawValue). "
-      + "The client sent protocol version \(requested.rawValue). "
-      + "This kit accepts only protocol version \(accepted)."
+    let accepted = values.map(Int.init)
+    return String(
+      localized: "acp.protocol-version-refusal",
+      defaultValue: """
+        The agent answered with ACP protocol version \(Int(received.rawValue)). \
+        The client sent protocol version \(Int(requested.rawValue)). \
+        This kit accepts only protocol version \(accepted, format: .list(memberStyle: .number, type: .or)).
+        """, bundle: .module,
+      comment: """
+        The error when an agent answers with an ACP protocol version that the kit does not accept: \
+        the version of the agent, the version that the client sent, then the versions that the kit accepts.
+        """)
   }
 }
 

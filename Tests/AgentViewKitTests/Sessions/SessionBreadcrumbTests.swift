@@ -12,6 +12,10 @@ import Testing
 /// breadcrumb, over the scripted session with children. The chain of three
 /// sessions is only a test size: no check here knows a number of levels.
 @Suite @MainActor struct SessionBreadcrumbTests {
+  /// The locale of the labels of the tests, whose list format puts a comma
+  /// between two parts.
+  static let locale = Locale(identifier: "en_US")
+
   static let reviewer = SessionId(rawValue: "reviewer")
   static let second = SessionId(rawValue: "second")
   static let linter = SessionId(rawValue: "linter")
@@ -103,7 +107,7 @@ import Testing
     defer { session.close() }
     let child = try #require(session.session(Self.reviewer))
 
-    let labels = child.siblingsIncludingSelf.map { SessionStateText.choiceLabel(for: $0) }
+    let labels = child.siblingsIncludingSelf.map { SessionStateText.choiceLabel(for: $0, locale: Self.locale) }
 
     #expect(labels == ["Reviewer, In progress", "Second, In progress"])
   }
@@ -114,7 +118,7 @@ import Testing
     let other = try #require(session.session(Self.second))
     try await session.sendInOrder([.permission(id: 1, sessionId: Self.second)], to: other)
 
-    let labels = try #require(session.session(Self.reviewer)).siblingsIncludingSelf.map { SessionStateText.choiceLabel(for: $0) }
+    let labels = try #require(session.session(Self.reviewer)).siblingsIncludingSelf.map { SessionStateText.choiceLabel(for: $0, locale: Self.locale) }
 
     #expect(labels.last == "Second, In progress, 1 open question, needs your attention")
   }

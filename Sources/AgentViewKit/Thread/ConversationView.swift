@@ -70,9 +70,12 @@ public enum ConversationLayout {
   /// - Parameters:
   ///   - shown: The number of items that the list shows.
   ///   - count: The number of items in the thread.
-  /// - Returns: "N of M items".
+  /// - Returns: "N of M items", with the form of the noun for the plural
+  ///   category of M, such as "1 of 1 item".
   public static func listValue(shown: Int, count: Int) -> String {
-    String(localized: "\(shown) of \(count) items", bundle: .module)
+    String(
+      localized: "\(shown) of \(count) items", bundle: .module,
+      comment: "The VoiceOver value of a thread: the items it shows of its items. The noun follows the second number.")
   }
 }
 

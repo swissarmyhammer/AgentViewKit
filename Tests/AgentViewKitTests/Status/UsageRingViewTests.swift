@@ -49,4 +49,10 @@ import Testing
     #expect(
       ContextUsageView.costText(for: Cost(amount: 1.25, currency: "USD"), locale: Self.locale) == "$1.25")
   }
+
+  @Test func theCostTextOfAUnitThatIsNotACurrencyHasTheAmountAndThenTheUnit() {
+    #expect(
+      ContextUsageView.costText(for: Cost(amount: 1200.5, currency: "credits"), locale: Self.locale)
+        == "1,200.5 credits")
+  }
 }

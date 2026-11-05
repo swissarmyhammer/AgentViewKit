@@ -25,7 +25,7 @@ public struct CodeBlockView: View {
   /// The accessibility identifier of the Copy button.
   public static let copyIdentifier = "code-block-copy"
 
-  /// The name of the language in the label when the block has no language.
+  /// The name of the language in the header when the block has no language.
   public static let plainTextName = "plain text"
 
   /// The code to show.
@@ -93,7 +93,14 @@ public struct CodeBlockView: View {
 
   /// The label that VoiceOver reads for the block.
   var accessibilityLabel: String {
-    "\(language ?? Self.plainTextName) code block"
+    guard let language else {
+      return String(
+        localized: "plain text code block", bundle: .module,
+        comment: "The VoiceOver label of a code block that names no language.")
+    }
+    return String(
+      localized: "\(language) code block", bundle: .module,
+      comment: "The VoiceOver label of a code block: the name of its language, such as swift.")
   }
 
   /// The row with the title and the Copy button.

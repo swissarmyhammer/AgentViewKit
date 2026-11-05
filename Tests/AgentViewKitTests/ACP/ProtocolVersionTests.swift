@@ -73,6 +73,18 @@ private struct Harness {
     #expect(error.description.contains("version 2"))
   }
 
+  /// The description of the refusal of version 1 after a request of version 2.
+  static let refusalOfVersion1 = """
+    The agent answered with ACP protocol version 1. The client sent protocol version 2. \
+    This kit accepts only protocol version 2.
+    """
+
+  @Test func theRefusalTellsBothVersionsAndTheAcceptedOnesInOneText() {
+    let error = UnsupportedProtocolVersionError(received: Self.v1, requested: .v2)
+
+    #expect(error.description == Self.refusalOfVersion1)
+  }
+
   // MARK: - Over the in-memory agent
 
   @Test func initializeReturnsTheResponseOfASupportedAgent() async throws {

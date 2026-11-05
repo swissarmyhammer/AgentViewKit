@@ -441,7 +441,7 @@ public struct ElicitationView: View {
 /// "root › planner › reviewer · runCode". The text is
 /// ``whoAsks(agentPath:source:rootLabel:)``, and VoiceOver reads the line as
 /// one element with the label of
-/// ``whoAsksAccessibilityLabel(agentPath:source:rootLabel:)``, for example
+/// ``whoAsksAccessibilityLabel(agentPath:source:rootLabel:locale:)``, for example
 /// "Asked by root, planner, reviewer, from runCode". The root label is the
 /// ``SwiftUI/EnvironmentValues/elicitationRootAgentLabel`` environment value.
 /// A request with an empty `agentPath` and no `source` shows no line.
@@ -668,7 +668,7 @@ extension View {
   /// elicitation and the
   /// ``SwiftUI/EnvironmentValues/elicitationRootAgentLabel`` environment
   /// value to ``ElicitationHeader/whoAsks(agentPath:source:rootLabel:)`` and
-  /// ``ElicitationHeader/whoAsksAccessibilityLabel(agentPath:source:rootLabel:)``.
+  /// ``ElicitationHeader/whoAsksAccessibilityLabel(agentPath:source:rootLabel:locale:)``.
   ///
   /// - Parameter content: The function that makes the header from the
   ///   pending elicitation of the card.
