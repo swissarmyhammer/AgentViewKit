@@ -28,7 +28,8 @@ import Testing
   @Test func theButtonTokensHaveNoPaddingByte() {
     StoredLayout<EditorStyle.Buttons>(
       \.labelSpacing, \.pressedOpacity, \.disabledOpacity, \.captionStyle, \.toolbarCaptionStyle, \.tint,
-      \.subduedTint, \.destructiveTint, \.toolbarTint, \.hoverTint, \.selectedTint, \.density, \.toolbarDensity
+      \.subduedTint, \.destructiveTint, \.toolbarTint, \.hoverTint, \.selectedTint, \.density, \.toolbarDensity,
+      \.spinnerSizes
     ).expectNoPaddingByte()
   }
 

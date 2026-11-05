@@ -8,9 +8,11 @@ import os
 ///
 /// A press asks the ``SwiftUI/EnvironmentValues/speechTranscriber`` for
 /// permission and starts a session. While the session runs, the button shows
-/// the listening symbol, and the live transcript goes into the composer text
-/// after the text that was there at the start. A second press stops the
-/// session and keeps the text.
+/// the listening symbol, filled to the live input level of the microphone
+/// (the variable value of EditorKit's `EditorButton`), its accessibility value
+/// reads the level as a percentage, and the live transcript goes into the
+/// composer text after the text that was there at the start. A second press
+/// stops the session and keeps the text.
 ///
 /// The button writes the text through
 /// ``SwiftUI/EnvironmentValues/promptText``. The button is empty when the
@@ -20,8 +22,10 @@ public struct SpeechInputButton: View {
   enum Phase: Equatable {
     /// No session runs.
     case idle
-    /// A session runs.
-    case recording
+    /// A session runs. `level` is the last input level of the microphone,
+    /// from `0` (silence) to `1` (loud), or `nil` until the transcriber sends
+    /// the first one.
+    case recording(level: Double?)
     /// The user did not give permission.
     case denied
   }
@@ -60,12 +64,12 @@ public struct SpeechInputButton: View {
 
   public var body: some View {
     if let transcriber, let text {
-      EditorButton(title, systemImage: symbol, look: .action) {
+      EditorButton(title, systemImage: symbol, variableValue: level, look: .action) {
         toggle(transcriber: transcriber, text: text)
       }
       .editorButtonCaptions(.hidden)
       .buttonBorderShape(.circle)
-      .accessibilityValue(valueText)
+      .accessibilityValue(Self.valueText(of: phase))
       .accessibilityIdentifier(Self.identifier)
       .agentControlScope(Self.identifier)
       .onDisappear { stop(transcriber: transcriber) }
@@ -82,6 +86,13 @@ public struct SpeechInputButton: View {
     }
   }
 
+  /// The input level that fills the symbol: the last level of a session that
+  /// runs, or `nil` for a plain symbol.
+  private var level: Double? {
+    guard case .recording(let level) = phase else { return nil }
+    return level
+  }
+
   /// The title of the button in its phase: its accessibility label and its
   /// tooltip, because the button shows its symbol alone.
   private var title: String {
@@ -92,10 +103,18 @@ public struct SpeechInputButton: View {
     }
   }
 
-  /// The accessibility value of the button.
-  private var valueText: String {
+  /// The accessibility value of the button in `phase`.
+  ///
+  /// - Parameter phase: The phase of the button.
+  /// - Returns: "Recording", with the input level as a whole percentage once
+  ///   the transcriber sent one, or the text of a phase with no session.
+  static func valueText(of phase: Phase) -> String {
     switch phase {
-    case .recording: String(localized: "Recording", bundle: .module)
+    case .recording(level: nil): String(localized: "Recording", bundle: .module)
+    case .recording(level: let level?):
+      String(
+        localized: "Recording, input level \(level.formatted(.percent.precision(.fractionLength(0))))",
+        bundle: .module)
     case .idle: String(localized: "Not recording", bundle: .module)
     case .denied: String(localized: "Not allowed", bundle: .module)
     }
@@ -107,11 +126,11 @@ public struct SpeechInputButton: View {
   ///   - transcriber: The transcriber of the session.
   ///   - text: The composer text.
   private func toggle(transcriber: any SpeechTranscriber, text: Binding<AttributedString>) {
-    if phase == .recording {
+    if case .recording = phase {
       stop(transcriber: transcriber)
       return
     }
-    show(.recording)
+    show(.recording(level: nil))
     session = Task { @MainActor in
       await record(transcriber: transcriber, text: text)
     }
@@ -121,7 +140,7 @@ public struct SpeechInputButton: View {
   ///
   /// - Parameter transcriber: The transcriber of the session.
   private func stop(transcriber: any SpeechTranscriber) {
-    guard phase == .recording else { return }
+    guard case .recording = phase else { return }
     session?.cancel()
     session = nil
     transcriber.stop()
@@ -146,10 +165,8 @@ public struct SpeechInputButton: View {
         switch event {
         case .transcript(let transcript):
           text.wrappedValue = Self.transcribedText(base: base, transcript: transcript)
-        case .level:
-          // An EditorKit button draws a fixed symbol, so the button shows
-          // no input level.
-          continue
+        case .level(let level):
+          show(.recording(level: level))
         }
       }
     } catch {
@@ -175,6 +192,7 @@ extension EnvironmentValues {
   /// ``SpeechInputButton``, or `nil`.
   ///
   /// The button calls the report in the same step as the change of its phase.
+  /// Each new input level of a session is a change of its phase.
   @Entry var speechInputPhaseReport: ObservationReport<SpeechInputButton.Phase>? = nil
 }
 

@@ -81,6 +81,46 @@ import Testing
       SnapshotFixtures.bottomBarThread, named: "bottom-bar-buttons", size: SnapshotFixtures.threadSize)
   }
 
+  /// The sign-in card while its sign-in runs (^dj4hchg): EditorKit's busy
+  /// state of the Sign In button, a spinner over the room of its icon, with
+  /// its caption kept and no press taken. The scripted agent holds its answer
+  /// to `auth/login`, so the sign-in of each look runs until the end of the
+  /// test. Each look has a session of its own: the card of the first look
+  /// cancels its sign-in when it goes away, and the connection then records
+  /// the failure. The settle presses the button through accessibility, as
+  /// VoiceOver does, and the card disables it in the same step.
+  @Test func theSignInCardWhileSigningIn() async throws {
+    let light = try await Self.openHeldSignInSession()
+    defer { light.close() }
+    let dark = try await Self.openHeldSignInSession()
+    defer { dark.close() }
+    let signIn = AgentAuthView.signInIdentifier(for: ScriptedSession.loginAuthMethodID)
+
+    try await ReviewGalleryScreenTests.gallery.record(
+      suite: "HostedSnapshotTests", named: "sign-in-card-signing-in", size: SnapshotFixtures.cardSize,
+      settle: { mount in
+        _ = try AccessibilityAction.press.perform(on: signIn, in: mount.window)
+        mount.render()
+      },
+      content: { appearance in
+        let session = appearance == .light ? light : dark
+        return AgentAuthView(connection: session.connection).environment(\.sessionModel, session.model)
+      })
+  }
+
+  /// Opens a session whose agent asks for a sign-in with
+  /// `ScriptedSession.loginAuthMethodID`, and holds its answer to
+  /// `auth/login`.
+  ///
+  /// - Returns: The scripted session.
+  /// - Throws: The error of `initialize` or of `session/new`.
+  static func openHeldSignInSession() async throws -> ScriptedSession {
+    try await ScriptedSession.open {
+      $0.results["initialize"] = ScriptedSession.loginInitializeResult
+      $0.heldMethods = [ScriptedSession.loginMethod]
+    }
+  }
+
   @Test func theIdleComposer() async throws {
     let composer = SnapshotFixtures.composer(for: SnapshotFixtures.idleSession)
 

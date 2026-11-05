@@ -46,7 +46,8 @@ public typealias AgentReconnect = @MainActor () async -> Void
 /// - When `canLogout` is `true`, a Sign Out button calls
 ///   `ConnectionModel.logout(_:)`. Otherwise the button is not shown.
 ///
-/// While a call runs, its button is disabled and shows a `ProgressView`. The
+/// While a call runs, its button is busy (EditorKit's `isBusy`): a spinner
+/// covers its icon, it takes no press, and it reads "In progress". The
 /// task of the call is view state, and the card cancels it when the card goes
 /// away, so no call outlives the card. The model records each failure of a call that it can
 /// record in `authState`, and the card shows the failure from there. The card
@@ -392,8 +393,7 @@ public struct AgentAuthView: View {
     .frame(maxWidth: .infinity, alignment: .trailing)
   }
 
-  /// A button that runs a call, disabled with a `ProgressView` before it
-  /// while the call runs.
+  /// A button that runs a call, busy while the call runs.
   ///
   /// - Parameters:
   ///   - title: The text of the button.
@@ -412,20 +412,12 @@ public struct AgentAuthView: View {
     identifier: String,
     call: @escaping @MainActor () async throws -> Void
   ) -> some View {
-    let isRunning = calls[operation] != nil
-    return HStack(spacing: editorStyle.spacing.s) {
-      if isRunning {
-        ProgressView()
-          .controlSize(.small)
-      }
-      EditorButton(title, systemImage: systemImage, look: .action) {
-        perform(operation, call)
-      }
-      .disabled(isRunning)
-      .accessibilityLabel(accessibilityLabel)
-      .accessibilityIdentifier(identifier)
-      .agentControlScope(identifier)
+    EditorButton(title, systemImage: systemImage, look: .action, isBusy: calls[operation] != nil) {
+      perform(operation, call)
     }
+    .accessibilityLabel(accessibilityLabel)
+    .accessibilityIdentifier(identifier)
+    .agentControlScope(identifier)
   }
 
   // MARK: Actions
