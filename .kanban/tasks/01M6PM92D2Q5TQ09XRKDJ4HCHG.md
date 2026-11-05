@@ -49,8 +49,8 @@ comments:
     - evidence: 0fcd76cb; 12 files — Sources/AgentViewKit/Input/SpeechInputButton.swift, Sources/AgentViewKit/Connections/AgentAuthView.swift, Sources/AgentViewKit/Resources/Localizable.xcstrings, Tests/AgentViewKitTests/Infrastructure/ViewValueLayoutTests.swift, Tests/AgentViewKitTests/Input/SpeechInputButtonValueTests.swift, IntegrationTests/.../SpeechInputButtonHostedTests.swift, IntegrationTests/.../AgentAuthViewHostedTests.swift, IntegrationTests/.../ThreadBarControlJumpHostedTests.swift, ScreenshotTests/.../RecordingComposer.swift, GlassSnapshotTests.swift, HostedSnapshotTests.swift, ReviewGalleryScreenTests.swift. Root `swift test`: 1024 + 50 passed. IntegrationTests: 987 passed (5 known issues are the pre-existing FontRoleExpectationsTests negatives). Gallery page test passed. No warnings from AVK's own targets.
     - next: /review
   timestamp: 2026-11-05T21:55:21.867032+00:00
-position_column: doing
-position_ordinal: '9e80'
+position_column: done
+position_ordinal: ffffffb880
 title: Microphone live level and sign-in busy state on EditorButton
 ---
 **Blocked** on EK (requested from editorkit-b5, 2026-11-05). Gaps from the button migration ^v1bmh1p:
