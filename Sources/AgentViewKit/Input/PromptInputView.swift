@@ -148,7 +148,9 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   /// pads the editor.
   static var editorCorners: AgentControlCorners { .surface(.rounded(.medium)) }
 
-  /// The most height of the editor slot, in points at the default theme font.
+  /// The most height of the editor slot: the bound of `.boundedHeight()` of
+  /// the style of the environment (`EditorStyle.previewHeight`), scaled with
+  /// the display font of the editor.
   ///
   /// An editor of the kit has no height bound of its own: it takes the height
   /// of its text (EditorKit `style.md`, "A multiline field fits its
@@ -157,7 +159,9 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   /// bounds the editor (`.boundedHeight(_:)` of EditorStyle): a longer prompt
   /// scrolls in the bound, with the line of the caret in view, and leaves
   /// the transcript in view above the composer.
-  static var editorHeightBound: CGFloat { 200 }
+  private var editorHeightBound: CGFloat {
+    editorStyle.previewHeight * editorFontScale
+  }
 
   /// The text that the editor shows while the prompt is empty.
   static var placeholder: String {
@@ -244,8 +248,8 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
       }
       editor(context)
         // The editor takes the height of its text; a longer prompt scrolls in
-        // this bound, which scales with the display font of the editor.
-        .boundedHeight(Self.editorHeightBound * editorFontScale)
+        // this bound.
+        .boundedHeight(editorHeightBound)
         // A resolved request moves the VoiceOver focus back to the editor
         // (`RequestDeck`).
         .accessibilityFocusTarget(EditorKitPromptEditor.identifier)

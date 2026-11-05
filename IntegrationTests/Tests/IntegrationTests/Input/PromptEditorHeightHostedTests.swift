@@ -36,23 +36,17 @@
     /// of its own and scrolls its text inside the host.
     @Test func theEditorGrowsWithItsTextAndTheHostScrollsIt() async {
       let session = PromptEditorSession()
-      let bed = await ContentSizedBed(Self.editor(session), windowHeight: Self.editorWindowHeight)
-      defer { bed.harness.close() }
 
-      session.model.replaceAll(ContentSizedBed.tallText)
-
-      #expect(await bed.growsPastTheWindowAndScrollsAsOne())
+      #expect(
+        await ContentSizedBed.growsWithItsText(Self.editor(session), windowHeight: Self.editorWindowHeight) {
+          session.model.replaceAll(ContentSizedBed.tallText)
+        })
     }
 
     /// A production change that fails this test: the editor keeps a long line
     /// on one row and scrolls it sideways.
     @Test func theEditorWrapsALongLine() async {
-      let threeLines = await ContentSizedBed.settledHeight(
-        of: Self.editor(PromptEditorSession(), text: ContentSizedBed.threeLines))
-
-      #expect(
-        await ContentSizedBed.grows(
-          Self.editor(PromptEditorSession(), text: ContentSizedBed.longLine), tallerThan: threeLines))
+      #expect(await ContentSizedBed.wrapsALongLine { Self.editor(PromptEditorSession(), text: $0) })
     }
 
     /// A production change that fails this test: the composer shows a long

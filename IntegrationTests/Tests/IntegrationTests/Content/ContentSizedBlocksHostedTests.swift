@@ -112,6 +112,38 @@
       let recorder = bed.recorder
       return await settle(until: { (recorder.frame?.height ?? 0) > reference })
     }
+
+    /// Mounts `block`, runs `grow`, which gives the block ``tallText``, and
+    /// waits until the block is taller than the window and the scroll view of
+    /// the host is the one scroll view that scrolls.
+    ///
+    /// - Parameters:
+    ///   - block: The block, which shows a short text.
+    ///   - windowHeight: The height of the window.
+    ///   - grow: Changes the text of the block to ``tallText``.
+    /// - Returns: Whether the block grew past the window and scrolls as one.
+    /// - Throws: The error of `grow`.
+    static func growsWithItsText(
+      _ block: some View, windowHeight: CGFloat = height, grow: () async throws -> Void
+    ) async rethrows -> Bool {
+      let bed = await ContentSizedBed(block, windowHeight: windowHeight)
+      defer { bed.harness.close() }
+      try await grow()
+      return await bed.growsPastTheWindowAndScrollsAsOne()
+    }
+
+    /// Whether the block that `make` builds wraps a long line: the block of
+    /// ``longLine`` grows taller than the block of ``threeLines``.
+    ///
+    /// - Parameter make: Builds the block that shows a text.
+    /// - Returns: Whether the long line takes more rows than three lines.
+    /// - Throws: The error of `make`.
+    static func wrapsALongLine<Block: View>(_ make: (String) async throws -> Block) async rethrows -> Bool {
+      let short = try await make(threeLines)
+      let shortHeight = await settledHeight(of: short)
+      let long = try await make(longLine)
+      return await grows(long, tallerThan: shortHeight)
+    }
   }
 
   /// A multiline block of the kit takes the height of its content, grows as
@@ -143,38 +175,25 @@
 
     @Test func aCodeBlockGrowsWithItsCodeAndTheHostScrollsIt() async {
       let source = BlockText(ContentSizedBed.oneLine)
-      let bed = await ContentSizedBed(Self.codeBlock(source))
-      defer { bed.harness.close() }
 
-      source.text = ContentSizedBed.tallText
-
-      #expect(await bed.growsPastTheWindowAndScrollsAsOne())
+      #expect(await ContentSizedBed.growsWithItsText(Self.codeBlock(source)) { source.text = ContentSizedBed.tallText })
     }
 
     @Test func aCodeBlockWrapsALongLine() async {
-      let threeLines = await ContentSizedBed.settledHeight(of: Self.codeBlock(BlockText(ContentSizedBed.threeLines)))
-
-      #expect(await ContentSizedBed.grows(Self.codeBlock(BlockText(ContentSizedBed.longLine)), tallerThan: threeLines))
+      #expect(await ContentSizedBed.wrapsALongLine { Self.codeBlock(BlockText($0)) })
     }
 
     // MARK: - Command output
 
     @Test func aCommandOutputGrowsWithItsOutputAndTheHostScrollsIt() async {
       let source = BlockText(ContentSizedBed.oneLine)
-      let bed = await ContentSizedBed(Self.commandOutput(source))
-      defer { bed.harness.close() }
 
-      source.text = ContentSizedBed.tallText
-
-      #expect(await bed.growsPastTheWindowAndScrollsAsOne())
+      #expect(
+        await ContentSizedBed.growsWithItsText(Self.commandOutput(source)) { source.text = ContentSizedBed.tallText })
     }
 
     @Test func aCommandOutputWrapsALongLine() async {
-      let threeLines = await ContentSizedBed.settledHeight(
-        of: Self.commandOutput(BlockText(ContentSizedBed.threeLines)))
-
-      #expect(
-        await ContentSizedBed.grows(Self.commandOutput(BlockText(ContentSizedBed.longLine)), tallerThan: threeLines))
+      #expect(await ContentSizedBed.wrapsALongLine { Self.commandOutput(BlockText($0)) })
     }
 
     // MARK: - Terminal
@@ -183,26 +202,27 @@
       let (session, terminal) = try await TerminalViewHostedTests.openTerminal(
         TerminalViewHostedTests.outputField(ContentSizedBed.oneLine))
       defer { session.close() }
-      let bed = await ContentSizedBed(TerminalView(entry: terminal))
-      defer { bed.harness.close() }
 
-      try await session.sendUpdate(
-        SessionEntryRowsHostedTests.terminalUpdate(TerminalViewHostedTests.outputField(ContentSizedBed.tallText)))
-
-      #expect(await bed.growsPastTheWindowAndScrollsAsOne())
+      #expect(
+        try await ContentSizedBed.growsWithItsText(TerminalView(entry: terminal)) {
+          try await session.sendUpdate(
+            SessionEntryRowsHostedTests.terminalUpdate(TerminalViewHostedTests.outputField(ContentSizedBed.tallText)))
+        })
     }
 
     @Test func aTerminalWrapsALongLine() async throws {
-      let (longSession, longTerminal) = try await TerminalViewHostedTests.openTerminal(
-        TerminalViewHostedTests.outputField(ContentSizedBed.longLine))
-      defer { longSession.close() }
-      let (shortSession, shortTerminal) = try await TerminalViewHostedTests.openTerminal(
-        TerminalViewHostedTests.outputField(ContentSizedBed.threeLines))
-      defer { shortSession.close() }
+      var sessions: [ScriptedSession] = []
+      defer {
+        for session in sessions { session.close() }
+      }
 
-      let threeLines = await ContentSizedBed.settledHeight(of: TerminalView(entry: shortTerminal))
-
-      #expect(await ContentSizedBed.grows(TerminalView(entry: longTerminal), tallerThan: threeLines))
+      #expect(
+        try await ContentSizedBed.wrapsALongLine { output in
+          let (session, terminal) = try await TerminalViewHostedTests.openTerminal(
+            TerminalViewHostedTests.outputField(output))
+          sessions.append(session)
+          return TerminalView(entry: terminal)
+        })
     }
   }
 
