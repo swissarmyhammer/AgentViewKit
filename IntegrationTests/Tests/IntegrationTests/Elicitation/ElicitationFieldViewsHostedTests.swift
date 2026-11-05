@@ -149,7 +149,7 @@ struct HostedTextField: View {
 
   @Test func theNumberInputBesideTheStepperShowsTheAnswer() {
     // The harness does not increment a stepper. See
-    // `HostedViewHarness.increment(identifier:)`. The slider test covers the
+    // `HostedViewHarness.perform(_:on:)`. The slider test covers the
     // write through the shared number binding.
     let schema = Self.field("count", .number(integer: true, minimum: nil, maximum: nil))
     let harness = Self.mount(schema, box: AnswerBox(.number(3)))
@@ -190,7 +190,7 @@ struct HostedTextField: View {
 
     let control = harness.element(identifier: ElicitationFieldView.controlIdentifier(for: "level"))
     #expect(control?.role == NSAccessibility.Role.slider.rawValue)
-    try harness.increment(identifier: ElicitationFieldView.controlIdentifier(for: "level"))
+    try harness.perform(.increment, on: ElicitationFieldView.controlIdentifier(for: "level"))
     let number = try #require(box.value?.doubleValue)
     #expect(number > 2 && number <= 10)
     #expect(number == number.rounded())
@@ -213,7 +213,7 @@ struct HostedTextField: View {
     let harness = Self.mount(Self.field("agree", .boolean), box: box)
     defer { harness.close() }
 
-    try harness.press(identifier: ElicitationFieldView.controlIdentifier(for: "agree"))
+    try harness.perform(.press, on: ElicitationFieldView.controlIdentifier(for: "agree"))
     #expect(box.value == .bool(true))
   }
 
@@ -313,7 +313,7 @@ struct HostedTextField: View {
         != nil)
     #expect(
       harness.element(identifier: ElicitationSingleChoiceField.menuIdentifier(for: "color")) == nil)
-    try harness.press(identifier: ElicitationFieldView.choiceIdentifier(for: "color", value: "c3"))
+    try harness.perform(.press, on: ElicitationFieldView.choiceIdentifier(for: "color", value: "c3"))
     #expect(box.value == .string("c3"))
   }
 
@@ -323,7 +323,7 @@ struct HostedTextField: View {
     let radio = ElicitationFieldView.choiceIdentifier(for: "color", value: "c3")
     let selected = String(localized: "Selected")
 
-    try harness.press(identifier: radio)
+    try harness.perform(.press, on: radio)
 
     #expect(harness.element(identifier: radio)?.value == selected)
   }
@@ -349,11 +349,11 @@ struct HostedTextField: View {
     let harness = Self.mount(Self.field("tags", kind), box: box)
     defer { harness.close() }
 
-    try harness.press(identifier: ElicitationFieldView.choiceIdentifier(for: "tags", value: "c2"))
-    try harness.press(identifier: ElicitationFieldView.choiceIdentifier(for: "tags", value: "c0"))
+    try harness.perform(.press, on: ElicitationFieldView.choiceIdentifier(for: "tags", value: "c2"))
+    try harness.perform(.press, on: ElicitationFieldView.choiceIdentifier(for: "tags", value: "c0"))
     #expect(box.value == .array([.string("c0"), .string("c2")]))
 
-    try harness.press(identifier: ElicitationFieldView.choiceIdentifier(for: "tags", value: "c2"))
+    try harness.perform(.press, on: ElicitationFieldView.choiceIdentifier(for: "tags", value: "c2"))
     #expect(box.value == .array([.string("c0")]))
   }
 
@@ -367,10 +367,10 @@ struct HostedTextField: View {
     let first = ElicitationFieldView.choiceIdentifier(for: "tags", value: "c0")
     #expect(harness.element(identifier: third)?.isEnabled == false)
     #expect(harness.element(identifier: first)?.isEnabled == true)
-    _ = try? harness.press(identifier: third)
+    _ = try? harness.perform(.press, on: third)
     #expect(box.value == .array([.string("c0"), .string("c1")]))
 
-    try harness.press(identifier: first)
+    try harness.perform(.press, on: first)
     #expect(box.value == .array([.string("c1")]))
     #expect(harness.element(identifier: third)?.isEnabled == true)
   }
@@ -382,10 +382,10 @@ struct HostedTextField: View {
     defer { harness.close() }
     let first = ElicitationFieldView.choiceIdentifier(for: "tags", value: "c0")
 
-    try harness.press(identifier: first)
+    try harness.perform(.press, on: first)
     #expect(box.value == .array([.string("c0")]))
 
-    try harness.press(identifier: first)
+    try harness.perform(.press, on: first)
     #expect(box.value == nil)
   }
 

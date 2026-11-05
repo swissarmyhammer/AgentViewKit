@@ -115,7 +115,7 @@ import Testing
   /// - Throws: The error of the press, or an issue when the button is still
   ///   enabled.
   static func pressAuthAction(_ identifier: String, in harness: HostedViewHarness<some View>) throws {
-    try harness.press(identifier: identifier)
+    try harness.perform(.press, on: identifier)
     try #require(harness.element(identifier: identifier)?.isEnabled == false)
   }
 

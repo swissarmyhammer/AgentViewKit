@@ -134,7 +134,7 @@ import Testing
     harness.render()
 
     #expect(harness.element(identifier: ImageView.imageIdentifier)?.label == Self.imageName)
-    try harness.press(identifier: ImageView.imageIdentifier)
+    try harness.perform(.press, on: ImageView.imageIdentifier)
     // The image starts the file write in the same step as the press, so a
     // press that started nothing stops the test here.
     try #require(selects.values == [Self.imageName])
@@ -201,7 +201,7 @@ import Testing
     harness.render()
 
     #expect(harness.element(identifier: LinkView.cardIdentifier)?.label == Self.linkName)
-    try harness.press(identifier: LinkView.cardIdentifier)
+    try harness.perform(.press, on: LinkView.cardIdentifier)
 
     #expect(recorder.urls == [try #require(URL(string: Self.linkURI))])
   }

@@ -155,7 +155,7 @@
           == "Showing the last \(Self.rowLimit) of \(Self.longLineCount) lines")
       #expect(model.text == lines.suffix(Self.rowLimit).joined(separator: "\n"))
 
-      try harness.press(identifier: TerminalView.showAllIdentifier)
+      try harness.perform(.press, on: TerminalView.showAllIdentifier)
 
       #expect(model.text == lines.joined(separator: "\n"))
       #expect(harness.element(identifier: TerminalView.capIdentifier) == nil)

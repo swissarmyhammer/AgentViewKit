@@ -146,7 +146,7 @@ import Testing
     try await Self.sendRequests(6, to: session, rendering: harness)
     let model = session.model
 
-    try harness.press(identifier: RequestDeck.nextIdentifier)
+    try harness.perform(.press, on: RequestDeck.nextIdentifier)
     #expect(Self.label(of: RequestDeck.positionIdentifier, in: harness) == "Request 2 of 6, 2 more")
 
     let key = try #require(AgentKeymap.defaultChords[.nextRequest]?.first)
@@ -169,9 +169,9 @@ import Testing
     try #require(harness.focusFirstEditableTextView())
     harness.type(Self.typedText)
 
-    try harness.press(identifier: RequestDeck.nextIdentifier)
-    try harness.press(identifier: RequestDeck.previousIdentifier)
-    try harness.press(identifier: ElicitationView.submitIdentifier)
+    try harness.perform(.press, on: RequestDeck.nextIdentifier)
+    try harness.perform(.press, on: RequestDeck.previousIdentifier)
+    try harness.perform(.press, on: ElicitationView.submitIdentifier)
     // The model removes the answered elicitation in the same step as the
     // Submit press, so a press that did not answer stops the test here.
     let result = try await session.resultOfAnsweredElicitation(ofRequest: Self.firstRequestID)
@@ -191,7 +191,7 @@ import Testing
 
     // The model removes the answered elicitation in the same step as the
     // Submit press, and the press renders the deck.
-    try harness.press(identifier: ElicitationView.submitIdentifier)
+    try harness.perform(.press, on: ElicitationView.submitIdentifier)
     try #require(model.pendingRequests.count == 5)
 
     #expect(Self.label(of: RequestDeck.positionIdentifier, in: harness) == "Request 1 of 5, 1 more")
@@ -234,7 +234,7 @@ import Testing
     defer { harness.close() }
     try await Self.sendRequests(3, to: session, rendering: harness)
     let model = session.model
-    try harness.press(identifier: RequestDeck.nextIdentifier)
+    try harness.perform(.press, on: RequestDeck.nextIdentifier)
     let front = try #require(model.frontRequest)
 
     try await Self.sendRequests(1, firstID: Self.firstRequestID + 3, to: session, rendering: harness)

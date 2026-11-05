@@ -233,7 +233,7 @@ import Testing
     let harness = mounted.harness
     try #require(Self.errors(of: "name", in: harness) == nil)
 
-    try harness.press(identifier: Self.attemptIdentifier)
+    try harness.perform(.press, on: Self.attemptIdentifier)
 
     #expect(Self.errors(of: "name", in: harness)?.label?.contains(Self.requiredMessage) == true)
     #expect(Self.errors(of: "color", in: harness)?.label?.contains(Self.requiredMessage) == true)
@@ -245,7 +245,7 @@ import Testing
     let mounted = try await Self.mountWithAttemptFooter(Self.requiredNameAndColorParams, announcer: announcer)
     defer { mounted.close() }
 
-    try mounted.harness.press(identifier: Self.attemptIdentifier)
+    try mounted.harness.perform(.press, on: Self.attemptIdentifier)
 
     #expect(
       announcer.announcements == [

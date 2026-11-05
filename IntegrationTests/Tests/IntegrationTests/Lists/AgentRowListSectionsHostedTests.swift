@@ -296,7 +296,7 @@ import Testing
     defer { bed.harness.close() }
 
     let row = SectionBed.scope.rowIdentifier(for: SectionBed.recent.items[1])
-    try bed.harness.performCustomAction(named: AgentRowClicks.openActionName, identifier: row)
+    try bed.harness.perform(.custom(AgentRowClicks.openActionName), on: row)
 
     #expect(bed.opened.values == [SectionBed.recent.items[1]])
   }
@@ -318,8 +318,8 @@ import Testing
     let header = AgentRowSectionHeader.identifier(for: SectionBed.recent.id)
     let open = AgentRowClicks.openActionName
 
-    #expect(throws: HostedViewHarnessError.noCustomAction(name: open, identifier: header)) {
-      try bed.harness.performCustomAction(named: open, identifier: header)
+    #expect(throws: AccessibilityActionError.noCustomAction(name: open, identifier: header)) {
+      try bed.harness.perform(.custom(open), on: header)
     }
     #expect(bed.opened.values.isEmpty)
   }

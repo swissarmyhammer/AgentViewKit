@@ -341,7 +341,7 @@ private nonisolated let densities: [AgentRowDensity] = [.regular, .compact]
     defer { bed.harness.close() }
 
     let row = RowBed.scope.rowIdentifier(for: RowBed.ids[0])
-    try bed.harness.performCustomAction(named: AgentRowClicks.openActionName, identifier: row)
+    try bed.harness.perform(.custom(AgentRowClicks.openActionName), on: row)
     await bed.settle()
 
     #expect(bed.opened.values == [RowBed.ids[0]])
@@ -349,9 +349,44 @@ private nonisolated let densities: [AgentRowDensity] = [.regular, .compact]
   }
 }
 
-/// `.wrappingRows(_:)` of ``AgentRowList``: a context menu around the row covers
-/// the area that a click covers, inset included.
+/// `.wrappingRows(_:)` of ``AgentRowList``: a context menu around the row
+/// stands in the scope of the row, and the row stays a row of the list.
+///
+/// The menu is a plain SwiftUI `.contextMenu`, so a test reads it with
+/// `HostedViewHarness.contextMenu(identifier:)`, which builds the menu with no
+/// event posted, the window off the screen and not key.
 @Suite(.serialized, .hostedSerially) @MainActor struct AgentRowListRowMenuHostedTests {
+  /// A menu that reads `\.commandScopePath`, as `.itemContextMenu()` does,
+  /// stands inside the scope of the row.
+  @Test func theWrapperStandsInTheScopeOfTheRow() async throws {
+    let bed = try await RowBed(rowMenu: .aroundRow)
+    defer { bed.harness.close() }
+    let id = RowBed.ids[0]
+
+    let menu = try bed.harness.contextMenu(identifier: RowBed.scope.rowIdentifier(for: id))
+    let titles = menu?.items.map(\.title) ?? []
+
+    #expect(titles.contains(RowScopeMenu.scopeTitle(RowBed.scope.rowSegment(for: id).id)))
+  }
+
+  @Test func aWrappedRowStaysACurrentRow() async throws {
+    let bed = try await RowBed(current: RowBed.ids[1], rowMenu: .aroundRow)
+    defer { bed.harness.close() }
+
+    #expect(try bed.reportsSelected(RowBed.ids[1]))
+  }
+}
+
+/// The area that the context menu of a row covers, which only a hit test at a
+/// point answers: a context menu around the row covers the area that a click
+/// covers, inset included.
+///
+/// The read hit-tests a point in the top inset of a row
+/// (`HostedViewHarness.contextMenu(at:)`). It builds the menu with a right
+/// mouse-down that it never posts, so the window stays off the screen and not
+/// key. Each suite whose name ends in `PointerHostedTests` holds such a hit
+/// test.
+@Suite(.serialized, .hostedSerially) @MainActor struct AgentRowListRowMenuPointerHostedTests {
   /// The gap that the wrapper closes: a menu on the content of a row stops at
   /// the content, so the point of the other tests lands outside it.
   @Test func aMenuOnTheContentLeavesTheInsetBare() async throws {
@@ -370,25 +405,6 @@ private nonisolated let densities: [AgentRowDensity] = [.regular, .compact]
     let titles = try bed.harness.contextMenu(at: bed.topInsetPoint(ofRow: id))?.items.map(\.title) ?? []
 
     #expect(titles.contains(RowScopeMenu.itemTitle(id)))
-  }
-
-  /// A menu that reads `\.commandScopePath`, as `.itemContextMenu()` does,
-  /// stands inside the scope of the row.
-  @Test func theWrapperStandsInTheScopeOfTheRow() async throws {
-    let bed = try await RowBed(rowMenu: .aroundRow)
-    defer { bed.harness.close() }
-    let id = RowBed.ids[0]
-
-    let titles = try bed.harness.contextMenu(at: bed.topInsetPoint(ofRow: id))?.items.map(\.title) ?? []
-
-    #expect(titles.contains(RowScopeMenu.scopeTitle(RowBed.scope.rowSegment(for: id).id)))
-  }
-
-  @Test func aWrappedRowStaysACurrentRow() async throws {
-    let bed = try await RowBed(current: RowBed.ids[1], rowMenu: .aroundRow)
-    defer { bed.harness.close() }
-
-    #expect(try bed.reportsSelected(RowBed.ids[1]))
   }
 }
 

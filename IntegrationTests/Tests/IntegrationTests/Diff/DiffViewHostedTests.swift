@@ -238,7 +238,7 @@
       let secondRenderer = Self.rendererIdentifier(for: Self.secondPath)
       #expect(harness.element(identifier: secondRenderer) == nil)
 
-      try harness.press(identifier: DiffView.fileChipIdentifier(for: Self.secondPath))
+      try harness.perform(.press, on: DiffView.fileChipIdentifier(for: Self.secondPath))
 
       #expect(harness.element(identifier: secondRenderer) != nil)
       #expect(harness.element(identifier: Self.rendererIdentifier(for: Self.firstPath)) == nil)
@@ -261,7 +261,7 @@
       let harness = Self.mountDiff(log: log, installsRenderer: false)
       defer { harness.close() }
 
-      try harness.press(identifier: DiffView.acceptIdentifier(for: 1))
+      try harness.perform(.press, on: DiffView.acceptIdentifier(for: 1))
 
       #expect(log.accepted.count == 1)
       #expect(log.accepted.first?.0 == Self.firstPath)
@@ -274,7 +274,7 @@
       let harness = Self.mountDiff(log: log, installsRenderer: false)
       defer { harness.close() }
 
-      try harness.press(identifier: DiffView.rejectIdentifier(for: 0))
+      try harness.perform(.press, on: DiffView.rejectIdentifier(for: 0))
 
       #expect(log.rejected.count == 1)
       #expect(log.rejected.first?.0 == Self.firstPath)
@@ -287,7 +287,7 @@
       let harness = Self.mountDiff(log: log, installsRenderer: false)
       defer { harness.close() }
 
-      try harness.press(identifier: DiffView.attachIdentifier)
+      try harness.perform(.press, on: DiffView.attachIdentifier)
 
       #expect(
         log.attached == [
@@ -303,8 +303,8 @@
         Self.diffView(log: log).diffRenderer { _, _ in SelectingRenderer() }, size: Self.tallSize)
       defer { harness.close() }
 
-      try harness.press(identifier: SelectingRenderer.identifier)
-      try harness.press(identifier: DiffView.attachIdentifier)
+      try harness.perform(.press, on: SelectingRenderer.identifier)
+      try harness.perform(.press, on: DiffView.attachIdentifier)
 
       #expect(
         log.attached == [DiffAttachment(file: Self.firstPath, lines: SelectingRenderer.lines)])
@@ -372,7 +372,7 @@
 
       #expect(!views(withAccessibilityIdentifier: EditorDiffIdentifier.root, in: harness.hostingView).isEmpty)
       #expect(harness.element(identifier: DiffView.rejectIdentifier(for: 0)) == nil)
-      try harness.press(identifier: DiffView.acceptIdentifier(for: 0))
+      try harness.perform(.press, on: DiffView.acceptIdentifier(for: 0))
 
       #expect(log.accepted.first?.0 == Self.firstPath)
       #expect(log.accepted.first?.1 == 0)

@@ -228,7 +228,7 @@
       defer { harness.close() }
       let model = session.model
 
-      try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
+      try harness.perform(.press, on: DefaultPromptAccessory.submitIdentifier)
       // The composer calls the host closure in the same step as it starts the
       // prompt task, so a submit that sent nothing stops the test here.
       try #require(draft.submitCount == 1)
@@ -258,7 +258,7 @@
       let model = session.model
       let errorIdentifier = ErrorView.identifier
 
-      try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
+      try harness.perform(.press, on: DefaultPromptAccessory.submitIdentifier)
       try #require(draft.submitCount == 1)
       await harness.render { TranscriptChecks.hasErrorEntry(model) }
       let entry = try #require(Self.userMessages(of: model).first)
@@ -364,7 +364,7 @@
       defer { harness.close() }
 
       try await Self.startRunning(session, in: harness)
-      try harness.press(identifier: DefaultPromptAccessory.stopIdentifier)
+      try harness.perform(.press, on: DefaultPromptAccessory.stopIdentifier)
       // The Stop button starts the cancel in the same step as the press, so a
       // press that started nothing stops the test here.
       try #require(starts.values == [ScriptedSession.cancelMethod])
@@ -393,7 +393,7 @@
       #expect(harness.element(identifier: imageBadge) != nil)
       #expect(harness.element(identifier: AttachmentChips.notAcceptedIdentifier(for: files.notes.id)) == nil)
 
-      try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
+      try harness.perform(.press, on: DefaultPromptAccessory.submitIdentifier)
       // The composer clears its attachments in the same step as it starts the
       // prompt task, so a submit that sent nothing stops the test here.
       try #require(draft.attachments.isEmpty)
@@ -414,7 +414,7 @@
       defer { harness.close() }
       harness.render()
 
-      try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
+      try harness.perform(.press, on: DefaultPromptAccessory.submitIdentifier)
       try #require(draft.attachments.isEmpty)
       await ObservationWait.until { !session.agent.messages(method: ScriptedSession.promptMethod).isEmpty }
 

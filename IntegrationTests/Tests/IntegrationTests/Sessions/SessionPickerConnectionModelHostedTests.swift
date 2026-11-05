@@ -184,7 +184,7 @@ import Testing
   ) async throws {
     let reportsBefore = calls.values.count
     let pressesBefore = presses.values.count
-    try harness.press(identifier: identifier)
+    try harness.perform(.press, on: identifier)
     // The picker reports the press in the same step as it starts the call,
     // so a press that started nothing stops the test here.
     try #require(Array(presses.values.dropFirst(pressesBefore)) == [identifier])
@@ -462,7 +462,7 @@ import Testing
     defer { harness.close() }
     #expect(!Self.rowIdentifiers(in: harness).isEmpty)
 
-    try harness.press(identifier: SessionListView.newSessionIdentifier)
+    try harness.perform(.press, on: SessionListView.newSessionIdentifier)
 
     #expect(count == 1)
   }

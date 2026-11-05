@@ -136,7 +136,7 @@ struct SplitViewHostWithThreadTabs: View {
     try #require(Shared.inspectorItem(in: harness)?.isCollapsed == true)
 
     try Shared.withoutAnimation {
-      try harness.press(identifier: AttachmentView.identifier(for: .chip))
+      try harness.perform(.press, on: AttachmentView.identifier(for: .chip))
     }
     await RunLoopBlockFence.afterPendingBlocks()
     harness.render()
@@ -163,7 +163,7 @@ struct SplitViewHostWithThreadTabs: View {
     defer { harness.close() }
     try #require(Shared.inspectorItems(in: harness).count == 1)
 
-    try harness.press(identifier: AttachmentView.identifier(for: .chip))
+    try harness.perform(.press, on: AttachmentView.identifier(for: .chip))
 
     #expect(
       state.selection
@@ -187,7 +187,7 @@ struct SplitViewHostWithThreadTabs: View {
     let harness = Self.mountInHostMode(session, state: state) { ImageView(image: image) }
     defer { harness.close() }
 
-    try harness.press(identifier: ImageView.imageIdentifier)
+    try harness.perform(.press, on: ImageView.imageIdentifier)
     await ObservationWait.until { state.selection != nil }
 
     let selection = try #require(state.selection)
@@ -244,7 +244,7 @@ struct SplitViewHostWithThreadTabs: View {
     harness.render()
     try #require(harness.element(identifier: Self.threadTag(1)) != nil)
     try #require(harness.element(identifier: Self.threadTag(0)) == nil)
-    try harness.press(identifier: AttachmentView.identifier(for: .chip))
+    try harness.perform(.press, on: AttachmentView.identifier(for: .chip))
 
     #expect(
       state.selection

@@ -181,7 +181,7 @@
       #expect(harness.element(identifier: Self.cardIdentifier(pending.id)) != nil)
       #expect(harness.element(identifier: PermissionView.identifier) != nil)
 
-      try harness.press(identifier: PermissionView.optionIdentifier(for: Self.allowOptionID))
+      try harness.perform(.press, on: PermissionView.optionIdentifier(for: Self.allowOptionID))
       // The card reports its answer in the same step as it starts the answer
       // task, so a press that the card did not handle stops the test here.
       try #require(answers == [PermissionAnswer(option: Self.allowOptionID, comment: nil)])
@@ -215,10 +215,10 @@
         Self.permissionMethod, id: Self.agentRequestID, params: ScriptedSession.permissionParams)
       await harness.render { !model.pendingPermissions.isEmpty }
       #expect(harness.element(identifier: PermissionView.identifier) != nil)
-      try harness.press(identifier: PermissionView.optionIdentifier(for: Self.rejectOptionID))
+      try harness.perform(.press, on: PermissionView.optionIdentifier(for: Self.rejectOptionID))
       try SingleLineFieldChecks.type(Self.comment, intoFieldWith: PermissionView.commentIdentifier, in: harness)
       let answeredBeforePrompt = Self.flagAnswerBeforePrompt(withText: Self.comment, in: model)
-      try harness.press(identifier: PermissionView.commentSubmitIdentifier)
+      try harness.perform(.press, on: PermissionView.commentSubmitIdentifier)
       // The card reports its answer in the same step as it starts the answer
       // task, so a Send press that the card did not handle stops the test here.
       try #require(answers == [PermissionAnswer(option: Self.rejectOptionID, comment: Self.comment)])
@@ -359,7 +359,7 @@
       #expect(harness.element(identifier: ElicitationView.formIdentifier) != nil)
       #expect(harness.element(identifier: Self.cardIdentifier(pending.id)) != nil)
 
-      try harness.press(identifier: answer.buttonIdentifier)
+      try harness.perform(.press, on: answer.buttonIdentifier)
       // The model removes the answered elicitation in the same step as the
       // press, so a press that did not answer stops the test here.
       try #require(model.pendingElicitations.isEmpty)
@@ -419,7 +419,7 @@
       #expect(harness.element(identifier: RequestDeck.identifier) != nil)
       #expect(harness.element(identifier: Self.cardIdentifier(pending.id)) != nil)
 
-      try harness.press(identifier: ElicitationView.declineIdentifier)
+      try harness.perform(.press, on: ElicitationView.declineIdentifier)
       // The connection model removes the declined elicitation in the same
       // step as the press, so a press that did not answer stops the test here.
       try #require(connection.pendingElicitations.isEmpty)

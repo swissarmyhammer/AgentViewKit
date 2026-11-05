@@ -182,12 +182,12 @@ import Testing
     defer { harness.close() }
     _ = try await Self.sendDeckOfTwoPermissions(to: session, rendering: harness)
     let reject = PermissionOptionId(rawValue: AgentCommandFixtures.rejectOptionID)
-    try harness.press(identifier: PermissionView.optionIdentifier(for: reject))
+    try harness.perform(.press, on: PermissionView.optionIdentifier(for: reject))
     try SingleLineFieldChecks.type(Self.commentText, intoFieldWith: PermissionView.commentIdentifier, in: harness)
 
-    try harness.press(identifier: RequestDeck.nextIdentifier)
+    try harness.perform(.press, on: RequestDeck.nextIdentifier)
     try #require(harness.element(identifier: PermissionView.commentIdentifier) == nil)
-    try harness.press(identifier: RequestDeck.previousIdentifier)
+    try harness.perform(.press, on: RequestDeck.previousIdentifier)
 
     #expect(harness.element(identifier: PermissionView.commentIdentifier)?.value == Self.commentText)
   }

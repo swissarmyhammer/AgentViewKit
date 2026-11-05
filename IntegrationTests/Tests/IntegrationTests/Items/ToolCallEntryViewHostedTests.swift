@@ -445,7 +445,7 @@
       let linked = try #require(model.pendingElicitations.first?.id)
       #expect(model.frontRequest?.id != linked)
 
-      try harness.press(identifier: ToolCallView.waitingIdentifier(for: key))
+      try harness.perform(.press, on: ToolCallView.waitingIdentifier(for: key))
 
       #expect(model.frontRequestID == linked)
       #expect(harness.element(identifier: RequestDeck.positionIdentifier)?.label == "Request 2 of 2")
@@ -460,7 +460,7 @@
       let model = session.model
       let key = try await Self.showWaitingCall("accept-c", in: session, harness: harness)
 
-      try harness.press(identifier: ElicitationView.submitIdentifier)
+      try harness.perform(.press, on: ElicitationView.submitIdentifier)
       // The model removes the pending elicitation and its link in the same
       // step as the Submit press, so a press that did not answer stops the
       // test here.
@@ -483,7 +483,7 @@
       let key = try await Self.showWaitingCall("cancel-c", in: session, harness: harness)
 
       switch exit {
-      case .cancelButton: try harness.press(identifier: ElicitationView.cancelIdentifier)
+      case .cancelButton: try harness.perform(.press, on: ElicitationView.cancelIdentifier)
       case .cancelAll: model.cancelAllPending()
       }
       // The model removes the pending elicitation and its link in the same

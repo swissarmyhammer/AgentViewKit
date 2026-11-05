@@ -42,7 +42,7 @@ import Testing
   /// - Throws: The error of the press, or an issue when the button does not
   ///   show the recording phase.
   static func pressToRecord(in harness: HostedViewHarness<some View>) throws {
-    try harness.press(identifier: SpeechInputButton.identifier)
+    try harness.perform(.press, on: SpeechInputButton.identifier)
     try #require(harness.element(identifier: SpeechInputButton.identifier)?.value == "Recording")
   }
 
@@ -96,7 +96,7 @@ import Testing
     await ObservationWait.until { transcriber.isRunning }
     transcriber.feed("hello there")
     await ObservationWait.until { model.plainText == "hello there" }
-    try harness.press(identifier: SpeechInputButton.identifier)
+    try harness.perform(.press, on: SpeechInputButton.identifier)
     transcriber.feed("ignored")
     harness.render()
 

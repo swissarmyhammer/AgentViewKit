@@ -102,7 +102,7 @@ private struct OpenURLButton: View {
     defer { harness.close() }
     harness.render()
 
-    try harness.press(identifier: LinkView.cardIdentifier)
+    try harness.perform(.press, on: SourcesView.cardIdentifier(index: 1))
 
     #expect(recorder.urls == [Self.alpha.url])
   }
@@ -146,7 +146,7 @@ private struct OpenURLButton: View {
     harness.render()
     #expect(!Self.isHighlighted(harness, index: 2))
 
-    try harness.press(identifier: InlineCitation.identifier(index: 2))
+    try harness.perform(.press, on: InlineCitation.identifier(index: 2))
 
     #expect(Self.isHighlighted(harness, index: 2))
     #expect(!Self.isHighlighted(harness, index: 1))
@@ -163,7 +163,7 @@ private struct OpenURLButton: View {
     defer { harness.close() }
     harness.render()
 
-    try harness.press(identifier: InlineCitation.identifier(index: 1))
+    try harness.perform(.press, on: InlineCitation.identifier(index: 1))
 
     #expect(Self.isHighlighted(harness, index: 1))
     #expect(!Self.isHighlighted(harness, index: 2))
@@ -185,7 +185,7 @@ private struct OpenURLButton: View {
     defer { harness.close() }
     harness.render()
 
-    try harness.press(identifier: InlineCitation.identifier(index: 2))
+    try harness.perform(.press, on: InlineCitation.identifier(index: 2))
     harness.render()
 
     #expect(Self.isHighlighted(harness, index: 2))
@@ -215,7 +215,7 @@ private struct OpenURLButton: View {
     let scrollView = try #require(views(ofType: NSScrollView.self, in: harness.hostingView).first)
     #expect(scrollView.contentView.bounds.minY == 0)
 
-    try harness.press(identifier: InlineCitation.identifier(index: 2))
+    try harness.perform(.press, on: InlineCitation.identifier(index: 2))
     // The pill selects its row in the same step, and the row then starts the
     // scroll task. A press that selected nothing stops the test here.
     try #require(Self.isHighlighted(harness, index: 2))
@@ -255,7 +255,7 @@ private struct OpenURLButton: View {
     defer { harness.close() }
     harness.render()
 
-    try harness.press(identifier: OpenURLButton.identifier)
+    try harness.perform(.press, on: OpenURLButton.identifier)
 
     #expect(Self.isHighlighted(harness, index: 2))
     #expect(recorder.urls.isEmpty)
@@ -272,7 +272,7 @@ private struct OpenURLButton: View {
     defer { harness.close() }
     harness.render()
 
-    try harness.press(identifier: OpenURLButton.identifier)
+    try harness.perform(.press, on: OpenURLButton.identifier)
 
     #expect(recorder.urls == [url])
   }

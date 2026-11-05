@@ -126,7 +126,7 @@ import Testing
     let harness = mounted.harness
     try #require(reporter.moves.isEmpty)
 
-    try harness.press(identifier: ElicitationURLConsentView.openIdentifier)
+    try harness.perform(.press, on: ElicitationURLConsentView.openIdentifier)
     // The press accepts the request in the same step, and the render pass
     // after it moves the focus. A press or a deck that broke stops the test
     // here, before the wait.
@@ -166,7 +166,7 @@ import Testing
     let model = session.model
     let permission = try #require(model.pendingPermissions.first)
 
-    try harness.press(identifier: RequestDeck.nextIdentifier)
+    try harness.perform(.press, on: RequestDeck.nextIdentifier)
     try #require(model.frontRequestID == permission.id)
     #expect(reporter.moves == [RequestDeck.identifier(for: permission.id.uuidString)])
 
@@ -197,7 +197,7 @@ import Testing
     harness.render()
     let elicitation = try #require(model.pendingElicitations.first)
 
-    try harness.press(identifier: RequestDeck.nextIdentifier)
+    try harness.perform(.press, on: RequestDeck.nextIdentifier)
     try #require(model.frontRequestID == elicitation.id)
     #expect(reporter.moves == [RequestDeck.identifier(for: elicitation.id.uuidString)])
 

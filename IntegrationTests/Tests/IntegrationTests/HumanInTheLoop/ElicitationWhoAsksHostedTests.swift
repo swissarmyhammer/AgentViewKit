@@ -191,7 +191,7 @@ import Testing
 
     #expect(Self.whoAsksLabels(in: harness) == ["Asked by root, planner"])
 
-    try harness.press(identifier: RequestDeck.nextIdentifier)
+    try harness.perform(.press, on: RequestDeck.nextIdentifier)
     try #require(model.frontRequest?.id == second.id)
     harness.render()
 

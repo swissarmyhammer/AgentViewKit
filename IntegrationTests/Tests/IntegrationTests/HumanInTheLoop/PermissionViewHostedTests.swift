@@ -186,7 +186,7 @@ import Testing
   ///   - harness: The harness of the card.
   /// - Throws: An error when the card has no such button.
   static func press(_ kind: PermissionOptionKind, in harness: HostedViewHarness<some View>) throws {
-    try harness.press(identifier: PermissionView.optionIdentifier(for: optionID(kind)))
+    try harness.perform(.press, on: PermissionView.optionIdentifier(for: optionID(kind)))
   }
 
   // MARK: - Identifiers
@@ -299,7 +299,7 @@ import Testing
     #expect(session.model.pendingPermissions.count == 1)
 
     try SingleLineFieldChecks.type(Self.comment, intoFieldWith: PermissionView.commentIdentifier, in: harness)
-    try harness.press(identifier: PermissionView.commentSubmitIdentifier)
+    try harness.perform(.press, on: PermissionView.commentSubmitIdentifier)
     // The card reports its answer in the same step as it starts the answer
     // task, so a Send press that the card did not handle stops the test here.
     try #require(answers == [PermissionAnswer(option: Self.optionID(.rejectOnce), comment: Self.comment)])
@@ -335,7 +335,7 @@ import Testing
     defer { harness.close() }
 
     try Self.press(.rejectAlways, in: harness)
-    try harness.press(identifier: PermissionView.commentSubmitIdentifier)
+    try harness.perform(.press, on: PermissionView.commentSubmitIdentifier)
     try #require(answers == [PermissionAnswer(option: Self.optionID(.rejectAlways), comment: nil)])
     let result = await session.result(ofRequest: Self.agentRequestID)
 
@@ -404,7 +404,7 @@ import Testing
       MainActor.assumeIsolated { agent.messages(method: Self.setConfigOptionMethod).isEmpty }
     }
 
-    try harness.press(identifier: PermissionView.switchToAutoIdentifier)
+    try harness.perform(.press, on: PermissionView.switchToAutoIdentifier)
     // The card starts both requests in the same step as the press, so a
     // press that started nothing stops the test here.
     try #require(starts.values == [ScriptedSession.permissionMethod, Self.setConfigOptionMethod])
@@ -434,7 +434,7 @@ import Testing
     #expect(harness.element(identifier: TerminalView.identifier) == nil)
     #expect(harness.element(identifier: PermissionView.terminalLinkIdentifier)?.label == "Show Terminal")
 
-    try harness.press(identifier: PermissionView.terminalLinkIdentifier)
+    try harness.perform(.press, on: PermissionView.terminalLinkIdentifier)
 
     #expect(harness.element(identifier: TerminalView.identifier) != nil)
     #expect(harness.element(identifier: PermissionView.terminalLinkIdentifier)?.label == "Hide Terminal")
@@ -528,7 +528,7 @@ import Testing
 
     // Only the front card is in the accessibility tree. Next brings the card
     // behind it to the front.
-    try harness.press(identifier: RequestDeck.nextIdentifier)
+    try harness.perform(.press, on: RequestDeck.nextIdentifier)
 
     #expect(harness.element(identifier: RequestDeck.identifier(for: elicitationID.uuidString)) != nil)
     #expect(harness.element(identifier: ElicitationView.formIdentifier) != nil)

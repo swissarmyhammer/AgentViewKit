@@ -129,7 +129,7 @@ import Testing
     defer { harness.close() }
     harness.render()
 
-    try harness.press(identifier: CommandOutputView.showAllIdentifier)
+    try harness.perform(.press, on: CommandOutputView.showAllIdentifier)
 
     #expect(model.text == Self.longOutput)
     #expect(harness.element(identifier: CommandOutputView.capIdentifier) == nil)
@@ -212,7 +212,7 @@ import Testing
 
       #expect(harness.element(identifier: CommandOutputView.copyIdentifier)?.label == "Copy output")
       try pasteboard.expectOneCopy(of: Self.longOutput) {
-        try harness.press(identifier: CommandOutputView.copyIdentifier)
+        try harness.perform(.press, on: CommandOutputView.copyIdentifier)
       }
     }
   }

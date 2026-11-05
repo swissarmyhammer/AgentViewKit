@@ -63,7 +63,7 @@ import UniformTypeIdentifiers
     defer { harness.close() }
     await harness.render { writes.values.contains(where: Blocks.isLoaded) }
 
-    try harness.press(identifier: AttachmentView.identifier(for: .chip))
+    try harness.perform(.press, on: AttachmentView.identifier(for: .chip))
 
     let attachment = try #require(selection.attachment)
     #expect(attachment == Self.blobAttachment)
@@ -97,7 +97,7 @@ import UniformTypeIdentifiers
     harness.render()
     #expect(harness.element(identifier: LinkView.cardIdentifier) == nil)
 
-    try harness.press(identifier: AttachmentView.identifier(for: .chip))
+    try harness.perform(.press, on: AttachmentView.identifier(for: .chip))
 
     #expect(selection.attachment == Attachment(url: url))
   }
@@ -118,7 +118,7 @@ import UniformTypeIdentifiers
     defer { harness.close() }
     harness.render()
 
-    try harness.press(identifier: AttachmentView.identifier(for: .chip))
+    try harness.perform(.press, on: AttachmentView.identifier(for: .chip))
 
     #expect(state.selection == AgentAttachmentSelection(attachment: Attachment(url: url), sessionId: Self.hostSessionID))
   }
@@ -159,7 +159,7 @@ import UniformTypeIdentifiers
     defer { harness.close() }
     harness.render()
 
-    try harness.press(identifier: ToolCallView.locationIdentifier(for: call.id.rowKey, index: 0))
+    try harness.perform(.press, on: ToolCallView.locationIdentifier(for: call.id.rowKey, index: 0))
 
     #expect(selection.attachment == Attachment(url: url))
   }

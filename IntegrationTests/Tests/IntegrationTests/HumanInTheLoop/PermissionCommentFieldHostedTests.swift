@@ -63,8 +63,8 @@ import Testing
       session: session, system: system, outerScope: true, answerReport: answers)
     let thread = AgentCommandScopeHostedTests.path(of: session.model)
     let request = try await session.sendPermissionRequest(id: requestID, rendering: harness)
-    try harness.press(
-      identifier: PermissionView.optionIdentifier(for: PermissionOptionId(rawValue: AgentCommandFixtures.rejectOptionID)))
+    try harness.perform(
+      .press, on: PermissionView.optionIdentifier(for: PermissionOptionId(rawValue: AgentCommandFixtures.rejectOptionID)))
     let window = try SingleLineFieldChecks.window(of: harness, system: system, path: thread)
     return OpenComment(window: window, card: thread.appending(AgentScopeKind.request(request)), request: request)
   }

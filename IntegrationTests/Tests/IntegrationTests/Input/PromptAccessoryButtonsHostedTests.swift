@@ -116,7 +116,7 @@
       await AgentWorkOrderHostedTests.layOut(harness) { model.agentState == Self.running }
       #expect(Self.buttons(in: harness) == Self.sendAndStop)
 
-      try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
+      try harness.perform(.press, on: DefaultPromptAccessory.submitIdentifier)
       await AgentWorkOrderHostedTests.layOut(harness) {
         ComposerSessionModelHostedTests.userMessages(of: model).first?.sendState == .sent
       }

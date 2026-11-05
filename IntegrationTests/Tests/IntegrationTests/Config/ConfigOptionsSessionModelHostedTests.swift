@@ -225,7 +225,7 @@ import Testing
   static func choose(
     _ name: String, in identifier: String, harness: HostedViewHarness<some View>, session: ScriptedSession
   ) async throws -> JSONValue {
-    try harness.performCustomAction(named: name, identifier: identifier)
+    try harness.perform(.custom(name), on: identifier)
     return try await firstSetParams(in: session)
   }
 
@@ -526,7 +526,7 @@ import Testing
     let harness = Self.mountMenuControls(session: session)
     defer { harness.close() }
 
-    try harness.press(identifier: ConfigOptionsView.controlIdentifier(for: Self.webID))
+    try harness.perform(.press, on: ConfigOptionsView.controlIdentifier(for: Self.webID))
 
     let params = try await Self.firstSetParams(in: session)
     #expect(params["configId"]?.stringValue == "web")

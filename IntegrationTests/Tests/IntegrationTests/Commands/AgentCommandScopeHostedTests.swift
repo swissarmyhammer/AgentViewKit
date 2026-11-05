@@ -289,7 +289,7 @@ import Testing
     defer { harness.close() }
     harness.render()
 
-    try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
+    try harness.perform(.press, on: DefaultPromptAccessory.submitIdentifier)
     // The composer calls the host closure in the same step as it starts the
     // prompt task, so a press that sent nothing stops the test here.
     try #require(model.submitCount == 1)

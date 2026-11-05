@@ -284,7 +284,7 @@
       let harness = Self.mountRail(session, anchors: anchors)
       defer { harness.close() }
 
-      try harness.increment(identifier: ThreadMinimapView.railIdentifier)
+      try harness.perform(.increment, on: ThreadMinimapView.railIdentifier)
 
       #expect(anchors.anchorID == keys[Self.firstVisiblePosition + 1])
     }

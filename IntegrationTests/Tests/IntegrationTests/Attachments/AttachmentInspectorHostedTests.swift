@@ -387,7 +387,7 @@ import UniformTypeIdentifiers
     in selection: InspectorSelection
   ) throws {
     try withoutAnimation {
-      try harness.press(identifier: AttachmentView.identifier(for: .chip))
+      try harness.perform(.press, on: AttachmentView.identifier(for: .chip))
     }
     try #require(selection.attachment == attachment)
   }

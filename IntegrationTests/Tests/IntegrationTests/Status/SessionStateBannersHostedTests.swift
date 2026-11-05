@@ -147,7 +147,7 @@
       try await session.sendUpdate(Self.stateUpdate(#""state": "idle", "stopReason": "refusal""#))
       await harness.render { model.agentState != before }
       #expect(harness.element(identifier: StateBanner.showErrorIdentifier)?.label == "Show Error")
-      try harness.press(identifier: StateBanner.showErrorIdentifier)
+      try harness.perform(.press, on: StateBanner.showErrorIdentifier)
 
       #expect(shown == [lastError.id])
     }
@@ -243,7 +243,7 @@
       let model = session.model
       await harness.render { model.hasMissedUpdates }
 
-      try harness.press(identifier: SessionStreamBanner.reloadIdentifier)
+      try harness.perform(.press, on: SessionStreamBanner.reloadIdentifier)
       await harness.render { !model.isReplaying && endsWithAnError(model) }
     }
 
@@ -293,7 +293,7 @@
       agent.failingMethods = []
       agent.heldMethods = [ScriptedSession.resumeMethod]
 
-      try harness.press(identifier: SessionStreamBanner.reloadIdentifier)
+      try harness.perform(.press, on: SessionStreamBanner.reloadIdentifier)
       await harness.render { model.isReplaying && agent.isHoldingAnswer }
 
       #expect(!Self.shows(SessionStreamBanner.reloadFailedIdentifier, in: harness))
@@ -372,7 +372,7 @@
         SessionStreamBanner(session: first.model, connection: first.connection), size: Self.size)
       defer { harness.close() }
       await harness.render { first.model.hasMissedUpdates }
-      try harness.press(identifier: SessionStreamBanner.reloadIdentifier)
+      try harness.perform(.press, on: SessionStreamBanner.reloadIdentifier)
       await harness.render { first.agent.isHoldingAnswer }
       let second = try await Self.openOverflowingSession()
       defer { second.close() }
@@ -404,7 +404,7 @@
       #expect(model.hasMissedUpdates)
       #expect(harness.element(identifier: SessionStreamBanner.reloadIdentifier)?.label == "Reload")
 
-      try harness.press(identifier: SessionStreamBanner.reloadIdentifier)
+      try harness.perform(.press, on: SessionStreamBanner.reloadIdentifier)
       // The Reload button starts the resume in the same step as the press, so
       // a press that started nothing stops the test here.
       try #require(starts.values == [ScriptedSession.resumeMethod])
@@ -438,7 +438,7 @@
       #expect(Self.shows(SessionStreamBanner.reloadIdentifier, in: harness))
       #expect(model.additionalDirectories == Self.additionalDirectories)
 
-      try harness.press(identifier: SessionStreamBanner.reloadIdentifier)
+      try harness.perform(.press, on: SessionStreamBanner.reloadIdentifier)
       // The Reload button starts the resume in the same step as the press, so
       // a press that started nothing stops the test here.
       try #require(starts.values == [ScriptedSession.resumeMethod])
