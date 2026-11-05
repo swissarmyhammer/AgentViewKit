@@ -33,8 +33,8 @@ comments:
     - evidence: 632fecdb; 9 files — Sources/AgentViewKit/Items/EntryTimingView.swift, Sources/AgentViewKit/Inspection/TranscriptEntries+Inspectable.swift, Sources/AgentViewKit/Resources/Localizable.xcstrings, Tests/AgentViewKitTests/Items/EntryTimingTextTests.swift, IntegrationTests/Tests/IntegrationTests/Items/EntryTimingLineHostedTests.swift (new), IntegrationTests/Tests/IntegrationTests/Inspection/ClientModelInspectionHostedTests.swift, ScreenshotTests/Tests/ScreenshotTests/HostedSnapshotTests.swift, ScreenshotTests/Tests/ScreenshotTests/TimingGalleryFixtures.swift, README.md. root `swift test`: 991 + 48 passed. `swift test --package-path IntegrationTests`: 958 passed (5 known issues are FontRoleExpectations self-tests). ScreenshotTests: 27 passed. Only warning is the known mlx bundle "missing creator".
     - next: /review
   timestamp: 2026-11-05T15:16:21.997681+00:00
-position_column: doing
-position_ordinal: '9480'
+position_column: done
+position_ordinal: ffffffac80
 title: Transcript timing line from format styles and one localized string
 ---
 User direction (2026-11-05): the timing line ("1:14 AM 1:15") was built wrong. It assembles text in code, so even adding a "·" needs a code change. "the dot is just a literal, we should have a much better 'format' available. the fact that you even need a change tells me it was done wrong to begin with."
