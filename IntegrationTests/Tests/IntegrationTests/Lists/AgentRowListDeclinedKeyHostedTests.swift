@@ -64,8 +64,7 @@ import Testing
           reportKey(press.characters)
           return .ignored
         }
-        .commandSystem(system)),
-      size: AgentRowListBedSupport.windowSize)
+        .commandSystem(system)))
     try #require(waitForLiveBeacons([Self.rowPath(0), Self.rowPath(1)], in: system))
     try #require(system.geometry.requestFocus(at: Self.rowPath(1)))
     harness.render()

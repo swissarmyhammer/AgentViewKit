@@ -53,8 +53,7 @@ import Testing
           Text(id).accessibilityIdentifier(id).onAppear { reportBuilt(id) }
         }
         .environment(\.editorStyle, style)
-        .commandSystem(system)),
-      size: AgentRowListBedSupport.windowSize)
+        .commandSystem(system)))
     await RunLoopBlockFence.afterPendingBlocks()
   }
 

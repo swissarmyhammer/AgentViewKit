@@ -62,8 +62,7 @@ import Testing
           }
           Color.clear.commandScope(segment: Self.tabPath.segments[0])
         }
-        .commandSystem(system)),
-      size: AgentRowListBedSupport.windowSize)
+        .commandSystem(system)))
     await RunLoopBlockFence.afterPendingBlocks()
     try #require(waitForLiveBeacons([Self.tabPath, Self.rowPath(0), Self.rowPath(1)], in: system))
   }

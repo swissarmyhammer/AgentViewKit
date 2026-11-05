@@ -165,8 +165,7 @@ private struct BedList: View {
           BedList(layout: layout, density: density, rowMenu: rowMenu, current: current) { report($0) }
           Color.clear.commandScope(segment: Self.tabPath.segments[0])
         }
-        .commandSystem(system)),
-      size: AgentRowListBedSupport.windowSize)
+        .commandSystem(system)))
     await RunLoopBlockFence.afterPendingBlocks()
     try #require(waitForLiveBeacons([Self.tabPath] + Self.ids.map(Self.path(ofRow:)), in: system))
   }
