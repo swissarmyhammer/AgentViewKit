@@ -149,6 +149,18 @@ import Testing
       size: SnapshotFixtures.composerSize)
   }
 
+  /// The composer while dictation records (^dj4hchg): the listening symbol
+  /// of the dictation button filled to the live input level of
+  /// ``RecordingComposer/level``, through EditorKit's variable value.
+  @Test func theComposerWhileRecording() async throws {
+    let composer = RecordingComposer()
+
+    try await ReviewGalleryScreenTests.gallery.record(
+      suite: "GlassSnapshotTests", named: "composer-field-recording", size: SnapshotFixtures.composerSize,
+      settle: { mount in try await composer.startRecording(in: mount) },
+      content: { _ in composer.makeComposer() })
+  }
+
   @Test func theRequestDeckInTheBar() async throws {
     try await Self.generate(
       SnapshotFixtures.deckInBar, named: "request-deck-bar", size: SnapshotFixtures.requestDeckSize)

@@ -8,6 +8,11 @@ import Testing
 /// Hosted tests of ``SpeechInputButton`` in the default composer, with a
 /// ``FakeSpeechTranscriber``.
 @Suite(.serialized, .hostedSerially) @MainActor struct SpeechInputButtonHostedTests {
+  /// An input level of half the full level, which the button reads as 50%.
+  static let halfLevel = 0.5
+
+  /// A loud input level, which the button reads as 75%.
+  static let loudLevel = 0.75
   /// Mounts a stock composer with `transcriber`.
   ///
   /// - Parameters:
@@ -76,14 +81,31 @@ import Testing
     #expect(harness.element(identifier: SpeechInputButton.identifier)?.value == "Not recording")
     try Self.pressToRecord(in: harness)
     await ObservationWait.until { transcriber.isRunning }
-    transcriber.feed(level: 0.5)
+    transcriber.feed(level: Self.halfLevel)
     transcriber.feed("hello")
     await harness.render { model.plainText == "hello" }
 
     #expect(model.plainText == "hello")
     #expect(transcriber.calls == [.requestAuthorization, .start])
-    #expect(harness.element(identifier: SpeechInputButton.identifier)?.value == "Recording")
+    #expect(harness.element(identifier: SpeechInputButton.identifier)?.value == "Recording, input level 50%")
     #expect(model.submitCount == 0)
+  }
+
+  /// While a session runs, the accessibility value of the button reads the
+  /// last input level of the microphone, which also fills the symbol.
+  @Test func whileRecordingTheValueCarriesTheLastInputLevel() async throws {
+    let transcriber = FakeSpeechTranscriber()
+    let recorder = ReportRecorder<SpeechInputButton.Phase>()
+    let harness = Self.mount(PromptInputHostedTestModel(), transcriber: transcriber, recorder: recorder)
+    defer { harness.close() }
+
+    try Self.pressToRecord(in: harness)
+    await ObservationWait.until { transcriber.isRunning }
+    transcriber.feed(level: Self.halfLevel)
+    transcriber.feed(level: Self.loudLevel)
+    await harness.render { recorder.values.last == .recording(level: Self.loudLevel) }
+
+    #expect(harness.element(identifier: SpeechInputButton.identifier)?.value == "Recording, input level 75%")
   }
 
   @Test func aSecondPressStopsTheSessionAndKeepsTheText() async throws {
@@ -134,7 +156,7 @@ import Testing
     transcriber.finish()
     await harness.render { recorder.values.last == .idle }
 
-    #expect(recorder.values == [.recording, .idle])
+    #expect(recorder.values == [.recording(level: nil), .idle])
     #expect(harness.element(identifier: SpeechInputButton.identifier)?.value == "Not recording")
     #expect(model.plainText == "done")
     #expect(transcriber.calls == [.requestAuthorization, .start])
@@ -150,7 +172,7 @@ import Testing
     try Self.pressToRecord(in: harness)
     await harness.render { recorder.values.last == .denied }
 
-    #expect(recorder.values == [.recording, .denied])
+    #expect(recorder.values == [.recording(level: nil), .denied])
     #expect(harness.element(identifier: SpeechInputButton.identifier)?.value == "Not allowed")
     #expect(transcriber.calls == [.requestAuthorization])
     #expect(model.plainText.isEmpty)

@@ -395,7 +395,7 @@
     static func showDictation(system: CommandSystem) -> ShownBarControl {
       let record = BarControlRecord()
       return show(.preview(), identifier: SpeechInputButton.identifier, record: record, system: system) {
-        record.speechPhases.values == [.recording]
+        record.speechPhases.values == [.recording(level: nil)]
       }
     }
 

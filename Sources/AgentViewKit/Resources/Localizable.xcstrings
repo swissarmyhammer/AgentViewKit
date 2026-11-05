@@ -1564,6 +1564,16 @@
         }
       }
     },
+    "Recording, input level %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording, input level %@"
+          }
+        }
+      }
+    },
     "Refresh" : {
       "localizations" : {
         "en" : {

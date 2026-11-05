@@ -393,6 +393,23 @@ import Testing
     #expect(harness.element(identifier: AgentAuthView.runIdentifier(for: Self.agentMethodID)) == nil)
   }
 
+  /// While the sign-in runs, its Sign In button is busy: EditorKit's spinner
+  /// covers its icon, it takes no press, and it reads "In progress". The agent
+  /// holds its answer to `auth/login`, so the sign-in runs until the end of
+  /// the test.
+  @Test func whileSigningInTheSignInButtonReadsInProgress() async throws {
+    let session = try await Self.openSession { $0.heldMethods = [ScriptedSession.loginMethod] }
+    defer { session.close() }
+    let harness = Self.harness(session)
+    defer { harness.close() }
+    harness.render()
+    let signIn = AgentAuthView.signInIdentifier(for: Self.agentMethodID)
+
+    try ConnectionModelViewsHostedTests.pressAuthAction(signIn, in: harness)
+
+    #expect(harness.element(identifier: signIn)?.value == "In progress")
+  }
+
   @Test func theSignInRunAndSignOutButtonsKeepTheirTextAsTheirLabels() async throws {
     let session = try await Self.openSession()
     defer { session.close() }
