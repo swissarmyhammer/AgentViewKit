@@ -187,6 +187,25 @@ struct RoutedComposerThreadHost: View {
     #expect(rows.map(\.label) == fixture.labels)
   }
 
+  /// The selected row of the popup, and no other row, carries the selected
+  /// trait.
+  @Test func theSelectedRowOfThePopupCarriesTheSelectedTrait() async throws {
+    let fixture = ComposerRouteFixture.files
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let editorSession = PromptEditorSession()
+    let thread = try Self.mount(session, editorSession: editorSession)
+    defer { thread.harness.close() }
+
+    try await Self.type(fixture.sigil, in: thread, editorSession: editorSession)
+    await Self.waitForRows(fixture.labels, of: editorSession, in: thread)
+
+    let selectedIndex = ComposerEditorMenuHostedTests.completion(of: editorSession).listedSelectedIndex
+    let rows = thread.harness.elements(under: EditorKitPromptEditor.completionListIdentifier)
+      .filter { $0.identifier == EditorKitPromptEditor.completionRowIdentifier }
+    #expect(rows.map(\.isSelected) == fixture.labels.indices.map { $0 == selectedIndex })
+  }
+
   /// A `/` route takes the `/` from the slash commands of the agent: the
   /// popup lists the rows of the route alone.
   @Test func aSlashRouteTakesTheSlashFromTheAgentCommands() async throws {

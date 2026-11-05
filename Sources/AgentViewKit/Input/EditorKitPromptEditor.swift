@@ -194,9 +194,13 @@ public struct EditorKitPromptEditor: View {
 
   /// The list of the open completion session.
   ///
-  /// The list has a scroll content margin of the extra small spacing step, so
-  /// the selection surface of a row stands clear of the edges of the menu, as
-  /// the padding of EditorKit's completion popup around its rows does.
+  /// Each row is EditorKit's `EditorCompletionRow`, the row of EditorKit's own
+  /// completion popup, named ``completionRowIdentifier``. The list has the
+  /// row's `EditorCompletionRow.listMargin` as its horizontal scroll content
+  /// margin, as EditorKit's popup does, so the rows line up with the popup's.
+  /// Its vertical scroll content margin is the extra small spacing step, so
+  /// the selection surfaces of the first and the last row stand clear of the
+  /// top and the bottom edges of the menu.
   ///
   /// - Parameters:
   ///   - completion: The open session.
@@ -205,10 +209,13 @@ public struct EditorKitPromptEditor: View {
   private func completionList(_ completion: CompletionSessionState, model: EditorModel) -> some View {
     CompletionSuggestionsList(
       items: completion.listedItems, selectedIndex: completion.listedSelectedIndex, id: \.label,
-      row: { item, isSelected in PromptCompletionRow(item: item, isSelected: isSelected) },
+      row: { item, isSelected in
+        EditorCompletionRow(item: item, isSelected: isSelected, identifier: Self.completionRowIdentifier)
+      },
       onCommit: { item in accept(item, in: model) }
     )
-    .scrollContentMargins(\.spacing.xs)
+    .scrollContentMargins(EditorCompletionRow.listMargin, edges: .horizontal)
+    .scrollContentMargins(\.spacing.xs, edges: .vertical)
     .frame(width: Self.completionListWidth * completionFontScale)
     .frame(maxHeight: Self.completionListMaximumHeight * completionFontScale)
     .fixedSize(horizontal: false, vertical: true)
@@ -607,31 +614,6 @@ public struct EditorKitPromptEditor: View {
       result[range].link = root.appending(path: reference.path)
     }
     return result
-  }
-}
-
-/// One row of the completion list of ``EditorKitPromptEditor``: EditorKit's
-/// `EditorCompletionRow` of a completion, the row of EditorKit's own
-/// completion popup.
-///
-/// The row is one accessibility element with the label and the detail of the
-/// completion, the selected trait of the selected row, and
-/// ``EditorKitPromptEditor/completionRowIdentifier``: EditorKit's row has no
-/// accessibility identifier and no selected trait of its own.
-struct PromptCompletionRow: View {
-  /// The completion of the row.
-  let item: Completion
-
-  /// Whether the row is the selected row.
-  let isSelected: Bool
-
-  var body: some View {
-    EditorCompletionRow(item: item, isSelected: isSelected)
-      .accessibilityElement(children: .combine)
-      .accessibilityLabel(item.label)
-      .accessibilityValue(item.detail ?? "")
-      .accessibilityAddTraits(isSelected ? .isSelected : [])
-      .accessibilityIdentifier(EditorKitPromptEditor.completionRowIdentifier)
   }
 }
 
