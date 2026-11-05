@@ -20,9 +20,6 @@ import Testing
   /// The list of the bed.
   static let scope = AgentRowListScope(list: FocusSegment(kind: "sectionList"), rowKind: "sectionRow")
 
-  /// The size of the window.
-  static let size = CGSize(width: 300, height: 300)
-
   /// The most turns of the run loop that a move may take to land.
   static let landingTurns = 500
 
@@ -57,7 +54,7 @@ import Testing
         }
         .environment(\.editorStyle, style)
         .commandSystem(system)),
-      size: Self.size)
+      size: AgentRowListBedSupport.windowSize)
     await RunLoopBlockFence.afterPendingBlocks()
   }
 
@@ -66,7 +63,7 @@ import Testing
   /// - Parameter id: The id of the row.
   /// - Returns: The path of the row.
   static func path(ofRow id: String) -> FocusPath {
-    FocusPath.root(scope.list).appending(scope.rowSegment(for: id))
+    scope.path(ofRow: id)
   }
 
   /// Gives the focus to the row with `id`.

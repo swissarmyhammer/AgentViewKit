@@ -48,7 +48,7 @@ import Testing
     let path: FocusPath
 
     /// The runs of the recording command of the host.
-    let fallbacks = CommandRunLog()
+    let fallbacks: CommandRunLog
   }
 
   /// Mounts the scope of `attachment` with `service`, and binds Return to
@@ -71,14 +71,11 @@ import Testing
           .commandSystem(system)),
       size: size)
     harness.render()
-    let bed = Bed(
-      harness: harness, system: system,
-      path: FocusPath.root(hostSegment).appending(AgentScopeKind.attachment(attachment.id)))
-    system.registry.bindKey(
-      KeyChord.return.asSequence, to: .command(AgentAttachmentVerb.openAttachment.id), mode: .cua, at: bed.path)
-    system.registry.register(
-      .makeRecording(id: AgentCommandDeclinedKeyHostedTests.fallbackID, keys: [.cua: KeyChord.return], log: bed.fallbacks), at: .root(hostSegment))
-    return bed
+    let path = FocusPath.root(hostSegment).appending(AgentScopeKind.attachment(attachment.id))
+    let fallbacks = FallbackKeyBinding.bind(
+      KeyChord.return, to: AgentAttachmentVerb.openAttachment.id, at: path, fallbackAt: .root(hostSegment),
+      in: system)
+    return Bed(harness: harness, system: system, path: path, fallbacks: fallbacks)
   }
 
   @Test func returnThatTheServiceCannotOpenStaysWithTheAttachment() throws {
@@ -106,6 +103,6 @@ import Testing
     #expect(bed.system.registry.performKey(KeyChord.return.asSequence, mode: .cua, at: bed.path))
 
     #expect(service.calls.isEmpty)
-    #expect(bed.fallbacks.runs.map(\.id) == [AgentCommandDeclinedKeyHostedTests.fallbackID])
+    #expect(bed.fallbacks.runs.map(\.id) == [FallbackKeyBinding.fallbackID])
   }
 }

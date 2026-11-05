@@ -19,9 +19,6 @@ import Testing
   /// The ids of the rows, in list order.
   static let ids = ["first", "second"]
 
-  /// The size of the window.
-  static let size = CGSize(width: 300, height: 300)
-
   /// The list of the bed.
   static let scope = AgentRowListScope(list: FocusSegment(kind: "declineList"), rowKind: "declineRow")
 
@@ -68,7 +65,7 @@ import Testing
           return .ignored
         }
         .commandSystem(system)),
-      size: Self.size)
+      size: AgentRowListBedSupport.windowSize)
     try #require(waitForLiveBeacons([Self.rowPath(0), Self.rowPath(1)], in: system))
     try #require(system.geometry.requestFocus(at: Self.rowPath(1)))
     harness.render()
@@ -79,7 +76,7 @@ import Testing
   /// - Parameter index: The index of the row.
   /// - Returns: The path of the row.
   static func rowPath(_ index: Int) -> FocusPath {
-    FocusPath.root(scope.list).appending(scope.rowSegment(for: ids[index]))
+    scope.path(ofRow: ids[index])
   }
 
   /// Binds `chord` at the focused row to a command of the host that declines

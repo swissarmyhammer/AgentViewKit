@@ -123,9 +123,6 @@ private struct BedList: View {
     AgentRowSection(id: "rest", title: "Rest", items: Array(ids.dropFirst())),
   ]
 
-  /// The size of the window.
-  static let size = CGSize(width: 300, height: 300)
-
   /// The list of the bed.
   static let scope = AgentRowListScope(list: FocusSegment(kind: "currentList"), rowKind: "currentRow")
 
@@ -169,7 +166,7 @@ private struct BedList: View {
           Color.clear.commandScope(segment: Self.tabPath.segments[0])
         }
         .commandSystem(system)),
-      size: Self.size)
+      size: AgentRowListBedSupport.windowSize)
     await RunLoopBlockFence.afterPendingBlocks()
     try #require(waitForLiveBeacons([Self.tabPath] + Self.ids.map(Self.path(ofRow:)), in: system))
   }
@@ -179,7 +176,7 @@ private struct BedList: View {
   /// - Parameter id: The id of the row.
   /// - Returns: The path of the row.
   static func path(ofRow id: String) -> FocusPath {
-    FocusPath.root(scope.list).appending(scope.rowSegment(for: id))
+    scope.path(ofRow: id)
   }
 
   /// Gives the focus to the scope at `path`, and lets the window publish it.
