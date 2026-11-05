@@ -100,7 +100,6 @@ public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
     // into the element of an `ItemRow` and loses its identifier.
     return StatusTitleLayout(
       title: Self.title, explanation: status.summary,
-      textLabel: StatusTitleText.label(title: Self.title, explanation: status.summary),
       identifier: Self.identifier(for: key)
     ) {
       EditorSymbolImage(systemName: Self.symbolName, tone: status.tone, isLive: status.isLive)
