@@ -18,8 +18,8 @@ comments:
     - discovery: the EK bump adds `EditorStyle.buttons`, so ViewValueLayoutTests.theStyleHasNoPaddingByte failed (34 uncovered bytes) until it listed `\.buttons`. The gallery tool-call fixture arrives already completed (0 s), so it correctly shows no Duration row.
     - next: /review
   timestamp: 2026-11-05T19:49:48.901481+00:00
-position_column: doing
-position_ordinal: 9c80
+position_column: done
+position_ordinal: ffffffb580
 title: Inspector Time rows in the timing-line styles (needs an EditorInspector Field format hook)
 ---
 Split from ^sy19jd4. The inspector Time group (`ObservableTranscriptEntry.timeGroup` in `Sources/AgentViewKit/Inspection/TranscriptEntries+Inspectable.swift`) should show Started and Ended in `EntryTimingView.startStyle(locale:timeZone:)` ("6:13 AM") and Duration in `EntryTimingView.lineDurationStyle(locale:)` ("1m 15s"), through EK's `DateText` / `DurationText`, which take any FormatStyle since EK b707d51a.

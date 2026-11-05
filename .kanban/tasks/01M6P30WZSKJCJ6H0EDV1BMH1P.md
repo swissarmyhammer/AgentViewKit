@@ -31,8 +31,17 @@ comments:
     - evidence: commit a3224dc7, 47 files (+486/−677). Root `swift test`: 995 + 50 tests pass. `swift test --package-path IntegrationTests`: 965 tests pass (5 expected known issues). ScreenshotTests button captures pass. Zero AVK warnings.
     - next: /review
   timestamp: 2026-11-05T19:48:46.704253+00:00
-position_column: doing
-position_ordinal: 9a80
+- actor: claude-code
+  id: 01m6pqpwvfwrpw4cm3tcgwwn0n
+  text: |-
+    Review findings 1–4 fixed in eb17f2fd, on top of main 3fb2f69f, which fast-forwarded. `swift package update` moved EK to 6dcb7ab3. That version adds `EditorStyle.gutterGap`, so I added it to ViewValueLayoutTests.theStyleHasNoPaddingByte; without it the test failed. I also dropped `nonisolated` from CappedOutputFixtures, because `VisibleRows.init` is MainActor.
+
+    ### implement — changed
+    - evidence: commit eb17f2fd, 8 files. Root `swift test`: 1018 + 50 tests pass. `swift test --package-path IntegrationTests`: 982 tests pass (5 expected known issues). `swift build --build-tests --package-path ScreenshotTests` builds clean. Zero AVK warnings.
+    - next: fast-forward main to eb17f2fd
+  timestamp: 2026-11-05T20:51:51.279342+00:00
+position_column: done
+position_ordinal: ffffffb480
 title: Move AVK's buttons onto EditorKit's EditorButton / EditorToolbarButton (no clipped captions)
 ---
 **Unblocked** (2026-11-05): EK's themed button components are on origin at b4f6d9e5 (^ndc5zww), which includes the b707d51a headless harness. New rule from the user for every kit:
@@ -57,3 +66,9 @@ Theme comes only through `\.editorStyle`. Call sites add no `.tint`, `.font` or 
 - [x] A hosted test per button family that at a squeezed width the caption is hidden (icon only), never cut off, while the accessibility label and tooltip keep the name. Drive it through accessibility, never the mouse, and don't steal focus.
 - [x] Gallery captures at narrow (about 240 pt) and wide widths, light and dark, showing icon-only collapse.
 - [x] Full AVK suite green.
+
+## Review Findings (2026-11-05)
+- [x] IntegrationTests/Tests/IntegrationTests/Buttons/SqueezedButtonHostedTests.swift:35 (reuse): the `cappedOutput` fixture is declared twice. Declare it once in AgentViewKitTestSupport, which both test packages link, and reference it from both.
+- [x] ScreenshotTests/Tests/ScreenshotTests/ButtonGalleryFixtures.swift:35 (reuse): the same `cappedOutput` fixture is declared again. Declare it once in AgentViewKitTestSupport and reference it from both.
+- [x] Sources/AgentViewKit/Input/DefaultPromptAccessory.swift:110 (duplication): `stopButton` and `submitButton` share an EditorButton(.action) with `.editorButtonCaptions(.hidden)`, `.buttonBorderShape(.circle)`, an identifier and `.agentControlScope`. Extract one `circleActionButton(title:symbol:identifier:action:)`.
+- [x] Sources/AgentViewKit/Input/SuggestionsView.swift:79 (duplication): SuggestionChip and ScrollToBottomPill share `.editorButtonSurface(.content)`, `.buttonBorderShape(.capsule)`, `.floatingGlassID`, the identifier and `.agentControlScope`. Extract one floating-glass action button builder or modifier, and use it in both.

@@ -45,11 +45,22 @@ comments:
     - add `\.gutterGap` to `ViewValueLayoutTests.theStyleHasNoPaddingByte`;
     - re-capture `code-block` light and dark.
   timestamp: 2026-11-05T19:52:15.166797+00:00
-position_column: doing
-position_ordinal: 9d80
+- actor: claude-code
+  id: 01m6pp6qnrpwzkxkgx0pqwaa2k
+  text: 'Resumed. Merged local AVK main 85b3200e. `swift package update` (no pins) resolved EK 6dcb7ab3 first, then EK main moved to b43bc4a (contains 6dcb7ab3 + f68bfd13 scrollbar strips, 96218f44, b43bc4ac docs) while the nested packages updated; root re-updated so root, IntegrationTests and ScreenshotTests all resolve b43bc4a. EK declares `gutterGap` between `previewHeight` and `symbolWeight` (EditorStyle.swift). RED: `ViewValueLayoutTests.theStyleHasNoPaddingByte` failed with `uncoveredByteCount == 0` (8 uncovered bytes); added `\.gutterGap` in EK order → root green on 6dcb7ab3 (1020 + 50 tests).'
+  timestamp: 2026-11-05T20:25:33.112725+00:00
+- actor: claude-code
+  id: 01m6pqvmqf0qjnkgf6hqzgntmn
+  text: |-
+    ### implement — changed
+    - evidence: commit 75da30cd — 1 file, Tests/AgentViewKitTests/Infrastructure/ViewValueLayoutTests.swift (`\.gutterGap` added to `theStyleHasNoPaddingByte` after `\.previewHeight`, in EK's declaration order). EK b43bc4a (contains 6dcb7ab3) in root, IntegrationTests and ScreenshotTests. Root `swift test`: 1020 + 50 tests passed. `swift test --package-path IntegrationTests`: 985 tests passed (5 known issues are the deliberate `withKnownIssue` self-tests of FontRoleExpectationsTests). Only warnings are the known mlx-swift dependency ones; zero AVK warnings. No other EK-update breakage in AVK, so no other fixes. Gallery captured once (`swift test --package-path ScreenshotTests`, 30 tests passed): `code-block-light.png` and `-dark.png` show "1 def total_with_tax" with a clear gap between the numbers and the code. No CodeBlockView change. Nested .build folders deleted. Not pushed or merged.
+    - next: /review
+  timestamp: 2026-11-05T20:54:26.799760+00:00
+position_column: done
+position_ordinal: ffffffb680
 title: 'Code block: the line numbers touch the code with no gap (gallery, EK b707d51a)'
 ---
 Seen in the gallery re-capture of ^sy19jd4 (`~/Library/Caches/AgentViewKit/screenshot-check/generated/HostedSnapshotTests/code-block-light.png` and `-dark.png`): the gutter numbers of `CodeBlockView` (`.editorGutter(LineNumbers())`) stand right against the text, e.g. "1def total_with_tax", in light and dark. ^sy19jd4 switched the block to `.editorWrapMode(.viewportWidth)` (EK's WrapMap row grid), so first find out whether the gap was lost with the wrap mode or was already missing before (capture once with `.none`), then fix it in the right package (EK gutter vs AVK's use of it).
 
 ## Tests
-- [ ] Gallery image of the code block shows a gap between the gutter and the code, light and dark.
+- [x] Gallery image of the code block shows a gap between the gutter and the code, light and dark.
