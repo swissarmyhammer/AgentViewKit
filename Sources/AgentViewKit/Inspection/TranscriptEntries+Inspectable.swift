@@ -20,21 +20,29 @@ import FoundationModelsACPClient
 // (^b9xgnm7).
 
 extension ObservableTranscriptEntry {
+  /// The format of the duration row of ``timeGroup``: minutes and seconds,
+  /// such as "1:15".
+  ///
+  /// The row is EditorKit's `.duration` kind, which shows a `DurationText`
+  /// in a `DurationFieldFormat`. That format is the positional time of a
+  /// duration, not the abbreviated units of the time line of a transcript
+  /// row (``EntryTimingView/lineDurationStyle(locale:)``).
+  static var durationRowFormat: DurationFieldFormat { DurationFieldFormat(units: .minutesSeconds) }
+
   /// The group of the start and end times of the entry, as the client saw
   /// them, and the duration between them.
   ///
-  /// The duration row is EditorKit's duration kind, in the format of the
-  /// time of a transcript row (`EntryTimingView.durationFormat`). It shows
-  /// where the transcript row shows a duration
-  /// (``EntryTimingView/shownDuration(_:)``): for an entry that has ended,
-  /// after at least ``EntryTimingView/shortestShownDuration`` (half a
+  /// The duration row is EditorKit's duration kind, in
+  /// ``durationRowFormat``. It shows where the transcript row shows a
+  /// duration (``EntryTimingView/shownDuration(_:)``): for an entry that has
+  /// ended, after at least ``EntryTimingView/shortestShownDuration`` (half a
   /// second). A shorter duration rounds to zero seconds and shows no row.
   static var timeGroup: FieldGroup<Self> {
     FieldGroup(InspectionLabel.time) {
       Field(InspectionLabel.started) { $0.timing.startedAt }
       Field(InspectionLabel.ended) { $0.timing.endedAt }
       Field(InspectionLabel.duration) { Duration.seconds($0.timing.duration ?? .zero) }
-        .durationFormat(EntryTimingView.durationFormat)
+        .durationFormat(durationRowFormat)
         .visible { EntryTimingView.shownDuration($0.timing.duration) != nil }
     }
   }

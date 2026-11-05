@@ -1,5 +1,6 @@
 import EditorStyle
 import EditorSwiftUI
+import EditorTheme
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -21,18 +22,20 @@ import SwiftUI
 /// ``SwiftUI/View/entryTiming(_:)``, or to each row of a ``ConversationView``
 /// and an ``AgentThreadView`` with ``SwiftUI/View/transcriptTiming(_:)``.
 ///
-/// The view has no style of its own. EditorKit's value texts show the time:
-/// a `DateText` of the start in `startFormat` and a `DurationText` of the
-/// duration in `durationFormat`, each in the `ui` font role of the theme
-/// and the locale and the time zone of the environment. The text uses
-/// `\.themeSecondary`, and
-/// the spacing and the symbol weight come from the shared style
-/// (`\.editorStyle`).
+/// The view has no style of its own. The text of the time is one localized
+/// string of the catalog (``lineText(startedAt:duration:locale:timeZone:)``)
+/// that holds the start in ``startStyle(locale:timeZone:)`` and the duration
+/// in ``lineDurationStyle(locale:)``, such as "6:13 AM · 1m 15s". The catalog
+/// holds the separator and the order of the parts, so the code joins no text.
+/// The text takes the locale and the time zone of the environment, draws in
+/// the `ui` font role of the theme and uses `\.themeSecondary`. The spacing
+/// and the symbol weight come from the shared style (`\.editorStyle`).
 ///
-/// The view is one accessibility element. Its label tells the start and the
-/// duration, as ``accessibilityLabel(startedAt:duration:locale:timeZone:)``
-/// gives them in the locale and the time zone of the environment, and
-/// VoiceOver reads it after the content of the row.
+/// The text is the one accessibility element of the view. Its label tells
+/// the start and the duration in words, as
+/// ``accessibilityLabel(startedAt:duration:locale:timeZone:)`` gives them in
+/// the locale and the time zone of the environment, and VoiceOver reads it
+/// after the content of the row.
 public struct EntryTimingView: View, PrefixedAccessibilityIdentifier {
   /// The start of the accessibility identifier of each time view. The rest is
   /// the row key of the entry.
@@ -49,26 +52,15 @@ public struct EntryTimingView: View, PrefixedAccessibilityIdentifier {
   /// 15 seconds".
   static let largestUnitCount = 2
 
-  /// The units that a spoken duration can use.
-  static let spokenDurationUnits: Set<Duration.UnitsFormatStyle.Unit> = [.hours, .minutes, .seconds]
+  /// The units that a duration of the line and of the label can use.
+  static let durationUnits: Set<Duration.UnitsFormatStyle.Unit> = [.hours, .minutes, .seconds]
 
-  /// The format of a start time, which the `DateText` of the view shows and
-  /// the VoiceOver label tells: the short time of the day, with no date,
-  /// such as "6:00 PM".
-  static let startFormat = ValueFieldFormat<Date>(Date.FormatStyle(date: .omitted, time: .shortened))
-
-  /// The format of a duration, which the `DurationText` of the view and the
-  /// duration row of an entry's inspection show: minutes and seconds, such
-  /// as "1:15".
-  static let durationFormat = DurationFieldFormat(units: .minutesSeconds)
+  /// The rounding of the fraction of a second of a duration: half a second
+  /// rounds up, so the ``shortestShownDuration`` shows one second.
+  static let secondsRounding = FloatingPointRoundingRule.toNearestOrAwayFromZero
 
   /// The transcript entry whose time the view shows.
   let entry: TranscriptEntry
-
-  @Environment(\.editorStyle) private var editorStyle
-  @Environment(\.locale) private var locale
-  @Environment(\.themeSecondary) private var themeSecondary
-  @Environment(\.timeZone) private var timeZone
 
   /// Makes the time view of a transcript entry.
   ///
@@ -88,31 +80,65 @@ public struct EntryTimingView: View, PrefixedAccessibilityIdentifier {
     return duration
   }
 
+  /// The format of a start time, which the line shows and the label tells:
+  /// the short time of the day, with no date, such as "6:13 AM".
+  ///
+  /// - Parameters:
+  ///   - locale: The locale of the text.
+  ///   - timeZone: The time zone of the clock time.
+  /// - Returns: The time format of `locale` and `timeZone`.
+  static func startStyle(locale: Locale, timeZone: TimeZone) -> Date.FormatStyle {
+    Date.FormatStyle(date: .omitted, time: .shortened, locale: locale, timeZone: timeZone)
+  }
+
+  /// The format of a duration that the line shows: the narrow units of the
+  /// duration, with no unit of zero, such as "1m 15s".
+  ///
+  /// - Parameter locale: The locale of the text.
+  /// - Returns: The narrow duration format of `locale`.
+  static func lineDurationStyle(locale: Locale) -> Duration.UnitsFormatStyle {
+    Duration.UnitsFormatStyle(
+      allowedUnits: durationUnits, width: .narrow, zeroValueUnits: .hide,
+      fractionalPart: .hide(rounded: secondsRounding)
+    ).locale(locale)
+  }
+
+  /// The format of a duration that a label tells: at most
+  /// ``largestUnitCount`` whole units in words, such as "1 minute,
+  /// 15 seconds".
+  ///
+  /// - Parameter locale: The locale of the text.
+  /// - Returns: The wide duration format of `locale`.
+  static func spokenDurationStyle(locale: Locale) -> Duration.UnitsFormatStyle {
+    Duration.UnitsFormatStyle(
+      allowedUnits: durationUnits, width: .wide, maximumUnitCount: largestUnitCount,
+      fractionalPart: .hide(rounded: secondsRounding)
+    ).locale(locale)
+  }
+
   /// The text of the duration that a label shows, with whole words, for a
   /// label that VoiceOver reads or for a title.
   ///
-  /// The text stands in a sentence, so it names its units, which a
-  /// `DurationText` does not. Each caller puts the text in its own localized
-  /// phrase and gives its own text when the result is `nil`.
+  /// The text stands in a sentence, so it names its units in words. Each
+  /// caller puts the text in its own localized phrase and gives its own text
+  /// when the result is `nil`.
   ///
   /// - Parameters:
   ///   - duration: The duration of an entry, in seconds, or `nil` when the
   ///     entry has no end time.
   ///   - locale: The locale of the text.
-  /// - Returns: The ``shownDuration(_:)`` in at most two whole units of the
-  ///   system duration formatter, such as "1 minute, 15 seconds", or `nil`
-  ///   when the view shows no duration.
+  /// - Returns: The ``shownDuration(_:)`` in
+  ///   ``spokenDurationStyle(locale:)``, such as "1 minute, 15 seconds", or
+  ///   `nil` when the view shows no duration.
   public static func spokenDuration(_ duration: TimeInterval?, locale: Locale = .autoupdatingCurrent) -> String? {
-    let style = Duration.UnitsFormatStyle(
-      allowedUnits: spokenDurationUnits, width: .wide, maximumUnitCount: largestUnitCount)
-    return shownDuration(duration).map { Duration.seconds($0).formatted(style.locale(locale)) }
+    shownDuration(duration).map { Duration.seconds($0).formatted(spokenDurationStyle(locale: locale)) }
   }
 
   /// A localized phrase that holds the ``spokenDuration(_:locale:)`` of a
   /// duration, or a fallback phrase when the view shows no duration.
   ///
-  /// The VoiceOver label of the time and the titles and labels of a
-  /// ``ReasoningView`` use this shape. Each caller gives its own phrases.
+  /// The titles and labels of a ``ReasoningView`` use this shape. Each
+  /// caller gives its own phrases.
   ///
   /// - Parameters:
   ///   - duration: The duration of an entry, in seconds, or `nil` when the
@@ -129,56 +155,137 @@ public struct EntryTimingView: View, PrefixedAccessibilityIdentifier {
     spokenDuration(duration, locale: locale).map(phrase) ?? fallback()
   }
 
+  /// The text that the line of a time shows: one localized string of the
+  /// catalog for each set of parts that the time has.
+  ///
+  /// - Parameters:
+  ///   - startedAt: The start time of the entry, or `nil` when it has none.
+  ///   - duration: The duration of the entry, in seconds, or `nil` when the
+  ///     entry has no end time.
+  ///   - locale: The locale of the text.
+  ///   - timeZone: The time zone of the clock time of the start.
+  /// - Returns: The start in ``startStyle(locale:timeZone:)`` and the
+  ///   ``shownDuration(_:)`` in ``lineDurationStyle(locale:)``, such as
+  ///   "6:13 AM · 1m 15s"; the one part that the time has; or `nil` when it
+  ///   has neither.
+  public static func lineText(
+    startedAt: Date?, duration: TimeInterval?, locale: Locale = .autoupdatingCurrent,
+    timeZone: TimeZone = .autoupdatingCurrent
+  ) -> String? {
+    let start = startStyle(locale: locale, timeZone: timeZone)
+    let length = lineDurationStyle(locale: locale)
+    switch (startedAt, shownDuration(duration).map(Duration.seconds)) {
+    case let (startedAt?, shown?):
+      return String(
+        localized: "entry-timing.start-and-duration",
+        defaultValue: "\(startedAt, format: start) · \(shown, format: length)", bundle: .module, locale: locale,
+        comment: "The time of a transcript entry: its start time, such as 6:13 AM, and its duration, such as 1m 15s.")
+    case let (startedAt?, nil):
+      return String(
+        localized: "entry-timing.start", defaultValue: "\(startedAt, format: start)", bundle: .module, locale: locale,
+        comment: "The time of a transcript entry with no duration: its start time, such as 6:13 AM.")
+    case let (nil, shown?):
+      return String(
+        localized: "entry-timing.duration", defaultValue: "\(shown, format: length)", bundle: .module, locale: locale,
+        comment: "The time of a transcript entry with no start time: its duration, such as 1m 15s.")
+    case (nil, nil):
+      return nil
+    }
+  }
+
   /// The label that VoiceOver reads for the time of an entry.
   ///
   /// - Parameters:
-  ///   - startedAt: The start time of the entry.
+  ///   - startedAt: The start time of the entry, or `nil` when it has none.
   ///   - duration: The duration of the entry, in seconds, or `nil` when the
   ///     entry has no end time.
   ///   - locale: The locale of the label.
   ///   - timeZone: The time zone of the clock time of the start.
-  /// - Returns: "Started at T, took D", or "Started at T" when the view shows
-  ///   no duration.
+  /// - Returns: "Started at T, took D"; "Started at T" when the view shows
+  ///   no duration; "Took D" when the entry has no start time; or `nil` when
+  ///   the view shows neither.
   public static func accessibilityLabel(
-    startedAt: Date, duration: TimeInterval?, locale: Locale = .autoupdatingCurrent,
+    startedAt: Date?, duration: TimeInterval?, locale: Locale = .autoupdatingCurrent,
     timeZone: TimeZone = .autoupdatingCurrent
-  ) -> String {
-    let start = startFormat.format(startedAt, locale: locale, timeZone: timeZone)
-    return durationPhrase(duration, locale: locale) {
-      String(localized: "Started at \(start), took \($0)", bundle: .module)
-    } fallback: {
-      String(localized: "Started at \(start)", bundle: .module)
+  ) -> String? {
+    let start = startStyle(locale: locale, timeZone: timeZone)
+    let length = spokenDurationStyle(locale: locale)
+    switch (startedAt, shownDuration(duration).map(Duration.seconds)) {
+    case let (startedAt?, shown?):
+      return String(
+        localized: "Started at \(startedAt, format: start), took \(shown, format: length)", bundle: .module,
+        locale: locale,
+        comment: "The VoiceOver label of the time of a transcript entry: its start time, and its duration in words.")
+    case let (startedAt?, nil):
+      return String(
+        localized: "Started at \(startedAt, format: start)", bundle: .module, locale: locale,
+        comment: "The VoiceOver label of the time of a transcript entry with no duration: its start time.")
+    case let (nil, shown?):
+      return String(
+        localized: "Took \(shown, format: length)", bundle: .module, locale: locale,
+        comment: "The VoiceOver label of the time of a transcript entry with no start time: its duration in words.")
+    case (nil, nil):
+      return nil
     }
   }
 
   public var body: some View {
     let timing = entry.timing
-    if let startedAt = timing.startedAt {
-      line(startedAt: startedAt, duration: timing.duration)
+    EntryTimingLine(
+      startedAt: timing.startedAt, duration: timing.duration, identifier: Self.identifier(for: entry.rowKey))
+  }
+}
+
+/// The line of a time: the symbol of the time and the
+/// ``EntryTimingView/lineText(startedAt:duration:locale:timeZone:)`` of a
+/// start time and a duration, in the locale and the time zone of the
+/// environment. It shows nothing when the time has neither part.
+///
+/// ``EntryTimingView`` shows the line of its entry. The line takes the two
+/// parts of a time apart from an entry, so a test shows each set of parts.
+struct EntryTimingLine: View {
+  /// The start time, or `nil` when there is none.
+  let startedAt: Date?
+
+  /// The duration, in seconds, or `nil` when there is none.
+  let duration: TimeInterval?
+
+  /// The accessibility identifier of the text.
+  let identifier: String
+
+  @Environment(\.editorStyle) private var editorStyle
+  @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.locale) private var locale
+  @Environment(\.themeSecondary) private var themeSecondary
+  @Environment(\.timeZone) private var timeZone
+
+  var body: some View {
+    if let text = EntryTimingView.lineText(
+      startedAt: startedAt, duration: duration, locale: locale, timeZone: timeZone),
+      let label = EntryTimingView.accessibilityLabel(
+        startedAt: startedAt, duration: duration, locale: locale, timeZone: timeZone)
+    {
+      line(text, label: label)
     }
   }
 
-  /// The symbol, the start time and the shown duration, in one line.
+  /// The symbol and the text of the time, in one line.
   ///
   /// - Parameters:
-  ///   - startedAt: The start time of the entry.
-  ///   - duration: The duration of the entry, in seconds, or `nil`.
-  /// - Returns: The line, as one accessibility element.
-  private func line(startedAt: Date, duration: TimeInterval?) -> some View {
+  ///   - text: The text that the line shows.
+  ///   - label: The label that VoiceOver reads for the text.
+  /// - Returns: The line, whose text is its one accessibility element.
+  private func line(_ text: String, label: String) -> some View {
     HStack(spacing: editorStyle.spacing.xs) {
-      Image(systemName: Self.symbolName)
+      Image(systemName: EntryTimingView.symbolName)
         .fontWeight(editorStyle.symbolWeight)
         .accessibilityHidden(true)
-      DateText(startedAt, format: Self.startFormat)
-      if let shown = Self.shownDuration(duration) {
-        DurationText(.seconds(shown), format: Self.durationFormat)
-      }
+      Text(text)
+        .font(editorTheme.font(for: .ui, style: .body))
+        .accessibilityLabel(label)
+        .accessibilityIdentifier(identifier)
     }
     .foregroundStyle(themeSecondary)
-    .accessibilityElement(children: .ignore)
-    .accessibilityLabel(
-      Self.accessibilityLabel(startedAt: startedAt, duration: duration, locale: locale, timeZone: timeZone))
-    .accessibilityIdentifier(Self.identifier(for: entry.rowKey))
   }
 }
 

@@ -306,9 +306,10 @@ MyToolCallRow(call: call)
 The times come from the `EntryTiming` of each entry of the client model
 (`startedAt`, `endedAt`, and `duration`). The kit records no time. A replayed
 entry has no time, so its row shows none. A thought shows "Thought for N
-seconds" from the `duration` of the thought entry. The system formatters write
-the times in the locale of the environment, and VoiceOver reads the time after
-the entry. The font comes from the EditorKit theme, and the spacing comes from
+seconds" from the `duration` of the thought entry. The row shows the start
+time of the day and the abbreviated duration, such as "6:13 AM · 1m 15s", in
+the locale and the time zone of the environment, and VoiceOver reads the time
+in words after the entry. The font comes from the EditorKit theme, and the spacing comes from
 the EditorKit `EditorStyle`. There is no time for the work of a prompt: the
 client model does not put the entries in groups by prompt.
 
