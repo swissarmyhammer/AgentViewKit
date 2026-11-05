@@ -8,13 +8,15 @@ import SwiftUI
 
 /// The default view of an image block (plan.md §9 A2, §9 F).
 ///
-/// The view shows the image, scaled to fit. A tap on the image writes its
-/// bytes to a local file and selects that file in the
-/// ``InspectorSelection`` of the environment. Then the inspector shows the
+/// The view shows the image, scaled to fit. A press on the image writes its
+/// bytes to a local file and changes the ``InspectorSelection`` of the
+/// environment for that file, as a press on an ``AttachmentView`` does: a
+/// click selects it, a Command-click adds it or takes it out, and a
+/// Shift-click extends the selection to it. Then the inspector shows the
 /// image. In an ``AgentThreadView`` in the host mode
-/// (``SwiftUI/View/agentAttachmentInspector(_:)``), the tap writes an
-/// ``AgentAttachmentSelection`` of the file to the binding of the host. Bytes
-/// that are not an image show a placeholder label.
+/// (``SwiftUI/View/agentAttachmentInspector(_:)``), the press changes the
+/// list of ``AgentAttachmentSelection`` values of the binding of the host.
+/// Bytes that are not an image show a placeholder label.
 ///
 /// The image is the scope of its file (`agentAttachment:<id>`, AVK-11). The
 /// view writes the file when it shows, so the ``AgentAttachmentVerb``
@@ -51,8 +53,8 @@ public struct ImageView: View {
   @Environment(\.themeSecondary) private var themeSecondary
   @ThemeFontScale(.display) private var fontScale
 
-  /// The report that gets the file name of each image that a tap starts to
-  /// write, or `nil`.
+  /// The report that gets the file name of each image that a press starts
+  /// to write, or `nil`.
   @Environment(\.imageSelectReport) private var reportSelect
 
   /// Makes the view of an ACP image of a transcript entry.
@@ -81,7 +83,7 @@ public struct ImageView: View {
         .scaledToFit()
         .frame(maxHeight: PreviewLayout.maximumPreviewHeight * fontScale)
         .accessibilityLabel(name)
-        .modifier(InspectorSelectable(file: file, corners: Self.corners) { select(data: data) })
+        .modifier(InspectorSelectable(file: file, corners: Self.corners) { select(data: data, change: $0) })
         .accessibilityIdentifier(Self.imageIdentifier)
         .agentAttachmentScope(file, focusRingCorners: Self.corners)
         .task(id: file.url) { await Self.writeFile(of: data, named: file.name) }
@@ -117,23 +119,25 @@ public struct ImageView: View {
     }
   }
 
-  /// Writes the image to a file and selects the file for the inspector of
-  /// the environment: the inspector of the host in the host mode of a thread
-  /// view, otherwise the inspector selection. With no inspector, the view
-  /// writes no file.
+  /// Writes the image to a file and changes the selection of the inspector
+  /// of the environment for the file: the inspector of the host in the host
+  /// mode of a thread view, otherwise the inspector selection. With no
+  /// inspector, the view writes no file.
   ///
   /// The view gives the file name to
   /// ``SwiftUI/EnvironmentValues/imageSelectReport`` in the same step, before
   /// it starts the task that writes the file.
   ///
-  /// - Parameter data: The bytes of the image.
-  private func select(data: Data) {
+  /// - Parameters:
+  ///   - data: The bytes of the image.
+  ///   - change: The kind of the press.
+  private func select(data: Data, change: AttachmentSelectionChange) {
     guard selectForInspector.hasInspector else { return }
     let name = name
     reportSelect?(name)
     Task {
       guard let url = await ContentBlockFile.write(data, named: name) else { return }
-      selectForInspector(Attachment(url: url))
+      selectForInspector(Attachment(url: url), change: change)
     }
   }
 }

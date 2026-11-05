@@ -135,7 +135,7 @@ import UniformTypeIdentifiers
     let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let attachment = try AttachmentFixtures.attachment(named: "blob.bin", in: directory)
-    let selection = InspectorSelection(attachment: attachment)
+    let selection = InspectorSelection(attachments: [attachment])
     let harness = HostedViewHarness(
       Text("host").attachmentInspector(selection: selection), size: Self.hostSize)
     defer { harness.close() }
@@ -145,7 +145,7 @@ import UniformTypeIdentifiers
     selection.clear()
     harness.render()
 
-    #expect(selection.attachment == nil)
+    #expect(selection.attachments.isEmpty)
     #expect(Self.shownName(of: attachment, in: harness) == nil)
   }
 
@@ -174,7 +174,7 @@ import UniformTypeIdentifiers
 
     try Self.withoutAnimation { selection.select(attachment) }
 
-    try #require(selection.attachment == attachment)
+    try #require(selection.attachments == [attachment])
     let content = try Self.mountInspectorContent(of: selection)
     defer { content.close() }
     #expect(Self.shownName(of: attachment, in: content) == "notes.md")
@@ -231,7 +231,7 @@ import UniformTypeIdentifiers
     try #require(Self.inspectorItem(in: harness)?.isCollapsed == true)
 
     try Self.withoutAnimation { selection.select(attachment) }
-    try #require(selection.attachment == attachment)
+    try #require(selection.attachments == [attachment])
     harness.render()
     await RunLoopBlockFence.afterPendingBlocks()
     harness.render()
@@ -389,7 +389,7 @@ import UniformTypeIdentifiers
     try withoutAnimation {
       try harness.perform(.press, on: AttachmentView.identifier(for: .chip))
     }
-    try #require(selection.attachment == attachment)
+    try #require(selection.attachments == [attachment])
   }
 
   /// Mounts the inspector content of the attachment that `selection` holds,
@@ -407,8 +407,8 @@ import UniformTypeIdentifiers
   static func mountInspectorContent(of selection: InspectorSelection, size: CGSize = hostSize)
     throws -> HostedViewHarness<AttachmentInspector>
   {
-    let attachment = try #require(selection.attachment)
-    let harness = HostedViewHarness(AttachmentInspector(attachment), size: size)
+    try #require(!selection.attachments.isEmpty)
+    let harness = HostedViewHarness(AttachmentInspector(selection.attachments), size: size)
     harness.render()
     return harness
   }

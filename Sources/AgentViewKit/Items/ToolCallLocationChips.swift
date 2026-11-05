@@ -10,9 +10,11 @@ import SwiftUI
 /// tag. The row is a compound view of the kit around the chip of EditorKit,
 /// which keeps the look of a chip.
 ///
-/// A tap on a chip selects the file for the inspector of the environment, as
-/// a tap on an ``AttachmentView`` does: the inspector of the host in the host
-/// mode of a thread view, otherwise the ``InspectorSelection``. While the
+/// A press on a chip changes the files of the inspector of the environment,
+/// as a press on an ``AttachmentView`` does (a click selects, a Command-click
+/// adds or takes out, a Shift-click extends): the inspector of the host in
+/// the host mode of a thread view, otherwise the ``InspectorSelection``.
+/// While the
 /// inspector shows the file, the chip sits on the shared selection surface,
 /// in the corners of the chip (`SurfaceCorners.pathChip`). The chip is the
 /// scope of the file (`agentAttachment:<id>`, AVK-11), so its context menu
@@ -79,7 +81,7 @@ private struct LocationChip: View {
     PathChip(location.path, line: location.line)
       .accessibilityIdentifier(location.identifier)
       .modifier(
-        InspectorSelectable(file: file, corners: .pathChip) { selectForInspector(file) })
+        InspectorSelectable(file: file, corners: .pathChip) { selectForInspector(file, change: $0) })
       .agentAttachmentScope(file, focusRingCorners: .pathChip)
   }
 }

@@ -32,6 +32,10 @@ import Testing
     ).expectNoPaddingByte()
   }
 
+  @Test func theSpinnerSizesHaveNoPaddingByte() {
+    StoredLayout<EditorStyle.SpinnerSizes>(\.compact, \.balanced, \.detailed).expectNoPaddingByte()
+  }
+
   @Test func theTileTokensHaveNoPaddingByte() {
     StoredLayout<EditorStyle.Tile>(\.padding, \.gap, \.margin).expectNoPaddingByte()
   }

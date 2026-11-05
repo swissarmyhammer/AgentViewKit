@@ -7,15 +7,16 @@ import Testing
 
 @testable import AgentViewKit
 
-/// The attachment selection of a host inspector, as a test host keeps it.
+/// The attachment selection of a host inspector, as a test host keeps it: a
+/// list in selection order.
 ///
 /// The host gives the binding of ``selection`` to
 /// ``SwiftUI/View/agentAttachmentInspector(_:)``. The test reads the value
 /// that a press writes, and it changes ``shownThread`` to change the tab of
 /// the host.
 @MainActor @Observable final class HostAttachmentState {
-  /// The attachment that the host inspector shows, or `nil`.
-  var selection: AgentAttachmentSelection?
+  /// The attachments that the host inspector shows, in selection order.
+  var selection: [AgentAttachmentSelection] = []
 
   /// The tag of the thread tab that the host shows.
   var shownThread = 0
@@ -30,7 +31,7 @@ extension View {
   ///
   /// - Parameter selection: The attachment selection of the host.
   /// - Returns: A view with the inspector of the host.
-  func testHostInspector(selection: Binding<AgentAttachmentSelection?>) -> some View {
+  func testHostInspector(selection: Binding<[AgentAttachmentSelection]>) -> some View {
     inspector(isPresented: .constant(true)) {
       Text("Host inspector")
         .accessibilityIdentifier(SplitViewHostWithThreadTabs.hostInspectorIdentifier)
@@ -147,8 +148,9 @@ struct SplitViewHostWithThreadTabs: View {
   // MARK: - Host mode
 
   /// A thread view in the host mode, in a host that has its own inspector,
-  /// adds no inspector of the kit. A press on a chip in the thread writes the
-  /// attachment and the session id of the thread to the binding of the host.
+  /// adds no inspector of the kit. A press on a chip in the thread writes a
+  /// list of the attachment, with the session id of the thread, to the
+  /// binding of the host.
   ///
   /// The chip writes in the same step as the press, so the test reads the
   /// binding at once.
@@ -167,7 +169,7 @@ struct SplitViewHostWithThreadTabs: View {
 
     #expect(
       state.selection
-        == AgentAttachmentSelection(attachment: attachment, sessionId: session.model.sessionId))
+        == [AgentAttachmentSelection(attachment: attachment, sessionId: session.model.sessionId)])
     #expect(Shared.inspectorItems(in: harness).count == 1)
     #expect(Shared.shownName(of: attachment, in: harness) == nil)
     #expect(harness.element(identifier: SplitViewHostWithThreadTabs.hostInspectorIdentifier) != nil)
@@ -188,9 +190,9 @@ struct SplitViewHostWithThreadTabs: View {
     defer { harness.close() }
 
     try harness.perform(.press, on: ImageView.imageIdentifier)
-    await ObservationWait.until { state.selection != nil }
+    await ObservationWait.until { !state.selection.isEmpty }
 
-    let selection = try #require(state.selection)
+    let selection = try #require(state.selection.first)
     #expect(selection.sessionId == session.model.sessionId)
     #expect(selection.attachment.name == WireContentBlockViewHostedTests.imageName)
     #expect(try Data(contentsOf: selection.attachment.url) == png)
@@ -248,7 +250,7 @@ struct SplitViewHostWithThreadTabs: View {
 
     #expect(
       state.selection
-        == AgentAttachmentSelection(attachment: attachments[1], sessionId: second.model.sessionId))
+        == [AgentAttachmentSelection(attachment: attachments[1], sessionId: second.model.sessionId)])
     #expect(Shared.inspectorItems(in: harness).count == 1)
 
     state.shownThread = 0

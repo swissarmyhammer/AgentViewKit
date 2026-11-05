@@ -100,7 +100,7 @@ that only changes what one view shows:
 | The open state of a row or a block | `ExpandedBlocksStore` |
 | The scroll position of the conversation | `ScrollAnchorManager` |
 | The VoiceOver focus | `AccessibilityFocusMover` |
-| A selection: a citation, lines of a diff, an attachment of the inspector | `CitationSelection`, `DiffLineSelection`, `InspectorSelection` |
+| A selection: a citation, lines of a diff, the attachments of the inspector | `CitationSelection`, `DiffLineSelection`, `InspectorSelection` |
 | The draft of the composer: the text and the attachments | `UserInput` and the text binding of `PromptInputView` |
 
 The kit declares no `@Observable` class that is not in this table.

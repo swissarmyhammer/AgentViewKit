@@ -138,9 +138,9 @@ import Testing
     // The image starts the file write in the same step as the press, so a
     // press that started nothing stops the test here.
     try #require(selects.values == [Self.imageName])
-    await ObservationWait.until { selection.attachment != nil }
+    await ObservationWait.until { !selection.attachments.isEmpty }
 
-    let attachment = try #require(selection.attachment)
+    let attachment = try #require(selection.attachments.first)
     #expect(attachment.name == Self.imageName)
     #expect(attachment.type.conforms(to: .png))
     #expect(try Data(contentsOf: attachment.url) == png)

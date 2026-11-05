@@ -65,8 +65,8 @@ import UniformTypeIdentifiers
 
     try harness.perform(.press, on: AttachmentView.identifier(for: .chip))
 
-    let attachment = try #require(selection.attachment)
-    #expect(attachment == Self.blobAttachment)
+    let attachment = try #require(selection.attachments.first)
+    #expect(selection.attachments == [Self.blobAttachment])
     #expect(try Data(contentsOf: attachment.url) == Self.blobBytes)
   }
 
@@ -99,7 +99,7 @@ import UniformTypeIdentifiers
 
     try harness.perform(.press, on: AttachmentView.identifier(for: .chip))
 
-    #expect(selection.attachment == Attachment(url: url))
+    #expect(selection.attachments == [Attachment(url: url)])
   }
 
   /// In the host mode of a thread view, a press on a `file:` link writes the
@@ -110,7 +110,8 @@ import UniformTypeIdentifiers
     let url = try directory.write(Self.fileName, contents: Self.blobBytes)
     let state = HostAttachmentState()
     let target = HostAttachmentTarget(
-      selection: Binding(get: { state.selection }, set: { state.selection = $0 }), sessionId: Self.hostSessionID)
+      selection: Binding(get: { state.selection }, set: { state.selection = $0 }), sessionId: Self.hostSessionID,
+      anchor: AttachmentSelectionAnchor())
     let harness = HostedViewHarness(
       ContentBlockView(block: Self.makeLinkBlock(to: url), id: Self.blockID)
         .environment(\.hostAttachmentTarget, target),
@@ -120,7 +121,7 @@ import UniformTypeIdentifiers
 
     try harness.perform(.press, on: AttachmentView.identifier(for: .chip))
 
-    #expect(state.selection == AgentAttachmentSelection(attachment: Attachment(url: url), sessionId: Self.hostSessionID))
+    #expect(state.selection == [AgentAttachmentSelection(attachment: Attachment(url: url), sessionId: Self.hostSessionID)])
   }
 
   @Test func aFileResourceLinkKeepsTheAttachmentCommandsInItsContextMenu() async throws {
@@ -161,7 +162,7 @@ import UniformTypeIdentifiers
 
     try harness.perform(.press, on: ToolCallView.locationIdentifier(for: call.id.rowKey, index: 0))
 
-    #expect(selection.attachment == Attachment(url: url))
+    #expect(selection.attachments == [Attachment(url: url)])
   }
 
   @Test func aLocationOfAToolCallKeepsTheAttachmentCommandsInItsContextMenu() async throws {

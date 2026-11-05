@@ -348,12 +348,20 @@ public struct ConversationView<EmptyState: View>: View {
   /// accessibility identifier of the row holds, so a test can read the
   /// scroll target of a row from the accessibility tree.
   ///
+  /// Each row gives its position in the transcript and its coordinate space
+  /// to the file views in it, which place their files in the
+  /// ``TranscriptFileOrder`` of the thread (card ^4138tmp).
+  ///
   /// - Parameter shownCount: The number of rows that the list shows.
   /// - Returns: One row for each shown entry.
   private func rows(shownCount: Int) -> some View {
-    ForEach(session.transcript.suffix(shownCount), id: \.id) { entry in
+    let transcript = session.transcript
+    let firstPosition = transcript.count - shownCount
+    return ForEach(Array(transcript.suffix(shownCount).enumerated()), id: \.element.id) { offset, entry in
       let row = ItemRow(entry: entry)
       readingRow(row)
+        .environment(\.transcriptRowPosition, firstPosition + offset)
+        .coordinateSpace(.named(TranscriptFileOrder.rowSpace))
         .id(row.id)
     }
   }
