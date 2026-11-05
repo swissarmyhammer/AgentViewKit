@@ -8,12 +8,13 @@ import SwiftUI
 /// The chip shows the ``DiffFileLabel`` of the file, with the added and the
 /// removed line counts when the diff has patch text. The chip of the file that the renderer shows sits on the
 /// shared selection surface of EditorKit. A chip is not a content tile, so it
-/// keeps the small padding of a chip. The diff view of AgentViewKit shows a
-/// chip for each file of its patch, in a ``ChipFlowLayout``.
+/// keeps the small padding of a chip.
+///
+/// AgentViewKit draws the file chips of a diff as EditorKit's `PathChip`,
+/// and does not show this chip. It stays only for SnapshotViewKit, which
+/// shows it in its review gallery and reads its ``radius``, until it draws
+/// `PathChip`.
 public struct DiffFileChip: View {
-  /// The start of the accessibility identifier of each file chip.
-  public static let identifierPrefix = "diff-file-"
-
   /// The radius step of a file chip: the small radius. The selected chip
   /// sits on the shared selection surface in this shape, and the focus ring
   /// of the chip button follows the same shape.
@@ -48,28 +49,6 @@ public struct DiffFileChip: View {
     self.select = select
   }
 
-  /// The accessibility identifier of the chip of the file at `path`.
-  ///
-  /// - Parameter path: The path of the file.
-  /// - Returns: `diff-file-<path>`.
-  public static func identifier(for path: String) -> String {
-    identifierPrefix + path
-  }
-
-  /// The SF Symbol name of a file operation: the name of the EditorKit file
-  /// symbol of its kind (`EditorSymbol.FileKind.init(_:)`), so the name has
-  /// no second map.
-  ///
-  /// AgentViewKit draws the symbol of a change with `EditorSymbolImage` and
-  /// does not call this. It stays only for SnapshotViewKit, which reads the
-  /// name until it reads `EditorSymbol.FileKind` (SVK card ^4pb2kay).
-  ///
-  /// - Parameter operation: The change to the file.
-  /// - Returns: The SF Symbol name.
-  public static func symbolName(for operation: DiffSummary.Operation) -> String {
-    EditorSymbol.file(EditorSymbol.FileKind(operation)).systemImage
-  }
-
   /// The line counts of the file, when the diff has patch text.
   private var counts: DiffFileLabel.Counts? {
     hasPatch ? DiffFileLabel.Counts(added: file.added, removed: file.removed) : nil
@@ -91,7 +70,6 @@ public struct DiffFileChip: View {
         ? file.changeAccessibilityLabel : file.accessibilityLabel)
     .accessibilityValue(file.path)
     .accessibilityAddTraits(isSelected ? .isSelected : [])
-    .accessibilityIdentifier(Self.identifier(for: file.path))
   }
 }
 

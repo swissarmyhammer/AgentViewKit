@@ -3571,6 +3571,16 @@
         }
       }
     },
+    "Working Directory" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Working Directory"
+          }
+        }
+      }
+    },
     "Working directory %@" : {
       "localizations" : {
         "en" : {

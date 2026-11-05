@@ -76,7 +76,10 @@
       "SearchIndex.swift:2" is gone, because the diff file chip "SearchIndex.swift +1 −1" names the same file, \
       and the diff is no tile of its own inside the call, so the chip and the patch start on the leading edge \
       of the call body with no second tile padding (ToolCallViewHostedTests checks both). The new image is \
-      not judged yet.
+      not judged yet. Since ^hpxbqhx each file chip of a diff and each location chip of a tool call is \
+      EditorKit's PathChip: the file symbol, the name with its line, the folder in the secondary style, the \
+      counts, and the quaternary fill of its place at the medium radius, with the selection surface of the \
+      shown file in the same corners. The new image is not judged yet.
       """
 
     /// The text of the note of ``ReviewGalleryScreen/requestDeck``.

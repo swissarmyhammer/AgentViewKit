@@ -11,9 +11,11 @@ import FoundationModelsACPClient
 // Each row is read-only: the agent owns each entry. Each get block reads the
 // entry when the row draws, so an update of the agent redraws the row. The
 // rows use the kinds of EditorKit's inspector only; no AgentViewKit view
-// goes inside an inspector. The fields that wait for an EditorKit kind are
-// not here yet: the tool call status (the status token, ^0cqh945), and the
-// locations and the working directory (the path kind, ^hpxbqhx).
+// goes inside an inspector. The working directory of a terminal is
+// EditorKit's path kind (``InspectionPath``). The fields that wait for an
+// EditorKit kind are not here yet: the tool call status (the status token,
+// ^0cqh945), and the locations of a tool call (a list of paths, which
+// EditorKit's inspector has no kind for).
 
 extension ObservableTranscriptEntry {
   /// The group of the start and end times of the entry, as the client saw
@@ -50,7 +52,8 @@ extension ToolCallEntry: @retroactive Inspectable {
 }
 
 extension TerminalEntry: @retroactive Inspectable {
-  /// The command, the exit and the output of the terminal, and its times.
+  /// The command, the exit, the output and the working directory of the
+  /// terminal, and its times.
   public static var inspection: Inspection<TerminalEntry> {
     .named(FieldLabel(localized: "Terminal", bundle: .module), name: { $0.command }) {
       Field(FieldLabel(localized: "Command", bundle: .module)) { $0.command }
@@ -59,6 +62,7 @@ extension TerminalEntry: @retroactive Inspectable {
       }
       Field(FieldLabel(localized: "Output", bundle: .module)) { $0.text }
         .multiline()
+      InspectionPath.workingDirectory { $0.cwd }
     } more: {
       timeGroup
     }

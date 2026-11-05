@@ -69,8 +69,9 @@
     /// The line of the location that a later update adds.
     static let addedLocationLine = 12
 
-    /// The text of the chip of the location that a later update adds.
-    static let addedLocationText = "\(addedLocationPath):\(addedLocationLine)"
+    /// The text of the chip of the location that a later update adds: the
+    /// name of its file and its line, the label of EditorKit's `PathChip`.
+    static let addedLocationText = "\(URL(filePath: addedLocationPath).lastPathComponent):\(addedLocationLine)"
 
     /// The number of locations of the fixture call after the later update.
     static let locationCountAfterUpdate = 2
@@ -338,7 +339,7 @@
         in: session, harness: harness, store: store)
 
       #expect(harness.element(identifier: DiffView.containerIdentifier) != nil)
-      #expect(harness.element(identifier: DiffFileChip.identifier(for: Self.addedPath)) != nil)
+      #expect(harness.element(identifier: DiffView.fileChipIdentifier(for: Self.addedPath)) != nil)
       #expect(harness.element(identifier: UnknownItemView.identifier) == nil)
     }
 

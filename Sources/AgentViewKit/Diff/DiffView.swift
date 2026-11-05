@@ -48,6 +48,9 @@ public struct DiffView: View {
   /// The accessibility identifier of the note of a diff with no patch text.
   public static let noPatchIdentifier = "diff-no-patch"
 
+  /// The start of the accessibility identifier of each file chip.
+  public static let fileChipPrefix = "diff-file-"
+
   /// The start of the accessibility identifier of each Accept button.
   static let acceptPrefix = "diff-accept-"
 
@@ -159,6 +162,14 @@ public struct DiffView: View {
 
   // MARK: - Identifiers
 
+  /// The accessibility identifier of the chip of the file at `path`.
+  ///
+  /// - Parameter path: The path of the file.
+  /// - Returns: `diff-file-<path>`.
+  public static func fileChipIdentifier(for path: String) -> String {
+    AccessibilityIdentifier.make(prefix: fileChipPrefix, value: path)
+  }
+
   /// The accessibility identifier of the Accept button of a hunk.
   ///
   /// - Parameter index: The position of the hunk in the file, from zero.
@@ -199,11 +210,28 @@ public struct DiffView: View {
   private func fileChips(selected: DiffSummary.FileSummary?) -> some View {
     ChipFlowLayout(spacing: editorStyle.spacing.xs) {
       ForEach(files) { file in
-        DiffFileChip(file: file, hasPatch: patch != nil, isSelected: file.path == selected?.path) {
-          selectedPath = file.path
-        }
+        fileChip(file, isSelected: file.path == selected?.path)
       }
     }
+  }
+
+  /// The chip of one file: the EditorKit `PathChip` of the file, with the
+  /// symbol of its change, and its line counts when the diff has patch text.
+  /// A press selects the file, and the chip of the file that the renderer
+  /// shows sits on the shared selection surface, in the corners of the chip.
+  ///
+  /// - Parameters:
+  ///   - file: The file of the chip.
+  ///   - isSelected: Whether the renderer shows the file.
+  /// - Returns: The chip.
+  private func fileChip(_ file: DiffSummary.FileSummary, isSelected: Bool) -> some View {
+    let counts = patch == nil ? nil : PathChip.LineCounts(added: file.added, removed: file.removed)
+    return PathChip(file.path, kind: EditorSymbol.FileKind(file.operation), counts: counts) {
+      selectedPath = file.path
+    }
+    .accessibilityAddTraits(isSelected ? .isSelected : [])
+    .accessibilityIdentifier(Self.fileChipIdentifier(for: file.path))
+    .selectableSurface(isSelected, corners: .pathChip)
   }
 
   /// The renderer, the hunk actions, and the attach button, or the note of a

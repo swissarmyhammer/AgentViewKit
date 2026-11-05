@@ -14,6 +14,11 @@ import SwiftUI
 ///
 /// The label draws no selection, no focus and no fill, and it has no padding of
 /// its own (EditorKit `style.md`, rule 10).
+///
+/// AgentViewKit draws each changed file as EditorKit's `PathChip`, and does
+/// not show this label. It stays only for SnapshotViewKit, which shows it in
+/// its checkpoint file rows and reads its ``Counts``, until it draws
+/// `PathChip` with `PathChip.LineCounts`.
 public struct DiffFileLabel: View {
   /// The added and the removed line counts of a file.
   public struct Counts: Equatable, Sendable {

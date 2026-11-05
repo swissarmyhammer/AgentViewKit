@@ -60,10 +60,6 @@ import Testing
     #expect(file.changeAccessibilityLabel == "Added Swift file")
   }
 
-  @Test func theIdentifierOfAFileChipIsThePrefixAndThePath() {
-    #expect(DiffFileChip.identifier(for: Self.firstPath) == DiffFileChip.identifierPrefix + Self.firstPath)
-  }
-
   @Test(arguments: [
     (DiffSummary.Operation.added, EditorSymbol.FileKind.added),
     (.deleted, .deleted),
@@ -75,10 +71,6 @@ import Testing
   ])
   func eachFileOperationGivesItsEditorKitFileKind(operation: DiffSummary.Operation, expected: EditorSymbol.FileKind) {
     #expect(EditorSymbol.FileKind(operation) == expected)
-  }
-
-  @Test func theSymbolNameOfAFileChipIsTheEditorKitFileSymbol() {
-    #expect(DiffFileChip.symbolName(for: .renamed(from: "a")) == EditorSymbol.file(.renamed).systemImage)
   }
 
   @Test func aBinaryFileOfAPatchHasTheBinaryOperation() {

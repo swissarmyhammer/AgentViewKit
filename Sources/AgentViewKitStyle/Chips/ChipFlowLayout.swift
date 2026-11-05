@@ -7,9 +7,8 @@ import SwiftUI
 /// Each view gets its ideal size. A chip wider than the row is measured again
 /// at the width of the row, so it gets a row of its own and the height that it
 /// has at that width, and it wraps or truncates its own text. The location
-/// chips of a tool
-/// call (``ToolCallLocationChips``) and the file chips of a diff
-/// (``DiffFileChip``) use it.
+/// chips of a tool call (``ToolCallLocationChips``) and the file chips of a
+/// diff use it.
 public struct ChipFlowLayout: Layout {
   /// The space between two views, and between two rows.
   let spacing: CGFloat

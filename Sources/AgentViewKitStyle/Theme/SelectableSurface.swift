@@ -20,6 +20,12 @@ public nonisolated enum SurfaceCorners: Equatable, Sendable {
   /// of `.inlineEdge(radius:)` on a card.
   public static let card = SurfaceCorners.rounded(.large)
 
+  /// The corners of an EditorKit `PathChip`: the medium step of the scale,
+  /// the corners of the fill of the chip. A kit that selects a path chip,
+  /// or gives it a scope, puts the selection surface and the focus ring in
+  /// these corners.
+  public static let pathChip = SurfaceCorners.rounded(.medium)
+
   /// The corner radius in `style`.
   ///
   /// - Parameter style: The shared style that gives the radius scale.

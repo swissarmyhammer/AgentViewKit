@@ -18,6 +18,9 @@ enum InspectionLabel {
   /// The id of a message.
   static var messageID: FieldLabel { FieldLabel(localized: "Message Id", bundle: .module) }
 
+  /// The working directory of a session or a terminal.
+  static var workingDirectory: FieldLabel { FieldLabel(localized: "Working Directory", bundle: .module) }
+
   /// The group of the times of an entry.
   static var time: FieldLabel { FieldLabel(localized: "Time", bundle: .module) }
 
