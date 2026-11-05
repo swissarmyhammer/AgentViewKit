@@ -1,3 +1,4 @@
+import EditorDiff
 import EditorStyle
 import EditorSwiftUI
 import EditorTheme
@@ -14,6 +15,11 @@ import SwiftUI
 ///
 /// The label draws no selection, no focus and no fill, and it has no padding of
 /// its own (EditorKit `style.md`, rule 10).
+///
+/// AgentViewKit draws each changed file as EditorKit's `PathChip`, and does
+/// not show this label. It stays only for SnapshotViewKit, which shows it in
+/// its checkpoint file rows and reads its ``Counts``, until it draws
+/// `PathChip` with `PathChip.LineCounts`.
 public struct DiffFileLabel: View {
   /// The added and the removed line counts of a file.
   public struct Counts: Equatable, Sendable {
@@ -35,7 +41,7 @@ public struct DiffFileLabel: View {
   }
 
   /// The change to the file, or `nil` when the change is not known.
-  let operation: DiffSummary.Operation?
+  let operation: FileDiff.Operation?
 
   /// The path of the file.
   let path: String
@@ -54,7 +60,7 @@ public struct DiffFileLabel: View {
   ///   - path: The path of the file. The label shows its last part.
   ///   - counts: The line counts of the file, or `nil` for no counts. A binary
   ///     file has no lines, so it shows no counts.
-  public init(operation: DiffSummary.Operation?, path: String, counts: Counts?) {
+  public init(operation: FileDiff.Operation?, path: String, counts: Counts?) {
     self.operation = operation
     self.path = path
     self.counts = counts
@@ -64,10 +70,10 @@ public struct DiffFileLabel: View {
   ///
   /// - Parameter operation: The change to the file, or `nil`.
   /// - Returns: The file symbol of the kind of `operation`
-  ///   (`EditorSymbol.FileKind.init(_:)`), or the document symbol with no
-  ///   operation.
-  static func symbol(for operation: DiffSummary.Operation?) -> EditorSymbol {
-    .file(operation.map(EditorSymbol.FileKind.init) ?? .document)
+  ///   (EditorKit's `EditorSymbol.FileKind(diffOperation:)`), or the
+  ///   document symbol with no operation.
+  static func symbol(for operation: FileDiff.Operation?) -> EditorSymbol {
+    .file(operation.map(EditorSymbol.FileKind.init(diffOperation:)) ?? .document)
   }
 
   /// The counts that a file shows.
@@ -76,7 +82,7 @@ public struct DiffFileLabel: View {
   ///   - counts: The counts of the file, or `nil`.
   ///   - operation: The change to the file, or `nil`.
   /// - Returns: `counts`, or `nil` for a binary file.
-  static func shownCounts(_ counts: Counts?, for operation: DiffSummary.Operation?) -> Counts? {
+  static func shownCounts(_ counts: Counts?, for operation: FileDiff.Operation?) -> Counts? {
     operation == .binary ? nil : counts
   }
 
@@ -110,7 +116,7 @@ public struct DiffFileLabel: View {
 #Preview("The label of a file with counts, of a binary file and of an unknown change") {
   VStack(alignment: .leading) {
     DiffFileLabel(
-      operation: .modified, path: StylePreviewFixtures.fileName, counts: DiffFileLabel.Counts(added: 3, removed: 1))
+      operation: .modify, path: StylePreviewFixtures.fileName, counts: DiffFileLabel.Counts(added: 3, removed: 1))
     DiffFileLabel(operation: .binary, path: StylePreviewFixtures.fileName, counts: nil)
     DiffFileLabel(operation: nil, path: StylePreviewFixtures.fileName, counts: nil)
   }

@@ -1,3 +1,4 @@
+import EditorDiff
 import Foundation
 import FoundationModelsACP
 import OSLog
@@ -43,7 +44,7 @@ nonisolated extension DiffSummary {
   /// - Parameter changes: The `changes` of an ACP `Diff`.
   /// - Returns: One summary with no hunks for each change, in change order.
   ///   A change that the kit does not know gives the operation
-  ///   ``Operation/unknown(_:)`` and the `path` member of the change. A
+  ///   `FileDiff.Operation.unknown(_:)` and the `path` member of the change. A
   ///   change that the kit does not know and that has no `path` member gives
   ///   no summary, and the log records it.
   public static func files(of changes: [DiffChange]) -> [FileSummary] {
@@ -63,11 +64,11 @@ nonisolated extension DiffSummary {
   ///   change that the kit does not know and that has no `path` member.
   private static func file(of payload: DiffChange.Payload) -> FileSummary? {
     switch payload {
-    case .add(let change): file(change.path.rawValue, .added)
-    case .delete(let change): file(change.path.rawValue, .deleted)
-    case .modify(let change): file(change.path.rawValue, .modified)
-    case .move(let change): file(change.path.rawValue, .renamed(from: change.oldPath.rawValue))
-    case .copy(let change): file(change.path.rawValue, .copied(from: change.oldPath.rawValue))
+    case .add(let change): file(change.path.rawValue, .add)
+    case .delete(let change): file(change.path.rawValue, .delete)
+    case .modify(let change): file(change.path.rawValue, .modify)
+    case .move(let change): file(change.path.rawValue, .rename(from: change.oldPath.rawValue))
+    case .copy(let change): file(change.path.rawValue, .copy(from: change.oldPath.rawValue))
     case .unknown(let name, let members): unknownChangePath(in: members).map { file($0, .unknown(name)) }
     }
   }
@@ -78,7 +79,7 @@ nonisolated extension DiffSummary {
   ///   - path: The path of the file after the change.
   ///   - operation: The change to the file.
   /// - Returns: The summary.
-  private static func file(_ path: String, _ operation: Operation) -> FileSummary {
+  private static func file(_ path: String, _ operation: FileDiff.Operation) -> FileSummary {
     FileSummary(path: path, operation: operation, hunks: [])
   }
 

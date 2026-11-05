@@ -13,19 +13,22 @@ import FoundationModelsACPClient
 // ``ConfigOptionsView`` in its form style shows them. The state of a
 // connection and the status of an MCP server are EditorKit's status token
 // (`EditorStatus`), which the inspector shows as a read-only `.status` row.
-// The fields that wait for an EditorKit kind are not here yet: the working
-// directory and the additional directories of a session (the path kind,
-// ^hpxbqhx).
+// The working directory of a session is EditorKit's path kind
+// (``InspectionPath``). The additional directories of a session are not here
+// yet: they are a list of paths, which EditorKit's inspector has no kind for
+// (^b9xgnm7).
 
 extension SessionModel: @retroactive Inspectable {
-  /// The title, the status and the id of the session, and its use of the
-  /// context window, its subagents and its transcript.
+  /// The title, the status, the id and the working directory of the
+  /// session, and its use of the context window, its subagents and its
+  /// transcript.
   public static var inspection: Inspection<SessionModel> {
     .named(FieldLabel(localized: "Session", bundle: .module), name: { $0.title ?? $0.sessionId.rawValue }) {
       Field(InspectionLabel.title) { $0.title }
       Field(InspectionLabel.status) { $0.status.text }
       Field(FieldLabel(localized: "Id", bundle: .module)) { $0.sessionId.rawValue }
       Field(FieldLabel(localized: "Closed", bundle: .module)) { $0.isClosed }
+      InspectionPath.workingDirectory { $0.cwd }
     } more: {
       FieldGroup(FieldLabel(localized: "Agent", bundle: .module)) {
         Field(FieldLabel(localized: "Context Used", bundle: .module)) { $0.usage?.used }

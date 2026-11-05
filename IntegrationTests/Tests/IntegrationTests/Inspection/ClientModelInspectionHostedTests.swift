@@ -35,6 +35,9 @@ import Testing
   /// The id of the terminal of the tests.
   static let terminalID = "inspect-terminal"
 
+  /// The working directory of the terminal of the tests.
+  static let terminalFolder = "/tmp/inspect-terminal"
+
   /// The id of the agent message of the tests.
   static let messageID = "inspect-message"
 
@@ -156,6 +159,36 @@ import Testing
     #expect(
       harness.rowValue(Self.row(of: entry, group: "terminal", field: "exit-status"))
         == TerminalView.ExitSummary(code: 0, signal: nil).label)
+  }
+
+  @Test func theWorkingDirectoryRowOfATerminalShowsItsFolder() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    try await session.sendUpdate(
+      #"""
+      {"sessionUpdate": "terminal_update", "terminalId": "\#(Self.terminalID)", "command": "ls",
+       "cwd": "\#(Self.terminalFolder)"}
+      """#)
+    let entry = try await Self.entry(TerminalEntry.self, in: session)
+    let harness = Self.mount(entry)
+    defer { harness.close() }
+
+    #expect(
+      harness.rowValue(Self.row(of: entry, group: "terminal", field: "working-directory"))
+        == InspectionPath.folder(entry.cwd).path(percentEncoded: false))
+  }
+
+  @Test func theWorkingDirectoryRowOfASessionShowsItsFolder() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let model = session.model
+    let cwd = try #require(model.cwd)
+    let harness = Self.mount(model)
+    defer { harness.close() }
+
+    #expect(
+      harness.rowValue(Self.row(of: model, group: "session", field: "working-directory"))
+        == InspectionPath.folder(cwd).path(percentEncoded: false))
   }
 
   @Test func theTextRowOfAnAgentMessageFollowsItsChunks() async throws {

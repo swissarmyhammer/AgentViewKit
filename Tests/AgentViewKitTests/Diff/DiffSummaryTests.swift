@@ -1,4 +1,5 @@
 import AgentViewKit
+import EditorDiff
 import FoundationModelsACP
 import Testing
 
@@ -92,7 +93,7 @@ import Testing
     let files = DiffSummary.parse(gitPatch: Self.twoFilePatch)
 
     #expect(files.map(\.path) == ["Sources/App.swift", "README.md"])
-    #expect(files.map(\.operation) == [.modified, .modified])
+    #expect(files.map(\.operation) == [.modify, .modify])
     #expect(files.map(\.added) == [3, 1])
     #expect(files.map(\.removed) == [2, 0])
     #expect(files[0].hunks.count == 2)
@@ -111,7 +112,7 @@ import Testing
 
     #expect(files.count == 1)
     #expect(files.first?.path == "new.py")
-    #expect(files.first?.operation == .added)
+    #expect(files.first?.operation == .add)
     #expect(files.first?.added == 2)
     #expect(files.first?.removed == 0)
   }
@@ -121,7 +122,7 @@ import Testing
 
     #expect(files.count == 1)
     #expect(files.first?.path == "old.txt")
-    #expect(files.first?.operation == .deleted)
+    #expect(files.first?.operation == .delete)
     #expect(files.first?.added == 0)
     #expect(files.first?.removed == 3)
   }
@@ -131,7 +132,7 @@ import Testing
 
     #expect(files.count == 1)
     #expect(files.first?.path == "src/b.rs")
-    #expect(files.first?.operation == .renamed(from: "src/a.rs"))
+    #expect(files.first?.operation == .rename(from: "src/a.rs"))
     #expect(files.first?.added == 1)
     #expect(files.first?.removed == 1)
   }
@@ -140,7 +141,7 @@ import Testing
     let files = DiffSummary.parse(gitPatch: Self.plainPatch)
 
     #expect(files.map(\.path) == ["x", "y"])
-    #expect(files.map(\.operation) == [.modified, .modified])
+    #expect(files.map(\.operation) == [.modify, .modify])
     #expect(files.map(\.added) == [1, 1])
     #expect(files.map(\.removed) == [1, 2])
   }
@@ -201,7 +202,7 @@ import Testing
     #expect(files.map(\.path) == ["/p/new.swift", "/p/old.md", "/p/main.py", "/p/b.rs", "/p/d.go", "/p/run.sh"])
     #expect(
       files.map(\.operation) == [
-        .added, .deleted, .modified, .renamed(from: "/p/a.rs"), .copied(from: "/p/c.go"), .unknown("chmod"),
+        .add, .delete, .modify, .rename(from: "/p/a.rs"), .copy(from: "/p/c.go"), .unknown("chmod"),
       ])
     #expect(files.allSatisfy { $0.hunks.isEmpty })
   }

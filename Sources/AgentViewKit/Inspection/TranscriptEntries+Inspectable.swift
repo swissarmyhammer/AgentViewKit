@@ -14,8 +14,10 @@ import FoundationModelsACPClient
 // rows use the kinds of EditorKit's inspector only; no AgentViewKit view
 // goes inside an inspector. A status is EditorKit's status token
 // (`EditorStatus`), which the inspector shows as a read-only `.status` row.
-// The fields that wait for an EditorKit kind are not here yet: the locations
-// and the working directory (the path kind, ^hpxbqhx).
+// The working directory of a terminal is EditorKit's path kind
+// (``InspectionPath``). The locations of a tool call are not here yet: they
+// are a list of paths, which EditorKit's inspector has no kind for
+// (^b9xgnm7).
 
 extension ObservableTranscriptEntry {
   /// The group of the start and end times of the entry, as the client saw
@@ -54,7 +56,8 @@ extension ToolCallEntry: @retroactive Inspectable {
 }
 
 extension TerminalEntry: @retroactive Inspectable {
-  /// The command, the exit and the output of the terminal, and its times.
+  /// The command, the exit, the output and the working directory of the
+  /// terminal, and its times.
   public static var inspection: Inspection<TerminalEntry> {
     .named(FieldLabel(localized: "Terminal", bundle: .module), name: { $0.command }) {
       Field(FieldLabel(localized: "Command", bundle: .module)) { $0.command }
@@ -63,6 +66,7 @@ extension TerminalEntry: @retroactive Inspectable {
       }
       Field(FieldLabel(localized: "Output", bundle: .module)) { $0.text }
         .multiline()
+      InspectionPath.workingDirectory { $0.cwd }
     } more: {
       timeGroup
     }

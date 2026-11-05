@@ -1,3 +1,4 @@
+import EditorDiff
 import Foundation
 
 /// The files of a unified diff, with their counts (plan.md §4.1, decision 12).
@@ -6,52 +7,6 @@ import Foundation
 /// It does not render the diff. EditorKit parses and renders the diff in the
 /// renderer that ``SwiftUI/View/diffRenderer(_:)`` installs.
 public nonisolated enum DiffSummary {
-  /// The change that a patch makes to one file.
-  public enum Operation: Sendable, Hashable {
-    /// The patch makes the file.
-    case added
-
-    /// The patch removes the file.
-    case deleted
-
-    /// The patch changes the lines of the file.
-    case modified
-
-    /// The patch moves the file to a new path.
-    ///
-    /// - Parameter from: The old path of the file.
-    case renamed(from: String)
-
-    /// The change copies a file to a new path. A patch does not give this
-    /// operation; a structured change does, such as a structured ACP diff
-    /// in AgentViewKit.
-    ///
-    /// - Parameter from: The path of the file that the change copies.
-    case copied(from: String)
-
-    /// The patch changes a binary file, which has no lines to count.
-    case binary
-
-    /// A change that the view kit does not know, with its wire name. A patch
-    /// does not give this operation; a structured change does.
-    case unknown(String)
-
-    /// The word that tells the operation, such as "Added".
-    ///
-    /// An operation that the view kit does not know gives "Changed".
-    public var label: String {
-      switch self {
-      case .added: String(localized: "Added", bundle: .module)
-      case .deleted: String(localized: "Deleted", bundle: .module)
-      case .modified: String(localized: "Modified", bundle: .module)
-      case .renamed: String(localized: "Renamed", bundle: .module)
-      case .copied: String(localized: "Copied", bundle: .module)
-      case .binary: String(localized: "Binary", bundle: .module)
-      case .unknown: String(localized: "Changed", bundle: .module)
-      }
-    }
-  }
-
   /// One hunk of a file: the `@@` header and the lines after it.
   public struct Hunk: Sendable, Hashable {
     /// The `@@` line of the hunk.
@@ -79,7 +34,7 @@ public nonisolated enum DiffSummary {
     public var path: String
 
     /// The change that the patch makes to the file.
-    public var operation: Operation
+    public var operation: FileDiff.Operation
 
     /// The hunks of the file, in patch order.
     public var hunks: [Hunk]
@@ -90,7 +45,7 @@ public nonisolated enum DiffSummary {
     ///   - path: The path of the file.
     ///   - operation: The change to the file.
     ///   - hunks: The hunks of the file.
-    public init(path: String, operation: Operation, hunks: [Hunk]) {
+    public init(path: String, operation: FileDiff.Operation, hunks: [Hunk]) {
       self.path = path
       self.operation = operation
       self.hunks = hunks
@@ -352,7 +307,7 @@ public nonisolated enum DiffSummary {
       }
       oldPath = path
       if path == nil {
-        current?.operation = .added
+        current?.operation = .add
       }
     }
 
@@ -362,7 +317,7 @@ public nonisolated enum DiffSummary {
     mutating func readNewPath(_ line: String) {
       let path = DiffSummary.cleanPath(String(line.dropFirst(DiffSummary.newPathHeader.count)))
       guard let path else {
-        current?.operation = .deleted
+        current?.operation = .delete
         if let oldPath {
           current?.path = oldPath
         }
@@ -376,11 +331,11 @@ public nonisolated enum DiffSummary {
     /// - Parameter line: The line.
     mutating func readExtendedHeader(_ line: String) {
       if line.hasPrefix(DiffSummary.newFileHeader) {
-        current?.operation = .added
+        current?.operation = .add
       } else if line.hasPrefix(DiffSummary.deletedFileHeader) {
-        current?.operation = .deleted
+        current?.operation = .delete
       } else if line.hasPrefix(DiffSummary.renameFromHeader) {
-        current?.operation = .renamed(
+        current?.operation = .rename(
           from: String(line.dropFirst(DiffSummary.renameFromHeader.count)))
       } else if line.hasPrefix(DiffSummary.renameToHeader) {
         current?.path = String(line.dropFirst(DiffSummary.renameToHeader.count))
@@ -394,7 +349,7 @@ public nonisolated enum DiffSummary {
     /// - Parameter path: The first known path of the file.
     mutating func startFile(path: String) {
       closeFile()
-      current = FileSummary(path: path, operation: .modified, hunks: [])
+      current = FileSummary(path: path, operation: .modify, hunks: [])
     }
 
     /// Adds the current hunk to the current file.
