@@ -29,8 +29,11 @@ struct InspectorGalleryFixtures {
       id: "call-1", fields: #""title": "Read Sources/Parser/Lexer.swift", "kind": "read", "status": "completed""#),
     WireBlockJSON.makeToolCallUpdate(
       id: "call-2", fields: #""title": "Edit Sources/Parser/Lexer.swift", "kind": "edit", "status": "in_progress""#),
-    #"{"sessionUpdate": "terminal_update", "terminalId": "terminal-1", "command": "swift build", "exitStatus": {"exitCode": 0}}"#,
-    #"{"sessionUpdate": "terminal_update", "terminalId": "terminal-2", "command": "swift test"}"#,
+    #"""
+    {"sessionUpdate": "terminal_update", "terminalId": "terminal-1", "command": "swift build",
+     "cwd": "\#(packageFolder)", "exitStatus": {"exitCode": 0}}
+    """#,
+    #"{"sessionUpdate": "terminal_update", "terminalId": "terminal-2", "command": "swift test", "cwd": "\#(testsFolder)"}"#,
     planUpdate(id: "plan-1", firstStatus: "completed"),
     planUpdate(id: "plan-2", firstStatus: "in_progress"),
     #"{"sessionUpdate": "compaction_update", "compactionId": "compaction-1", "status": "completed"}"#,
@@ -41,9 +44,30 @@ struct InspectorGalleryFixtures {
     #"{"sessionUpdate": "x_index_update", "note": "second"}"#,
   ]
 
+  /// The working directory of the first session and the first terminal, so
+  /// their inspectors show a Working Directory path row.
+  private static let packageFolder = "/Users/preview/Developer/Parser"
+
+  /// The working directory of the second session and the second terminal: a
+  /// folder other than ``packageFolder``, so the Mixed images show the row
+  /// as Mixed.
+  private static let testsFolder = "/Users/preview/Developer/Parser/Tests"
+
   /// The number of entries of one kind that a subject shows: one, and a
   /// second beside it for the Mixed image.
   private static let pairCount = 2
+
+  /// The session of the first image: the usage session of the previews, in
+  /// ``packageFolder``.
+  private static var firstSession: SessionModel {
+    .preview(cwd: AbsolutePath(rawValue: packageFolder), transcript: [.update(.usageUpdate(PreviewFixtures.usage))])
+  }
+
+  /// The second session of the Mixed images: the configured session of the
+  /// previews, in ``testsFolder``.
+  private static var secondSession: SessionModel {
+    .preview(cwd: AbsolutePath(rawValue: testsFolder), configOptions: PreviewFixtures.configOptions)
+  }
 
   /// A `plan_update` of two steps.
   ///
@@ -104,7 +128,7 @@ struct InspectorGalleryFixtures {
         InspectorGallery.Subject(
           "config-options", view: ConfigOptionsView(session: PreviewFixtures.configuredSession, style: .form)),
         InspectorGallery.Subject("tool-toggles", view: ToolToggles(tools: tools, style: .list) { _, _ in }),
-        InspectorGallery.Subject("session", PreviewFixtures.usageSession, PreviewFixtures.configuredSession),
+        InspectorGallery.Subject("session", Self.firstSession, Self.secondSession),
         InspectorGallery.Subject("connection", ConnectionModel.preview(), ConnectionModel.preview(state: .connecting)),
         InspectorGallery.Subject("mcp-server", try #require(servers.first), try #require(servers.last)),
         try pair("user-message", UserMessageEntry.self),

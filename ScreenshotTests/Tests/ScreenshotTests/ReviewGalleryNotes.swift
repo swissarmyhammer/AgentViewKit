@@ -79,7 +79,8 @@
       not judged yet. Since ^hpxbqhx each file chip of a diff and each location chip of a tool call is \
       EditorKit's PathChip: the file symbol, the name with its line, the folder in the secondary style, the \
       counts, and the quaternary fill of its place at the medium radius, with the selection surface of the \
-      shown file in the same corners. The new image is not judged yet.
+      shown file in the same corners: the diff file chip reads "SearchIndex.swift Sources/Search +1 −1". The \
+      new image is not judged yet.
       """
 
     /// The text of the note of ``ReviewGalleryScreen/requestDeck``.
