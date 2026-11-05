@@ -193,9 +193,7 @@ extension PlanTranscriptEntry: InspectableClientModel {
   /// The steps of the plan, each with its status, and its times.
   public static var inspection: Inspection<InspectedClientModel<PlanTranscriptEntry>> {
     .named(FieldLabel(localized: "Plan", bundle: .module), id: ClientInspectionID.plan) {
-      Field(FieldLabel(localized: "Steps", bundle: .module)) { entry in
-        entry.model.entries.map(InspectionText.step).joined(separator: "\n")
-      }
+      Field(FieldLabel(localized: "Steps", bundle: .module)) { entry in InspectionText.steps(of: entry.model.entries) }
       .multiline()
     } more: {
       timeGroup

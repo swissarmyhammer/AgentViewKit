@@ -116,7 +116,7 @@ import Testing
     defer { session.close() }
     let shown = try #require(session.session(Self.first))
 
-    let paths = shown.jumpEntries.map { SessionJumpList.pathText(of: $0, agent: "Agent") }
+    let paths = shown.jumpEntries.map { SessionJumpList.pathText(of: $0, agent: "Agent", locale: ChainTextTests.locale) }
 
     #expect(paths.count == 2)
     #expect(paths.last == "Agent › \(shown.ancestors.last?.title ?? "") › First › Grandchild")

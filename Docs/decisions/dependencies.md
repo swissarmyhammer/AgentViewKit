@@ -10,6 +10,7 @@ and the products that AgentViewKit uses.
 |---|---|---|---|
 | textual | https://github.com/gonzalezreal/textual | exact 0.5.0 | `Textual` |
 | swiftui-math | https://github.com/gonzalezreal/swiftui-math | exact 0.1.0 | `SwiftUIMath` |
+| Stencil | https://github.com/stencilproject/Stencil.git | exact 0.15.1 | `Stencil` |
 | EditorKit | git@github.com:swissarmyhammer/EditorKit.git | branch main | `EditorSwiftUI`, `EditorCore`, `EditorText`, `EditorTheme`, `EditorCommands`, `EditorCommandsUI`, `EditorCommandsTestSupport`, `EditorTestSupport`, `EditorComplete`, `EditorDecorations`, `EditorExtensions`, `EditorDiff` |
 | FoundationModelsACP | git@github.com:swissarmyhammer/FoundationModelsACP.git | branch main | `FoundationModelsACP` |
 | FoundationModelsACPClient | git@github.com:swissarmyhammer/FoundationModelsACPClient.git | branch main | `FoundationModelsACPClient` |
@@ -72,6 +73,18 @@ not a dependency of the kit. Thus the table above does not list it.
   pins it `exact`, because it is a 0.x package and the kit uses its
   `Textual` SPI.
 
+## Stencil
+
+- User decision of 2026-11-05 (^3b8m474): Stencil is a direct dependency of
+  the `AgentViewKit` target, for the text that the kit builds in loops.
+  `Docs/decisions/text-templates.md` records which text is a template.
+- The URL and the version are the ones of the template engine of
+  FoundationModelsExtras (`TemplateEngine`), which the skills use, so the
+  package graph holds one Stencil.
+- Stencil is a 0.x package, so the pin is `exact`. It brings PathKit with it;
+  the kit does not import PathKit.
+- `AgentViewKitStyle` does not link it.
+
 ## The in-family packages
 
 - Each in-family package uses the SSH URL and `branch: "main"`. This is the form
@@ -83,7 +96,7 @@ not a dependency of the kit. Thus the table above does not list it.
 
 | Target | Can import |
 |---|---|
-| `AgentViewKit` | EditorKit products, `Textual`, `SwiftUIMath`, `FoundationModelsACP`, `FoundationModelsACPClient` |
+| `AgentViewKit` | EditorKit products, `Textual`, `SwiftUIMath`, `Stencil`, `FoundationModelsACP`, `FoundationModelsACPClient` |
 | `AgentViewKitStyle` | EditorKit products `EditorStyle`, `EditorTheme`, `EditorSwiftUI`, `EditorDiff`, `EditorCommands` |
 
 The package has two library targets and two library products,

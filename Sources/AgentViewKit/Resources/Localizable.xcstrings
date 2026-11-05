@@ -1,16 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    " › " : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : " › "
-          }
-        }
-      }
-    },
     "%@ asks for input" : {
       "localizations" : {
         "en" : {
@@ -1429,6 +1419,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Output"
+          }
+        }
+      }
+    },
+    "Path: %@" : {
+      "comment" : "The VoiceOver label of the path of the shown session: the titles from the root, one after the other.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Path: %@"
           }
         }
       }
@@ -3640,6 +3641,39 @@
         }
       }
     },
+    "chain.sentences" : {
+      "comment" : "A run of sentences: the sentences so far, then the next sentence.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        }
+      }
+    },
+    "chain.spoken-path" : {
+      "comment" : "A path of names that VoiceOver reads: the path so far, then the next name.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, then %2$@"
+          }
+        }
+      }
+    },
+    "chain.visible-path" : {
+      "comment" : "A path of names that the user reads: the path so far, then the next name.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ › %2$@"
+          }
+        }
+      }
+    },
     "context-usage.cost-in-unit" : {
       "comment" : "The cost of a session in a unit that is not a currency: the amount, then the unit.",
       "localizations" : {
@@ -3647,6 +3681,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ %2$@"
+          }
+        }
+      }
+    },
+    "copy-text.role-line" : {
+      "comment" : "The first line of a message in the copied text of a thread: the name of its sender.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@:"
           }
         }
       }

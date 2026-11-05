@@ -1,0 +1,9 @@
+{# The copy text of a thread (AgentCommandTarget): for each message of
+   `messages`, its role line `message.heading`, then each text of
+   `message.texts` on a line of its own. A blank line separates two messages.
+   The role lines are catalog text of the model, so the template has no word
+   of its own. #}
+{%- for message in messages %}{% if not forloop.first %}
+
+{% endif %}{{ message.heading }}{% for text in message.texts %}
+{{ text }}{% endfor %}{% endfor -%}

@@ -24,7 +24,7 @@ import SwiftUI
 /// shows no error on a new form. When a change of an answer shows new errors,
 /// the view announces them at `.medium`. A submit attempt with a form that is
 /// not complete sends nothing, shows the errors of each field, and announces
-/// them at `.high` (`fieldErrorText(title:validation:)`). The header slot
+/// them at `.high` (`fieldErrorText(title:validation:locale:)`). The header slot
 /// names the agent, the layout slot shows the fields, and the footer slot
 /// shows Submit, Decline, and Cancel. Submit is disabled until
 /// ``ElicitationValidator/isComplete(values:schemas:)`` is `true`. Esc
@@ -302,11 +302,14 @@ public struct ElicitationView: View {
   /// - Parameters:
   ///   - title: The title of the field.
   ///   - validation: The validation state of the answer of the field.
-  /// - Returns: "“<title>”: " and the messages of `validation`, separated by
-  ///   spaces.
-  static func fieldErrorText(title: String, validation: FieldValidationState) -> String {
-    let messages = validation.errors.joined(separator: " ")
-    return String(localized: "“\(title)”: \(messages)", bundle: .module)
+  ///   - locale: The locale of the text.
+  /// - Returns: "“<title>”: " and the messages of `validation` as a run of
+  ///   sentences (``ChainText/sentences(_:locale:)``).
+  static func fieldErrorText(
+    title: String, validation: FieldValidationState, locale: Locale = .autoupdatingCurrent
+  ) -> String {
+    let messages = ChainText.sentences(validation.errors, locale: locale)
+    return String(localized: "“\(title)”: \(messages)", bundle: .module, locale: locale)
   }
 
   /// Shows the errors of each field after a submit attempt with a form that
@@ -329,15 +332,16 @@ public struct ElicitationView: View {
   /// The text that announces the errors of some fields.
   ///
   /// - Parameter schemas: The fields, in the order of the form.
-  /// - Returns: The ``fieldErrorText(title:validation:)`` of the current
-  ///   answer of each field that does not pass validation, separated by
-  ///   spaces, or an empty text when each field passes.
+  /// - Returns: The ``fieldErrorText(title:validation:locale:)`` of the
+  ///   current answer of each field that does not pass validation, as a run
+  ///   of sentences (``ChainText/sentences(_:locale:)``), or an empty text
+  ///   when each field passes.
   private func errorText(of schemas: [ElicitationFieldSchema]) -> String {
     let texts = schemas.compactMap { schema -> String? in
       let validation = ElicitationValidator.validate(values[schema.name], against: schema)
       return validation.isSatisfied ? nil : Self.fieldErrorText(title: schema.title, validation: validation)
     }
-    return texts.joined(separator: " ")
+    return ChainText.sentences(texts, locale: .autoupdatingCurrent)
   }
 
   /// The content of an accepted form.
@@ -439,7 +443,7 @@ public struct ElicitationView: View {
 /// line (identifier ``ElicitationView/whoAsksIdentifier``): the root label,
 /// the `agentPath` and the `source` of the pending elicitation, for example
 /// "root › planner › reviewer · runCode". The text is
-/// ``whoAsks(agentPath:source:rootLabel:)``, and VoiceOver reads the line as
+/// ``whoAsks(agentPath:source:rootLabel:locale:)``, and VoiceOver reads the line as
 /// one element with the label of
 /// ``whoAsksAccessibilityLabel(agentPath:source:rootLabel:locale:)``, for example
 /// "Asked by root, planner, reviewer, from runCode". The root label is the
@@ -667,7 +671,7 @@ extension View {
   /// To show the same line, give `agentPath` and `source` of the pending
   /// elicitation and the
   /// ``SwiftUI/EnvironmentValues/elicitationRootAgentLabel`` environment
-  /// value to ``ElicitationHeader/whoAsks(agentPath:source:rootLabel:)`` and
+  /// value to ``ElicitationHeader/whoAsks(agentPath:source:rootLabel:locale:)`` and
   /// ``ElicitationHeader/whoAsksAccessibilityLabel(agentPath:source:rootLabel:locale:)``.
   ///
   /// - Parameter content: The function that makes the header from the

@@ -1,0 +1,6 @@
+{# The Markdown of the content of a message (ThreadExporter): each text of
+   `message.texts`, with a blank line between two texts. The texts come from
+   the model, so the template has no word of its own. #}
+{%- for text in message.texts %}{% if not forloop.first %}
+
+{% endif %}{{ text }}{% endfor -%}

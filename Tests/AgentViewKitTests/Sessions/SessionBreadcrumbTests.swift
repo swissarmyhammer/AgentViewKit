@@ -173,6 +173,18 @@ import Testing
     #expect(WaitingDescendantBanner.message(for: entry).explanation.contains("Linter"))
   }
 
+  @Test func theBannerExplanationIsThePathOfTheDescendant() async throws {
+    let session = try await Self.openTree()
+    defer { session.close() }
+    let grandchild = try #require(session.session(Self.linter))
+    try await session.sendInOrder([.permission(id: 1, sessionId: Self.linter)], to: grandchild)
+
+    let entry = try #require(session.model.waitingDescendant)
+    let explanation = WaitingDescendantBanner.message(for: entry, locale: Self.locale).explanation
+
+    #expect(explanation.hasSuffix(" › Reviewer › Linter"), "\(explanation)")
+  }
+
   @Test func aTreeWithNoQuestionHasNoWaitingDescendant() async throws {
     let session = try await Self.openTree()
     defer { session.close() }
