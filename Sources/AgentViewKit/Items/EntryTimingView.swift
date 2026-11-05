@@ -97,10 +97,7 @@ public struct EntryTimingView: View, PrefixedAccessibilityIdentifier {
   /// - Parameter locale: The locale of the text.
   /// - Returns: The narrow duration format of `locale`.
   static func lineDurationStyle(locale: Locale) -> Duration.UnitsFormatStyle {
-    Duration.UnitsFormatStyle(
-      allowedUnits: durationUnits, width: .narrow, zeroValueUnits: .hide,
-      fractionalPart: .hide(rounded: secondsRounding)
-    ).locale(locale)
+    durationStyle(locale: locale, width: .narrow, zeroValueUnits: .hide)
   }
 
   /// The format of a duration that a label tells: at most
@@ -110,9 +107,27 @@ public struct EntryTimingView: View, PrefixedAccessibilityIdentifier {
   /// - Parameter locale: The locale of the text.
   /// - Returns: The wide duration format of `locale`.
   static func spokenDurationStyle(locale: Locale) -> Duration.UnitsFormatStyle {
+    durationStyle(locale: locale, width: .wide, maximumUnitCount: largestUnitCount)
+  }
+
+  /// The one builder of the duration formats of the view: the units of
+  /// ``durationUnits``, with the fraction of a second rounded away.
+  ///
+  /// - Parameters:
+  ///   - locale: The locale of the text.
+  ///   - width: The width of the unit names.
+  ///   - zeroValueUnits: Whether units of zero show.
+  ///   - maximumUnitCount: The largest number of units that show, or `nil`
+  ///     for each unit.
+  /// - Returns: The duration format of `locale`.
+  private static func durationStyle(
+    locale: Locale, width: Duration.UnitsFormatStyle.UnitWidth,
+    zeroValueUnits: Duration.UnitsFormatStyle.ZeroValueUnitsDisplayStrategy = .hide,
+    maximumUnitCount: Int? = nil
+  ) -> Duration.UnitsFormatStyle {
     Duration.UnitsFormatStyle(
-      allowedUnits: durationUnits, width: .wide, maximumUnitCount: largestUnitCount,
-      fractionalPart: .hide(rounded: secondsRounding)
+      allowedUnits: durationUnits, width: width, maximumUnitCount: maximumUnitCount,
+      zeroValueUnits: zeroValueUnits, fractionalPart: .hide(rounded: secondsRounding)
     ).locale(locale)
   }
 
@@ -175,16 +190,16 @@ public struct EntryTimingView: View, PrefixedAccessibilityIdentifier {
     let start = startStyle(locale: locale, timeZone: timeZone)
     let length = lineDurationStyle(locale: locale)
     switch (startedAt, shownDuration(duration).map(Duration.seconds)) {
-    case let (startedAt?, shown?):
+    case (let startedAt?, let shown?):
       return String(
         localized: "entry-timing.start-and-duration",
         defaultValue: "\(startedAt, format: start) · \(shown, format: length)", bundle: .module, locale: locale,
         comment: "The time of a transcript entry: its start time, such as 6:13 AM, and its duration, such as 1m 15s.")
-    case let (startedAt?, nil):
+    case (let startedAt?, nil):
       return String(
         localized: "entry-timing.start", defaultValue: "\(startedAt, format: start)", bundle: .module, locale: locale,
         comment: "The time of a transcript entry with no duration: its start time, such as 6:13 AM.")
-    case let (nil, shown?):
+    case (nil, let shown?):
       return String(
         localized: "entry-timing.duration", defaultValue: "\(shown, format: length)", bundle: .module, locale: locale,
         comment: "The time of a transcript entry with no start time: its duration, such as 1m 15s.")
@@ -211,16 +226,16 @@ public struct EntryTimingView: View, PrefixedAccessibilityIdentifier {
     let start = startStyle(locale: locale, timeZone: timeZone)
     let length = spokenDurationStyle(locale: locale)
     switch (startedAt, shownDuration(duration).map(Duration.seconds)) {
-    case let (startedAt?, shown?):
+    case (let startedAt?, let shown?):
       return String(
         localized: "Started at \(startedAt, format: start), took \(shown, format: length)", bundle: .module,
         locale: locale,
         comment: "The VoiceOver label of the time of a transcript entry: its start time, and its duration in words.")
-    case let (startedAt?, nil):
+    case (let startedAt?, nil):
       return String(
         localized: "Started at \(startedAt, format: start)", bundle: .module, locale: locale,
         comment: "The VoiceOver label of the time of a transcript entry with no duration: its start time.")
-    case let (nil, shown?):
+    case (nil, let shown?):
       return String(
         localized: "Took \(shown, format: length)", bundle: .module, locale: locale,
         comment: "The VoiceOver label of the time of a transcript entry with no start time: its duration in words.")
