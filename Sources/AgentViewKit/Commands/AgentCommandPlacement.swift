@@ -1,4 +1,5 @@
 import EditorCommands
+import EditorSwiftUI
 import FoundationModelsACP
 import FoundationModelsACPClient
 
@@ -192,8 +193,8 @@ nonisolated extension AgentCommandVerb {
     case .cancel: AgentSymbol.stop
     case .approvePending: AgentSymbol.accept
     case .rejectPending: AgentSymbol.reject
-    case .previousRequest: AgentSymbol.previousRequest
-    case .nextRequest: AgentSymbol.nextRequest
+    case .previousRequest, .previousSibling: EditorSymbol.action(.back).systemImage
+    case .nextRequest, .nextSibling: EditorSymbol.action(.forward).systemImage
     case .jumpToNext: AgentSymbol.nextPrompt
     case .jumpToPrevious: AgentSymbol.previousPrompt
     case .copyThread: AgentSymbol.copyThread
@@ -203,8 +204,6 @@ nonisolated extension AgentCommandVerb {
     case .focusComposer: AgentSymbol.focusComposer
     case .goToParent: AgentSymbol.parentSession
     case .openChild: AgentSymbol.childSession
-    case .previousSibling: AgentSymbol.previousSibling
-    case .nextSibling: AgentSymbol.nextSibling
     case .jumpToSession: AgentSymbol.jumpToSession
     }
   }

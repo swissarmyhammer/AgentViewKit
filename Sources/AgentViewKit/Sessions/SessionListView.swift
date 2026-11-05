@@ -54,6 +54,9 @@ public struct SessionListView: View {
   /// The symbol of the "Load More" row.
   static let loadMoreSymbol = AgentSymbol.loadMore
 
+  /// The symbol of the empty list: EditorKit's conversation action.
+  static let emptySymbol = EditorSymbol.action(.conversation)
+
   /// The accessibility identifier of the Refresh button.
   public static let refreshIdentifier = "session-list-refresh"
 
@@ -252,7 +255,7 @@ public struct SessionListView: View {
     } else if connection.sessions.isEmpty {
       ThemedEmptyState(
         title: Text("No Sessions", bundle: .module),
-        systemImage: AgentSymbol.conversation,
+        systemImage: Self.emptySymbol.systemImage,
         description: Text("The sessions of the agent show here.", bundle: .module)
       )
       .onChrome()

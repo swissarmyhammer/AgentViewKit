@@ -190,6 +190,12 @@ public struct RequestDeck: View, PrefixedAccessibilityIdentifier {
   /// The accessibility identifier of the Next button of the header.
   public static let nextIdentifier = "request-deck-next"
 
+  /// The symbol of the Previous button: EditorKit's Back action.
+  static let previousSymbol = EditorSymbol.action(.back)
+
+  /// The symbol of the Next button: EditorKit's Forward action.
+  static let nextSymbol = EditorSymbol.action(.forward)
+
   /// The accessibility identifier of the "+N" text of the header.
   public static let moreIdentifier = "request-deck-more"
 
@@ -559,14 +565,14 @@ private struct DeckHeader: View {
   @ViewBuilder
   private var position: some View {
     stepButton(
-      verb: .previousRequest, symbol: AgentSymbol.previousRequest, neighbor: \.previous,
+      verb: .previousRequest, symbol: RequestDeck.previousSymbol, neighbor: \.previous,
       identifier: RequestDeck.previousIdentifier)
     Text(String(localized: "\(layout.position) of \(layout.count)", bundle: .module))
       .monospacedDigit()
       .accessibilityLabel(layout.positionLabel)
       .accessibilityIdentifier(RequestDeck.positionIdentifier)
     stepButton(
-      verb: .nextRequest, symbol: AgentSymbol.nextRequest, neighbor: \.next,
+      verb: .nextRequest, symbol: RequestDeck.nextSymbol, neighbor: \.next,
       identifier: RequestDeck.nextIdentifier)
   }
 
@@ -576,18 +582,23 @@ private struct DeckHeader: View {
   /// - Parameters:
   ///   - verb: ``AgentCommandVerb/previousRequest`` or
   ///     ``AgentCommandVerb/nextRequest``, whose title is the label.
-  ///   - symbol: The symbol of the button.
+  ///   - symbol: The symbol of the button, which ``EditorSymbolImage``
+  ///     draws.
   ///   - neighbor: ``DeckLayout/previous`` or ``DeckLayout/next``.
   ///   - identifier: The accessibility identifier of the button.
   /// - Returns: The button.
   private func stepButton(
-    verb: AgentCommandVerb, symbol: String, neighbor: KeyPath<DeckLayout, PendingRequest.ID?>,
+    verb: AgentCommandVerb, symbol: EditorSymbol, neighbor: KeyPath<DeckLayout, PendingRequest.ID?>,
     identifier: String
   ) -> some View {
     Button {
       source.bringToFront(neighbor: neighbor)
     } label: {
-      Label(verb.title, systemImage: symbol)
+      Label {
+        Text(verb.title)
+      } icon: {
+        EditorSymbolImage(symbol)
+      }
     }
     .disabled(layout[keyPath: neighbor] == nil)
     .accessibilityIdentifier(identifier)
