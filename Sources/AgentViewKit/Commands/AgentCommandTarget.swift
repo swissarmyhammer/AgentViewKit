@@ -594,9 +594,9 @@ final class AgentCommandTarget {
     plainText(of: ThreadExporter.messageTexts(in: session.transcript), templates: .bundled, locale: .autoupdatingCurrent)
   }
 
-  /// The copy text of some messages: the `copy-text` template over a
-  /// ``ThreadExporter/MessageSection`` for each message, whose heading is
-  /// the ``roleLine(of:locale:)`` of the message.
+  /// The copy text of some messages: the `copy-text` template over the
+  /// ``ThreadExporter/sections(of:heading:)`` of the messages, whose heading
+  /// is the ``roleLine(of:locale:)`` of each message.
   ///
   /// - Parameters:
   ///   - messages: The messages, in transcript order.
@@ -604,10 +604,7 @@ final class AgentCommandTarget {
   ///   - locale: The locale of the role lines.
   /// - Returns: The text, or an empty string when `messages` is empty.
   static func plainText(of messages: [ThreadExporter.MessageText], templates: TextTemplates, locale: Locale) -> String {
-    let sections = messages.map {
-      ThreadExporter.MessageSection(heading: roleLine(of: $0.role, locale: locale), texts: $0.texts)
-    }
-    return templates.render(.copyText, model: ["messages": sections])
+    templates.render(.copyText, model: ThreadExporter.sections(of: messages) { roleLine(of: $0, locale: locale) })
   }
 
   /// The role line of a message in the copy text: the name of its sender,

@@ -33,8 +33,8 @@ public enum ThreadExporter {
   }
 
   /// The Markdown document of some messages: the `thread-markdown` template
-  /// over a ``MessageSection`` for each message, whose heading is the
-  /// ``senderName(of:locale:)`` of the message.
+  /// over the ``sections(of:heading:)`` of the messages, whose heading is the
+  /// ``senderName(of:locale:)`` of each message.
   ///
   /// - Parameters:
   ///   - messages: The messages, in transcript order.
@@ -43,8 +43,7 @@ public enum ThreadExporter {
   /// - Returns: The document, with a line break at the end, or an empty
   ///   document when `messages` is empty.
   static func markdown(of messages: [MessageText], templates: TextTemplates, locale: Locale) -> String {
-    let sections = messages.map { MessageSection(heading: senderName(of: $0.role, locale: locale), texts: $0.texts) }
-    return templates.render(.threadMarkdown, model: ["messages": sections])
+    templates.render(.threadMarkdown, model: sections(of: messages) { senderName(of: $0, locale: locale) })
   }
 
   /// The Markdown of the content of a message entry.
@@ -61,7 +60,7 @@ public enum ThreadExporter {
   }
 
   /// The Markdown of the texts of a message: the `message-markdown`
-  /// template over a ``MessageContent`` of the texts.
+  /// template over the ``message(texts:heading:)`` value of the texts.
   ///
   /// - Parameters:
   ///   - texts: The texts of the message that are for the user, in content
@@ -69,7 +68,7 @@ public enum ThreadExporter {
   ///   - templates: The templates of the Markdown.
   /// - Returns: The Markdown, or an empty string when `texts` is empty.
   static func markdown(ofTexts texts: [String], templates: TextTemplates) -> String {
-    templates.render(.messageMarkdown, model: ["message": MessageContent(texts: texts)])
+    templates.render(.messageMarkdown, model: ["message": message(texts: texts)])
   }
 
   /// The text of one message entry: its sender and its texts for the user.
@@ -81,22 +80,37 @@ public enum ThreadExporter {
     let texts: [String]
   }
 
-  /// The model of the Markdown of the content of a message
-  /// (`message-markdown.stencil`).
-  struct MessageContent {
-    /// The texts of the message that are for the user, in content order.
-    let texts: [String]
+  // MARK: - Template models
+
+  /// The model of a text template that lists messages
+  /// (`thread-markdown.stencil` and `copy-text.stencil`): `messages`, the
+  /// ``message(texts:heading:)`` value of each message.
+  ///
+  /// The export heads each message with its ``senderName(of:locale:)``, and
+  /// the copy text with its role line.
+  ///
+  /// - Parameters:
+  ///   - messages: The messages, in transcript order.
+  ///   - heading: The catalog text that heads a message of a sender.
+  /// - Returns: The model.
+  static func sections(of messages: [MessageText], heading: (MessageRole) -> String) -> [String: Any] {
+    ["messages": messages.map { message(texts: $0.texts, heading: heading($0.role)) }]
   }
 
-  /// The model of one message of a text template that lists messages
-  /// (`thread-markdown.stencil` and `copy-text.stencil`).
-  struct MessageSection {
-    /// The catalog text that heads the message, such as the name of its
-    /// sender.
-    let heading: String
-
-    /// The texts of the message that are for the user, in content order.
-    let texts: [String]
+  /// The template value of one message: `texts`, and `heading` when the
+  /// message has one. Stencil reads the value by these keys, so this
+  /// function is the one place that names them.
+  ///
+  /// - Parameters:
+  ///   - texts: The texts of the message that are for the user, in content
+  ///     order.
+  ///   - heading: The catalog text that heads the message, or `nil` for the
+  ///     content of a message alone.
+  /// - Returns: The value.
+  private static func message(texts: [String], heading: String? = nil) -> [String: Any] {
+    var value: [String: Any] = ["texts": texts]
+    value["heading"] = heading
+    return value
   }
 
   /// The text of each message entry of a transcript that has text for the
