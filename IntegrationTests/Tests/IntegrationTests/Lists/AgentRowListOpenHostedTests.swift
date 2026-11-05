@@ -13,11 +13,12 @@ import Testing
 /// ordered in and never key.
 ///
 /// A test drives a row through its accessibility action and the keys. Only the
-/// tests of ``AgentRowListOpenPointerHostedTests`` click: SwiftUI starts a tap
-/// gesture only in a key window, and `NSApp.currentEvent` holds an event only
-/// on the path of the event queue, so their click goes through the queue of the
-/// app (`HostedViewHarness.sendClick(atWindowPoint:)`), which makes the window
-/// key off the screen.
+/// tests of ``AgentRowListOpenPointerHostedTests`` click: SwiftUI reads a tap
+/// gesture only from the dispatch of a window that is ordered in, and
+/// `NSApp.currentEvent` holds an event only on the path of the event queue, so
+/// their click goes through the queue of the app
+/// (`HostedViewHarness.sendClick(atWindowPoint:)`). The click orders the window
+/// in behind every window and off the screen, and the window stays not key.
 @MainActor private struct OpenBed {
   /// The ids of the rows, in list order.
   static let ids = ["first", "second"]
@@ -173,9 +174,10 @@ import Testing
 /// tells the clicks of a double click apart, and the press of a click leaves
 /// the focus where `onOpen` puts it.
 ///
-/// Each test clicks through the event queue of the app, so it makes the window
-/// key, off the screen. Each suite whose name ends in `PointerHostedTests`
-/// holds such a click.
+/// Each test clicks through the event queue of the app, so it orders the
+/// window in behind every window and off the screen; the window stays not key
+/// and takes no focus from the user. Each suite whose name ends in
+/// `PointerHostedTests` holds such a click.
 @Suite(.serialized, .hostedSerially) @MainActor struct AgentRowListOpenPointerHostedTests {
   @Test func oneClickOnThePaddingOpensTheRow() async throws {
     let bed = try await OpenBed(trigger: .click)

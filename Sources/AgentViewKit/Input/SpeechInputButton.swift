@@ -1,5 +1,6 @@
 import EditorCommandsUI
 import EditorStyle
+import EditorSwiftUI
 import SwiftUI
 import os
 
@@ -7,7 +8,7 @@ import os
 ///
 /// A press asks the ``SwiftUI/EnvironmentValues/speechTranscriber`` for
 /// permission and starts a session. While the session runs, the button shows
-/// the input level, and the live transcript goes into the composer text
+/// the listening symbol, and the live transcript goes into the composer text
 /// after the text that was there at the start. A second press stops the
 /// session and keeps the text.
 ///
@@ -30,10 +31,8 @@ public struct SpeechInputButton: View {
 
   @Environment(\.speechTranscriber) private var transcriber
   @Environment(\.promptText) private var text
-  @Environment(\.editorStyle) private var editorStyle
 
   @State private var phase = Phase.idle
-  @State private var level: Double = .zero
   @State private var session: Task<Void, Never>?
 
   @Environment(\.speechInputPhaseReport) private var reportPhase
@@ -61,16 +60,11 @@ public struct SpeechInputButton: View {
 
   public var body: some View {
     if let transcriber, let text {
-      Button {
+      EditorButton(title, systemImage: symbol, look: .action) {
         toggle(transcriber: transcriber, text: text)
-      } label: {
-        label
       }
-      .buttonStyle(.glass)
-      .glassForegroundStyle()
+      .editorButtonCaptions(.hidden)
       .buttonBorderShape(.circle)
-      .help(helpText)
-      .accessibilityLabel(String(localized: "Dictate", bundle: .module))
       .accessibilityValue(valueText)
       .accessibilityIdentifier(Self.identifier)
       .agentControlScope(Self.identifier)
@@ -78,26 +72,19 @@ public struct SpeechInputButton: View {
     }
   }
 
-  /// The icon of the button. While a session runs, the waveform shows the
-  /// input level. The icon has no style of its own and no tint, because only
-  /// the primary action of the composer (Send) has a tint.
-  @ViewBuilder
-  private var label: some View {
+  /// The symbol of the button in its phase. It has no tint of its own,
+  /// because only the primary action of the composer (Send) has a tint.
+  private var symbol: String {
     switch phase {
-    case .recording:
-      Image(systemName: AgentSymbol.listening, variableValue: level)
-        .fontWeight(editorStyle.symbolWeight)
-    case .idle:
-      Image(systemName: AgentSymbol.microphone)
-        .fontWeight(editorStyle.symbolWeight)
-    case .denied:
-      Image(systemName: AgentSymbol.microphoneUnavailable)
-        .fontWeight(editorStyle.symbolWeight)
+    case .recording: AgentSymbol.listening
+    case .idle: AgentSymbol.microphone
+    case .denied: AgentSymbol.microphoneUnavailable
     }
   }
 
-  /// The help text of the button.
-  private var helpText: String {
+  /// The title of the button in its phase: its accessibility label and its
+  /// tooltip, because the button shows its symbol alone.
+  private var title: String {
     switch phase {
     case .recording: String(localized: "Stop dictation", bundle: .module)
     case .idle: String(localized: "Dictate the prompt", bundle: .module)
@@ -139,7 +126,6 @@ public struct SpeechInputButton: View {
     session = nil
     transcriber.stop()
     show(.idle)
-    level = .zero
   }
 
   /// Asks for permission, then writes each transcript into the composer text
@@ -160,8 +146,10 @@ public struct SpeechInputButton: View {
         switch event {
         case .transcript(let transcript):
           text.wrappedValue = Self.transcribedText(base: base, transcript: transcript)
-        case .level(let value):
-          level = value
+        case .level:
+          // An EditorKit button draws a fixed symbol, so the button shows
+          // no input level.
+          continue
         }
       }
     } catch {
@@ -169,7 +157,6 @@ public struct SpeechInputButton: View {
     }
     guard !Task.isCancelled else { return }
     show(.idle)
-    level = .zero
     session = nil
   }
 

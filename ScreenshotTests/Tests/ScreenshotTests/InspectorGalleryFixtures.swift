@@ -155,7 +155,7 @@ struct InspectorGalleryFixtures {
   ///   - type: The class of the entries.
   /// - Returns: The subject.
   /// - Throws: When the transcript has fewer than two entries of the type.
-  private func pair<Entry: Inspectable>(_ name: String, _ type: Entry.Type) throws -> InspectorGallery.Subject {
+  private func pair<Entry: InspectableClientModel>(_ name: String, _ type: Entry.Type) throws -> InspectorGallery.Subject {
     let entries = session.model.transcript.compactMap { $0.object as? Entry }
     try #require(entries.count >= Self.pairCount, "The transcript has \(entries.count) entries of \(type).")
     let pair = entries.prefix(Self.pairCount)

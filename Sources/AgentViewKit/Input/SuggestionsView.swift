@@ -1,4 +1,5 @@
 import EditorStyle
+import EditorSwiftUI
 import SwiftUI
 
 /// A horizontal row of suggested prompts in Liquid Glass chips (plan.md §9 D).
@@ -60,8 +61,10 @@ public struct SuggestionsView: View {
   }
 }
 
-/// One chip of a ``SuggestionsView``: a Liquid Glass button that sets the
-/// composer text to its suggestion.
+/// One chip of a ``SuggestionsView``: an EditorKit `EditorButton` in the
+/// action look, a Liquid Glass button that sets the composer text to its
+/// suggestion. With too little room it shows its symbol alone, and its
+/// suggestion stays its label and its tooltip.
 struct SuggestionChip: View {
   /// The suggested prompt of the chip.
   let suggestion: String
@@ -73,16 +76,11 @@ struct SuggestionChip: View {
   let text: Binding<AttributedString>
 
   var body: some View {
-    Button(suggestion, systemImage: SuggestionsView.chipSymbol) {
+    EditorButton(suggestion, systemImage: SuggestionsView.chipSymbol, look: .action) {
       text.wrappedValue = AttributedString(suggestion)
     }
-    .buttonStyle(.glass)
-    .glassForegroundStyle()
-    .buttonBorderShape(.capsule)
-    .floatingGlassID(FloatingGlassID.suggestion(index))
-    .help(String(localized: "Use this prompt", bundle: .module))
-    .accessibilityIdentifier(SuggestionsView.chipIdentifier(at: index))
-    .agentControlScope(SuggestionsView.chipIdentifier(at: index))
+    .floatingGlassAction(
+      glassID: FloatingGlassID.suggestion(index), identifier: SuggestionsView.chipIdentifier(at: index))
   }
 }
 

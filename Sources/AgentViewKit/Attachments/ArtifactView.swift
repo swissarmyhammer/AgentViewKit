@@ -59,8 +59,8 @@ public struct ArtifactView: View {
           .lineLimit(1)
           .accessibilityIdentifier(Self.titleIdentifier)
         Spacer(minLength: editorStyle.spacing.s)
-        if let attachment {
-          AttachmentActions(attachment: attachment, identifierPrefix: Self.identifierPrefix)
+        if attachment != nil {
+          AttachmentActions(identifierPrefix: Self.identifierPrefix)
         }
       }
     } body: {

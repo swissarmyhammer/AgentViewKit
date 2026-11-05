@@ -1,5 +1,6 @@
 import EditorCommandsUI
 import EditorStyle
+import EditorSwiftUI
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -85,42 +86,51 @@ public struct DefaultPromptAccessory: View {
         }
         submitButton
       }
+      // Each button of the accessory is its own glass in the container of
+      // the floating controls, not a button on another glass, so it keeps
+      // the glass style.
+      .editorButtonSurface(.content)
     }
   }
 
   /// The button that submits the prompt.
   private var submitButton: some View {
-    Button {
+    circleActionButton(
+      title: String(localized: "Send", bundle: .module), symbol: AgentSymbol.send, identifier: Self.submitIdentifier
+    ) {
       submit()
-    } label: {
-      Label(String(localized: "Send", bundle: .module), systemImage: AgentSymbol.send)
-        .labelStyle(.iconOnly)
-        .fontWeight(editorStyle.symbolWeight)
     }
-    .buttonStyle(.glass)
-    .glassForegroundStyle()
-    .buttonBorderShape(.circle)
     .disabled(!submit.isEnabled)
-    .help(String(localized: "Send the prompt", bundle: .module))
-    .accessibilityIdentifier(Self.submitIdentifier)
-    .agentControlScope(Self.submitIdentifier)
   }
 
   /// The button that cancels the work of the session.
   private var stopButton: some View {
-    Button {
+    circleActionButton(
+      title: String(localized: "Stop", bundle: .module), symbol: AgentSymbol.stop, identifier: Self.stopIdentifier
+    ) {
       session?.startCancel(reporting: reportRequestStart)
-    } label: {
-      Label(String(localized: "Stop", bundle: .module), systemImage: AgentSymbol.stop)
-        .labelStyle(.iconOnly)
-        .fontWeight(editorStyle.symbolWeight)
     }
-    .buttonStyle(.glass)
-    .glassForegroundStyle()
-    .buttonBorderShape(.circle)
-    .help(String(localized: "Stop the work of the agent", bundle: .module))
-    .accessibilityIdentifier(Self.stopIdentifier)
-    .agentControlScope(Self.stopIdentifier)
+  }
+
+  /// A round button of the accessory: an EditorKit `EditorButton` in the
+  /// action look that shows its symbol alone, with its title as its label and
+  /// its tooltip, in the focus scope of a control of the bar.
+  ///
+  /// - Parameters:
+  ///   - title: The localized title of the button.
+  ///   - symbol: The SF Symbol of the button.
+  ///   - identifier: The accessibility identifier of the button, also the id
+  ///     of its focus scope.
+  ///   - action: What a press does.
+  /// - Returns: The button.
+  private func circleActionButton(
+    title: String, symbol: String, identifier: String, action: @escaping () -> Void
+  ) -> some View {
+    EditorButton(title, systemImage: symbol, look: .action, action: action)
+      .editorButtonCaptions(.hidden)
+      .buttonBorderShape(.circle)
+      .accessibilityIdentifier(identifier)
+      .agentControlScope(identifier)
   }
 }
 

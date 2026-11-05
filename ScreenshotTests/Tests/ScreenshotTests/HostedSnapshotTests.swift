@@ -127,6 +127,21 @@ import Testing
       ChipRowsGalleryFixtures.gallery, named: "chip-rows-narrow", size: ChipRowsGalleryFixtures.size)
   }
 
+  /// The button families of the kit in a narrow column: each button with too
+  /// little room shows its symbol alone, and no caption is cut
+  /// (``ButtonGalleryFixtures``).
+  @Test func theButtonsInANarrowColumn() async throws {
+    try await Self.generate(
+      try ButtonGalleryFixtures.gallery(), named: "buttons-narrow", size: ButtonGalleryFixtures.narrowSize)
+  }
+
+  /// The button families of the kit in a wide column, each with its whole
+  /// caption (``ButtonGalleryFixtures``).
+  @Test func theButtonsInAWideColumn() async throws {
+    try await Self.generate(
+      try ButtonGalleryFixtures.gallery(), named: "buttons-wide", size: ButtonGalleryFixtures.wideSize)
+  }
+
   @Test func theStatusBanner() async throws {
     let banner = StateBanner(session: SnapshotFixtures.runningSession)
 
@@ -164,6 +179,16 @@ import Testing
         as: TerminalEntry.self))
 
     try await Self.generate(TerminalView(entry: entry), named: "terminal", size: SnapshotFixtures.terminalSize)
+  }
+
+  /// The output of a command that failed, whose line of the problem is wider
+  /// than the block and wraps to its width.
+  @Test func theCommandOutput() async throws {
+    let output = CommandOutputView(
+      command: PreviewFixtures.lintCommand, output: PreviewFixtures.lintOutput,
+      exitCode: PreviewFixtures.failingExitCode)
+
+    try await Self.generate(output, named: "command-output", size: SnapshotFixtures.commandOutputSize)
   }
 
   /// A diff of a patch: the file chips over EditorKit's one-value preview of

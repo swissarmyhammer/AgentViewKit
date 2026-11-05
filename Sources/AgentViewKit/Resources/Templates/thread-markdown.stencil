@@ -1,0 +1,11 @@
+{# The Markdown export of a transcript (ThreadExporter): for each message of
+   `messages`, a level 2 heading with `message.heading`, a blank line, and the
+   Markdown of its content (message-markdown.stencil). A blank line separates
+   two sections, and a document with a section ends with a line break. The
+   headings are catalog text of the model, so the template has no word of
+   its own. #}
+{%- for message in messages %}{% if not forloop.first %}
+{% endif %}## {{ message.heading }}
+
+{% include "message-markdown.stencil" %}
+{% endfor -%}

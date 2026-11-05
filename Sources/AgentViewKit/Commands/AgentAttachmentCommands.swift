@@ -201,33 +201,17 @@ nonisolated struct AgentAttachmentCommand: EditorCommands.Command {
 
 /// The live objects of one attachment scope.
 ///
-/// The mount of an ``AgentAttachmentScope`` keeps the values current. The
-/// buttons of ``AttachmentActions`` read the target from the environment and
-/// dispatch their verb through ``perform(_:)``, so that a button, the context
-/// menu and the palette run the same command.
+/// The mount of an ``AgentAttachmentScope`` keeps the service current. The
+/// buttons of ``AttachmentActions`` are the command buttons of the verbs at
+/// the path of the scope, so that a button, the context menu and the palette
+/// run the same command.
 @MainActor
 final class AgentAttachmentTarget {
   /// The service that runs the verbs, or `nil` before the mount gives one.
   var service: (any AttachmentFileService)?
 
-  /// The command system that the scope registered the commands in.
-  var system: CommandSystem?
-
-  /// The path of the scope in ``system``.
-  var path: FocusPath?
-
   /// Makes a target with no service.
   init() {}
-
-  /// Dispatches `verb` through the registry of the scope.
-  ///
-  /// - Parameter verb: The verb to run.
-  /// - Returns: `true` when a command ran. `false` when the scope has no
-  ///   system, or when the command is not available.
-  @discardableResult
-  func perform(_ verb: AgentAttachmentVerb) -> Bool {
-    AgentCommandDispatch.perform(verb.id, in: system, at: path)
-  }
 }
 
 // MARK: - Registration

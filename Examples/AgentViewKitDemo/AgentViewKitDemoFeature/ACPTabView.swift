@@ -1,4 +1,5 @@
 import AgentViewKit
+import EditorSwiftUI
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -329,11 +330,11 @@ struct ACPTabView: View, DemoStartingTab {
   @ViewBuilder private var toolbarItems: some View {
     if case .started(.running(let agent, let session)) = phase {
       ConfigOptionsView(session: session)
-      Button("Stop Agent", systemImage: "stop.circle") {
+      EditorToolbarButton("Stop Agent", systemImage: "stop.circle") {
         Task { await agent.stop() }
       }
       .accessibilityIdentifier(Self.stopAgentButtonIdentifier)
-      Button("Settings", systemImage: "gearshape") {
+      EditorToolbarButton("Settings", systemImage: "gearshape") {
         showsSettings = true
       }
       .accessibilityIdentifier(Self.settingsButtonIdentifier)

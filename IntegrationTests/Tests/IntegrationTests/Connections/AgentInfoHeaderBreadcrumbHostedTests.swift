@@ -177,18 +177,17 @@ import Testing
     defer { harness.close() }
     harness.render()
 
+    let info = try #require(session.connection.initializeResponse?.info)
+    let agent = info.title ?? info.name
+
     let header = try #require(harness.element(identifier: AgentInfoHeader.identifier))
-    #expect(
-      header.label?.hasSuffix(SessionPathText.spokenSeparator + Self.sessionTitle) == true,
-      "\(String(describing: header.label))")
+    #expect(header.label == AgentInfoHeader.label(agent: agent, path: [Self.sessionTitle]))
 
     title.value = "Project"
     harness.render()
 
     let changed = try #require(harness.element(identifier: AgentInfoHeader.identifier))
-    #expect(
-      changed.label?.hasSuffix(SessionPathText.spokenSeparator + "Project") == true,
-      "\(String(describing: changed.label))")
+    #expect(changed.label == AgentInfoHeader.label(agent: agent, path: ["Project"]))
   }
 }
 

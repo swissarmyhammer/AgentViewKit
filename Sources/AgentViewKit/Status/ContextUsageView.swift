@@ -28,6 +28,7 @@ public struct ContextUsageView: View {
 
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.locale) private var locale
   @Environment(\.placedSecondary) private var placedSecondary
 
   /// The caption of the token counts of the ring.
@@ -50,13 +51,16 @@ public struct ContextUsageView: View {
   ///
   /// - Parameters:
   ///   - cost: The cost.
-  ///   - locale: The locale of the currency format.
+  ///   - locale: The locale of the number and the currency formats.
   /// - Returns: The amount in its currency, such as `$1.25`. A unit that is not
   ///   a currency code gives the amount and the unit, such as `12 credits`.
   public static func costText(for cost: Cost, locale: Locale = .current) -> String {
     let isCurrencyCode = cost.currency.count == Self.currencyCodeLength && cost.currency.allSatisfy { $0.isASCII && $0.isUppercase }
     guard isCurrencyCode else {
-      return "\(cost.amount.formatted(.number.locale(locale))) \(cost.currency)"
+      return String(
+        localized: "context-usage.cost-in-unit",
+        defaultValue: "\(cost.amount, format: .number.locale(locale)) \(cost.currency)", bundle: .module,
+        locale: locale, comment: "The cost of a session in a unit that is not a currency: the amount, then the unit.")
     }
     return cost.amount.formatted(.currency(code: cost.currency).locale(locale))
   }
@@ -69,7 +73,7 @@ public struct ContextUsageView: View {
         .accessibilityLabel(String(localized: "Context used", bundle: .module))
         .accessibilityIdentifier(Self.usageIdentifier)
         if case .value(let cost) = usage.cost {
-          Text(Self.costText(for: cost))
+          Text(Self.costText(for: cost, locale: locale))
             .monospacedDigit()
             .foregroundStyle(placedSecondary)
             .accessibilityIdentifier(Self.costIdentifier)

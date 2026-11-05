@@ -90,6 +90,7 @@ struct SessionBreadcrumb: View {
 
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.locale) private var locale
 
   var body: some View {
     ForEach(BreadcrumbSegment.segments(of: path, collapsed: collapsed)) { segment in
@@ -155,7 +156,7 @@ struct SessionBreadcrumb: View {
   private func crumb(_ session: SessionModel) -> some View {
     dropdown(
       choices: session.siblingsIncludingSelf, current: session.sessionId, label: { crumbLabel(session) },
-      accessibilityLabel: Self.accessibilityLabel(for: session, title: title(of: session)),
+      accessibilityLabel: Self.accessibilityLabel(for: session, title: title(of: session), locale: locale),
       identifier: Self.crumbIdentifier(for: session.sessionId)
     )
     .modifier(crumbScope(session.sessionId))
@@ -205,7 +206,7 @@ struct SessionBreadcrumb: View {
   ///   - entry: The session of the choice.
   ///   - isCurrent: Whether the choice is the shown session.
   private func choiceButton(_ entry: SessionPathEntry, isCurrent: Bool) -> some View {
-    let text = SessionStateText.choiceLabel(for: entry)
+    let text = SessionStateText.choiceLabel(for: entry, locale: locale)
     let symbol = Self.mark(of: entry, isCurrent: isCurrent)
     return Button {
       select(entry.sessionId)
@@ -253,17 +254,21 @@ struct SessionBreadcrumb: View {
     AgentControlScope(segment: AgentScopeKind.crumb(id), corners: .capsule, yieldsToHostScope: false)
   }
 
-  /// The VoiceOver label of a crumb: the title, the state, and a note when
-  /// the session needs the user.
+  /// The VoiceOver label of a crumb: the title, the state, and
+  /// `SessionStateText.needsAttention` when the session needs the user, as a
+  /// list in `FormatStyle/spokenParts(locale:)`.
   ///
   /// - Parameters:
   ///   - session: The session of the crumb.
   ///   - title: The title of the crumb. The default is the display title of
   ///     the session.
+  ///   - locale: The locale of the label.
   /// - Returns: Text such as "Linter, Waiting for you, needs your attention".
-  static func accessibilityLabel(for session: SessionModel, title: String? = nil) -> String {
-    var parts = [title ?? session.displayTitle, session.status.text]
-    if session.needsAttention { parts.append(String(localized: "needs your attention", bundle: .module)) }
-    return parts.joined(separator: ", ")
+  static func accessibilityLabel(
+    for session: SessionModel, title: String? = nil, locale: Locale = .autoupdatingCurrent
+  ) -> String {
+    let attention = session.needsAttention ? SessionStateText.needsAttention : nil
+    let parts = [title ?? session.displayTitle, session.status.text] + [attention].compactMap(\.self)
+    return parts.formatted(.spokenParts(locale: locale))
   }
 }

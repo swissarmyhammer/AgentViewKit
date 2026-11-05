@@ -19,8 +19,12 @@ import os
 ///   .promptFileRoot(projectURL)
 /// ```
 ///
-/// The editor hosts an EditorKit `EditorView` that grows with its text. The
-/// editor reads the EditorKit theme of the environment. Return calls
+/// The editor hosts an EditorKit `EditorView` that takes the height of its
+/// text and grows and shrinks as the text changes, from one line up. It has no
+/// height bound and no scroll of its own (EditorKit `style.md`, "A multiline
+/// field fits its content"): its host bounds it and scrolls a longer text, as
+/// ``PromptInputView`` does. The editor reads the EditorKit theme of the
+/// environment. Return calls
 /// ``PromptEditorContext/onSubmit``.
 /// Command-Return calls ``PromptEditorContext/onSendNow``. Shift-Return
 /// inserts a newline. Esc calls ``PromptEditorContext/onCancel`` while the
@@ -54,10 +58,6 @@ public struct EditorKitPromptEditor: View {
 
   /// The smallest height of the editor, in points at the default theme font.
   static let minimumHeight: CGFloat = 36
-
-  /// The largest height of the editor, in points at the default theme font.
-  /// Longer text scrolls.
-  static let maximumHeight: CGFloat = 200
 
   /// The accessibility identifier of the completion list.
   public static let completionListIdentifier = "prompt-completion-list"
@@ -142,7 +142,7 @@ public struct EditorKitPromptEditor: View {
       onEscapeKey: cancel,
       onReturnKey: { modifiers in submit(model: model, modifiers: modifiers) }
     )
-    .editorSizingMode(.intrinsic)
+    .sizedToContent()
     .editorPlaceholder(context.placeholder)
     .editorInlineDecorations([
       EditorSwiftUI.SmartTag(.token, detect: FileReferenceDetector(paths: references))
@@ -154,7 +154,7 @@ public struct EditorKitPromptEditor: View {
     // The prompt is text that a person types, so it draws in the display
     // font of the theme and not in the code font of an `EditorView`.
     .editorFontRole(.display)
-    .frame(minHeight: Self.minimumHeight * editorFontScale, maxHeight: Self.maximumHeight * editorFontScale)
+    .frame(minHeight: Self.minimumHeight * editorFontScale)
     .fixedSize(horizontal: false, vertical: true)
     // The probe finds the caret of the text view, so that the menu starts at
     // the caret.

@@ -1,6 +1,7 @@
 import AgentViewKit
 import EditorInspector
 import EditorStyle
+import EditorSwiftUI
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -65,7 +66,7 @@ struct ACPSettingsSheet: View {
       .navigationTitle("Settings")
       .toolbar {
         ToolbarItem(placement: .confirmationAction) {
-          Button("Done") { dismiss() }
+          EditorButton("Done") { dismiss() }
             .accessibilityIdentifier(Self.doneIdentifier)
         }
       }

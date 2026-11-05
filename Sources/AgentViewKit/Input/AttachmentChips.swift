@@ -187,15 +187,12 @@ public struct AttachmentChips: View {
             if !PromptContent.isAccepted(attachmentAt: attachment.url, by: capabilities) {
               notAcceptedMark(for: attachment)
             }
-            Button {
+            EditorToolbarButton(
+              String(localized: "Remove \(attachment.name)", bundle: .module), systemImage: AgentSymbol.remove
+            ) {
               remove(attachment.id)
-            } label: {
-              Label(String(localized: "Remove", bundle: .module), systemImage: AgentSymbol.remove)
-                .labelStyle(.iconOnly)
             }
-            .buttonStyle(.borderless)
-            .help(String(localized: "Remove this attachment", bundle: .module))
-            .accessibilityLabel(String(localized: "Remove \(attachment.name)", bundle: .module))
+            .editorButtonCaptions(.hidden)
             .accessibilityIdentifier(Self.removeIdentifier(for: attachment.id))
             .agentControlScope(Self.removeIdentifier(for: attachment.id), corners: Self.removeButtonCorners)
           }

@@ -83,7 +83,7 @@ enum ConfigOptionFields {
   /// - Returns: The inspection.
   static func inspection(
     title: String, sections: [ConfigOptionsView.CategorySection], reporting report: ObservationReport<String>?
-  ) -> Inspection<SessionModel> {
+  ) -> Inspection<InspectedClientModel<SessionModel>> {
     Inspection(id: ConfigOptionsView.viewIdentifier, title: title) {
       for section in sections {
         FieldGroup(.verbatim(section.title)) {
@@ -110,13 +110,13 @@ enum ConfigOptionFields {
   /// - Returns: The row.
   private static func selectField(
     _ option: SessionConfigOption, reporting report: ObservationReport<String>?
-  ) -> Field<SessionModel, SessionConfigValueId>? {
+  ) -> Field<InspectedClientModel<SessionModel>, SessionConfigValueId>? {
     guard case .select = option.type else { return nil }
     let id = option.configId
-    return Field(.verbatim(option.name)) { session in value(of: id, in: session.configOptions ?? []) ?? goneValue }
-      .options { session in options(of: id, in: session.configOptions ?? []) }
-      .editing { session, value in
-        session.startSetConfigOption(id, to: .id(value), reporting: report)
+    return Field(.verbatim(option.name)) { value(of: id, in: $0.model.configOptions ?? []) ?? goneValue }
+      .options { options(of: id, in: $0.model.configOptions ?? []) }
+      .editing { inspected, value in
+        inspected.model.startSetConfigOption(id, to: .id(value), reporting: report)
       }
       .help(option.description ?? option.name)
       .identifier(id.rawValue)
@@ -130,12 +130,12 @@ enum ConfigOptionFields {
   /// - Returns: The row.
   private static func booleanField(
     _ option: SessionConfigOption, reporting report: ObservationReport<String>?
-  ) -> Field<SessionModel, Bool>? {
+  ) -> Field<InspectedClientModel<SessionModel>, Bool>? {
     guard case .boolean = option.type else { return nil }
     let id = option.configId
-    return Field(.verbatim(option.name)) { session in isOn(id, in: session.configOptions ?? []) ?? false }
-      .editing { session, isOn in
-        session.startSetConfigOption(id, to: .boolean(isOn), reporting: report)
+    return Field(.verbatim(option.name)) { isOn(id, in: $0.model.configOptions ?? []) ?? false }
+      .editing { inspected, isOn in
+        inspected.model.startSetConfigOption(id, to: .boolean(isOn), reporting: report)
       }
       .help(option.description ?? option.name)
       .identifier(id.rawValue)

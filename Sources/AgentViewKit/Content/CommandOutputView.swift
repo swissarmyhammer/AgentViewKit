@@ -15,7 +15,9 @@ import SwiftUI
 ///   button writes the full output to the pasteboard of the environment. See
 ///   `EnvironmentValues.pasteboard`.
 /// - The output in a read-only EditorKit editor that grows to the height of
-///   its text. ``ANSIText`` removes the escape sequences, and the editor
+///   its text and wraps a long line to its width, with no scroll of its own,
+///   so its host scrolls the view (`EditorView.sizedToContent()`).
+///   ``ANSIText`` removes the escape sequences, and the editor
 ///   shows the SGR colors as EditorKit color runs. When the output has more
 ///   rows than the row limit, the editor shows only the last rows, and a
 ///   Show All button shows all rows.
@@ -186,7 +188,7 @@ public struct CommandOutputView: View {
         capRow(rows)
       }
       EditorView(model: model)
-        .editorSizingMode(.intrinsic)
+        .sizedToContent()
       if let exitCode, let outcome = ExitOutcome(exitCode: exitCode) {
         footer(exitCode: exitCode, outcome: outcome)
       }
@@ -219,12 +221,10 @@ public struct CommandOutputView: View {
         .lineLimit(1)
         .truncationMode(.middle)
       Spacer(minLength: editorStyle.spacing.s)
-      Button(Self.copyTitle, systemImage: AgentSymbol.copy) {
+      EditorToolbarButton(Self.copyTitle, systemImage: AgentSymbol.copy) {
         pasteboard.copyText(output)
       }
-      .labelStyle(.iconOnly)
-      .buttonStyle(.borderless)
-      .help(Self.copyTitle)
+      .editorButtonCaptions(.hidden)
       .accessibilityIdentifier(Self.copyIdentifier)
     }
     .editorBlockHeader()

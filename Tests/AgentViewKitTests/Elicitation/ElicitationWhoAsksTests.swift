@@ -3,14 +3,19 @@ import SwiftUI
 import Testing
 
 /// Tests of the "who asks" text of ``ElicitationHeader``: the visible text of
-/// ``ElicitationHeader/whoAsks(agentPath:source:rootLabel:)`` and the label of
-/// ``ElicitationHeader/whoAsksAccessibilityLabel(agentPath:source:rootLabel:)``.
+/// ``ElicitationHeader/whoAsks(agentPath:source:rootLabel:locale:)`` and the label of
+/// ``ElicitationHeader/whoAsksAccessibilityLabel(agentPath:source:rootLabel:locale:)``.
 ///
 /// The functions take the raw values of a `PendingElicitation`, so these
-/// tests need no session and no window.
+/// tests need no session and no window. Both texts are for ``locale``, the
+/// English locale of the United States: the label lists the names in its
+/// list format, and the visible text joins them with its path pattern.
 @Suite struct ElicitationWhoAsksTests {
   /// The root label of the rows that do not set their own.
   nonisolated static let root = "root"
+
+  /// The locale of the labels of the tests.
+  nonisolated static let locale = Locale(identifier: "en_US")
 
   /// One row of the table: the values of a request and the two texts.
   struct Row: Sendable, CustomTestStringConvertible {
@@ -52,14 +57,15 @@ import Testing
   ]
 
   @Test(arguments: rows) func theVisibleTextFollowsTheTable(row: Row) {
-    let text = ElicitationHeader.whoAsks(agentPath: row.agentPath, source: row.source, rootLabel: row.rootLabel)
+    let text = ElicitationHeader.whoAsks(
+      agentPath: row.agentPath, source: row.source, rootLabel: row.rootLabel, locale: Self.locale)
 
     #expect(text == row.visible)
   }
 
   @Test(arguments: rows) func theAccessibilityLabelFollowsTheTable(row: Row) {
     let label = ElicitationHeader.whoAsksAccessibilityLabel(
-      agentPath: row.agentPath, source: row.source, rootLabel: row.rootLabel)
+      agentPath: row.agentPath, source: row.source, rootLabel: row.rootLabel, locale: Self.locale)
 
     #expect(label == row.accessibility)
   }

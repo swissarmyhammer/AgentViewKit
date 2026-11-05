@@ -20,6 +20,10 @@ import SwiftUI
 /// composer adds no animation of its own, so while Reduce Motion is on no
 /// glass shape morphs (plan.md §6).
 ///
+/// The editor takes the height of its text, and the field bounds it: a
+/// longer prompt scrolls inside the field, so the transcript above the
+/// composer stays in view (`editorHeightBound`).
+///
 /// The editor and the accessory are slots. The short initializer uses
 /// ``EditorKitPromptEditor`` and ``DefaultPromptAccessory``:
 ///
@@ -107,6 +111,9 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   @Environment(\.agentCommandTarget) private var commandTarget
   @Environment(\.promptSubmitReport) private var reportSubmit
 
+  /// The scale of the bound of the editor, whose text is in the display font.
+  @ThemeFontScale(.display) private var editorFontScale
+
   /// The report that gets the method of the cancel that the composer starts
   /// with no command scope, or `nil`.
   @Environment(\.requestStartReport) private var reportRequestStart
@@ -140,6 +147,21 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   /// radius scale under the large corners of the field glass, as the field
   /// pads the editor.
   static var editorCorners: AgentControlCorners { .surface(.rounded(.medium)) }
+
+  /// The most height of the editor slot: the bound of `.boundedHeight()` of
+  /// the style of the environment (`EditorStyle.previewHeight`), scaled with
+  /// the display font of the editor.
+  ///
+  /// An editor of the kit has no height bound of its own: it takes the height
+  /// of its text (EditorKit `style.md`, "A multiline field fits its
+  /// content"). The composer is the host of the editor, and it floats over
+  /// the transcript of the thread, outside any scroll view. So the composer
+  /// bounds the editor (`.boundedHeight(_:)` of EditorStyle): a longer prompt
+  /// scrolls in the bound, with the line of the caret in view, and leaves
+  /// the transcript in view above the composer.
+  private var editorHeightBound: CGFloat {
+    editorStyle.previewHeight * editorFontScale
+  }
 
   /// The text that the editor shows while the prompt is empty.
   static var placeholder: String {
@@ -225,6 +247,9 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
         AttachmentChips(attachments: attachments)
       }
       editor(context)
+        // The editor takes the height of its text; a longer prompt scrolls in
+        // this bound.
+        .boundedHeight(editorHeightBound)
         // A resolved request moves the VoiceOver focus back to the editor
         // (`RequestDeck`).
         .accessibilityFocusTarget(EditorKitPromptEditor.identifier)

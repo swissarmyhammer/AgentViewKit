@@ -214,29 +214,24 @@ public struct SessionListView: View {
         model: searchModel, identifier: Self.searchIdentifier,
         placeholder: String(localized: "Search", bundle: .module))
       if connection.canListSessions {
-        Button {
+        EditorButton(String(localized: "Refresh", bundle: .module), symbol: .action(.reload), look: .action) {
           start(Self.refreshIdentifier) { await refresh() }
-        } label: {
-          Label(String(localized: "Refresh", bundle: .module), systemImage: EditorSymbol.action(.reload).systemImage)
-            .labelStyle(.iconOnly)
         }
-        .help(String(localized: "Refresh", bundle: .module))
         .accessibilityIdentifier(Self.refreshIdentifier)
       }
       if let onNewSession {
-        Button(action: onNewSession) {
-          Label(
-            String(localized: "New Session", bundle: .module), systemImage: AgentSymbol.newSession
-          )
-            .labelStyle(.iconOnly)
-        }
-        .help(String(localized: "New Session", bundle: .module))
+        EditorButton(
+          String(localized: "New Session", bundle: .module), systemImage: AgentSymbol.newSession, look: .action,
+          action: onNewSession
+        )
         .accessibilityIdentifier(Self.newSessionIdentifier)
       }
     }
-    // The list sits in the glass of a sidebar, and glass never goes on glass
+    // The buttons show their symbols alone. The list sits in the glass of a
+    // sidebar, and glass never goes on glass, so they take the bordered style
     // (EditorKit `style.md`, "Buttons on glass").
-    .buttonStyle(.bordered)
+    .editorButtonCaptions(.hidden)
+    .editorButtonSurface(.glass)
     .padding(editorStyle.spacing.l)
   }
 
@@ -295,7 +290,7 @@ public struct SessionListView: View {
   /// which routes its keys as it routes the keys of a row, so the Up Arrow
   /// goes back to the rows.
   private var loadMoreButton: some View {
-    Button(String(localized: "Load More", bundle: .module), systemImage: Self.loadMoreSymbol) {
+    EditorButton(String(localized: "Load More", bundle: .module), systemImage: Self.loadMoreSymbol) {
       start(Self.loadMoreIdentifier) { await perform { try await connection.loadMoreSessions() } }
     }
     .accessibilityIdentifier(Self.loadMoreIdentifier)
@@ -349,16 +344,12 @@ public struct SessionListView: View {
         PendingRequestCountBadge(session: otherSession)
       }
       if connection.canDeleteSessions {
-        Button(role: .destructive) {
+        EditorToolbarButton(String(localized: "Delete", bundle: .module), symbol: .tool(.delete), role: .destructive) {
           start(Self.deleteIdentifier(for: info.sessionId)) {
             await perform { try await connection.deleteSession(info.sessionId) }
           }
-        } label: {
-          Label(String(localized: "Delete", bundle: .module), systemImage: EditorSymbol.tool(.delete).systemImage)
-            .labelStyle(.iconOnly)
         }
-        .buttonStyle(.borderless)
-        .help(String(localized: "Delete", bundle: .module))
+        .editorButtonCaptions(.hidden)
         .accessibilityIdentifier(Self.deleteIdentifier(for: info.sessionId))
       }
     }

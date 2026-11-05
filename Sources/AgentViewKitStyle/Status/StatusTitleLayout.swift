@@ -48,17 +48,19 @@ public struct StatusTitleLayout<Symbol: View, Action: View>: View {
   /// - Parameters:
   ///   - title: The title.
   ///   - explanation: The explanation. An empty explanation shows no line.
-  ///   - textLabel: The accessibility label of the text.
+  ///   - textLabel: The accessibility label of the text, or `nil` for the
+  ///     ``StatusTitleText/label(title:explanation:)`` of `title` and
+  ///     `explanation`.
   ///   - identifier: The accessibility identifier of the text.
   ///   - symbol: The symbol at the start of the title line.
   ///   - action: The action at the end of the title line.
   public init(
-    title: String, explanation: String, textLabel: String, identifier: String,
+    title: String, explanation: String, textLabel: String? = nil, identifier: String,
     @ViewBuilder symbol: () -> Symbol, @ViewBuilder action: () -> Action
   ) {
     self.title = title
     self.explanation = explanation
-    self.textLabel = textLabel
+    self.textLabel = textLabel ?? StatusTitleText.label(title: title, explanation: explanation)
     self.identifier = identifier
     self.symbol = symbol()
     self.action = action()
@@ -202,11 +204,14 @@ extension StatusTitleLayout where Action == EmptyView {
   /// - Parameters:
   ///   - title: The title.
   ///   - explanation: The explanation. An empty explanation shows no line.
-  ///   - textLabel: The accessibility label of the text.
+  ///   - textLabel: The accessibility label of the text, or `nil` for the
+  ///     ``StatusTitleText/label(title:explanation:)`` of `title` and
+  ///     `explanation`.
   ///   - identifier: The accessibility identifier of the text.
   ///   - symbol: The symbol at the start of the title line.
   public init(
-    title: String, explanation: String, textLabel: String, identifier: String, @ViewBuilder symbol: () -> Symbol
+    title: String, explanation: String, textLabel: String? = nil, identifier: String,
+    @ViewBuilder symbol: () -> Symbol
   ) {
     self.init(
       title: title, explanation: explanation, textLabel: textLabel, identifier: identifier, symbol: symbol,

@@ -1,4 +1,5 @@
 import EditorSwiftUI
+import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
 
@@ -36,18 +37,21 @@ extension SessionModel {
   }
 }
 
-/// The text of a path of titles, such as "Agent, Reviewer, and Linter".
+/// The text of a path of titles, such as "Path: Agent, then Reviewer".
 enum SessionPathText {
-  /// The separator of the spoken path.
-  static let spokenSeparator = ", then "
-
-  /// The spoken form of a path, one name after the other.
+  /// The spoken form of a path, one name after the other: the spoken path
+  /// pattern of the catalog (``ChainText/spokenPath(_:locale:)``) inside one
+  /// catalog string.
   ///
-  /// - Parameter titles: The titles, from the root.
+  /// - Parameters:
+  ///   - titles: The titles, from the root.
+  ///   - locale: The locale of the text.
   /// - Returns: Text such as "Path: Agent, then Reviewer, then Linter".
-  static func label(_ titles: [String]) -> String {
-    let path = titles.joined(separator: spokenSeparator)
-    return String(localized: "Path: \(path)", bundle: .module)
+  static func label(_ titles: [String], locale: Locale = .autoupdatingCurrent) -> String {
+    let path = ChainText.spokenPath(titles, locale: locale)
+    return String(
+      localized: "Path: \(path)", bundle: .module, locale: locale,
+      comment: "The VoiceOver label of the path of the shown session: the titles from the root, one after the other.")
   }
 }
 
@@ -67,17 +71,23 @@ enum SessionStateText {
     }
   }
 
-  /// The text of one choice of a dropdown: the title, the state, and the
-  /// count of the open questions when there are some.
+  /// The note of a session that needs the user, the last part of a label.
+  static var needsAttention: String { String(localized: "needs your attention", bundle: .module) }
+
+  /// The text of one choice of a dropdown: the title, the state, the count
+  /// of the open questions when there are some, and ``needsAttention`` when
+  /// the session needs the user, as a list in
+  /// `FormatStyle/spokenParts(locale:)`.
   ///
-  /// - Parameter entry: The path entry of the session.
+  /// - Parameters:
+  ///   - entry: The path entry of the session.
+  ///   - locale: The locale of the text.
   /// - Returns: Text such as "Reviewer, In progress, 1 open question".
-  static func choiceLabel(for entry: SessionPathEntry) -> String {
-    var parts = [entry.title, entry.status.text]
-    if entry.pendingRequestCount > 0 {
-      parts.append(PendingRequestCountBadge.openQuestionsLabel(count: entry.pendingRequestCount))
-    }
-    if entry.needsAttention { parts.append(String(localized: "needs your attention", bundle: .module)) }
-    return parts.joined(separator: ", ")
+  static func choiceLabel(for entry: SessionPathEntry, locale: Locale = .autoupdatingCurrent) -> String {
+    let count = entry.pendingRequestCount
+    let questions = count > 0 ? PendingRequestCountBadge.openQuestionsLabel(count: count) : nil
+    let attention = entry.needsAttention ? needsAttention : nil
+    let parts = [entry.title, entry.status.text] + [questions, attention].compactMap(\.self)
+    return parts.formatted(.spokenParts(locale: locale))
   }
 }

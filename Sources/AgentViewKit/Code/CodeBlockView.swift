@@ -8,7 +8,9 @@ import SwiftUI
 ///
 /// The view shows a header with the filename or the language and a Copy
 /// button. Below the header, an EditorKit editor shows the code with line
-/// numbers. The editor grows to the height of the code. When EditorKit has a
+/// numbers. The editor takes the height of the code and wraps a long line to
+/// its width, with no scroll of its own, so its host scrolls the block
+/// (`EditorView.sizedToContent()`). When EditorKit has a
 /// tree-sitter grammar for the language, the editor colors the code with it.
 /// If not, and ``GrammarBundle`` ships a TextMate grammar for the language,
 /// the editor colors the code with that grammar.
@@ -25,7 +27,7 @@ public struct CodeBlockView: View {
   /// The accessibility identifier of the Copy button.
   public static let copyIdentifier = "code-block-copy"
 
-  /// The name of the language in the label when the block has no language.
+  /// The name of the language in the header when the block has no language.
   public static let plainTextName = "plain text"
 
   /// The code to show.
@@ -93,7 +95,14 @@ public struct CodeBlockView: View {
 
   /// The label that VoiceOver reads for the block.
   var accessibilityLabel: String {
-    "\(language ?? Self.plainTextName) code block"
+    guard let language else {
+      return String(
+        localized: "plain text code block", bundle: .module,
+        comment: "The VoiceOver label of a code block that names no language.")
+    }
+    return String(
+      localized: "\(language) code block", bundle: .module,
+      comment: "The VoiceOver label of a code block: the name of its language, such as swift.")
   }
 
   /// The row with the title and the Copy button.
@@ -105,12 +114,10 @@ public struct CodeBlockView: View {
         .lineLimit(1)
         .truncationMode(.middle)
       Spacer(minLength: editorStyle.spacing.s)
-      Button(String(localized: "Copy code", bundle: .module), systemImage: AgentSymbol.copy) {
+      EditorToolbarButton(String(localized: "Copy code", bundle: .module), systemImage: AgentSymbol.copy) {
         pasteboard.copyText(code)
       }
-      .labelStyle(.iconOnly)
-      .buttonStyle(.borderless)
-      .help(String(localized: "Copy code", bundle: .module))
+      .editorButtonCaptions(.hidden)
       .accessibilityIdentifier(Self.copyIdentifier)
     }
     .editorBlockHeader()
@@ -123,7 +130,7 @@ public struct CodeBlockView: View {
   @ViewBuilder
   private func editor(model: EditorModel) -> some View {
     let view = EditorView(model: model)
-      .editorSizingMode(.intrinsic)
+      .sizedToContent()
       .editorGutter(LineNumbers())
     if let grammarID {
       view.editorSyntax(grammarID)

@@ -10,6 +10,10 @@ import FoundationModelsACPClient
 ///
 /// The document of a session transcript has only the message entries (the
 /// transcript form of `markdown(for:)`).
+///
+/// The Stencil templates `thread-markdown` and `message-markdown` of the
+/// kit lay out the Markdown, and the headings come from the string catalog
+/// (`Docs/decisions/text-templates.md`).
 public enum ThreadExporter {
   /// The Markdown document of the message entries of a session transcript.
   ///
@@ -25,11 +29,21 @@ public enum ThreadExporter {
   /// - Returns: The document, with a line break at the end. The document is
   ///   empty when no entry has text for the user.
   public static func markdown(for transcript: [TranscriptEntry]) -> String {
-    let sections = messageTexts(in: transcript).map { message in
-      heading(for: message.role) + "\n\n" + message.texts.joined(separator: "\n\n")
-    }
-    guard !sections.isEmpty else { return "" }
-    return sections.joined(separator: "\n\n") + "\n"
+    markdown(of: messageTexts(in: transcript), templates: .bundled, locale: .autoupdatingCurrent)
+  }
+
+  /// The Markdown document of some messages: the `thread-markdown` template
+  /// over the ``sections(of:heading:)`` of the messages, whose heading is the
+  /// ``senderName(of:locale:)`` of each message.
+  ///
+  /// - Parameters:
+  ///   - messages: The messages, in transcript order.
+  ///   - templates: The templates of the document.
+  ///   - locale: The locale of the headings.
+  /// - Returns: The document, with a line break at the end, or an empty
+  ///   document when `messages` is empty.
+  static func markdown(of messages: [MessageText], templates: TextTemplates, locale: Locale) -> String {
+    templates.render(.threadMarkdown, model: sections(of: messages) { senderName(of: $0, locale: locale) })
   }
 
   /// The Markdown of the content of a message entry.
@@ -42,7 +56,19 @@ public enum ThreadExporter {
   /// - Returns: The Markdown, or an empty string when no block is text for
   ///   the user.
   public static func markdown(for content: [FoundationModelsACP.ContentBlock]) -> String {
-    texts(of: content).joined(separator: "\n\n")
+    markdown(ofTexts: texts(of: content), templates: .bundled)
+  }
+
+  /// The Markdown of the texts of a message: the `message-markdown`
+  /// template over the ``message(texts:heading:)`` value of the texts.
+  ///
+  /// - Parameters:
+  ///   - texts: The texts of the message that are for the user, in content
+  ///     order.
+  ///   - templates: The templates of the Markdown.
+  /// - Returns: The Markdown, or an empty string when `texts` is empty.
+  static func markdown(ofTexts texts: [String], templates: TextTemplates) -> String {
+    templates.render(.messageMarkdown, model: ["message": message(texts: texts)])
   }
 
   /// The text of one message entry: its sender and its texts for the user.
@@ -52,6 +78,39 @@ public enum ThreadExporter {
 
     /// The texts of the message that are for the user, in content order.
     let texts: [String]
+  }
+
+  // MARK: - Template models
+
+  /// The model of a text template that lists messages
+  /// (`thread-markdown.stencil` and `copy-text.stencil`): `messages`, the
+  /// ``message(texts:heading:)`` value of each message.
+  ///
+  /// The export heads each message with its ``senderName(of:locale:)``, and
+  /// the copy text with its role line.
+  ///
+  /// - Parameters:
+  ///   - messages: The messages, in transcript order.
+  ///   - heading: The catalog text that heads a message of a sender.
+  /// - Returns: The model.
+  static func sections(of messages: [MessageText], heading: (MessageRole) -> String) -> [String: Any] {
+    ["messages": messages.map { message(texts: $0.texts, heading: heading($0.role)) }]
+  }
+
+  /// The template value of one message: `texts`, and `heading` when the
+  /// message has one. Stencil reads the value by these keys, so this
+  /// function is the one place that names them.
+  ///
+  /// - Parameters:
+  ///   - texts: The texts of the message that are for the user, in content
+  ///     order.
+  ///   - heading: The catalog text that heads the message, or `nil` for the
+  ///     content of a message alone.
+  /// - Returns: The value.
+  private static func message(texts: [String], heading: String? = nil) -> [String: Any] {
+    var value: [String: Any] = ["texts": texts]
+    value["heading"] = heading
+    return value
   }
 
   /// The text of each message entry of a transcript that has text for the
@@ -101,16 +160,19 @@ public enum ThreadExporter {
     }
   }
 
-  /// The heading of a message section.
+  /// The name of the sender of a message, from the string catalog.
   ///
-  /// - Parameter role: The sender of the message.
-  /// - Returns: `## User` or `## Assistant`.
-  static func heading(for role: MessageRole) -> String {
-    let title =
-      switch role {
-      case .user: String(localized: "User", bundle: .module)
-      case .assistant: String(localized: "Assistant", bundle: .module)
-      }
-    return "## " + title
+  /// The Markdown export heads each message with it, and the copy text
+  /// starts the role line of each message with it.
+  ///
+  /// - Parameters:
+  ///   - role: The sender of the message.
+  ///   - locale: The locale of the name.
+  /// - Returns: `User` or `Assistant`.
+  static func senderName(of role: MessageRole, locale: Locale) -> String {
+    switch role {
+    case .user: String(localized: "User", bundle: .module, locale: locale)
+    case .assistant: String(localized: "Assistant", bundle: .module, locale: locale)
+    }
   }
 }

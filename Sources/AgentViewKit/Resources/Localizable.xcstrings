@@ -1,22 +1,23 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    " › " : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : " › "
-          }
-        }
-      }
-    },
     "%@ asks for input" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ asks for input"
+          }
+        }
+      }
+    },
+    "%@ code block" : {
+      "comment" : "The VoiceOver label of a code block: the name of its language, such as swift.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ code block"
           }
         }
       }
@@ -57,36 +58,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ · %2$@"
-          }
-        }
-      }
-    },
-    "%@, %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@, %2$@"
-          }
-        }
-      }
-    },
-    "%@, %lld more" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@, %2$lld more"
-          }
-        }
-      }
-    },
-    "%@: %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@: %2$@"
           }
         }
       }
@@ -132,21 +103,57 @@
       }
     },
     "%lld of %lld items" : {
+      "comment" : "The VoiceOver value of a thread: the items it shows of its items. The noun follows the second number.",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$lld of %2$lld items"
+            "value" : "%1$lld of %2$#@items@"
+          },
+          "substitutions" : {
+            "items" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg item"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg items"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
     },
     "%lld open questions" : {
+      "comment" : "The number of the open questions of a session. The catalog holds a form for each plural category.",
       "localizations" : {
         "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld open questions"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld open question"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld open questions"
+                }
+              }
+            }
           }
         }
       }
@@ -167,26 +174,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "+%lld"
-          }
-        }
-      }
-    },
-    ", " : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : ", "
-          }
-        }
-      }
-    },
-    "1 open question" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 open question"
           }
         }
       }
@@ -281,6 +268,17 @@
         }
       }
     },
+    "Answered" : {
+      "comment" : "The mark of a field tab with a valid answer.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Answered"
+          }
+        }
+      }
+    },
     "Approve Request" : {
       "localizations" : {
         "en" : {
@@ -292,6 +290,7 @@
       }
     },
     "Asked by %@" : {
+      "comment" : "The VoiceOver label of the agents that ask for input: the agent path, from the root agent.",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -302,6 +301,7 @@
       }
     },
     "Asked by %@, from %@" : {
+      "comment" : "The VoiceOver label of the agents that ask for input: the agent path, then the thing that asks.",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -637,16 +637,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete"
-          }
-        }
-      }
-    },
-    "Dictate" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dictate"
           }
         }
       }
@@ -1201,6 +1191,17 @@
         }
       }
     },
+    "No answer" : {
+      "comment" : "The mark of a field tab with no valid answer.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No answer"
+          }
+        }
+      }
+    },
     "No commands" : {
       "localizations" : {
         "en" : {
@@ -1401,6 +1402,17 @@
         }
       }
     },
+    "Optional" : {
+      "comment" : "The mark of a field tab whose field can stay empty.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optional"
+          }
+        }
+      }
+    },
     "Other" : {
       "localizations" : {
         "en" : {
@@ -1417,6 +1429,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Output"
+          }
+        }
+      }
+    },
+    "Path: %@" : {
+      "comment" : "The VoiceOver label of the path of the shown session: the titles from the root, one after the other.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Path: %@"
           }
         }
       }
@@ -1581,16 +1604,6 @@
         }
       }
     },
-    "Remove" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Remove"
-          }
-        }
-      }
-    },
     "Remove %@" : {
       "localizations" : {
         "en" : {
@@ -1601,22 +1614,24 @@
         }
       }
     },
-    "Remove this attachment" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Remove this attachment"
-          }
-        }
-      }
-    },
     "Request %lld of %lld" : {
+      "comment" : "The VoiceOver label of the header of a deck of requests: the place of the front request.",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Request %1$lld of %2$lld"
+          }
+        }
+      }
+    },
+    "Request %lld of %lld, %lld more" : {
+      "comment" : "The VoiceOver label of a deck header: the place of the front request, then the cards that do not show.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Request %1$lld of %2$lld, %3$lld more"
           }
         }
       }
@@ -1827,16 +1842,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Send a message to the agent."
-          }
-        }
-      }
-    },
-    "Send the prompt" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Send the prompt"
           }
         }
       }
@@ -2189,16 +2194,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Stop dictation"
-          }
-        }
-      }
-    },
-    "Stop the work of the agent" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stop the work of the agent"
           }
         }
       }
@@ -3454,16 +3449,6 @@
         }
       }
     },
-    "Use this prompt" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Use this prompt"
-          }
-        }
-      }
-    },
     "User" : {
       "localizations" : {
         "en" : {
@@ -3510,6 +3495,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Waiting for %@"
+          }
+        }
+      }
+    },
+    "Waiting for %@ to finish" : {
+      "comment" : "The state of a sign-in that goes on in the browser: the site that the user is on.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for %@ to finish"
           }
         }
       }
@@ -3584,12 +3580,89 @@
         }
       }
     },
+    "acp.protocol-version-refusal" : {
+      "comment" : "The error when an agent answers with an ACP protocol version that the kit does not accept: the version of the agent, the version that the client sent, then the versions that the kit accepts.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The agent answered with ACP protocol version %1$lld. The client sent protocol version %2$lld. This kit accepts only protocol version %3$@."
+          }
+        }
+      }
+    },
     "another session" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "another session"
+          }
+        }
+      }
+    },
+    "chain.sentences" : {
+      "comment" : "A run of sentences: the sentences so far, then the next sentence.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        }
+      }
+    },
+    "chain.spoken-path" : {
+      "comment" : "A path of names that VoiceOver reads: the path so far, then the next name.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, then %2$@"
+          }
+        }
+      }
+    },
+    "chain.visible-path" : {
+      "comment" : "A path of names that the user reads: the path so far, then the next name.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ › %2$@"
+          }
+        }
+      }
+    },
+    "context-usage.cost-in-unit" : {
+      "comment" : "The cost of a session in a unit that is not a currency: the amount, then the unit.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        }
+      }
+    },
+    "copy-text.role-line" : {
+      "comment" : "The first line of a message in the copied text of a thread: the name of its sender.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@:"
+          }
+        }
+      }
+    },
+    "elicitation-tab.marks" : {
+      "comment" : "The VoiceOver value of a field tab: whether the field is required, then whether it has an answer.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, %2$@"
           }
         }
       }
@@ -3627,12 +3700,34 @@
         }
       }
     },
+    "inspection.plan-step" : {
+      "comment" : "A step of a plan in the inspector: its status, then its text.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: %2$@"
+          }
+        }
+      }
+    },
     "needs your attention" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "needs your attention"
+          }
+        }
+      }
+    },
+    "plain text code block" : {
+      "comment" : "The VoiceOver label of a code block that names no language.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "plain text code block"
           }
         }
       }
@@ -3647,12 +3742,67 @@
         }
       }
     },
+    "status.summary" : {
+      "comment" : "A status in one text: its label, such as Failed, then its detail.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: %2$@"
+          }
+        }
+      }
+    },
+    "task-list.entry-label" : {
+      "comment" : "The VoiceOver label of a step of a plan: its text, its status, then its priority.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, %2$@, %3$@"
+          }
+        }
+      }
+    },
     "tokens" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "tokens"
+          }
+        }
+      }
+    },
+    "tool-call.label" : {
+      "comment" : "The VoiceOver label of a tool call: its title, then its status.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, %2$@"
+          }
+        }
+      }
+    },
+    "url-display.mixed-script-warning" : {
+      "comment" : "The warning for a web address whose host mixes alphabets, which can look like another host.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The address %@ has letters from more than one alphabet. Make sure that it is the site that you expect."
+          }
+        }
+      }
+    },
+    "url-display.punycode-warning" : {
+      "comment" : "The warning for a web address whose host has a Punycode label, which can look like another host.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The address %@ uses encoded international characters (Punycode). Make sure that it is the site that you expect."
           }
         }
       }

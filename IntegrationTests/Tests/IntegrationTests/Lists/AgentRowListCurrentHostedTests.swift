@@ -411,9 +411,10 @@ private nonisolated let densities: [AgentRowDensity] = [.regular, .compact]
 /// The hit test of a wrapped row, which only a real click reaches: the menu
 /// that `.wrappingRows(_:)` puts around a row takes no click from the inset.
 ///
-/// The click goes through the event queue of the app, so it makes the window
-/// key, off the screen (`HostedViewHarness.sendClick(atWindowPoint:)`). Each
-/// suite whose name ends in `PointerHostedTests` holds such a click.
+/// The click goes through the event queue of the app, so it orders the window
+/// in behind every window and off the screen; the window stays not key
+/// (`HostedViewHarness.sendClick(atWindowPoint:)`). Each suite whose name ends
+/// in `PointerHostedTests` holds such a click.
 @Suite(.serialized, .hostedSerially) @MainActor struct AgentRowListInsetPointerHostedTests {
   @Test func aClickOnTheInsetStillOpensAWrappedRow() async throws {
     let bed = try await RowBed(rowMenu: .aroundRow)

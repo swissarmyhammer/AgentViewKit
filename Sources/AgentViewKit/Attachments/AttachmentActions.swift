@@ -1,18 +1,21 @@
 import EditorInspector
 import EditorStyle
-import OSLog
+import EditorSwiftUI
 import SwiftUI
 import UniformTypeIdentifiers
 
 /// The file actions of the inspector and of an artifact (plan.md §3.6):
 /// Open, Reveal in Finder, Share, Save, and pop-out Quick Look.
 ///
-/// Each button runs the ``AgentAttachmentVerb`` command of the nearest
-/// attachment scope (``SwiftUI/View/agentAttachmentScope(_:)``, AVK-11). Thus
-/// a button, the context menu of the attachment and the command palette run
-/// the same command. A button is disabled when its verb cannot run on the
-/// attachment. With the group ``AgentCommandGroup/attachment`` off, the view
-/// shows no button.
+/// Each button is the EditorKit command button (`EditorToolbarButton`) of an
+/// ``AgentAttachmentVerb`` of the nearest attachment scope
+/// (``SwiftUI/View/agentAttachmentScope(_:)``, AVK-11): its title, its symbol,
+/// its enabled state and its tooltip come from the registry at the path of
+/// the scope, and a press runs the command there. Thus a button, the context
+/// menu of the attachment and the command palette run the same command. A
+/// button is disabled when its verb cannot run on the attachment of the
+/// scope. With the group ``AgentCommandGroup/attachment`` off, the view shows
+/// no button.
 struct AttachmentActions: View {
   /// The accessibility identifiers of each action, in display order.
   ///
@@ -22,38 +25,19 @@ struct AttachmentActions: View {
     AgentAttachmentVerb.allCases.map { $0.identifier(prefix: prefix) }
   }
 
-  /// The file of the actions.
-  let attachment: Attachment
-
   /// The start of the accessibility identifier of each action.
   let identifierPrefix: String
 
-  @Environment(\.agentAttachmentTarget) private var target
   @Environment(\.agentCommandGroupsOff) private var groupsOff
-
-  private let logger = Logger(subsystem: "AgentViewKit", category: "AttachmentActions")
 
   var body: some View {
     if !groupsOff.contains(.attachment) {
       InspectorActionRow {
         ForEach(AgentAttachmentVerb.allCases, id: \.self) { verb in
-          Button(verb.title, systemImage: verb.icon) { didTap(verb) }
-            .help(verb.title)
-            .disabled(!verb.availability(for: attachment).isAvailable)
+          EditorToolbarButton(command: verb.id)
             .accessibilityIdentifier(verb.identifier(prefix: identifierPrefix))
         }
       }
-    }
-  }
-
-  /// Runs the command of `verb` in the scope of the attachment, and writes a
-  /// log entry when no command ran.
-  ///
-  /// - Parameter verb: The verb of the button.
-  private func didTap(_ verb: AgentAttachmentVerb) {
-    let ran = target?.perform(verb) ?? false
-    if !ran {
-      logger.error("The command \(verb.id.rawValue) did not run for \(attachment.url, privacy: .private).")
     }
   }
 }
@@ -121,7 +105,7 @@ private struct AttachmentActionsPreview: View {
   let identifierPrefix: String
 
   var body: some View {
-    AttachmentActions(attachment: attachment, identifierPrefix: identifierPrefix)
+    AttachmentActions(identifierPrefix: identifierPrefix)
       .agentAttachmentScope(attachment)
       .environment(\.attachmentFileService, PreviewFixtures.attachmentFileService)
       .padding()

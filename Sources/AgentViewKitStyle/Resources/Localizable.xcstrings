@@ -160,6 +160,17 @@
           }
         }
       }
+    },
+    "status-title.label" : {
+      "comment" : "The VoiceOver label of a status text: its title, then its explanation.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, %2$@"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

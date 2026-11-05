@@ -90,9 +90,6 @@ final class AgentCommandTarget {
   /// The kind of the focus segment of an agent command scope.
   static let segmentKind = AgentScopeKind.thread
 
-  /// The line that separates two messages in the copy text: one blank line.
-  static let sectionSeparator = "\n\n"
-
   /// The session model that the commands act on, or `nil` when no scope
   /// gave one.
   var session: SessionModel?
@@ -580,12 +577,6 @@ final class AgentCommandTarget {
 
   // MARK: - Copy
 
-  /// The role line of a user message.
-  private static var userRole: String { String(localized: "User", bundle: .module) }
-
-  /// The role line of an agent message.
-  private static var assistantRole: String { String(localized: "Assistant", bundle: .module) }
-
   /// The message entries of the transcript of a session model as plain text,
   /// in transcript order.
   ///
@@ -600,32 +591,34 @@ final class AgentCommandTarget {
   /// - Returns: The text, or an empty string when the transcript has no
   ///   message text.
   static func plainText(of session: SessionModel) -> String {
-    ThreadExporter.messageTexts(in: session.transcript).compactMap { message in
-      section(role: roleLine(for: message.role), texts: message.texts)
-    }
-    .joined(separator: sectionSeparator)
+    plainText(of: ThreadExporter.messageTexts(in: session.transcript), templates: .bundled, locale: .autoupdatingCurrent)
   }
 
-  /// The role line of a message of `role`.
-  ///
-  /// - Parameter role: The sender of the message.
-  /// - Returns: ``userRole`` or ``assistantRole``.
-  private static func roleLine(for role: MessageRole) -> String {
-    switch role {
-    case .user: userRole
-    case .assistant: assistantRole
-    }
-  }
-
-  /// The section of one message.
+  /// The copy text of some messages: the `copy-text` template over the
+  /// ``ThreadExporter/sections(of:heading:)`` of the messages, whose heading
+  /// is the ``roleLine(of:locale:)`` of each message.
   ///
   /// - Parameters:
-  ///   - role: The role line.
-  ///   - texts: The texts of the message that are for the user.
-  /// - Returns: The section, or `nil` when the message has no text.
-  private static func section(role: String, texts: [String]) -> String? {
-    guard !texts.isEmpty else { return nil }
-    return ([role + ":"] + texts).joined(separator: "\n")
+  ///   - messages: The messages, in transcript order.
+  ///   - templates: The templates of the text.
+  ///   - locale: The locale of the role lines.
+  /// - Returns: The text, or an empty string when `messages` is empty.
+  static func plainText(of messages: [ThreadExporter.MessageText], templates: TextTemplates, locale: Locale) -> String {
+    templates.render(.copyText, model: ThreadExporter.sections(of: messages) { roleLine(of: $0, locale: locale) })
+  }
+
+  /// The role line of a message in the copy text: the name of its sender,
+  /// as one catalog string.
+  ///
+  /// - Parameters:
+  ///   - role: The sender of the message.
+  ///   - locale: The locale of the line.
+  /// - Returns: `User:` or `Assistant:`.
+  private static func roleLine(of role: MessageRole, locale: Locale) -> String {
+    let sender = ThreadExporter.senderName(of: role, locale: locale)
+    return String(
+      localized: "copy-text.role-line", defaultValue: "\(sender):", bundle: .module, locale: locale,
+      comment: "The first line of a message in the copied text of a thread: the name of its sender.")
   }
 }
 

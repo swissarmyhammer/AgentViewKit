@@ -17,9 +17,10 @@ import UniformTypeIdentifiers
 ///
 /// - Copy: writes the Markdown of the message (the content form of
 ///   `ThreadExporter.markdown(for:)`) to the `pasteboard` environment value.
-/// - Copy thread: runs ``AgentCommandVerb/copyThread`` in the agent command
-///   scope. With no scope, the button writes the same text to the
-///   pasteboard (`AgentCommandTarget.plainText(of:)`).
+/// - Copy thread: the command button of ``AgentCommandVerb/copyThread`` in
+///   the agent command scope, whose title, symbol, enabled state and tooltip
+///   come from the registry. With no scope, the button writes the same text
+///   to the pasteboard (`AgentCommandTarget.plainText(of:)`).
 /// - Export: saves the message entries of `SessionModel.transcript` as a
 ///   Markdown file (the transcript form of `ThreadExporter.markdown(for:)`).
 /// - Retry, for an agent message only: finds the last `UserMessageEntry`
@@ -31,6 +32,9 @@ import UniformTypeIdentifiers
 ///   sets the ``SwiftUI/EnvironmentValues/promptText`` binding.
 ///
 /// With no session model in the environment, the row shows only Copy.
+///
+/// Each button is an EditorKit `EditorToolbarButton` that shows its symbol
+/// alone, with its name as its accessibility label and its tooltip.
 ///
 /// Put the row in the footer slot of each message row of the thread view:
 ///
@@ -147,14 +151,11 @@ public struct MessageActions: View {
   public var body: some View {
     ControlStack(.horizontal) {
       ForEach(actionsToShow, id: \.self) { action in
-        Button(action.title, systemImage: action.systemImage) { perform(action) }
-          .help(action.title)
+        button(for: action)
           .accessibilityIdentifier(action.identifier)
       }
     }
-    .labelStyle(.iconOnly)
-    .buttonStyle(.borderless)
-    .foregroundStyle(.secondary)
+    .editorButtonCaptions(.hidden)
     .fileExporter(
       isPresented: Binding(
         get: { exportDocument != nil }, set: { if !$0 { exportDocument = nil } }),
@@ -163,6 +164,21 @@ public struct MessageActions: View {
       defaultFilename: Self.exportFilename,
       onCompletion: { FileExportLog.record($0, of: Self.exportFilename, to: logger) }
     )
+  }
+
+  /// The button of `action`: the command button of
+  /// ``AgentCommandVerb/copyThread`` for Copy thread in an agent command
+  /// scope, else a button that runs the action here.
+  ///
+  /// - Parameter action: The action of the button.
+  /// - Returns: The button.
+  @ViewBuilder
+  private func button(for action: Action) -> some View {
+    if action == .copyThread, commandTarget != nil {
+      EditorToolbarButton(command: AgentCommandVerb.copyThread.id)
+    } else {
+      EditorToolbarButton(action.title, systemImage: action.systemImage) { perform(action) }
+    }
   }
 
   /// The buttons for the message, in display order.
@@ -218,13 +234,13 @@ public struct MessageActions: View {
     }
   }
 
-  /// Copies the thread through the command scope, or directly when there is
-  /// no scope, with the same text as the command.
+  /// Copies the thread directly, with the same text as the command, for a
+  /// row in no command scope.
   ///
   /// `AgentCommandTarget.plainText(of:)` reads the same session model that
   /// ``export()`` gives to `ThreadExporter.markdown(for:)`.
   private func copyThread() {
-    guard let session, commandTarget?.perform(.copyThread) != true else { return }
+    guard let session else { return }
     pasteboard.copyText(AgentCommandTarget.plainText(of: session))
   }
 

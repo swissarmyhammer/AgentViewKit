@@ -10,8 +10,8 @@ import Testing
 
 @testable import AgentViewKit
 
-/// The `Inspectable` conformances of the client models in an EditorKit
-/// `InspectorView`, in a real window.
+/// The inspections of the client models in an EditorKit `InspectorView`, in
+/// a real window.
 ///
 /// Each test inspects one model and reads one row with EditorKit's
 /// `InspectorDriver`, by its scheme id: the view, the object, the group and
@@ -68,6 +68,28 @@ import Testing
   /// - Returns: The id that the row carries.
   static func row<Object: Inspectable>(of object: Object, group: String, field: String) -> String {
     InspectorRowID.field(view: Object.inspection.id, object: object, group: group, field: field)
+  }
+
+  /// Mounts an `InspectorView` of the client model `model`, which the view
+  /// shows through its `InspectedClientModel`, and makes one render pass.
+  ///
+  /// - Parameter model: The model to inspect.
+  /// - Returns: The harness. The caller closes it.
+  static func mount<Model: InspectableClientModel>(_ model: Model) -> HostedViewHarness<InspectorView> {
+    mount(InspectedClientModel(model))
+  }
+
+  /// The scheme id of a row of the `InspectorView` of the client model
+  /// `model`: the view and the object id of its `InspectedClientModel`, the
+  /// group and the field.
+  ///
+  /// - Parameters:
+  ///   - model: The inspected model.
+  ///   - group: The group part, such as `tool-call`.
+  ///   - field: The field part, such as `title`.
+  /// - Returns: The id that the row carries.
+  static func row<Model: InspectableClientModel>(of model: Model, group: String, field: String) -> String {
+    row(of: InspectedClientModel(model), group: group, field: field)
   }
 
   /// The first entry of `type` in the transcript of `session`, after it
@@ -275,32 +297,124 @@ import Testing
     TimedCall(seconds: tooShortSeconds, showsDuration: false),
   ]
 
+  /// The locale of the environment of the timed tests: the Time rows show
+  /// their text in it.
+  static let timedLocale = Locale(identifier: "en_US")
+
+  /// Mounts an `InspectorView` of the timed tool call `entry` in
+  /// ``timedLocale`` and `timeZone`, and makes one render pass.
+  ///
+  /// - Parameters:
+  ///   - entry: The inspected tool call.
+  ///   - timeZone: The time zone of the environment of the view.
+  /// - Returns: The harness. The caller closes it.
+  static func mountTimed(_ entry: ToolCallEntry, timeZone: TimeZone = .current) -> HostedViewHarness<some View> {
+    let harness = HostedViewHarness(size: size) {
+      InspectorView(InspectedClientModel(entry))
+        .environment(\.locale, timedLocale)
+        .environment(\.timeZone, timeZone)
+    }
+    harness.render()
+    return harness
+  }
+
+  /// Starts the timed tool call in `session`, at the time of the clock of
+  /// the session.
+  ///
+  /// - Parameter session: The scripted session.
+  /// - Returns: The entry of the running call.
+  /// - Throws: The error of the transport, or an issue when no entry arrives.
+  static func startTimedCall(in session: ScriptedSession) async throws -> ToolCallEntry {
+    try await session.sendToolCallUpdate(title: timedCallTitle, status: .inProgress)
+    return try await entry(ToolCallEntry.self, in: session)
+  }
+
+  /// Moves `clock` on by `seconds`, completes the timed tool call `entry` in
+  /// `session`, and renders until the entry has ended.
+  ///
+  /// - Parameters:
+  ///   - entry: The running tool call.
+  ///   - seconds: The time from its start to its completion.
+  ///   - clock: The clock of the session.
+  ///   - session: The scripted session.
+  ///   - harness: The harness that shows the inspection of `entry`.
+  /// - Throws: The error of the transport.
+  static func completeTimedCall<Content: View>(
+    _ entry: ToolCallEntry, after seconds: TimeInterval, clock: FixedClock, in session: ScriptedSession,
+    shownBy harness: HostedViewHarness<Content>
+  ) async throws {
+    clock.advance(by: seconds)
+    try await session.sendToolCallUpdate(title: timedCallTitle, status: .completed)
+    await harness.render { entry.timing.endedAt != nil }
+  }
+
   @Test(arguments: timedCalls)
   func theDurationRowOfAToolCallShowsTheTimeToItsCompletion(call: TimedCall) async throws {
     let clock = FixedClock(start: TimedSessionClock.start)
     let session = try await ScriptedSession.open(now: clock.now)
     defer { session.close() }
-    try await session.sendToolCallUpdate(title: Self.timedCallTitle, status: .inProgress)
-    let entry = try await Self.entry(ToolCallEntry.self, in: session)
-    let harness = Self.mount(entry)
+    let entry = try await Self.startTimedCall(in: session)
+    let harness = Self.mountTimed(entry)
     defer { harness.close() }
-    let row = Self.durationRow(of: entry)
+    let row = Self.timeRow(of: entry, field: "duration")
     #expect(harness.rowValue(row) == nil)
 
-    clock.advance(by: call.seconds)
-    try await session.sendToolCallUpdate(title: Self.timedCallTitle, status: .completed)
-    await harness.render { entry.timing.endedAt != nil }
+    try await Self.completeTimedCall(entry, after: call.seconds, clock: clock, in: session, shownBy: harness)
 
-    let expected = call.showsDuration ? ToolCallEntry.durationRowFormat.format(.seconds(call.seconds)) : nil
+    let style = EntryTimingView.lineDurationStyle(locale: Self.timedLocale)
+    let expected = call.showsDuration ? style.format(.seconds(call.seconds)) : nil
     #expect(harness.rowValue(row) == expected)
   }
 
-  /// The scheme id of the duration row of the Time group of `entry`.
+  @Test func theStartedRowOfAToolCallShowsItsStartInTheTimeOfDayOfTheEnvironment() async throws {
+    let zone = try #require(TimedSessionClock.zoneOtherThanTheMachines())
+    let clock = FixedClock(start: TimedSessionClock.start)
+    let session = try await ScriptedSession.open(now: clock.now)
+    defer { session.close() }
+    let entry = try await Self.startTimedCall(in: session)
+    let harness = Self.mountTimed(entry, timeZone: zone)
+    defer { harness.close() }
+
+    let style = EntryTimingView.startStyle(locale: Self.timedLocale, timeZone: zone)
+    #expect(harness.rowValue(Self.timeRow(of: entry, field: "started")) == style.format(TimedSessionClock.start))
+  }
+
+  @Test func theEndedRowOfARunningToolCallShowsNoValue() async throws {
+    let clock = FixedClock(start: TimedSessionClock.start)
+    let session = try await ScriptedSession.open(now: clock.now)
+    defer { session.close() }
+    let entry = try await Self.startTimedCall(in: session)
+    let harness = Self.mountTimed(entry)
+    defer { harness.close() }
+
+    #expect(harness.rowValue(Self.timeRow(of: entry, field: "ended")) == EditorInspectorStrings.noValue)
+  }
+
+  @Test func theEndedRowOfACompletedToolCallShowsItsEndInTheTimeOfDayOfTheEnvironment() async throws {
+    let zone = try #require(TimedSessionClock.zoneOtherThanTheMachines())
+    let clock = FixedClock(start: TimedSessionClock.start)
+    let session = try await ScriptedSession.open(now: clock.now)
+    defer { session.close() }
+    let entry = try await Self.startTimedCall(in: session)
+    let harness = Self.mountTimed(entry, timeZone: zone)
+    defer { harness.close() }
+
+    let seconds = TimedSessionClock.stepSeconds
+    try await Self.completeTimedCall(entry, after: seconds, clock: clock, in: session, shownBy: harness)
+
+    let end = TimedSessionClock.start.addingTimeInterval(seconds)
+    let style = EntryTimingView.startStyle(locale: Self.timedLocale, timeZone: zone)
+    #expect(harness.rowValue(Self.timeRow(of: entry, field: "ended")) == style.format(end))
+  }
+
+  /// The scheme id of a row of the Time group of `entry`.
   ///
-  /// - Parameter entry: The inspected tool call.
+  /// - Parameters:
+  ///   - entry: The inspected tool call.
+  ///   - field: The field part: `started`, `ended` or `duration`.
   /// - Returns: The id that the row carries.
-  static func durationRow(of entry: ToolCallEntry) -> String {
-    row(of: entry, group: "time", field: "duration")
+  static func timeRow(of entry: ToolCallEntry, field: String) -> String {
+    row(of: entry, group: "time", field: field)
   }
 
   /// A `plan_update` with one step, `Read`.

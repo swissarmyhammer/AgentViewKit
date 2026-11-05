@@ -68,8 +68,8 @@ let editorKitProducts: [Target.Dependency] = [
   // plan.md §5.1, decision 18).
   .product(name: "EditorStyle", package: "EditorKit"),
   // The inspector: `Inspectable`, `InspectorView` and its field kinds. Each
-  // inspector of the kit is an `InspectorView`, and the client models
-  // conform to `Inspectable` (`Sources/AgentViewKit/Inspection/`).
+  // inspector of the kit is an `InspectorView`, and the client models have
+  // an inspection (`Sources/AgentViewKit/Inspection/`).
   .product(name: "EditorInspector", package: "EditorKit"),
 ]
 
@@ -127,6 +127,14 @@ let mathEngineProducts: [Target.Dependency] = [
   .product(name: "SwiftUIMath", package: "swiftui-math")
 ]
 
+/// The template engine of the text that the kit builds in loops: the Markdown
+/// export, the copy text and the plan steps of the inspector
+/// (`Sources/AgentViewKit/Text/TextTemplates.swift`).
+/// Docs/decisions/dependencies.md records the version.
+let templateEngineProducts: [Target.Dependency] = [
+  .product(name: "Stencil", package: "Stencil")
+]
+
 let package = Package(
   name: "AgentViewKit",
   // The language of the source strings of the string catalog of the kit.
@@ -156,6 +164,10 @@ let package = Package(
     // The math engine is a 0.x package, so the pin is exact. Textual 0.5.0
     // also depends on it, with `from: "0.1.0"`.
     .package(url: "https://github.com/gonzalezreal/swiftui-math", exact: "0.1.0"),
+    // The template engine is a 0.x package, so the pin is exact. It is the
+    // same package and version as the template engine of
+    // FoundationModelsExtras, which the skills use.
+    .package(url: "https://github.com/stencilproject/Stencil.git", exact: "0.15.1"),
   ],
   targets: [
     // The shared look of the view kits. It links only EditorKit: no ACP
@@ -173,7 +185,8 @@ let package = Package(
     // FoundationModels, FoundationModelsRouter or FoundationModelsExtras.
     .target(
       name: "AgentViewKit",
-      dependencies: ["AgentViewKitStyle"] + editorKitProducts + acpProducts + textualProducts + mathEngineProducts,
+      dependencies: ["AgentViewKitStyle"] + editorKitProducts + acpProducts + textualProducts + mathEngineProducts
+        + templateEngineProducts,
       // The TextMate grammars of GrammarBundle, and their licenses. The string
       // catalog holds the English source text of each localized string of
       // the kit. Each `String(localized:)` call and each SwiftUI text key of
@@ -183,6 +196,8 @@ let package = Package(
       // does not compile an entry that has no value.
       resources: [
         .copy("Resources/Grammars"),
+        // The Stencil templates of the text that the kit builds in loops.
+        .copy("Resources/Templates"),
         .process("Resources/Localizable.xcstrings"),
       ],
       swiftSettings: mainActorIsolated
@@ -209,7 +224,9 @@ let package = Package(
     // Gallery tab, which runs in the process of the app.
     .target(
       name: "AgentViewKitDemoSupport",
-      dependencies: ["AgentViewKit"] + acpProducts + demoAgentProducts,
+      // EditorSwiftUI draws the button of the toolbar of the gallery columns.
+      dependencies: ["AgentViewKit", .product(name: "EditorSwiftUI", package: "EditorKit")] + acpProducts
+        + demoAgentProducts,
       swiftSettings: mainActorIsolated
     ),
     .testTarget(

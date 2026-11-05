@@ -1,3 +1,4 @@
+import EditorStyle
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -36,7 +37,7 @@ struct AgentLoginPrompt: View {
       AgentAuthView(connection: connection)
         .environment(\.sessionModel, session)
         // The bottom bar has no glass surface around the prompt.
-        .requestActionPlace(.barWithoutGlass)
+        .editorButtonSurface(.content)
     }
   }
 

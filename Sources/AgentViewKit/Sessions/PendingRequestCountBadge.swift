@@ -49,13 +49,16 @@ public struct PendingRequestCountBadge: View {
 
   /// The text that tells the number of open questions.
   ///
+  /// The catalog string has a plural variation for each plural category of
+  /// the language, so the code picks no form of the noun.
+  ///
   /// - Parameter count: The number of the pending requests.
   /// - Returns: "1 open question" for one request, and "N open questions"
   ///   for each other count.
   public static func openQuestionsLabel(count: Int) -> String {
-    count == 1
-      ? String(localized: "1 open question", bundle: .module)
-      : String(localized: "\(count) open questions", bundle: .module)
+    String(
+      localized: "\(count) open questions", bundle: .module,
+      comment: "The number of the open questions of a session. The catalog holds a form for each plural category.")
   }
 
   /// The session model whose pending requests the badge counts.

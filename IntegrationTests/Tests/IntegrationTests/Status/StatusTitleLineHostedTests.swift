@@ -112,7 +112,7 @@ import Testing
       EditorSymbolImage(.status(.failed))
         .accessibilityIdentifier(symbolIdentifier)
     } action: {
-      StatusBarActionButton(action: action).buttonStyle(.glass)
+      StatusBarActionButton(action: action)
     }
     return mount(layout, width: narrowWidth)
   }

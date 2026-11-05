@@ -16,12 +16,13 @@ import SwiftUI
 ///
 /// The card is content in the transcript, so it has no fill and no glass. A
 /// separator stroke marks its edge (`.inlineEdge(radius:)`,
-/// D113). Only its action buttons have a button style of their own, which
-/// comes from the place of the card (``RequestDeckPlace/style(of:)``). In
-/// content, they use the glass button styles. In a ``RequestDeck`` in a bar
-/// of floating controls, the card is on the glass of the deck, so they use the
-/// bordered button styles: a glass button on glass is glass on glass. The
-/// card has these parts:
+/// D113). Its action buttons are EditorKit `EditorButton`s in the action look,
+/// whose style comes from the surface of the card. In content, they use the
+/// glass button style. In a ``RequestDeck`` in a bar of floating controls,
+/// the card is on the glass of the deck, so they use the bordered button
+/// style: a glass button on glass is glass on glass. A button with too little
+/// room hides its caption and keeps its symbol, with its name as its label
+/// and its tooltip. The card has these parts:
 ///
 /// - The title of the request, and its description when it has one.
 /// - The subject. For a tool call, the card shows the title and the kind of
@@ -33,9 +34,8 @@ import SwiftUI
 /// - One button for each option of the request, in the order of
 ///   `PermissionPresentation.order(of:)`. Each button shows the name of its
 ///   option and the symbol of its kind (``optionSymbol(for:)``). The
-///   `allow_once` button is the primary action, with no prominent style
-///   (``RequestAction/primary``). The kept answers and the unknown kinds are
-///   secondary
+///   `allow_once` button is the primary action, with no prominent style. The
+///   kept answers and the unknown kinds are subdued
 ///   (``PermissionPresentation/isSecondary(kind:)``).
 /// - A "switch to auto" button when
 ///   ``PermissionPresentation/autoModeOption(in:)`` gives an option for the
@@ -301,10 +301,9 @@ public struct PermissionView: View {
   /// - Returns: The link and, while it is open, the ``TerminalView``.
   private func terminalLink(to entry: TerminalEntry) -> some View {
     VStack(alignment: .leading, spacing: editorStyle.spacing.s) {
-      Button(terminalLinkTitle, systemImage: Self.terminalLinkSymbol) {
+      EditorButton(terminalLinkTitle, systemImage: Self.terminalLinkSymbol, look: .action) {
         showsTerminal.toggle()
       }
-      .requestActionStyle(.secondary)
       .accessibilityIdentifier(Self.terminalLinkIdentifier)
       if showsTerminal {
         TerminalView(entry: entry)
@@ -336,21 +335,18 @@ public struct PermissionView: View {
     }
   }
 
-  /// The button of one option, with the symbol and the weight of its kind.
+  /// The button of one option, with the symbol and the weight of its kind:
+  /// a kept answer or an unknown kind is subdued
+  /// (``PermissionPresentation/isSecondary(kind:)``).
   ///
   /// - Parameter option: The ACP option.
   /// - Returns: The button.
-  @ViewBuilder
   private func optionButton(for option: FoundationModelsACP.PermissionOption) -> some View {
-    let button = Button(option.name, systemImage: Self.optionSymbol(for: option.kind)) { didPress(option: option) }
+    EditorButton(
+      option.name, systemImage: Self.optionSymbol(for: option.kind), look: .action,
+      emphasis: PermissionPresentation.isSecondary(kind: option.kind) ? .subdued : .normal
+    ) { didPress(option: option) }
       .accessibilityIdentifier(Self.optionIdentifier(for: option.optionId))
-    if option.kind == .allowOnce {
-      button.requestActionStyle(.primary)
-    } else if PermissionPresentation.isSecondary(kind: option.kind) {
-      button.foregroundStyle(.secondary).requestActionStyle(.secondary)
-    } else {
-      button.requestActionStyle(.secondary)
-    }
   }
 
   /// The comment field of a reject option, and its Send button.
@@ -369,10 +365,9 @@ public struct PermissionView: View {
       ) { _ in
         sendReject(option: option)
       }
-      Button(String(localized: "Send", bundle: .module), systemImage: Self.commentSubmitSymbol) {
+      EditorButton(String(localized: "Send", bundle: .module), systemImage: Self.commentSubmitSymbol, look: .action) {
         sendReject(option: option)
       }
-        .requestActionStyle(.secondary)
         .accessibilityIdentifier(Self.commentSubmitIdentifier)
     }
   }
@@ -386,13 +381,12 @@ public struct PermissionView: View {
     if let modeOption = PermissionPresentation.autoModeOption(in: session.configOptions ?? []),
       let allow = options.first(where: { $0.kind == .allowOnce })
     {
-      Button(
+      EditorButton(
         String(localized: "Allow and Switch to Auto Mode", bundle: .module),
-        systemImage: Self.switchToAutoSymbol
+        systemImage: Self.switchToAutoSymbol, look: .action
       ) {
         switchToAuto(allow: allow, modeOption: modeOption)
       }
-      .requestActionStyle(.secondary)
       .accessibilityIdentifier(Self.switchToAutoIdentifier)
     }
   }

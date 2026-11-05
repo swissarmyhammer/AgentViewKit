@@ -282,12 +282,9 @@ public struct DiffView: View {
   @ViewBuilder
   private func attachButton(file: DiffSummary.FileSummary, actions: DiffActions) -> some View {
     if let onAttach = actions.onAttach {
-      Button {
+      EditorButton(String(localized: "Attach to prompt", bundle: .module), systemImage: AgentSymbol.attach) {
         let lines = selection.lines.isEmpty ? file.changedLines : selection.lines
         onAttach(DiffAttachment(file: file.path, lines: lines))
-      } label: {
-        Label(
-          String(localized: "Attach to prompt", bundle: .module), systemImage: AgentSymbol.attach)
       }
       .accessibilityIdentifier(Self.attachIdentifier)
     }
@@ -375,21 +372,20 @@ public struct DiffView: View {
           .truncationMode(.tail)
         Spacer(minLength: editorStyle.spacing.s)
         if let onAccept = actions.onAccept {
-          Button(String(localized: "Accept", bundle: .module), systemImage: Self.acceptSymbol) {
+          EditorButton(String(localized: "Accept", bundle: .module), systemImage: Self.acceptSymbol) {
             onAccept(file.path, index)
           }
           .accessibilityLabel(String(localized: "Accept hunk \(index + 1)", bundle: .module))
           .accessibilityIdentifier(Self.acceptIdentifier(for: index))
         }
         if let onReject = actions.onReject {
-          Button(String(localized: "Reject", bundle: .module), systemImage: Self.rejectSymbol) {
+          EditorButton(String(localized: "Reject", bundle: .module), systemImage: Self.rejectSymbol) {
             onReject(file.path, index)
           }
           .accessibilityLabel(String(localized: "Reject hunk \(index + 1)", bundle: .module))
           .accessibilityIdentifier(Self.rejectIdentifier(for: index))
         }
       }
-      .controlSize(.small)
     }
   }
 }

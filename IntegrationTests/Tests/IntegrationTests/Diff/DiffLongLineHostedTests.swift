@@ -6,14 +6,17 @@
   import SwiftUI
   import Testing
 
-  /// Tests that a diff line longer than the view stays on one text row, so the
-  /// text, the gutter and the line colors of the EditorKit renderer stand on
-  /// the same rows (finding of ^8q34yt8).
+  /// Tests that a diff line longer than the view wraps to the width of the
+  /// view, and that the text, the gutter and the line colors of the EditorKit
+  /// renderer stand on the same rows (finding of ^8q34yt8).
   ///
-  /// The gutter and the line colors of the EditorKit `DiffView` stand on one
-  /// row for each line of the patch, one row height apart. So the text is
-  /// aligned with them when each line lays out on exactly one line fragment,
-  /// and line `n` starts `n` row heights below the first line.
+  /// The EditorKit `DiffView` wraps a long line to its width
+  /// (`.editorWrapMode(.viewportWidth)`, its default), so it has no scroll of
+  /// its own sideways (EditorKit `style.md`, "A multiline field fits its
+  /// content"). Its row grid follows the wrap: the gutter and the line colors
+  /// stand on one row for each row of text, one row height apart. So the text
+  /// is aligned with them when row `n` starts `n` row heights below the first
+  /// row.
   @Suite(.serialized, .hostedSerially) @MainActor struct DiffLongLineHostedTests {
     /// A size narrower than the long lines of ``PreviewFixtures/smallPatch``.
     static let size = CGSize(width: 480, height: 400)
@@ -94,28 +97,27 @@
       return LaidOutLine(text: text.trimmingCharacters(in: .newlines), fragments: frames)
     }
 
-    // MARK: - One row for each line
+    // MARK: - Wrapped rows
 
-    @Test func theLongLineLaysOutOnOneLineFragment() throws {
+    @Test func theLongLineWrapsToTheWidthOfTheDiff() throws {
       let harness = Self.mountSmallPatch()
       defer { harness.close() }
 
       let views = try Self.diffViews(in: harness)
       let lines = try Self.laidOutLines(of: views.text)
       let longLine = try #require(lines.first { $0.text.contains(Self.longLineStart) })
-      #expect(longLine.fragments.count == 1)
+      #expect(longLine.fragments.count > 1)
     }
 
-    @Test func eachLineOfTheDiffLaysOutOnOneLineFragment() throws {
+    @Test func eachRowOfTheDiffStandsInsideTheWidthOfTheText() throws {
       let harness = Self.mountSmallPatch()
       defer { harness.close() }
 
       let views = try Self.diffViews(in: harness)
-      let lines = try Self.laidOutLines(of: views.text)
-      let hunkLineCount = 4
-      #expect(lines.count >= hunkLineCount)
-      for line in lines {
-        #expect(line.fragments.count == 1, "\(line.text)")
+      let fragments = try Self.laidOutLines(of: views.text).flatMap(\.fragments)
+      let width = views.text.bounds.width
+      for (row, fragment) in fragments.enumerated() {
+        #expect(fragment.maxX <= width + Self.layoutTolerance, "row \(row)")
       }
     }
 
