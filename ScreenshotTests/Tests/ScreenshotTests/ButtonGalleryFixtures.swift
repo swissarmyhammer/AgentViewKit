@@ -1,4 +1,5 @@
 @testable import AgentViewKit
+import AgentViewKitTestSupport
 import EditorStyle
 import FoundationModelsACPClient
 import SwiftUI
@@ -31,12 +32,6 @@ enum ButtonGalleryFixtures {
   /// The size of the wide image.
   static let wideSize = CGSize(width: wideWidth, height: height)
 
-  /// The output of the capped row: more rows than its limit.
-  static let cappedOutput = "one\ntwo\nthree\nfour"
-
-  /// The row limit of the capped row.
-  static let cappedRowLimit = 2
-
   /// The accessibility identifier of the text of the capped row.
   static let capIdentifier = "gallery-cap"
 
@@ -54,7 +49,7 @@ enum ButtonGalleryFixtures {
     let style = EditorStyle.default
     let session = SessionModel.previewSample
     let message = try #require(PreviewFixtures.firstEntry(in: session, as: AgentMessageEntry.self))
-    let rows = CommandOutputView.VisibleRows(output: cappedOutput, limit: cappedRowLimit)
+    let rows = CappedOutputFixtures.rows
     let permissionCard = try SnapshotFixtures.permissionCard()
     return VStack(alignment: .leading, spacing: style.tile.margin) {
       StatusBar(

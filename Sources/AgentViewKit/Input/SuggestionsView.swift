@@ -79,13 +79,8 @@ struct SuggestionChip: View {
     EditorButton(suggestion, systemImage: SuggestionsView.chipSymbol, look: .action) {
       text.wrappedValue = AttributedString(suggestion)
     }
-    // The chip is its own glass in the container of the floating controls,
-    // not a button on another glass, so it keeps the glass style.
-    .editorButtonSurface(.content)
-    .buttonBorderShape(.capsule)
-    .floatingGlassID(FloatingGlassID.suggestion(index))
-    .accessibilityIdentifier(SuggestionsView.chipIdentifier(at: index))
-    .agentControlScope(SuggestionsView.chipIdentifier(at: index))
+    .floatingGlassAction(
+      glassID: FloatingGlassID.suggestion(index), identifier: SuggestionsView.chipIdentifier(at: index))
   }
 }
 

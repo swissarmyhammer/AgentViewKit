@@ -14,8 +14,7 @@ import SwiftUI
 /// the floating controls. Its glass has the id ``FloatingGlassID/scrollPill``
 /// (`.floatingGlassID(_:)`), so the change morphs (D113 answer 2). The pill is
 /// its own glass in that container, not a button on another glass, so it
-/// declares the content surface and keeps the glass style
-/// (`.editorButtonSurface(_:)`).
+/// keeps the glass style (``SwiftUI/View/floatingGlassAction(glassID:identifier:)``).
 public struct ScrollToBottomPill: View {
   /// The accessibility identifier of the pill.
   public static let identifier = "scroll-to-bottom-pill"
@@ -53,11 +52,7 @@ public struct ScrollToBottomPill: View {
 
   public var body: some View {
     EditorButton(Self.title(newItemCount: newItemCount), systemImage: Self.symbolName, look: .action, action: action)
-    .editorButtonSurface(.content)
-    .buttonBorderShape(.capsule)
-    .floatingGlassID(FloatingGlassID.scrollPill)
-    .accessibilityIdentifier(Self.identifier)
-    .agentControlScope(Self.identifier)
+    .floatingGlassAction(glassID: FloatingGlassID.scrollPill, identifier: Self.identifier)
   }
 }
 

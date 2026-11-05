@@ -1,5 +1,6 @@
 @testable import AgentViewKit
 import AgentViewKitStyle
+import AgentViewKitTestSupport
 import AppKit
 import EditorTestSupport
 import SwiftUI
@@ -30,12 +31,6 @@ import Testing
 
   /// The identifier of the Show All button of the capped output row.
   static let showAllIdentifier = "squeezed-show-all"
-
-  /// The output of the capped row: more rows than its limit.
-  static let cappedOutput = "one\ntwo\nthree\nfour"
-
-  /// The row limit of the capped row.
-  static let cappedRowLimit = 2
 
   /// Mounts `content` at ``squeezedWidth`` and renders it until the tooltip
   /// that a hidden caption sets has landed: the caption hides in one layout,
@@ -95,7 +90,7 @@ import Testing
   /// content keeps a caption it has no room for, so the row cuts it and sets
   /// no tooltip.
   @Test func aSqueezedRowButtonKeepsItsNameAsItsLabelAndItsTooltip() throws {
-    let rows = CommandOutputView.VisibleRows(output: Self.cappedOutput, limit: Self.cappedRowLimit)
+    let rows = CappedOutputFixtures.rows
     let row = OutputCapRow(
       rows: rows, capIdentifier: Self.capIdentifier, showAllIdentifier: Self.showAllIdentifier, showAll: {})
     let harness = Self.mountSqueezed(row)
