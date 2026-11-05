@@ -6,9 +6,10 @@ import Foundation
 /// The symbols that the view kits share are EditorKit's `EditorSymbol`, and
 /// the kit reads them there and draws them with `EditorSymbolImage`: a tool
 /// kind, a file kind and a status (also for a button of the same concept,
-/// such as Edit), the severity of a notice, a closed session, and the Reload,
-/// Dismiss, link and disclosure marks. This table holds the concepts that
-/// only the kit shows, so a view of the kit reads each of them as
+/// such as Edit), the severity of a notice, a closed session, the Reload,
+/// Dismiss, link and disclosure marks, the Back and Forward steps through a
+/// history, and a conversation. This table holds the concepts that only the
+/// kit shows, so a view of the kit reads each of them as
 /// `AgentSymbol.<concept>`. A symbol name of the kit is written in this file
 /// only: no other source file of the kit writes a symbol name, and this file
 /// writes each name one time.
@@ -119,14 +120,6 @@ nonisolated enum AgentSymbol {
   /// Error button of a banner.
   static let details = "text.magnifyingglass"
 
-  /// The symbol of the Previous button of the request deck, which brings the
-  /// request before the front request to the front.
-  static let previousRequest = "chevron.backward"
-
-  /// The symbol of the Next button of the request deck, which brings the
-  /// request after the front request to the front.
-  static let nextRequest = "chevron.forward"
-
   /// The symbol of the command that scrolls the thread to the next prompt.
   static let nextPrompt = "chevron.down"
 
@@ -143,12 +136,6 @@ nonisolated enum AgentSymbol {
 
   /// The symbol of Open Child Session.
   static let childSession = "arrow.down.forward"
-
-  /// The symbol of Previous Sibling Session.
-  static let previousSibling = "chevron.backward"
-
-  /// The symbol of Next Sibling Session.
-  static let nextSibling = "chevron.forward"
 
   /// The symbol of Jump to Session.
   static let jumpToSession = "magnifyingglass"
@@ -226,10 +213,6 @@ nonisolated enum AgentSymbol {
 
   /// The symbol of the list of sessions.
   static let sessionList = "list.bullet.rectangle"
-
-  /// The symbol of a conversation, such as an empty thread or an empty list
-  /// of sessions.
-  static let conversation = "bubble.left.and.bubble.right"
 
   /// The symbol of the sources of an answer.
   static let sources = "books.vertical"

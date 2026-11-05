@@ -15,7 +15,8 @@ import Testing
 /// the stop reasons, the plan and its priorities, the MCP server status, the
 /// diff, the command output, the message actions, the send state, the tool
 /// rows, the error card, the time of an entry, the permission options, the
-/// action buttons and the buttons that answer a request.
+/// action buttons, the buttons that answer a request, the steps through a
+/// history and the empty states of a conversation.
 @Suite @MainActor struct SymbolConceptTests {
   /// The meaning of a symbol. Each concept must have one symbol, and each
   /// symbol must have one concept.
@@ -33,6 +34,7 @@ import Testing
     case details, loadMore, showAll, signIn, signOut, suggestion
     case send, dismiss, open
     case usage, usageFull
+    case back, forward, conversation
   }
 
   /// One place of the kit that shows a symbol.
@@ -286,11 +288,35 @@ import Testing
     ]
   }
 
+  /// The symbols of a step back or forward through a history: the Previous
+  /// and Next buttons of the request deck, and the request and sibling
+  /// session commands.
+  static func historyUses() -> [Use] {
+    [
+      Use(concept: .back, place: "request deck Previous", name: RequestDeck.previousSymbol.systemImage),
+      Use(concept: .forward, place: "request deck Next", name: RequestDeck.nextSymbol.systemImage),
+      Use(concept: .back, place: "Previous Request command", name: AgentCommandVerb.previousRequest.icon),
+      Use(concept: .forward, place: "Next Request command", name: AgentCommandVerb.nextRequest.icon),
+      Use(concept: .back, place: "Previous Sibling Session command", name: AgentCommandVerb.previousSibling.icon),
+      Use(concept: .forward, place: "Next Sibling Session command", name: AgentCommandVerb.nextSibling.icon),
+    ]
+  }
+
+  /// The symbols of a conversation: the standard empty state of a thread and
+  /// the empty state of a list of sessions.
+  static func conversationUses() -> [Use] {
+    [
+      Use(concept: .conversation, place: "empty thread", name: ConversationEmptyContent.standard.systemImage ?? ""),
+      Use(concept: .conversation, place: "empty session list", name: SessionListView.emptySymbol.systemImage),
+    ]
+  }
+
   /// Each use that the tests read.
   static func allUses() throws -> [Use] {
     toolUses() + (try stateBannerUses()) + stopReasonUses() + otherBannerUses() + planUses() + priorityUses()
       + connectionStatusUses() + diffUses() + commandOutputUses() + messageActionUses() + sendStateUses() + cardUses()
-      + permissionOptionUses() + actionButtonUses() + requestButtonUses() + usageRingUses()
+      + permissionOptionUses() + actionButtonUses() + requestButtonUses() + usageRingUses() + historyUses()
+      + conversationUses()
   }
 
   // MARK: - The checks
@@ -338,6 +364,17 @@ import Testing
 
   @Test func eachButtonOfTheURLConsentCardShowsADifferentSymbol() {
     NameChecks.expectDistinctNames(Self.urlConsentButtonUses().map(\.name))
+  }
+
+  /// The back, forward and conversation symbols are the action symbols of
+  /// EditorKit's `EditorSymbol`, which Testudo shows for the same concepts.
+  @Test func theHistoryAndConversationSymbolsAreTheActionsOfEditorKit() {
+    let actions: [Concept: EditorSymbol.Action] = [.back: .back, .forward: .forward, .conversation: .conversation]
+    let others = (Self.historyUses() + Self.conversationUses()).filter {
+      $0.name != actions[$0.concept].map { EditorSymbol.action($0).systemImage }
+    }
+
+    #expect(others.isEmpty, "\(others)")
   }
 
   @Test func eachMCPServerStatusShowsADifferentSymbol() {

@@ -477,7 +477,7 @@ enum PreviewFixtures {
   /// ``ConversationEmptyState``.
   static let headerSymbols = [
     HeaderSymbol(header: "Agent header", name: AgentInfoHeader.symbol),
-    HeaderSymbol(header: "Empty conversation", name: AgentSymbol.conversation),
+    HeaderSymbol(header: "Empty conversation", name: EditorSymbol.action(.conversation).systemImage),
   ]
 
   /// The name of the agent of ``authConnection(methods:agentName:openSessions:)``.
