@@ -137,9 +137,10 @@ public struct StatusBar: View {
     }
 
     /// The accessibility label of the text of the bar: ``accessibilityLabel``,
-    /// or the title and the explanation.
+    /// or the ``StatusTitleText/label(title:explanation:)`` of the title and
+    /// the explanation.
     var textLabel: String {
-      accessibilityLabel ?? (explanation.isEmpty ? title : "\(title), \(explanation)")
+      accessibilityLabel ?? StatusTitleText.label(title: title, explanation: explanation)
     }
   }
 

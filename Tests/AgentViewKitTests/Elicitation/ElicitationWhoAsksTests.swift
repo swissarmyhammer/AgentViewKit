@@ -4,13 +4,17 @@ import Testing
 
 /// Tests of the "who asks" text of ``ElicitationHeader``: the visible text of
 /// ``ElicitationHeader/whoAsks(agentPath:source:rootLabel:)`` and the label of
-/// ``ElicitationHeader/whoAsksAccessibilityLabel(agentPath:source:rootLabel:)``.
+/// ``ElicitationHeader/whoAsksAccessibilityLabel(agentPath:source:rootLabel:locale:)``.
 ///
 /// The functions take the raw values of a `PendingElicitation`, so these
-/// tests need no session and no window.
+/// tests need no session and no window. The label lists the names in the
+/// list format of ``locale``, the English locale of the United States.
 @Suite struct ElicitationWhoAsksTests {
   /// The root label of the rows that do not set their own.
   nonisolated static let root = "root"
+
+  /// The locale of the labels of the tests.
+  nonisolated static let locale = Locale(identifier: "en_US")
 
   /// One row of the table: the values of a request and the two texts.
   struct Row: Sendable, CustomTestStringConvertible {
@@ -59,7 +63,7 @@ import Testing
 
   @Test(arguments: rows) func theAccessibilityLabelFollowsTheTable(row: Row) {
     let label = ElicitationHeader.whoAsksAccessibilityLabel(
-      agentPath: row.agentPath, source: row.source, rootLabel: row.rootLabel)
+      agentPath: row.agentPath, source: row.source, rootLabel: row.rootLabel, locale: Self.locale)
 
     #expect(label == row.accessibility)
   }

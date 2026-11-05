@@ -42,6 +42,7 @@ struct SessionJumpList: View {
 
   @State private var query = ""
   @Environment(\.editorStyle) private var editorStyle
+  @Environment(\.locale) private var locale
 
   /// The text of the path of an entry.
   ///
@@ -87,7 +88,7 @@ struct SessionJumpList: View {
         } label: {
           VStack(alignment: .leading) {
             Text(Self.pathText(of: entry, agent: agent))
-            Text(SessionStateText.choiceLabel(for: entry))
+            Text(SessionStateText.choiceLabel(for: entry, locale: locale))
               .font(.caption)
               .foregroundStyle(.secondary)
           }

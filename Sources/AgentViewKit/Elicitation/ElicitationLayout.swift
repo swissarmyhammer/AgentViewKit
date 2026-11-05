@@ -45,24 +45,35 @@ public struct ElicitationLayoutContext {
 /// VoiceOver reads this text as the value of the tab.
 public nonisolated enum ElicitationTabMarks {
   /// The mark of a field that must have an answer.
-  public static let required = "Required"
+  public static var required: String {
+    String(localized: "Required", bundle: .module)
+  }
   /// The mark of a field that can stay empty.
-  public static let optional = "Optional"
+  public static var optional: String {
+    String(localized: "Optional", bundle: .module, comment: "The mark of a field tab whose field can stay empty.")
+  }
   /// The mark of a field with an answer that passes validation.
-  public static let answered = "Answered"
+  public static var answered: String {
+    String(localized: "Answered", bundle: .module, comment: "The mark of a field tab with a valid answer.")
+  }
   /// The mark of a field with no valid answer.
-  public static let notAnswered = "No answer"
+  public static var notAnswered: String {
+    String(localized: "No answer", bundle: .module, comment: "The mark of a field tab with no valid answer.")
+  }
 
   /// The accessibility value of a tab.
   ///
   /// - Parameters:
   ///   - required: Whether the field must have an answer.
   ///   - answered: Whether the field has an answer that passes validation.
-  /// - Returns: The two marks, with a comma between them.
+  /// - Returns: The two marks in one localized string, such as "Required,
+  ///   Answered".
   public static func text(required: Bool, answered: Bool) -> String {
     let requiredMark = required ? Self.required : optional
     let answeredMark = answered ? Self.answered : notAnswered
-    return "\(requiredMark), \(answeredMark)"
+    return String(
+      localized: "elicitation-tab.marks", defaultValue: "\(requiredMark), \(answeredMark)", bundle: .module,
+      comment: "The VoiceOver value of a field tab: whether the field is required, then whether it has an answer.")
   }
 }
 

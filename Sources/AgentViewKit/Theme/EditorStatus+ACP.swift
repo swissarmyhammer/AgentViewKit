@@ -107,7 +107,9 @@ nonisolated extension EditorStatus {
   ///   detail.
   var summary: String {
     guard let detail else { return label }
-    return String(localized: "\(label): \(detail)", bundle: .module)
+    return String(
+      localized: "status.summary", defaultValue: "\(label): \(detail)", bundle: .module,
+      comment: "A status in one text: its label, such as Failed, then its detail.")
   }
 
   // MARK: - Shared statuses

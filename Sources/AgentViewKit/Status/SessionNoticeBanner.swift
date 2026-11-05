@@ -85,6 +85,8 @@ struct NoticeBanner: View {
   /// The closure that the Dismiss button calls.
   let dismiss: () -> Void
 
+  @Environment(\.locale) private var locale
+
   /// The name of a severity.
   ///
   /// - Parameter severity: The severity of a notice.
@@ -161,22 +163,24 @@ struct NoticeBanner: View {
 
   /// The accessibility label of the banner of a notice.
   ///
-  /// - Parameter notice: The notice.
-  /// - Returns: The severity, the title and the description, separated by
-  ///   commas. A notice with no description, or with an empty title, gives no
-  ///   part for it.
-  private static func label(for notice: SessionNotice) -> String {
+  /// - Parameters:
+  ///   - notice: The notice.
+  ///   - locale: The locale of the label.
+  /// - Returns: The severity, the title and the description, as a list in
+  ///   `FormatStyle/spokenParts(locale:)`. A notice with no description, or
+  ///   with an empty title, gives no part for it.
+  private static func label(for notice: SessionNotice, locale: Locale) -> String {
     [severityLabel(notice.severity), notice.title, notice.description]
       .compactMap { $0.map(trimmed) }
       .filter { !$0.isEmpty }
-      .joined(separator: ", ")
+      .formatted(.spokenParts(locale: locale))
   }
 
   var body: some View {
     let lines = Self.lines(severity: notice.severity, title: notice.title, description: notice.description)
     NoticeRow(
       severity: notice.severity, title: lines.title, description: lines.explanation,
-      label: Self.label(for: notice), identifier: SessionNoticeBanner.identifier(for: notice.id),
+      label: Self.label(for: notice, locale: locale), identifier: SessionNoticeBanner.identifier(for: notice.id),
       dismissIdentifier: SessionNoticeBanner.dismissIdentifier(for: notice.id), dismiss: dismiss)
   }
 }

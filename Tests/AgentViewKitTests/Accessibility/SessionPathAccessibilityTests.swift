@@ -35,7 +35,8 @@ import Testing
     let session = try await Self.openChain()
     defer { session.close() }
 
-    let label = SessionBreadcrumb.accessibilityLabel(for: try #require(session.session(Self.grandchild)))
+    let label = SessionBreadcrumb.accessibilityLabel(
+      for: try #require(session.session(Self.grandchild)), locale: Locale(identifier: "en_US"))
 
     #expect(label == "Linter, In progress")
   }

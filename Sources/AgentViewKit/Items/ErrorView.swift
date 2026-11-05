@@ -71,7 +71,7 @@ public struct ErrorView: View {
       // into the element of an `ItemRow` and loses its identifier.
       StatusTitleLayout(
         title: content.title, explanation: content.detail,
-        textLabel: String(localized: "\(content.title), \(content.detail)", bundle: .module),
+        textLabel: StatusTitleText.label(title: content.title, explanation: content.detail),
         identifier: Self.identifier
       ) {
         EditorSymbolImage(systemName: content.symbolName, tone: .error)

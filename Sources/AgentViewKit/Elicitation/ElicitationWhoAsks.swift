@@ -56,7 +56,8 @@ extension ElicitationHeader {
   ///
   /// The label has the full path, with no "…" and no "›", for example
   /// "Asked by root, planner, reviewer, from runCode". With no source, the
-  /// label is, for example, "Asked by root, reviewer".
+  /// label is, for example, "Asked by root, reviewer". The names are a list
+  /// in the narrow list format of `locale`, inside one localized string.
   ///
   /// - Parameters:
   ///   - agentPath: The names of the agents between the root agent and the
@@ -64,14 +65,23 @@ extension ElicitationHeader {
   ///   - source: The thing that asks inside the agent, or `nil`
   ///     (`PendingElicitation.source`).
   ///   - rootLabel: The label of the root agent.
+  ///   - locale: The locale of the label.
   /// - Returns: The label, or `nil` for no line when `agentPath` is empty
   ///   and `source` is `nil`.
-  public static func whoAsksAccessibilityLabel(agentPath: [String], source: String?, rootLabel: String) -> String? {
+  public static func whoAsksAccessibilityLabel(
+    agentPath: [String], source: String?, rootLabel: String, locale: Locale = .autoupdatingCurrent
+  ) -> String? {
     guard hasWhoAsks(agentPath: agentPath, source: source) else { return nil }
-    let names = ([rootLabel] + agentPath).joined(
-      separator: String(localized: ", ", bundle: .module))
-    guard let source else { return String(localized: "Asked by \(names)", bundle: .module) }
-    return String(localized: "Asked by \(names), from \(source)", bundle: .module)
+    let names = [rootLabel] + agentPath
+    let style: ListFormatStyle<StringStyle, [String]> = .spokenParts(locale: locale)
+    guard let source else {
+      return String(
+        localized: "Asked by \(names, format: style)", bundle: .module, locale: locale,
+        comment: "The VoiceOver label of the agents that ask for input: the agent path, from the root agent.")
+    }
+    return String(
+      localized: "Asked by \(names, format: style), from \(source)", bundle: .module, locale: locale,
+      comment: "The VoiceOver label of the agents that ask for input: the agent path, then the thing that asks.")
   }
 
   /// Tells whether a request has "who asks" data.
@@ -92,8 +102,8 @@ extension ElicitationHeader {
 /// EditorKit theme at the callout text style, and in `\.placedSecondary`. The
 /// text is selectable. VoiceOver reads the line as one element with the label
 /// of
-/// ``ElicitationHeader/whoAsksAccessibilityLabel(agentPath:source:rootLabel:)``
-/// and the identifier ``ElicitationView/whoAsksIdentifier``. A request with
+/// ``ElicitationHeader/whoAsksAccessibilityLabel(agentPath:source:rootLabel:locale:)``
+/// in the locale of the environment, and the identifier ``ElicitationView/whoAsksIdentifier``. A request with
 /// no "who asks" data shows no line.
 struct ElicitationWhoAsksLine: View {
   /// The agent path of the request.
@@ -104,12 +114,13 @@ struct ElicitationWhoAsksLine: View {
 
   @Environment(\.elicitationRootAgentLabel) private var rootLabel
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.locale) private var locale
   @Environment(\.placedSecondary) private var placedSecondary
 
   var body: some View {
     if let text = ElicitationHeader.whoAsks(agentPath: agentPath, source: source, rootLabel: rootLabel),
       let label = ElicitationHeader.whoAsksAccessibilityLabel(
-        agentPath: agentPath, source: source, rootLabel: rootLabel)
+        agentPath: agentPath, source: source, rootLabel: rootLabel, locale: locale)
     {
       Text(text)
         .font(editorTheme.font(for: .ui, style: .callout))

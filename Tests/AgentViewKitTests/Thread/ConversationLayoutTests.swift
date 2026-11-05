@@ -65,4 +65,8 @@ import Testing
   @Test func theListValueTellsTheShownAndTotalCounts() {
     #expect(ConversationLayout.listValue(shown: 200, count: 300) == "200 of 300 items")
   }
+
+  @Test func theListValueOfAThreadOfOneItemNamesOneItem() {
+    #expect(ConversationLayout.listValue(shown: 1, count: 1) == "1 of 1 item")
+  }
 }

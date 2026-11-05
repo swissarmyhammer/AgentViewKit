@@ -264,7 +264,9 @@ public struct ElicitationURLConsentView: View {
   /// The text of the waiting state. The visible text and the VoiceOver
   /// label of the waiting state use this text.
   private var waitingMessage: String {
-    "Waiting for \(waitingHost) to finish"
+    String(
+      localized: "Waiting for \(waitingHost) to finish", bundle: .module,
+      comment: "The state of a sign-in that goes on in the browser: the site that the user is on.")
   }
 
   /// The buttons of the current step.

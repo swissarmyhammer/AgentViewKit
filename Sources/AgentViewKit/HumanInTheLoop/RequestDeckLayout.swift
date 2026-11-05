@@ -57,13 +57,18 @@ nonisolated struct DeckLayout: Equatable, Sendable {
   /// controls. Only a deck with more than one request shows it.
   var showsHeader: Bool { count > 1 }
 
-  /// The VoiceOver label of the header: "Request k of N", and ", M more"
-  /// when M cards do not show. VoiceOver reads "k of N" and "+N" as this one
-  /// element.
+  /// The VoiceOver label of the header: "Request k of N", or "Request k of
+  /// N, M more" when M cards do not show, each one localized string.
+  /// VoiceOver reads "k of N" and "+N" as this one element.
   var positionLabel: String {
-    let request = String(localized: "Request \(position) of \(count)", bundle: .module)
-    guard moreCount > 0 else { return request }
-    return String(localized: "\(request), \(moreCount) more", bundle: .module)
+    guard moreCount > 0 else {
+      return String(
+        localized: "Request \(position) of \(count)", bundle: .module,
+        comment: "The VoiceOver label of the header of a deck of requests: the place of the front request.")
+    }
+    return String(
+      localized: "Request \(position) of \(count), \(moreCount) more", bundle: .module,
+      comment: "The VoiceOver label of a deck header: the place of the front request, then the cards that do not show.")
   }
 
   /// The place of a card in the deck.

@@ -108,12 +108,22 @@ public nonisolated enum URLDisplay {
   public static func warning(forHost host: String) -> String? {
     let labels = host.lowercased().split(separator: ".")
     if labels.contains(where: { $0.hasPrefix(punycodePrefix) }) {
-      return "The address \(host) uses encoded international characters (Punycode). "
-        + "Make sure that it is the site that you expect."
+      return String(
+        localized: "url-display.punycode-warning",
+        defaultValue: """
+          The address \(host) uses encoded international characters (Punycode). \
+          Make sure that it is the site that you expect.
+          """, bundle: .module,
+        comment: "The warning for a web address whose host has a Punycode label, which can look like another host.")
     }
     if scripts(in: host).count > 1 {
-      return "The address \(host) has letters from more than one alphabet. "
-        + "Make sure that it is the site that you expect."
+      return String(
+        localized: "url-display.mixed-script-warning",
+        defaultValue: """
+          The address \(host) has letters from more than one alphabet. \
+          Make sure that it is the site that you expect.
+          """, bundle: .module,
+        comment: "The warning for a web address whose host mixes alphabets, which can look like another host.")
     }
     return nil
   }
