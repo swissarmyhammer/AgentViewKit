@@ -1,8 +1,21 @@
 ---
 assignees:
 - claude-code
-position_column: todo
-position_ordinal: '8780'
+comments:
+- actor: claude-code
+  id: 01m6nt1h7xpvr3xsq7trdfs7gq
+  text: |-
+    User decisions, 2026-11-05:
+    1. Font role: the elicitation value inputs use the **ui** role, as EK does. EK's NumberField, NumberText and DateField are used as they are (no EK option). FontRoleHostedTests `theNumberInputOfAnElicitationNumberFieldDrawsInTheDisplayRole` becomes `...DrawsInTheUIRole` and expects `.ui`.
+    2. Date: the `date`/`date-time` field becomes EK `DateField(model:id:selection: Binding<Date?>, components:)` (`.date` / `.dateAndTime`). It replaces the system DatePicker and the Set Date / Remove Date buttons (an empty field is no answer: a commit of empty text clears it).
+
+    Research:
+    - AgentOneLineField is internal; its value-form init is used only by ElicitationNumberField. `ElicitationDateField.clearIdentifier(for:)` is public: grep of origin/main of KanbanViewKit (d73069b), SnapshotViewKit (b03783e) and TestudoApp (52615e5) for clearIdentifier / ElicitationDateField / ElicitationNumberField: no hits, so it is removed.
+    - EK (dc2b242): NumberField(model:id:value: Binding<Int|Double>) uses `.integer` / `.floatingPoint` formats in the env locale; it writes only when the committed text's value differs from the bound value's text. NumberText(value) draws `theme.font(for: .ui, style: .body)`. DateField's calendar button id is `DateField.pickerAccessibilityIdentifier(of: textIdentifier)`; InspectorDriver.pick(_:in:) presses it and sets the popover NSDatePicker. `onEditorCommit` is on EditorSlotComposing, so the kit's `onFieldSubmit` can move from SingleLineField to EditorSlotComposing and serve NumberField and DateField.
+    - The number input's max width scales with `@ThemeFontScale(.display)`; with the ui role it must scale with `.ui`.
+  timestamp: 2026-11-05T12:13:22.557011+00:00
+position_column: doing
+position_ordinal: 8d80
 title: Elicitation number and date inputs onto EK NumberField/NumberText/DateField (font role decision)
 ---
 Found while working ^xb69s3d (timing fields onto EK ^d2fa1j4).

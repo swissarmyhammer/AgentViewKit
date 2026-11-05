@@ -40,6 +40,10 @@ comments:
   id: 01m6nr0rnzyg0ddrysdbm3hxps
   text: 'User decision (2026-11-05): no fixed 240 pt diff box. Previews grow to their full content height and the inspector or thread scrolls: "scrolling in a little field is ass compared to scrolling the whole inspector." EK''s PreviewField always applies `.previewFrame()` (PreviewField.swift:71), so I''ve asked editorkit-b5 for intrinsic sizing on PreviewField, for diff and code/text and the inspector''s `.preview` row. This card holds until that SHA lands, then: update, use the intrinsic sizing in DiffView, tool calls and AttachmentInspector, re-capture, and drop any test that pinned the 240 pt height. Testudo waits on this card''s origin SHA for the AttachmentInspector id change.'
   timestamp: 2026-11-05T11:38:00.255481+00:00
+- actor: claude-code
+  id: 01m6ntvqsxcrspsat6y6m2ankk
+  text: 'Waiting on EK ^sjjykvg''s origin SHA (coordinator, 2026-11-05). The user approved dropping side-by-side, and decided there is no fixed-height preview: diffs, code and text grow to their full content height and the thread or inspector scrolls. When the SHA lands: merge AVK origin main (symbols, status, path chip, SharedSymbol and ChipFlowLayout are gone; DiffFileLabel is on FileDiff.Operation); seed .build from the main checkout; `swift package update`, keeping the codecontext pin at ffa5a66 if it is still needed; drop the 240 pt assumptions (the DiffView, DiffRendererSlot and ARCHITECTURE docs say "at the preview height", SnapshotFixtures.diffHeight, and the reason given for 90a51911''s thread-screen reorder); add a hosted test that a diff in a tool call and in the inspector has no inner vertical scroll view (`scrollsAsOne`) and grows when its content grows; capture the gallery again; then commit. The AttachmentInspector QuickLook row keeps EK''s previewHeight. AVK has no `.inspectorPreviewFrame()` call left, because PreviewField frames the `.file` value itself.'
+  timestamp: 2026-11-05T12:27:41.245486+00:00
 position_column: doing
 position_ordinal: '8680'
 title: 'Adopt EditorKit one-value preview (^jn3qmmy): delete AVK''s single diff preview'
