@@ -1,3 +1,4 @@
+import EditorSwiftUI
 import SwiftUI
 
 /// The columns of the Gallery tab of the demo app: a sidebar, a detail, and
@@ -51,7 +52,7 @@ public struct GalleryColumns<Sidebar: View, Detail: View, LookControls: View>: V
     }
     .toolbar {
       ToolbarItem {
-        Button("Look", systemImage: GalleryColumnsLayout.lookSymbol) {
+        EditorToolbarButton("Look", systemImage: GalleryColumnsLayout.lookSymbol) {
           showsLookControls.toggle()
         }
         .accessibilityIdentifier(GalleryColumnsLayout.lookButtonIdentifier)

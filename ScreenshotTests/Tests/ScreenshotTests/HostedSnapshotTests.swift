@@ -127,6 +127,21 @@ import Testing
       ChipRowsGalleryFixtures.gallery, named: "chip-rows-narrow", size: ChipRowsGalleryFixtures.size)
   }
 
+  /// The button families of the kit in a narrow column: each button with too
+  /// little room shows its symbol alone, and no caption is cut
+  /// (``ButtonGalleryFixtures``).
+  @Test func theButtonsInANarrowColumn() async throws {
+    try await Self.generate(
+      try ButtonGalleryFixtures.gallery(), named: "buttons-narrow", size: ButtonGalleryFixtures.narrowSize)
+  }
+
+  /// The button families of the kit in a wide column, each with its whole
+  /// caption (``ButtonGalleryFixtures``).
+  @Test func theButtonsInAWideColumn() async throws {
+    try await Self.generate(
+      try ButtonGalleryFixtures.gallery(), named: "buttons-wide", size: ButtonGalleryFixtures.wideSize)
+  }
+
   @Test func theStatusBanner() async throws {
     let banner = StateBanner(session: SnapshotFixtures.runningSession)
 

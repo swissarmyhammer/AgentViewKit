@@ -322,7 +322,7 @@ public struct AgentThreadView<Composer: View>: View {
   /// (D112 (e)). The header is a floating surface: it is on the floating
   /// glass of the kit, in its own glass container. The banners are content
   /// with no glass, out of that container, so their buttons keep the button
-  /// styles of content (``RequestDeckPlace/style(of:)``). From the top, the
+  /// styles of content (`EditorStyle.ButtonSurface.content`). From the top, the
   /// bar shows the header and the connection banner when the host gave the
   /// connection model, the notice banner and the stream banner. VoiceOver
   /// reads the top bar, the list and then the bottom bar.
@@ -419,10 +419,9 @@ public struct AgentThreadView<Composer: View>: View {
   /// The list scrolls under the bar (EditorKit `style.md`, "Scroll
   /// under the bars", D113 answer 7). The banner and the login prompt are
   /// content: they have no glass, and a container with no glass child draws
-  /// nothing. Each of them declares the place of a bar with no glass
-  /// (``RequestDeckPlace/barWithoutGlass``), so their buttons keep the glass
-  /// styles (``RequestDeckPlace/style(of:)``, EditorKit `style.md`,
-  /// rule 4). Only the buttons on the glass of a request deck in the
+  /// nothing. Each of them declares the content surface for its buttons
+  /// (`.editorButtonSurface(_:)`), so they keep the glass style (EditorKit
+  /// `style.md`, rule 4). Only the buttons on the glass of a request deck in the
   /// composer slot use the bordered styles. From the top,
   /// the order is the pill, the banner, the login prompt when the host gave
   /// the connection model, and the composer. VoiceOver reads them in this

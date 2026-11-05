@@ -1,17 +1,26 @@
 import EditorStyle
+import EditorSwiftUI
 import SwiftUI
 
-/// The button of a ``StatusBar``: the title and the symbol of its
-/// ``StatusBar/Action``, disabled when the action takes no press, with the
-/// accessibility identifier and the hint of the action.
+/// The button of a ``StatusBar``: an EditorKit `EditorButton` in the action
+/// look, with the title and the symbol of its ``StatusBar/Action``, disabled
+/// when the action takes no press, with the accessibility identifier and the
+/// hint of the action.
 ///
-/// The button shows only its symbol when the action asks for it
-/// (``StatusBar/Action/isIconOnly``). It has no button style of its own. A
-/// ``StatusBarActionStyle``
-/// gives it one, and can add more around it, such as a focus scope.
+/// The button hides its caption and keeps its symbol when the bar has no room
+/// for the caption, and its title stays its accessibility label and its
+/// tooltip then (EditorKit `style.md`, "Buttons"). It shows only its symbol
+/// when the action asks for it (``StatusBar/Action/isIconOnly``). Its look
+/// comes from `\.editorStyle.buttons` and from the surface it stands on: the
+/// glass style in content, and the bordered style on a glass surface
+/// (`.editorButtonSurface(_:)`). A ``StatusBarActionStyle`` can add more
+/// around it, such as a focus scope.
 public struct StatusBarActionButton: View {
   /// The action of the button.
   let action: StatusBar.Action
+
+  /// Whether the captions of the buttons here show when they have room.
+  @Environment(\.editorButtonCaptions) private var captions
 
   /// Makes the button of an action.
   ///
@@ -21,25 +30,11 @@ public struct StatusBarActionButton: View {
   }
 
   public var body: some View {
-    Button(action.title, systemImage: action.systemImage, action: action.perform)
+    EditorButton(action.title, systemImage: action.systemImage, look: .action, action: action.perform)
+      .editorButtonCaptions(action.isIconOnly ? .hidden : captions)
       .disabled(!action.isEnabled)
       .accessibilityIdentifier(action.identifier)
       .modifier(AccessibilityHint(hint: action.hint))
-      .modifier(IconOnlyLabel(action: action))
-  }
-}
-
-/// The label of a button that shows only its symbol: its title is the tooltip.
-private struct IconOnlyLabel: ViewModifier {
-  /// The action of the button.
-  let action: StatusBar.Action
-
-  func body(content: Content) -> some View {
-    if action.isIconOnly {
-      content.labelStyle(.iconOnly).help(action.title)
-    } else {
-      content
-    }
   }
 }
 
@@ -96,19 +91,20 @@ public protocol StatusBarActionStyle {
   @ViewBuilder func makeBody(configuration: StatusBarActionConfiguration) -> Body
 }
 
-/// The default look of the button of a ``StatusBar``: the `.glass` button
-/// style. A bar is content, and the content scrolls under the bars of a view,
-/// so its button keeps the glass style (EditorKit `style.md`, rule 4).
+/// The default look of the button of a ``StatusBar``: the button of the action
+/// as it is, in the action look of EditorKit's `EditorButton`. A bar is
+/// content, and the content scrolls under the bars of a view, so its button
+/// keeps the glass style there (EditorKit `style.md`, rule 4).
 public struct GlassStatusBarActionStyle: StatusBarActionStyle {
   /// Makes the default style.
   public init() {}
 
-  /// Gives the button the `.glass` style.
+  /// Shows the button of the action as it is.
   ///
   /// - Parameter configuration: The action and its button.
-  /// - Returns: The button in the `.glass` style.
+  /// - Returns: The button, in the action look of its surface.
   public func makeBody(configuration: StatusBarActionConfiguration) -> some View {
-    configuration.button.buttonStyle(.glass).glassForegroundStyle()
+    configuration.button
   }
 }
 
@@ -128,11 +124,11 @@ extension View {
   }
 }
 
-/// A style that puts a border around the button, to show a style of the
-/// environment in the preview.
-private struct BorderedStatusBarActionStyle: StatusBarActionStyle {
+/// A style that stands the button on a glass surface, where the action look
+/// is bordered, to show a style of the environment in the preview.
+private struct GlassSurfaceStatusBarActionStyle: StatusBarActionStyle {
   func makeBody(configuration: StatusBarActionConfiguration) -> some View {
-    configuration.button.buttonStyle(.bordered)
+    configuration.button.editorButtonSurface(.glass)
   }
 }
 
@@ -140,7 +136,7 @@ private struct BorderedStatusBarActionStyle: StatusBarActionStyle {
   VStack(alignment: .leading) {
     StatusBar(message: StylePreviewFixtures.failureStatusMessage, action: StylePreviewFixtures.statusAction(isEnabled: true))
     StatusBar(message: StylePreviewFixtures.failureStatusMessage, action: StylePreviewFixtures.statusAction(isEnabled: true))
-      .statusBarActionStyle(BorderedStatusBarActionStyle())
+      .statusBarActionStyle(GlassSurfaceStatusBarActionStyle())
   }
   .padding()
 }

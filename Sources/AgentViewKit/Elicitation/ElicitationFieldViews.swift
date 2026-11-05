@@ -716,9 +716,8 @@ public struct ElicitationSingleChoiceField: View {
             systemImage: isSelected ? AgentSymbol.selected : AgentSymbol.notChosen
           )
         }
-        // The nearest button style wins: on the glass of a deck the button is
-        // bordered, and in content it keeps the plain style.
-        .requestActionStyle(.standard)
+        // A choice is a row whose content is the button (EditorKit
+        // `style.md`, "Buttons"): it keeps its whole title and draws no bezel.
         .buttonStyle(.plain)
         .help(choice.description ?? choice.title)
         .accessibilityAddTraits(isSelected ? .isSelected : [])

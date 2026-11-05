@@ -59,7 +59,6 @@ struct AgentAttachmentScope: ViewModifier {
         system: system, path: parentPath?.appending(segment) ?? .root(segment),
         service: hostService ?? presenter, groupsOff: groupsOff)
       content
-        .environment(\.agentAttachmentTarget, target)
         .environment(\.agentAttachmentScopeSegment, segment)
         .background(AgentAttachmentMount(target: target, presenter: presenter, registration: registration))
         .modifier(AttachmentPresentation(presenter: presenter))
@@ -97,10 +96,6 @@ extension View {
 }
 
 extension EnvironmentValues {
-  /// The target of the nearest ``AgentAttachmentScope``, or `nil`.
-  /// ``AttachmentActions`` dispatches its buttons through it.
-  @Entry var agentAttachmentTarget: AgentAttachmentTarget? = nil
-
   /// The segment of the nearest ``AgentAttachmentScope``, or `nil`.
   @Entry var agentAttachmentScopeSegment: FocusSegment? = nil
 }
@@ -205,8 +200,6 @@ struct AgentAttachmentMount: NSViewRepresentable {
   private func apply(anchor: NSView, scopeMount: AgentScopeMount) {
     presenter.anchor = anchor
     target.service = registration.service
-    target.system = registration.system
-    target.path = registration.path
     scopeMount.mount(at: registration.path, in: registration.system) {
       [target, path = registration.path, groupsOff = registration.groupsOff] registry in
       AgentAttachmentRegistration.register(target, at: path, into: &registry, groupsOff: groupsOff)

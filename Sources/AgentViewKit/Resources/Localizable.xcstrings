@@ -631,16 +631,6 @@
         }
       }
     },
-    "Dictate" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dictate"
-          }
-        }
-      }
-    },
     "Dictate the prompt" : {
       "localizations" : {
         "en" : {
@@ -1594,32 +1584,12 @@
         }
       }
     },
-    "Remove" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Remove"
-          }
-        }
-      }
-    },
     "Remove %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Remove %@"
-          }
-        }
-      }
-    },
-    "Remove this attachment" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Remove this attachment"
           }
         }
       }
@@ -1852,16 +1822,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Send a message to the agent."
-          }
-        }
-      }
-    },
-    "Send the prompt" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Send the prompt"
           }
         }
       }
@@ -2214,16 +2174,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Stop dictation"
-          }
-        }
-      }
-    },
-    "Stop the work of the agent" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stop the work of the agent"
           }
         }
       }
@@ -3475,16 +3425,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Usage"
-          }
-        }
-      }
-    },
-    "Use this prompt" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Use this prompt"
           }
         }
       }

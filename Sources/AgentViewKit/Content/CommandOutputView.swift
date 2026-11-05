@@ -221,12 +221,10 @@ public struct CommandOutputView: View {
         .lineLimit(1)
         .truncationMode(.middle)
       Spacer(minLength: editorStyle.spacing.s)
-      Button(Self.copyTitle, systemImage: AgentSymbol.copy) {
+      EditorToolbarButton(Self.copyTitle, systemImage: AgentSymbol.copy) {
         pasteboard.copyText(output)
       }
-      .labelStyle(.iconOnly)
-      .buttonStyle(.borderless)
-      .help(Self.copyTitle)
+      .editorButtonCaptions(.hidden)
       .accessibilityIdentifier(Self.copyIdentifier)
     }
     .editorBlockHeader()

@@ -1,5 +1,6 @@
 import EditorCommandsUI
 import EditorStyle
+import EditorSwiftUI
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -372,15 +373,10 @@ public struct ConversationView<EmptyState: View>: View {
 
   /// The row at the top of the list that shows one more page.
   private var loadEarlierRow: some View {
-    Button(action: showEarlierPage) {
-      Label(
-        String(localized: "Load Earlier", bundle: .module),
-        systemImage: ConversationLayout.loadEarlierSymbolName
-      )
-        .fontWeight(editorStyle.symbolWeight)
-    }
-    .buttonStyle(.glass)
-    .glassForegroundStyle()
+    EditorButton(
+      String(localized: "Load Earlier", bundle: .module), systemImage: ConversationLayout.loadEarlierSymbolName,
+      look: .action, action: showEarlierPage
+    )
     .frame(maxWidth: .infinity)
     .accessibilityAddTraits(.causesPageTurn)
     .accessibilityScrollAction { edge in

@@ -54,13 +54,14 @@ import os
 /// call for an elicitation that already resolved changes nothing in the
 /// model.
 ///
-/// Open in Browser and Retry are the primary actions. The place of the card
-/// gives the button styles (``RequestDeckPlace/style(of:)``): in content, the
-/// primary action has the `.glass` style. In a ``RequestDeck`` in a bar of
-/// floating controls, the card is on the glass of the deck, so the primary
-/// action, Cancel and Decline have the `.bordered` style. The primary action
-/// has no prominent style, because the accent is only for the selection and
-/// the focus (card ^k06v4gt).
+/// Open in Browser and Retry are the primary actions. Each button is an
+/// EditorKit `EditorButton`: Cancel and Decline in the system style of their
+/// place, and the primary action in the action look, which is the glass style
+/// in content and the bordered style on the glass of a ``RequestDeck`` in a
+/// bar of floating controls. The primary action has no prominent style,
+/// because the accent is only for the selection and the focus (card
+/// ^k06v4gt). A button with too little room hides its caption and keeps its
+/// symbol, with its name as its label and its tooltip.
 ///
 /// The card reads the waiting state from the owner, so a new card for an
 /// accepted request shows the waiting state. The browser session runs in the
@@ -276,26 +277,23 @@ public struct ElicitationURLConsentView: View {
       switch phase {
       case .idle:
         cancelButton(action: cancel)
-        Button(
+        EditorButton(
           String(localized: "Decline", bundle: .module), systemImage: Self.declineSymbol,
           action: decline
         )
-          .requestActionStyle(.standard)
           .accessibilityIdentifier(Self.declineIdentifier)
-        Button(
-          String(localized: "Open in Browser", bundle: .module), systemImage: Self.openSymbol,
+        EditorButton(
+          String(localized: "Open in Browser", bundle: .module), systemImage: Self.openSymbol, look: .action,
           action: open
         )
-          .requestActionStyle(.primary)
           .disabled(request.url == nil)
           .accessibilityIdentifier(Self.openIdentifier)
       case .waiting:
         cancelButton(action: stopWaiting)
-        Button(
-          String(localized: "Retry", bundle: .module), systemImage: Self.retrySymbol,
+        EditorButton(
+          String(localized: "Retry", bundle: .module), systemImage: Self.retrySymbol, look: .action,
           action: openBrowser
         )
-          .requestActionStyle(.primary)
         .accessibilityLabel(
           String(
             localized: "Open \(ElicitationHeader.agentServer) in the browser again", bundle: .module
@@ -312,11 +310,10 @@ public struct ElicitationURLConsentView: View {
   /// - Parameter action: The action of the button in the current step.
   /// - Returns: The Cancel button.
   private func cancelButton(action: @escaping () -> Void) -> some View {
-    Button(
+    EditorButton(
       String(localized: "Cancel", bundle: .module), systemImage: Self.cancelSymbol, role: .cancel,
       action: action
     )
-      .requestActionStyle(.standard)
       .accessibilityIdentifier(Self.cancelIdentifier)
   }
 

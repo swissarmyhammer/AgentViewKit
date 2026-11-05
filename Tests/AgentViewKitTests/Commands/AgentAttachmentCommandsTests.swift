@@ -207,23 +207,6 @@ import Testing
         == AgentAttachmentVerb.allCases.map { RecordingAttachmentFileService.Call(verb: $0, attachment: attachment) })
   }
 
-  /// A button dispatches through the target, which runs the command at the
-  /// path of its scope.
-  @Test func theTargetRunsAVerbThroughTheRegistryOfItsScope() throws {
-    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
-    defer { directory.remove() }
-    let attachment = try AttachmentFixtures.attachment(named: "blob.bin", in: directory)
-    let fixture = Self.makeFixture(for: attachment)
-    let system = CommandSystem()
-    system.registry = fixture.registry
-    fixture.target.system = system
-    fixture.target.path = fixture.path
-
-    #expect(fixture.target.perform(.revealAttachment))
-
-    #expect(fixture.service.calls == [.init(verb: .revealAttachment, attachment: attachment)])
-  }
-
   // MARK: - Availability
 
   /// Reveal in Finder, Save and Quick Look need a local file. Open and Share

@@ -4,7 +4,8 @@ import EditorTheme
 import SwiftUI
 
 /// The row that tells how many rows of an output show, with a Show All
-/// button.
+/// button: an EditorKit `EditorToolbarButton`, which shows its symbol alone
+/// when the row has no room for its caption.
 ///
 /// ``CommandOutputView`` and ``TerminalView`` show this row when the output
 /// has more rows than the row limit.
@@ -36,12 +37,10 @@ struct OutputCapRow: View {
         .foregroundStyle(themeSecondary)
         .accessibilityIdentifier(capIdentifier)
       Spacer(minLength: editorStyle.spacing.s)
-      Button(
+      EditorToolbarButton(
         String(localized: "Show all \(rows.totalCount) lines", bundle: .module),
         systemImage: Self.showAllSymbol, action: showAll
       )
-        .buttonStyle(.borderless)
-        .font(editorTheme.font(for: .ui, style: .caption))
         .accessibilityIdentifier(showAllIdentifier)
     }
   }
