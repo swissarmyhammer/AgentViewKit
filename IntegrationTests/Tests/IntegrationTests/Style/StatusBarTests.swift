@@ -8,26 +8,30 @@ import Testing
 /// Checks the status bar through its public API: the message and its
 /// severity, the tone of the symbol, the action and the style of its button.
 @Suite @MainActor struct StatusBarTests {
+  /// The accessibility identifier of the Reload button of the tests.
+  static let actionIdentifier = "reload"
+
   /// Makes a message of `severity`.
   ///
-  /// - Parameter severity: The severity of the message.
+  /// - Parameters:
+  ///   - severity: The severity of the message.
+  ///   - explanation: The explanation below the title. An empty explanation
+  ///     shows no line.
   /// - Returns: The message.
-  static func message(_ severity: StatusBar.Message.Severity) -> StatusBar.Message {
+  static func message(
+    _ severity: StatusBar.Message.Severity, explanation: String = "Explanation"
+  ) -> StatusBar.Message {
     StatusBar.Message(
-      title: "Title", explanation: "Explanation", symbolName: EditorSymbol.severity(.information).systemImage,
-      identifier: "message",
-      severity: severity)
+      title: "Title", explanation: explanation, symbolName: EditorSymbol.severity(.information).systemImage,
+      identifier: "message", severity: severity)
   }
 
-  /// Makes an action that takes a press.
+  /// Makes the Reload button of the tests, which takes a press.
   ///
-  /// - Parameter hint: The accessibility hint of the action.
+  /// - Parameter hint: The accessibility hint of the button.
   /// - Returns: The action.
   static func action(hint: String? = nil) -> StatusBar.Action {
-    StatusBar.Action(
-      title: "Reload", systemImage: EditorSymbol.action(.reload).systemImage, identifier: "reload", isEnabled: true,
-      hint: hint,
-      perform: {})
+    StatusBarFixtures.reloadAction(identifier: actionIdentifier, hint: hint)
   }
 
   /// A style that records the identifier of each action it styles.
@@ -129,9 +133,7 @@ import Testing
   }
 
   @Test func aBarWithNoExplanationShowsNoExplanationLine() {
-    let titleOnly = StatusBar.Message(
-      title: "Title", explanation: "", symbolName: EditorSymbol.severity(.information).systemImage,
-      identifier: "message")
+    let titleOnly = Self.message(.neutral, explanation: "")
     let withLine = StyleViewHost.fittingSize(of: StatusBar(message: Self.message(.neutral), action: nil))
     let without = StyleViewHost.fittingSize(of: StatusBar(message: titleOnly, action: nil))
 

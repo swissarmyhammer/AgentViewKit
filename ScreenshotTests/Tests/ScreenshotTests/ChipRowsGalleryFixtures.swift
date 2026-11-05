@@ -8,18 +8,23 @@ import SwiftUI
 /// rows wrap.
 @MainActor
 enum ChipRowsGalleryFixtures {
-  /// The folder of each sample file.
-  static let folder = "/Users/preview/Board/Sources/Board/"
+  /// The folder of each sample location: short, so two chips share a row.
+  static let folder = "/Board/"
 
-  /// The names of the sample files: short names beside long ones, so a row
-  /// holds a few chips and then wraps.
+  /// The folder of each sample file of the patch.
+  static let patchFolder = "Board/"
+
+  /// The names of the sample files: short names, so a row holds more than one
+  /// chip, and one long name, which takes a row of its own.
   static let fileNames = [
-    "Board.swift", "BoardColumnHeaderView.swift", "Card.swift", "BoardColumnDropDelegate.swift",
-    "Tag.swift", "README.md",
+    "Board.swift", "Card.swift", "Tag.swift", "BoardColumnDropDelegate.swift", "Column.swift", "README.md",
   ]
 
   /// The line of every other sample location.
   static let locationLine = 42
+
+  /// The step between two sample locations that have a line: every other one.
+  static let lineStep = 2
 
   /// The location chips of a tool call: one chip for each sample file, every
   /// other one with a line.
@@ -27,7 +32,7 @@ enum ChipRowsGalleryFixtures {
     ToolCallLocationChips(
       locations: fileNames.enumerated().map { index, name in
         ToolCallLocationChips.Location(
-          path: folder + name, line: index.isMultiple(of: 2) ? locationLine : nil,
+          path: folder + name, line: index.isMultiple(of: lineStep) ? locationLine : nil,
           identifier: "gallery-location-\(index)")
       })
   }
@@ -35,7 +40,7 @@ enum ChipRowsGalleryFixtures {
   /// A git patch that adds one line to each sample file.
   static var patch: String {
     fileNames.map { name in
-      let path = "Sources/Board/\(name)"
+      let path = patchFolder + name
       return """
         --- a/\(path)
         +++ b/\(path)

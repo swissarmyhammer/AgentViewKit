@@ -66,9 +66,7 @@ import Testing
 
   /// A button of a bar. A press does nothing.
   static var action: StatusBar.Action {
-    StatusBar.Action(
-      title: "Reload", systemImage: EditorSymbol.action(.reload).systemImage, identifier: buttonIdentifier,
-      isEnabled: true, perform: {})
+    StatusBarFixtures.reloadAction(identifier: buttonIdentifier)
   }
 
   /// Shows `view` at the top of a window, at `width`.

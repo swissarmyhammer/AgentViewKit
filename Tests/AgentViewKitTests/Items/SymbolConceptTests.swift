@@ -235,7 +235,7 @@ import Testing
       Use(concept: .details, place: "banner Show Error", name: StateBanner.showErrorSymbol),
       Use(concept: .loadMore, place: "session list Load More", name: SessionListView.loadMoreSymbol),
       Use(concept: .showAll, place: "output Show All", name: OutputCapRow.showAllSymbol),
-      Use(concept: .signIn, place: "auth Sign In", name: AgentAuthView.signInSymbol),
+      Use(concept: .signIn, place: "auth Sign In", name: AgentAuthView.symbol),
       Use(concept: .terminal, place: "auth Run", name: AgentAuthView.runSymbol),
       Use(concept: .reload, place: "auth Reconnect", name: AgentAuthView.reconnectSymbol),
       Use(concept: .signOut, place: "auth Sign Out", name: AgentAuthView.signOutSymbol),
