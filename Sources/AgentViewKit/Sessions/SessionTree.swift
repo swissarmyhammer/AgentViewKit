@@ -37,18 +37,21 @@ extension SessionModel {
   }
 }
 
-/// The text of a path of titles, such as "Agent, Reviewer, and Linter".
+/// The text of a path of titles, such as "Path: Agent, then Reviewer".
 enum SessionPathText {
-  /// The separator of the spoken path.
-  static let spokenSeparator = ", then "
-
-  /// The spoken form of a path, one name after the other.
+  /// The spoken form of a path, one name after the other: the spoken path
+  /// pattern of the catalog (``ChainText/spokenPath(_:locale:)``) inside one
+  /// catalog string.
   ///
-  /// - Parameter titles: The titles, from the root.
+  /// - Parameters:
+  ///   - titles: The titles, from the root.
+  ///   - locale: The locale of the text.
   /// - Returns: Text such as "Path: Agent, then Reviewer, then Linter".
-  static func label(_ titles: [String]) -> String {
-    let path = titles.joined(separator: spokenSeparator)
-    return String(localized: "Path: \(path)", bundle: .module)
+  static func label(_ titles: [String], locale: Locale = .autoupdatingCurrent) -> String {
+    let path = ChainText.spokenPath(titles, locale: locale)
+    return String(
+      localized: "Path: \(path)", bundle: .module, locale: locale,
+      comment: "The VoiceOver label of the path of the shown session: the titles from the root, one after the other.")
   }
 }
 

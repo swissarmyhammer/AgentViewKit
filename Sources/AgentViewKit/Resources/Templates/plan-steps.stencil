@@ -1,0 +1,5 @@
+{# The steps of a plan in the inspector (InspectionText): each text of
+   `steps`, one on each line. Each step is catalog text of the model, so the
+   template has no word of its own. #}
+{%- for step in steps %}{% if not forloop.first %}
+{% endif %}{{ step }}{% endfor -%}

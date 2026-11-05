@@ -21,7 +21,7 @@ The package has two library products:
 | Product | Target | Links | For |
 | --- | --- | --- | --- |
 | `AgentViewKitStyle` | `Sources/AgentViewKitStyle` | EditorKit only: `EditorStyle`, `EditorTheme`, `EditorSwiftUI`, `EditorDiff`, `EditorCommands` | Each view kit. Its dependency closure holds no ACP package, no Textual and no math engine. |
-| `AgentViewKit` | `Sources/AgentViewKit` | `AgentViewKitStyle`, EditorKit, FoundationModelsACP, FoundationModelsACPClient, Textual, swiftui-math | An ACP client app: the agent thread views and the ACP helpers. |
+| `AgentViewKit` | `Sources/AgentViewKit` | `AgentViewKitStyle`, EditorKit, FoundationModelsACP, FoundationModelsACPClient, Textual, swiftui-math, Stencil | An ACP client app: the agent thread views and the ACP helpers. |
 
 Two more library products, `AgentViewKitTestSupport` and `AgentViewKitDemoSupport`, are test support for the nested `IntegrationTests/` and `ScreenshotTests/` packages (see "Tests of this kit"). No host of the kit links them.
 
@@ -49,6 +49,10 @@ The row of a completion list is EditorKit's `EditorCompletionRow` (EditorComplet
 All inspection in AgentViewKit goes through EditorKit's `InspectorView`, built from EditorKit's field kinds only: no AgentViewKit view goes inside an inspector. `Sources/AgentViewKit/Inspection/` conforms the client models of FoundationModelsACPClient (`SessionModel`, `ConnectionModel`, `MCPServerItem` and each transcript entry) as `@retroactive Inspectable`. The compound views `ConfigOptionsView` (form style) and `ToolToggles` (list style) are `InspectorView`s with an inspection built from their options or tools. Their menu styles and `PermissionModePicker` build each single-value control from EditorKit's `ChoiceField` and `ToggleField`, and AgentViewKit keeps no copy of a choice or toggle control.
 
 What needs an ACP type stays in AgentViewKit: the map from each ACP tool kind, status and priority to its EditorKit symbol and tone (`EditorSymbol+ACP.swift`), the map from each ACP and client status (tool call, plan entry, compaction, send state, MCP server, connection) to its EditorKit status token (`EditorStatus+ACP.swift`), the custom lost status of a tool call (`ToolStatusSymbol.lostWireValue`), the files of an ACP diff (`DiffSummary.files(of:)`), the diff view with its ACP initializer (`DiffView`, the review chrome around EditorKit's one-value preview, `PreviewField`, of the selected file: one unified column at the full height of its content, which the thread or the inspector scrolls; the style library keeps no diff renderer and no diff layout), the subjects of the command scopes (`ToolCallEntry` and the others), and the agent symbols (`AgentSymbol`), the concepts that only an agent thread shows; each symbol the view kits share is EditorKit's `EditorSymbol`, which the kit draws with `EditorSymbolImage`.
+
+## Text built from a list
+
+No separator and no order of parts is in code (^3b8m474, `Docs/decisions/text-templates.md`). A text with a layout of its own is a Stencil template of `Sources/AgentViewKit/Resources/Templates`, which `TextTemplates` (`Sources/AgentViewKit/Text/`) renders from a model: the Markdown export and the copy text of a thread, and the plan steps of the inspector. A chain of parts, a path of names or a run of sentences, is a two-part pattern of the string catalog that `ChainText` applies. The words of a template come from the catalog through its model, so no template is localized.
 
 ## Style
 

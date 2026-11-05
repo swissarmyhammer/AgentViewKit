@@ -40,13 +40,15 @@ public struct WaitingDescendantBanner: View {
 
   /// The text of the banner for a descendant.
   ///
-  /// - Parameter entry: The path entry of the descendant.
-  /// - Returns: The message, with the path of the descendant in the
-  ///   explanation.
-  static func message(for entry: SessionPathEntry) -> StatusBar.Message {
+  /// - Parameters:
+  ///   - entry: The path entry of the descendant.
+  ///   - locale: The locale of the text.
+  /// - Returns: The message, with the visible path of the descendant
+  ///   (``ChainText/visiblePath(_:locale:)``) in the explanation.
+  static func message(for entry: SessionPathEntry, locale: Locale = .autoupdatingCurrent) -> StatusBar.Message {
     StatusBar.Message(
-      title: String(localized: "Another session needs you", bundle: .module),
-      explanation: entry.path.joined(separator: SessionJumpList.pathSeparator),
+      title: String(localized: "Another session needs you", bundle: .module, locale: locale),
+      explanation: ChainText.visiblePath(entry.path, locale: locale),
       symbolName: EditorSymbol.severity(.warning).systemImage, identifier: identifier, severity: .warning)
   }
 

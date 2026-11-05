@@ -22,8 +22,9 @@ extension ElicitationHeader {
 
   /// The visible text of the "who asks" line of an elicitation card.
   ///
-  /// The text is the root label and the agent path, with " › " between the
-  /// names, for example "root › planner › reviewer". With more than
+  /// The text is the root label and the agent path, joined by the visible
+  /// path pattern of the catalog (``ChainText/visiblePath(_:locale:)``), for
+  /// example "root › planner › reviewer". With more than
   /// ``whoAsksFullPathLimit`` names, the text shows the root label, "…" and
   /// the last ``whoAsksTailCount`` names, for example "root › … › c › d". A
   /// source comes after " · ", for example "root › reviewer · runCode". The
@@ -38,18 +39,20 @@ extension ElicitationHeader {
   ///   - rootLabel: The label of the root agent, for example the
   ///     ``SwiftUI/EnvironmentValues/elicitationRootAgentLabel`` environment
   ///     value.
+  ///   - locale: The locale of the text.
   /// - Returns: The text, or `nil` for no line when `agentPath` is empty and
   ///   `source` is `nil`.
-  public static func whoAsks(agentPath: [String], source: String?, rootLabel: String) -> String? {
+  public static func whoAsks(
+    agentPath: [String], source: String?, rootLabel: String, locale: Locale = .autoupdatingCurrent
+  ) -> String? {
     guard hasWhoAsks(agentPath: agentPath, source: source) else { return nil }
     let shownNames =
       agentPath.count > whoAsksFullPathLimit
-      ? [String(localized: "…", bundle: .module)] + agentPath.suffix(whoAsksTailCount)
+      ? [String(localized: "…", bundle: .module, locale: locale)] + agentPath.suffix(whoAsksTailCount)
       : agentPath
-    let path = ([rootLabel] + shownNames).joined(
-      separator: String(localized: " › ", bundle: .module))
+    let path = ChainText.visiblePath([rootLabel] + shownNames, locale: locale)
     guard let source else { return path }
-    return String(localized: "\(path) · \(source)", bundle: .module)
+    return String(localized: "\(path) · \(source)", bundle: .module, locale: locale)
   }
 
   /// The accessibility label of the "who asks" line of an elicitation card.
@@ -97,8 +100,9 @@ extension ElicitationHeader {
 
 /// The "who asks" line of the default header of an elicitation card.
 ///
-/// The line shows ``ElicitationHeader/whoAsks(agentPath:source:rootLabel:)``
-/// in one line, with the middle truncated, in the `ui` font role of the
+/// The line shows
+/// ``ElicitationHeader/whoAsks(agentPath:source:rootLabel:locale:)`` in the
+/// locale of the environment, in one line, with the middle truncated, in the `ui` font role of the
 /// EditorKit theme at the callout text style, and in `\.placedSecondary`. The
 /// text is selectable. VoiceOver reads the line as one element with the label
 /// of
@@ -118,7 +122,7 @@ struct ElicitationWhoAsksLine: View {
   @Environment(\.placedSecondary) private var placedSecondary
 
   var body: some View {
-    if let text = ElicitationHeader.whoAsks(agentPath: agentPath, source: source, rootLabel: rootLabel),
+    if let text = ElicitationHeader.whoAsks(agentPath: agentPath, source: source, rootLabel: rootLabel, locale: locale),
       let label = ElicitationHeader.whoAsksAccessibilityLabel(
         agentPath: agentPath, source: source, rootLabel: rootLabel, locale: locale)
     {

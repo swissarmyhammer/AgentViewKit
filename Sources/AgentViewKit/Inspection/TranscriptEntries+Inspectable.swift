@@ -179,9 +179,7 @@ extension PlanTranscriptEntry: @retroactive Inspectable {
   /// The steps of the plan, each with its status, and its times.
   public static var inspection: Inspection<PlanTranscriptEntry> {
     .named(FieldLabel(localized: "Plan", bundle: .module), id: "plan") {
-      Field(FieldLabel(localized: "Steps", bundle: .module)) { entry in
-        entry.entries.map(InspectionText.step).joined(separator: "\n")
-      }
+      Field(FieldLabel(localized: "Steps", bundle: .module)) { InspectionText.steps(of: $0.entries) }
       .multiline()
     } more: {
       timeGroup
