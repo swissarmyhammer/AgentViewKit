@@ -96,6 +96,19 @@ import Testing
     #expect(line == Self.shiftedStartText)
   }
 
+  @Test func theStartStyleShowsTheTimeOfDayInTheLocaleAndTheTimeZoneItIsGiven() {
+    var style = EntryTimingView.startStyle.locale(Self.locale)
+    style.timeZone = Self.timeZone
+
+    #expect(style.format(Self.start) == Self.startText)
+  }
+
+  @Test func theLineDurationStyleShowsTheNarrowUnitsInTheLocaleItIsGiven() {
+    let style = EntryTimingView.lineDurationStyle.locale(Self.locale)
+
+    #expect(style.format(.seconds(Self.minuteAndQuarter)) == "1m 15s")
+  }
+
   @Test func aDurationThatRoundsToZeroSecondsIsNotShown() {
     #expect(EntryTimingView.shownDuration(Self.tooShort) == nil)
     #expect(EntryTimingView.shownDuration(nil) == nil)

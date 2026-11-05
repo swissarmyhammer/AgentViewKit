@@ -21,7 +21,7 @@ import Testing
   /// target as a value, so the style must have no padding byte either.
   @Test func theStyleHasNoPaddingByte() {
     StoredLayout<EditorStyle>(
-      \.spacing, \.radii, \.tile, \.chip, \.previewHeight, \.symbolWeight, \.density
+      \.spacing, \.radii, \.tile, \.chip, \.previewHeight, \.symbolWeight, \.buttons, \.density
     ).expectNoPaddingByte()
   }
 
