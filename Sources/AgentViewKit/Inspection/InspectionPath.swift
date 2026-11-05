@@ -10,18 +10,18 @@ import FoundationModelsACP
 /// The client models hold their paths as ACP `AbsolutePath`s, so each path
 /// row makes its URL here.
 enum InspectionPath {
-  /// The URL of a path row whose model has no path. The row shows only when
-  /// the model has a path, so no row shows this URL.
-  static let none = URL(filePath: "/", directoryHint: .isDirectory)
+  /// The root folder, `/`: the stand-in URL of a path row whose model has no
+  /// path. The row shows only when the model has a path, so no row shows it.
+  static let rootFolder = URL(filePath: "/", directoryHint: .isDirectory)
 
   /// The URL of a folder, such as the working directory of a session: a
   /// file URL with a directory path, so its chip shows the folder symbol.
   ///
   /// - Parameter path: The path of the folder, or `nil` when the model does
   ///   not know it.
-  /// - Returns: The URL of the folder, or ``none`` for `nil`.
+  /// - Returns: The URL of the folder, or ``rootFolder`` for `nil`.
   static func folder(_ path: AbsolutePath?) -> URL {
-    guard let path else { return none }
+    guard let path else { return rootFolder }
     return URL(filePath: path.rawValue, directoryHint: .isDirectory)
   }
 
