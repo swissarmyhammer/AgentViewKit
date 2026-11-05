@@ -1,6 +1,7 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
+import EditorComplete
 import EditorExtensions
 import EditorSwiftUI
 import EditorTestSupport
@@ -56,7 +57,7 @@ import Testing
   @Test func aRowOfTheCompletionListDrawsInTheUIRole() throws {
     let item = Completion(label: Self.text, insert: .text(Self.text), kind: .path)
     try FontRoleExpectations.expectText(
-      of: PromptCompletionRow(item: item, isSelected: false),
+      of: EditorCompletionRow(item: item, isSelected: false, identifier: EditorKitPromptEditor.completionRowIdentifier),
       identifier: EditorKitPromptEditor.completionRowIdentifier, drawsIn: .ui)
   }
 

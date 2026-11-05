@@ -63,10 +63,6 @@ inspector of its file with ``SwiftUI/View/toolCallLocationChipStyle(_:)``.
 - ``StreamBannerContent``
 - ``ReloadPhase``
 
-### Rows
-
-- ``CompletionRow``
-
 ### Chips
 
 - ``ChipFlowLayout``
