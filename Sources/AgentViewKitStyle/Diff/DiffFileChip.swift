@@ -73,27 +73,6 @@ public struct DiffFileChip: View {
   }
 }
 
-extension EditorSymbol.FileKind {
-  /// The EditorKit kind of a file of a diff: the one map from a change to its
-  /// symbol.
-  ///
-  /// ``DiffFileLabel`` shows the symbol of the kind, and a view kit that
-  /// shows a changed file reads the same kind, so the file shows one symbol.
-  ///
-  /// - Parameter operation: The change to the file.
-  public init(_ operation: DiffSummary.Operation) {
-    switch operation {
-    case .added: self = .added
-    case .deleted: self = .deleted
-    case .modified: self = .modified
-    case .renamed: self = .renamed
-    case .copied: self = .copied
-    case .binary: self = .binary
-    case .unknown: self = .unknown
-    }
-  }
-}
-
 #Preview("File chip, selected and not selected") {
   if let file = DiffSummary.parse(gitPatch: StylePreviewFixtures.patch).first {
     HStack {

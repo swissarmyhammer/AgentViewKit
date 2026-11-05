@@ -47,30 +47,17 @@ import Testing
   }
 
   @Test func eachOperationHasALabel() {
-    let operations: [DiffSummary.Operation] = [
-      .added, .deleted, .modified, .renamed(from: "a"), .copied(from: "a"), .binary, .unknown("x"),
+    let operations: [FileDiff.Operation] = [
+      .add, .delete, .modify, .rename(from: "a"), .copy(from: "a"), .binary, .unknown("x"),
     ]
 
     #expect(operations.map(\.label) == ["Added", "Deleted", "Modified", "Renamed", "Copied", "Binary", "Changed"])
   }
 
   @Test func theChangeLabelOfAFileNamesItsOperationAndItsLanguage() {
-    let file = DiffSummary.FileSummary(path: Self.firstPath, operation: .added, hunks: [])
+    let file = DiffSummary.FileSummary(path: Self.firstPath, operation: .add, hunks: [])
 
     #expect(file.changeAccessibilityLabel == "Added Swift file")
-  }
-
-  @Test(arguments: [
-    (DiffSummary.Operation.added, EditorSymbol.FileKind.added),
-    (.deleted, .deleted),
-    (.modified, .modified),
-    (.renamed(from: "a"), .renamed),
-    (.copied(from: "a"), .copied),
-    (.binary, .binary),
-    (.unknown("custom"), .unknown),
-  ])
-  func eachFileOperationGivesItsEditorKitFileKind(operation: DiffSummary.Operation, expected: EditorSymbol.FileKind) {
-    #expect(EditorSymbol.FileKind(operation) == expected)
   }
 
   @Test func aBinaryFileOfAPatchHasTheBinaryOperation() {
@@ -96,7 +83,7 @@ import Testing
   }
 
   @Test func theBinaryOperationHasItsWord() {
-    #expect(DiffSummary.Operation.binary.label == "Binary")
+    #expect(FileDiff.Operation.binary.label == "Binary")
   }
 
   @Test func aLabelWithNoOperationShowsTheDocumentSymbol() {
@@ -104,13 +91,13 @@ import Testing
   }
 
   @Test func aLabelWithAnOperationShowsTheSymbolOfTheOperation() {
-    #expect(DiffFileLabel.symbol(for: .added) == .file(.added))
+    #expect(DiffFileLabel.symbol(for: .add) == .file(.added))
   }
 
   @Test func aLabelKeepsItsCounts() {
     let counts = DiffFileLabel.Counts(added: 1, removed: 2)
 
-    #expect(DiffFileLabel.shownCounts(counts, for: .modified) == counts)
+    #expect(DiffFileLabel.shownCounts(counts, for: .modify) == counts)
   }
 
   @Test func aBinaryFileShowsNoCounts() {

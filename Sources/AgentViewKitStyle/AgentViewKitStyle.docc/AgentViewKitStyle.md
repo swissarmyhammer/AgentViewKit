@@ -24,9 +24,11 @@ EditorKit's `EditorSymbolImage`, in a tone of the theme, with its live effect
 and its Reduce Motion rule. ``SharedSymbol`` keeps the names of the concepts
 that EditorKit does not hold, such as a warning notice or a Reload button.
 Its tool-kind and file names stay for the view kits that still read them,
-until those kits draw EditorKit's symbols. The kind of the file of a diff is
-`EditorSymbol.FileKind(_:)`, which the library adds for a
-``DiffSummary/Operation``. A status, its symbol and its label, is EditorKit's
+until those kits draw EditorKit's symbols. The change to a file of a diff is
+EditorKit's `FileDiff.Operation`, which ``DiffSummary/FileSummary`` holds, and
+the kind of the file is EditorKit's `EditorSymbol.FileKind(diffOperation:)`.
+The library adds only the word of an operation, such as "Added", for the
+label that VoiceOver reads. A status, its symbol and its label, is EditorKit's
 `EditorStatus`, which EditorKit's `EditorStatusLabel` draws.
 
 Each chip of a file or a folder path is EditorKit's `PathChip`: the file

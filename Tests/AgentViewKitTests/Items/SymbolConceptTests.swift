@@ -1,4 +1,5 @@
 import AgentViewKitTestSupport
+import EditorDiff
 import EditorSwiftUI
 import Foundation
 import FoundationModelsACP
@@ -165,12 +166,12 @@ import Testing
 
   /// The symbols of the file operations of a diff.
   static func diffUses() -> [Use] {
-    let operations: [(DiffSummary.Operation, Concept)] = [
-      (.added, .addedFile), (.deleted, .deletedFile), (.modified, .modifiedFile),
-      (.renamed(from: "old.swift"), .renamedFile), (.copied(from: "old.swift"), .copiedFile),
+    let operations: [(FileDiff.Operation, Concept)] = [
+      (.add, .addedFile), (.delete, .deletedFile), (.modify, .modifiedFile),
+      (.rename(from: "old.swift"), .renamedFile), (.copy(from: "old.swift"), .copiedFile),
       (.unknown("custom"), .unknown),
     ]
-    return operations.map { Use(concept: $1, place: "diff \($0)", name: EditorSymbol.file(.init($0)).systemImage) }
+    return operations.map { Use(concept: $1, place: "diff \($0)", name: EditorSymbol.file(.init(diffOperation: $0)).systemImage) }
   }
 
   /// The symbols of the footer of a command output and of a terminal.

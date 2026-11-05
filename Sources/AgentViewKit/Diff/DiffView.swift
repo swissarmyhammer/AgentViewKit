@@ -1,3 +1,4 @@
+import EditorDiff
 import EditorStyle
 import EditorSwiftUI
 import EditorTheme
@@ -226,7 +227,7 @@ public struct DiffView: View {
   /// - Returns: The chip.
   private func fileChip(_ file: DiffSummary.FileSummary, isSelected: Bool) -> some View {
     let counts = patch == nil ? nil : PathChip.LineCounts(added: file.added, removed: file.removed)
-    return PathChip(file.path, kind: EditorSymbol.FileKind(file.operation), counts: counts) {
+    return PathChip(file.path, kind: EditorSymbol.FileKind(diffOperation: file.operation), counts: counts) {
       selectedPath = file.path
     }
     .accessibilityAddTraits(isSelected ? .isSelected : [])
