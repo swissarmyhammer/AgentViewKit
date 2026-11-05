@@ -52,8 +52,23 @@
     /// The title, and thus the `toolCallId`, of the tool call of the tests.
     static let callTitle = "Read README.md"
 
-    /// The text of the host view that the one-row test wraps.
+    /// The text of the host view that the one-row tests wrap.
     static let hostText = "Host row"
+
+    /// The difference, in seconds, between the offset from GMT of the
+    /// machine's time zone at ``start`` and the offset of the zone that the
+    /// time zone test gives the environment: three hours, so the two zones
+    /// show two different clock times of ``start``.
+    static let zoneShiftSeconds = 3 * 60 * 60
+
+    /// A time zone whose clock time of ``start`` is not the clock time of the
+    /// machine's time zone: its offset from GMT is ``zoneShiftSeconds`` more.
+    ///
+    /// - Returns: The zone, or `nil` when the offset is out of the range of a
+    ///   time zone.
+    static func zoneOtherThanTheMachines() -> TimeZone? {
+      TimeZone(secondsFromGMT: TimeZone.current.secondsFromGMT(for: start) + zoneShiftSeconds)
+    }
 
     /// A chunk update of the tests.
     ///
@@ -289,26 +304,64 @@
 
     // MARK: - One view of the host
 
+    /// Sends one agent message chunk, and waits until the transcript of the
+    /// session holds its entry.
+    ///
+    /// - Parameter session: The scripted session.
+    /// - Returns: The entry of the agent message, which started at ``start``.
+    /// - Throws: The error of the transport, or an issue when the transcript
+    ///   has no entry.
+    static func sendAgentMessage(to session: ScriptedSession) async throws -> TranscriptEntry {
+      let model = session.model
+      try await session.sendUpdate(chunk("agent_message_chunk", messageID: messageID))
+      await ObservationWait.until { !model.transcript.isEmpty }
+      return try #require(model.transcript.last)
+    }
+
+    /// Mounts one view of the host with the time decorator of `entry`.
+    ///
+    /// - Parameters:
+    ///   - entry: The entry whose time the decorator shows.
+    ///   - timeZone: The time zone of the environment of the view.
+    /// - Returns: The harness, after one render pass.
+    static func mountHostRow(_ entry: TranscriptEntry, timeZone: TimeZone = .current) -> HostedViewHarness<some View> {
+      let harness = HostedViewHarness(size: tallSize) {
+        Text(hostText)
+          .entryTiming(entry)
+          .environment(\.locale, locale)
+          .environment(\.timeZone, timeZone)
+      }
+      harness.render()
+      return harness
+    }
+
     @Test func theDecoratorWrapsOneViewOfTheHost() async throws {
       let clock = FixedClock(start: Self.start)
       let session = try await Self.openSession(clock: clock)
       defer { session.close() }
-      let model = session.model
-      try await session.sendUpdate(Self.chunk("agent_message_chunk", messageID: Self.messageID))
-      await ObservationWait.until { !model.transcript.isEmpty }
-      let entry = try #require(model.transcript.last)
+      let entry = try await Self.sendAgentMessage(to: session)
 
-      let harness = HostedViewHarness(size: Self.tallSize) {
-        Text(Self.hostText)
-          .entryTiming(entry)
-          .environment(\.locale, Self.locale)
-      }
+      let harness = Self.mountHostRow(entry)
       defer { harness.close() }
-      harness.render()
 
       let expected = EntryTimingView.accessibilityLabel(startedAt: Self.start, duration: nil, locale: Self.locale)
       #expect(Self.timingLabel(of: entry.rowKey, in: harness) == expected)
       #expect(harness.hasElement(label: Self.hostText))
+    }
+
+    @Test func theStartTellsTheClockTimeOfTheTimeZoneOfTheEnvironment() async throws {
+      let zone = try #require(Self.zoneOtherThanTheMachines())
+      let clock = FixedClock(start: Self.start)
+      let session = try await Self.openSession(clock: clock)
+      defer { session.close() }
+      let entry = try await Self.sendAgentMessage(to: session)
+
+      let harness = Self.mountHostRow(entry, timeZone: zone)
+      defer { harness.close() }
+
+      let expected = EntryTimingView.accessibilityLabel(
+        startedAt: Self.start, duration: nil, locale: Self.locale, timeZone: zone)
+      #expect(Self.timingLabel(of: entry.rowKey, in: harness) == expected)
     }
   }
 #endif

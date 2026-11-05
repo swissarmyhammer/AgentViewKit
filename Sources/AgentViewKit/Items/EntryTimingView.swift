@@ -24,13 +24,15 @@ import SwiftUI
 /// The view has no style of its own. EditorKit's value texts show the time:
 /// a `DateText` of the start in `startFormat` and a `DurationText` of the
 /// duration in `durationFormat`, each in the `ui` font role of the theme
-/// and the locale of the environment. The text uses `\.themeSecondary`, and
+/// and the locale and the time zone of the environment. The text uses
+/// `\.themeSecondary`, and
 /// the spacing and the symbol weight come from the shared style
 /// (`\.editorStyle`).
 ///
 /// The view is one accessibility element. Its label tells the start and the
-/// duration, as ``accessibilityLabel(startedAt:duration:locale:)`` gives
-/// them, and VoiceOver reads it after the content of the row.
+/// duration, as ``accessibilityLabel(startedAt:duration:locale:timeZone:)``
+/// gives them in the locale and the time zone of the environment, and
+/// VoiceOver reads it after the content of the row.
 public struct EntryTimingView: View, PrefixedAccessibilityIdentifier {
   /// The start of the accessibility identifier of each time view. The rest is
   /// the row key of the entry.
@@ -66,6 +68,7 @@ public struct EntryTimingView: View, PrefixedAccessibilityIdentifier {
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.locale) private var locale
   @Environment(\.themeSecondary) private var themeSecondary
+  @Environment(\.timeZone) private var timeZone
 
   /// Makes the time view of a transcript entry.
   ///
@@ -133,12 +136,14 @@ public struct EntryTimingView: View, PrefixedAccessibilityIdentifier {
   ///   - duration: The duration of the entry, in seconds, or `nil` when the
   ///     entry has no end time.
   ///   - locale: The locale of the label.
+  ///   - timeZone: The time zone of the clock time of the start.
   /// - Returns: "Started at T, took D", or "Started at T" when the view shows
   ///   no duration.
   public static func accessibilityLabel(
-    startedAt: Date, duration: TimeInterval?, locale: Locale = .autoupdatingCurrent
+    startedAt: Date, duration: TimeInterval?, locale: Locale = .autoupdatingCurrent,
+    timeZone: TimeZone = .autoupdatingCurrent
   ) -> String {
-    let start = startFormat.format(startedAt, locale: locale)
+    let start = startFormat.format(startedAt, locale: locale, timeZone: timeZone)
     return durationPhrase(duration, locale: locale) {
       String(localized: "Started at \(start), took \($0)", bundle: .module)
     } fallback: {
@@ -171,7 +176,8 @@ public struct EntryTimingView: View, PrefixedAccessibilityIdentifier {
     }
     .foregroundStyle(themeSecondary)
     .accessibilityElement(children: .ignore)
-    .accessibilityLabel(Self.accessibilityLabel(startedAt: startedAt, duration: duration, locale: locale))
+    .accessibilityLabel(
+      Self.accessibilityLabel(startedAt: startedAt, duration: duration, locale: locale, timeZone: timeZone))
     .accessibilityIdentifier(Self.identifier(for: entry.rowKey))
   }
 }
