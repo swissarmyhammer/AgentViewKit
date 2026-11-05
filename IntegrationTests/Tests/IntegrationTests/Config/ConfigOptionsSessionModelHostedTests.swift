@@ -152,12 +152,13 @@ import Testing
   /// The name of the value `auto` of the mode option.
   static let autoChoice = "Auto"
 
-  /// The object id of a session model in an inspector: its session id.
+  /// The object id of a session model in an inspector: its raw session id,
+  /// escaped.
   ///
   /// - Parameter model: The session model.
   /// - Returns: The escaped object id.
   static func object(of model: SessionModel) -> String {
-    InspectorRowID.object(model, view: ConfigOptionsView.viewIdentifier)
+    InspectorRowID.object(InspectedClientModel(model), view: ConfigOptionsView.viewIdentifier)
   }
 
   /// The scheme id of the block of the form of `model`: the view and the
@@ -179,7 +180,8 @@ import Testing
   ///   - model: The session model of the form.
   /// - Returns: The id that the row carries.
   static func row(_ section: String, _ id: SessionConfigId, of model: SessionModel) -> String {
-    InspectorRowID.field(view: ConfigOptionsView.viewIdentifier, object: model, group: section, field: id.rawValue)
+    InspectorRowID.field(
+      view: ConfigOptionsView.viewIdentifier, object: InspectedClientModel(model), group: section, field: id.rawValue)
   }
 
   /// The row of the model option.

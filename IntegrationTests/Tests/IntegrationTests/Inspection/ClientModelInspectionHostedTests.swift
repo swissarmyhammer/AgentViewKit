@@ -10,8 +10,8 @@ import Testing
 
 @testable import AgentViewKit
 
-/// The `Inspectable` conformances of the client models in an EditorKit
-/// `InspectorView`, in a real window.
+/// The inspections of the client models in an EditorKit `InspectorView`, in
+/// a real window.
 ///
 /// Each test inspects one model and reads one row with EditorKit's
 /// `InspectorDriver`, by its scheme id: the view, the object, the group and
@@ -68,6 +68,28 @@ import Testing
   /// - Returns: The id that the row carries.
   static func row<Object: Inspectable>(of object: Object, group: String, field: String) -> String {
     InspectorRowID.field(view: Object.inspection.id, object: object, group: group, field: field)
+  }
+
+  /// Mounts an `InspectorView` of the client model `model`, which the view
+  /// shows through its `InspectedClientModel`, and makes one render pass.
+  ///
+  /// - Parameter model: The model to inspect.
+  /// - Returns: The harness. The caller closes it.
+  static func mount<Model: InspectableClientModel>(_ model: Model) -> HostedViewHarness<InspectorView> {
+    mount(InspectedClientModel(model))
+  }
+
+  /// The scheme id of a row of the `InspectorView` of the client model
+  /// `model`: the view and the object id of its `InspectedClientModel`, the
+  /// group and the field.
+  ///
+  /// - Parameters:
+  ///   - model: The inspected model.
+  ///   - group: The group part, such as `tool-call`.
+  ///   - field: The field part, such as `title`.
+  /// - Returns: The id that the row carries.
+  static func row<Model: InspectableClientModel>(of model: Model, group: String, field: String) -> String {
+    row(of: InspectedClientModel(model), group: group, field: field)
   }
 
   /// The first entry of `type` in the transcript of `session`, after it

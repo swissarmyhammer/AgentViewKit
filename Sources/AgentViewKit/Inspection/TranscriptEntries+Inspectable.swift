@@ -4,10 +4,13 @@ import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
 
-// The `Inspectable` conformances of the transcript entries of
-// FoundationModelsACPClient, so a host shows any entry in an EditorKit
-// `InspectorView` (`InspectorView(entry)`, or `InspectorView([any
-// Inspectable])` for a selection of several kinds).
+// The inspections of the transcript entries of FoundationModelsACPClient, so
+// a host shows any entry in an EditorKit `InspectorView`
+// (`InspectorView(entry)`, or `InspectorView([any Inspectable])` with
+// `InspectedClientModel(entry)` for a selection of several kinds). Each entry
+// is an ``InspectableClientModel``: the inspector shows it through an
+// ``InspectedClientModel``, whose id is the readable object id of the entry,
+// such as `tool-call-call_1` (``InspectableClientModel/inspectorObjectID``).
 //
 // Each row is read-only: the agent owns each entry. Each get block reads the
 // entry when the row draws, so an update of the agent redraws the row. The
@@ -19,7 +22,7 @@ import FoundationModelsACPClient
 // are a list of paths, which EditorKit's inspector has no kind for
 // (^b9xgnm7).
 
-extension ObservableTranscriptEntry {
+extension ObservableTranscriptEntry where Self: InspectableClientModel {
   /// The format of the duration row of ``timeGroup``: minutes and seconds,
   /// such as "1:15".
   ///
@@ -37,44 +40,50 @@ extension ObservableTranscriptEntry {
   /// duration (``EntryTimingView/shownDuration(_:)``): for an entry that has
   /// ended, after at least ``EntryTimingView/shortestShownDuration`` (half a
   /// second). A shorter duration rounds to zero seconds and shows no row.
-  static var timeGroup: FieldGroup<Self> {
+  static var timeGroup: FieldGroup<InspectedClientModel<Self>> {
     FieldGroup(InspectionLabel.time) {
-      Field(InspectionLabel.started) { $0.timing.startedAt }
-      Field(InspectionLabel.ended) { $0.timing.endedAt }
-      Field(InspectionLabel.duration) { Duration.seconds($0.timing.duration ?? .zero) }
+      Field(InspectionLabel.started) { $0.model.timing.startedAt }
+      Field(InspectionLabel.ended) { $0.model.timing.endedAt }
+      Field(InspectionLabel.duration) { Duration.seconds($0.model.timing.duration ?? .zero) }
         .durationFormat(durationRowFormat)
-        .visible { EntryTimingView.shownDuration($0.timing.duration) != nil }
+        .visible { EntryTimingView.shownDuration($0.model.timing.duration) != nil }
     }
   }
 }
 
-extension ToolCallEntry: @retroactive Inspectable {
+extension ToolCallEntry: InspectableClientModel {
   /// The title, the status, the kind and the tool name of the call, and its
   /// times.
-  public static var inspection: Inspection<ToolCallEntry> {
-    .named(FieldLabel(localized: "Tool Call", bundle: .module), id: "tool-call", name: { $0.shownTitle }) {
-      Field(InspectionLabel.title) { $0.shownTitle }
-      Field(InspectionLabel.status) { EditorStatus($0.shownStatus) }
-      Field(FieldLabel(localized: "Kind", bundle: .module)) { $0.shownKind.wireValue }
-      Field(FieldLabel(localized: "Tool", bundle: .module)) { $0.name }
+  public static var inspection: Inspection<InspectedClientModel<ToolCallEntry>> {
+    .named(
+      FieldLabel(localized: "Tool Call", bundle: .module), id: ClientInspectionID.toolCall,
+      name: { $0.model.shownTitle }
+    ) {
+      Field(InspectionLabel.title) { $0.model.shownTitle }
+      Field(InspectionLabel.status) { EditorStatus($0.model.shownStatus) }
+      Field(FieldLabel(localized: "Kind", bundle: .module)) { $0.model.shownKind.wireValue }
+      Field(FieldLabel(localized: "Tool", bundle: .module)) { $0.model.name }
     } more: {
       timeGroup
     }
   }
 }
 
-extension TerminalEntry: @retroactive Inspectable {
+extension TerminalEntry: InspectableClientModel {
   /// The command, the exit, the output and the working directory of the
   /// terminal, and its times.
-  public static var inspection: Inspection<TerminalEntry> {
-    .named(FieldLabel(localized: "Terminal", bundle: .module), id: "terminal", name: { $0.command }) {
-      Field(FieldLabel(localized: "Command", bundle: .module)) { $0.command }
+  public static var inspection: Inspection<InspectedClientModel<TerminalEntry>> {
+    .named(
+      FieldLabel(localized: "Terminal", bundle: .module), id: ClientInspectionID.terminal,
+      name: { $0.model.command }
+    ) {
+      Field(FieldLabel(localized: "Command", bundle: .module)) { $0.model.command }
       Field(FieldLabel(localized: "Exit Status", bundle: .module)) { entry in
-        entry.exitStatus.map { TerminalView.ExitSummary(code: $0.exitCode, signal: $0.signal).label }
+        entry.model.exitStatus.map { TerminalView.ExitSummary(code: $0.exitCode, signal: $0.signal).label }
       }
-      Field(FieldLabel(localized: "Output", bundle: .module)) { $0.text }
+      Field(FieldLabel(localized: "Output", bundle: .module)) { $0.model.text }
         .multiline()
-      InspectionPath.workingDirectory { $0.cwd }
+      InspectionPath.workingDirectory { $0.model.cwd }
     } more: {
       timeGroup
     }
@@ -96,11 +105,11 @@ enum MessageInspection {
   ///     agent gave one.
   ///   - extra: The fields that follow the text, before the id.
   /// - Returns: The inspection.
-  static func inspection<Entry: ObservableTranscriptEntry>(
+  static func inspection<Entry: ObservableTranscriptEntry & InspectableClientModel>(
     id: String, title: String, content: @escaping @MainActor (Entry) -> [FoundationModelsACP.ContentBlock],
     messageID: @escaping @MainActor (Entry) -> String?,
-    @FieldBuilder<Entry> extra: () -> [AnyField<Entry>] = { [] }
-  ) -> Inspection<Entry> {
+    @FieldBuilder<InspectedClientModel<Entry>> extra: () -> [AnyField<InspectedClientModel<Entry>>] = { [] }
+  ) -> Inspection<InspectedClientModel<Entry>> {
     let fields = textField(content) + extra() + idField(messageID)
     return Inspection(id: id, title: title) {
       // A closure with a `return` takes no builder: the fields are built.
@@ -113,11 +122,11 @@ enum MessageInspection {
   ///
   /// - Parameter content: The content blocks of an entry.
   /// - Returns: The row.
-  @FieldBuilder<Entry>
-  private static func textField<Entry: AnyObject>(
+  @FieldBuilder<InspectedClientModel<Entry>>
+  private static func textField<Entry: InspectableClientModel>(
     _ content: @escaping @MainActor (Entry) -> [FoundationModelsACP.ContentBlock]
-  ) -> [AnyField<Entry>] {
-    Field(InspectionLabel.text) { InspectionText.text(of: content($0)) }
+  ) -> [AnyField<InspectedClientModel<Entry>>] {
+    Field(InspectionLabel.text) { InspectionText.text(of: content($0.model)) }
       .multiline()
   }
 
@@ -125,62 +134,67 @@ enum MessageInspection {
   ///
   /// - Parameter messageID: The id of the message of an entry, or `nil`.
   /// - Returns: The row.
-  @FieldBuilder<Entry>
-  private static func idField<Entry: AnyObject>(_ messageID: @escaping @MainActor (Entry) -> String?) -> [AnyField<Entry>] {
-    Field(InspectionLabel.messageID) { messageID($0) }
+  @FieldBuilder<InspectedClientModel<Entry>>
+  private static func idField<Entry: InspectableClientModel>(
+    _ messageID: @escaping @MainActor (Entry) -> String?
+  ) -> [AnyField<InspectedClientModel<Entry>>] {
+    Field(InspectionLabel.messageID) { messageID($0.model) }
   }
 }
 
-extension UserMessageEntry: @retroactive Inspectable {
+extension UserMessageEntry: InspectableClientModel {
   /// The text, the send state and the id of the message, and its times.
-  public static var inspection: Inspection<UserMessageEntry> {
+  public static var inspection: Inspection<InspectedClientModel<UserMessageEntry>> {
     MessageInspection.inspection(
-      id: "user-message", title: String(localized: "User Message", bundle: .module), content: { $0.content },
+      id: ClientInspectionID.userMessage, title: String(localized: "User Message", bundle: .module),
+      content: { $0.content },
       messageID: { $0.messageId?.rawValue }
     ) {
-      Field(FieldLabel(localized: "Send State", bundle: .module)) { EditorStatus($0.sendState) }
+      Field(FieldLabel(localized: "Send State", bundle: .module)) { EditorStatus($0.model.sendState) }
     }
   }
 }
 
-extension AgentMessageEntry: @retroactive Inspectable {
+extension AgentMessageEntry: InspectableClientModel {
   /// The text and the id of the message, and its times.
-  public static var inspection: Inspection<AgentMessageEntry> {
+  public static var inspection: Inspection<InspectedClientModel<AgentMessageEntry>> {
     MessageInspection.inspection(
-      id: "agent-message", title: String(localized: "Agent Message", bundle: .module), content: { $0.content },
+      id: ClientInspectionID.agentMessage, title: String(localized: "Agent Message", bundle: .module),
+      content: { $0.content },
       messageID: { $0.messageId?.rawValue })
   }
 }
 
-extension ThoughtEntry: @retroactive Inspectable {
+extension ThoughtEntry: InspectableClientModel {
   /// The text and the id of the thought, and its times.
-  public static var inspection: Inspection<ThoughtEntry> {
+  public static var inspection: Inspection<InspectedClientModel<ThoughtEntry>> {
     MessageInspection.inspection(
-      id: "thought", title: String(localized: "Thought", bundle: .module), content: { $0.content },
+      id: ClientInspectionID.thought, title: String(localized: "Thought", bundle: .module), content: { $0.content },
       messageID: { $0.messageId?.rawValue })
   }
 }
 
-extension SessionMessageEntry: @retroactive Inspectable {
+extension SessionMessageEntry: InspectableClientModel {
   /// The text of the message between two sessions, its sender and its
   /// recipient, its id, and its times.
-  public static var inspection: Inspection<SessionMessageEntry> {
+  public static var inspection: Inspection<InspectedClientModel<SessionMessageEntry>> {
     MessageInspection.inspection(
-      id: "session-message", title: String(localized: "Session Message", bundle: .module), content: { $0.content },
+      id: ClientInspectionID.sessionMessage, title: String(localized: "Session Message", bundle: .module),
+      content: { $0.content },
       messageID: { $0.messageId.rawValue }
     ) {
-      Field(FieldLabel(localized: "From Session", bundle: .module)) { $0.senderSessionId?.rawValue }
-      Field(FieldLabel(localized: "To Session", bundle: .module)) { $0.recipientSessionId?.rawValue }
+      Field(FieldLabel(localized: "From Session", bundle: .module)) { $0.model.senderSessionId?.rawValue }
+      Field(FieldLabel(localized: "To Session", bundle: .module)) { $0.model.recipientSessionId?.rawValue }
     }
   }
 }
 
-extension PlanTranscriptEntry: @retroactive Inspectable {
+extension PlanTranscriptEntry: InspectableClientModel {
   /// The steps of the plan, each with its status, and its times.
-  public static var inspection: Inspection<PlanTranscriptEntry> {
-    .named(FieldLabel(localized: "Plan", bundle: .module), id: "plan") {
+  public static var inspection: Inspection<InspectedClientModel<PlanTranscriptEntry>> {
+    .named(FieldLabel(localized: "Plan", bundle: .module), id: ClientInspectionID.plan) {
       Field(FieldLabel(localized: "Steps", bundle: .module)) { entry in
-        entry.entries.map(InspectionText.step).joined(separator: "\n")
+        entry.model.entries.map(InspectionText.step).joined(separator: "\n")
       }
       .multiline()
     } more: {
@@ -189,26 +203,26 @@ extension PlanTranscriptEntry: @retroactive Inspectable {
   }
 }
 
-extension CompactionEntry: @retroactive Inspectable {
+extension CompactionEntry: InspectableClientModel {
   /// The status, the summary and the error of the compaction, and its times.
-  public static var inspection: Inspection<CompactionEntry> {
-    .named(FieldLabel(localized: "Compaction", bundle: .module), id: "compaction") {
-      Field(InspectionLabel.status) { EditorStatus($0.status) }
-      Field(FieldLabel(localized: "Summary", bundle: .module)) { InspectionText.text(of: $0.summary) }
+  public static var inspection: Inspection<InspectedClientModel<CompactionEntry>> {
+    .named(FieldLabel(localized: "Compaction", bundle: .module), id: ClientInspectionID.compaction) {
+      Field(InspectionLabel.status) { EditorStatus($0.model.status) }
+      Field(FieldLabel(localized: "Summary", bundle: .module)) { InspectionText.text(of: $0.model.summary) }
         .multiline()
-      Field(FieldLabel(localized: "Error", bundle: .module)) { $0.error }
+      Field(FieldLabel(localized: "Error", bundle: .module)) { $0.model.error }
     } more: {
       timeGroup
     }
   }
 }
 
-extension ErrorEntry: @retroactive Inspectable {
+extension ErrorEntry: InspectableClientModel {
   /// The code and the message of the error, and its times.
-  public static var inspection: Inspection<ErrorEntry> {
-    .named(FieldLabel(localized: "Error", bundle: .module), id: "error") {
-      Field(FieldLabel(localized: "Code", bundle: .module)) { $0.code.wireValue }
-      Field(InspectionLabel.message) { $0.message }
+  public static var inspection: Inspection<InspectedClientModel<ErrorEntry>> {
+    .named(FieldLabel(localized: "Error", bundle: .module), id: ClientInspectionID.error) {
+      Field(FieldLabel(localized: "Code", bundle: .module)) { $0.model.code.wireValue }
+      Field(InspectionLabel.message) { $0.model.message }
         .multiline()
     } more: {
       timeGroup
@@ -216,12 +230,12 @@ extension ErrorEntry: @retroactive Inspectable {
   }
 }
 
-extension UnknownEntry: @retroactive Inspectable {
+extension UnknownEntry: InspectableClientModel {
   /// The type of the update that the client does not know, and its times.
-  public static var inspection: Inspection<UnknownEntry> {
-    Inspection(id: "unknown-update", title: String(localized: "Unknown Update", bundle: .module)) {
+  public static var inspection: Inspection<InspectedClientModel<UnknownEntry>> {
+    Inspection(id: ClientInspectionID.unknownUpdate, title: String(localized: "Unknown Update", bundle: .module)) {
       FieldGroup(FieldLabel(localized: "Update", bundle: .module)) {
-        Field(FieldLabel(localized: "Type", bundle: .module)) { $0.type }
+        Field(FieldLabel(localized: "Type", bundle: .module)) { $0.model.type }
       }
       timeGroup
     }
