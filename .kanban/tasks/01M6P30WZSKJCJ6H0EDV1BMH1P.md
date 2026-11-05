@@ -10,6 +10,18 @@ comments:
   id: 01m6pf4xrs2kaqt0n97bpp3hmt
   text: 'Research: all three packages resolve EK at 81415956 (contains b4f6d9e5). ~45 raw Button sites. Per EK style.md "What stays a raw Button": rows/chips whose content is the button (ActivityTimeline row, ToolCallView row, ElicitationTabChip, InlineCitation pill, LinkView card, SessionJumpList rows, elicitation radio rows), menu items (AgentRowList/HostPathContextMenu context menus, SessionBreadcrumb dropdown choices) stay raw. Origin mains: KVK uses StatusBarActionStyle/StatusBarActionConfiguration/statusBarActionStyle (BoardCommandBarActionStyle); SVK uses GlassStatusBarActionStyle (TimelineStatusBarActionStyle); Testudo uses none. So those public types stay; RequestAction/RequestActionStyle/requestActionStyle/requestActionPlace are internal and go. Command-id form fits AttachmentActions (always dispatches through the attachment scope); MessageActions copyThread runs the command when a command target exists. TerminalView''s .controlSize(.mini) is on a ProgressView, not a button, so no density gap is needed.'
   timestamp: 2026-11-05T18:22:13.785275+00:00
+- actor: claude-code
+  id: 01m6ph64y392fytzw2wgjkq4dp
+  text: |-
+    Implementation landed (uncommitted, running full suites). Notes for the next agent:
+    - IntegrationTests/.build seeded from root came up with a STALE EK checkout (2b0d42e2) although Package.resolved said 81415956; `swift package update` did not move it. Fixed by deleting IntegrationTests/.build/checkouts/EditorKit and `swift package resolve`. Compare each checkout's .git/HEAD with Package.resolved after seeding.
+    - The EK update added `EditorStyle.buttons`, which broke ViewValueLayoutTests.theStyleHasNoPaddingByte (field list); added \.buttons and a Buttons padding test.
+    - RequestAction/RequestActionStyle/requestActionStyle/requestActionPlace and RequestDeckPlace.barWithoutGlass deleted; places now declare `.editorButtonSurface(.content)`; primary/secondary -> EditorButton look .action, standard -> .standard, kept/unknown permission kinds -> emphasis .subdued.
+    - StatusBarActionStyle/StatusBarActionConfiguration/GlassStatusBarActionStyle/statusBarActionStyle/StatusBarActionButton kept (KVK + SVK use them); StatusBarActionButton is now EditorButton(.action).
+    - AttachmentActions uses EditorToolbarButton(command:); AgentAttachmentTarget.perform/system/path and the agentAttachmentTarget env entry became dead and were removed. MessageActions Copy Thread uses the command form inside a command scope.
+    - Gap (EK, not built): EditorButton draws a fixed SF Symbol, so SpeechInputButton lost its live input-level waveform (variableValue). AgentAuthView shows its ProgressView beside the disabled button instead of inside it.
+    - Floating-container buttons that are their own glass (scroll pill, suggestion chips, composer accessory) declare .editorButtonSurface(.content) to keep the glass style.
+  timestamp: 2026-11-05T18:57:51.043963+00:00
 position_column: doing
 position_ordinal: 9a80
 title: Move AVK's buttons onto EditorKit's EditorButton / EditorToolbarButton (no clipped captions)
