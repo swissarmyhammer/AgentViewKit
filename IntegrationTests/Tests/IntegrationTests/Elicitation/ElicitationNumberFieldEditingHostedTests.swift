@@ -154,7 +154,7 @@ import Testing
       thenPress: .escape, sourceLocation: sourceLocation)
 
     #expect(textView.string == number, sourceLocation: sourceLocation)
-    try mounted.form.harness.press(identifier: ElicitationView.submitIdentifier)
+    try mounted.form.harness.perform(.press, on: ElicitationView.submitIdentifier)
     #expect(try await mounted.form.result() == Self.accepted(count: number), sourceLocation: sourceLocation)
   }
 }

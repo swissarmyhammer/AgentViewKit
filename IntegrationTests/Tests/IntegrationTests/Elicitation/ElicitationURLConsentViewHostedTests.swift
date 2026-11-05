@@ -245,7 +245,7 @@ import Testing
     requiring requirements: () throws -> Void,
     until condition: @MainActor () -> Bool
   ) async throws {
-    try mounted.harness.press(identifier: identifier)
+    try mounted.harness.perform(.press, on: identifier)
     try requirements()
     await mounted.harness.render(when: condition)
   }
@@ -571,7 +571,7 @@ import Testing
     let mounted = try await Self.mount()
     defer { mounted.close() }
 
-    try mounted.harness.press(identifier: ElicitationURLConsentView.cancelIdentifier)
+    try mounted.harness.perform(.press, on: ElicitationURLConsentView.cancelIdentifier)
 
     #expect(try await mounted.result() == (try JSONValue(json: #"{"action": "cancel"}"#)))
     #expect(mounted.browser.calls.isEmpty)
@@ -597,7 +597,7 @@ import Testing
     let mounted = try await Self.mount()
     defer { mounted.close() }
 
-    try mounted.harness.press(identifier: ElicitationURLConsentView.declineIdentifier)
+    try mounted.harness.perform(.press, on: ElicitationURLConsentView.declineIdentifier)
 
     #expect(try await mounted.result() == (try JSONValue(json: #"{"action": "decline"}"#)))
     #expect(mounted.browser.calls.isEmpty)
@@ -633,7 +633,7 @@ import Testing
     // Only the front card is in the accessibility tree.
     #expect(harness.element(identifier: ElicitationView.formIdentifier) == nil)
 
-    try harness.press(identifier: RequestDeck.nextIdentifier)
+    try harness.perform(.press, on: RequestDeck.nextIdentifier)
 
     #expect(harness.element(identifier: ElicitationView.formIdentifier) != nil)
   }

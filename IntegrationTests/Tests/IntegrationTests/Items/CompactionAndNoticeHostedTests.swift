@@ -193,7 +193,7 @@
       await harness.render { !model.notices.isEmpty }
       let notice = try #require(model.notices.first)
 
-      try harness.press(identifier: SessionNoticeBanner.dismissIdentifier(for: notice.id))
+      try harness.perform(.press, on: SessionNoticeBanner.dismissIdentifier(for: notice.id))
 
       #expect(model.notices.isEmpty)
       #expect(harness.element(identifier: SessionNoticeBanner.identifier(for: notice.id)) == nil)

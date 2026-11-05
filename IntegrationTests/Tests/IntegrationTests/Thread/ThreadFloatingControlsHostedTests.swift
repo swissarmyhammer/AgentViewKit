@@ -391,7 +391,7 @@
       try #require(!ConversationViewHostedTests.showsRow(lastKey, in: harness))
       let (targets, viewScroll) = Self.holdScrollTargets(of: anchors)
 
-      try harness.press(identifier: ScrollToBottomPill.identifier)
+      try harness.perform(.press, on: ScrollToBottomPill.identifier)
       try #require(anchors.isPinnedToBottom)
       try #require(harness.element(identifier: ScrollToBottomPill.identifier) == nil)
 
@@ -454,7 +454,7 @@
       defer { harness.close() }
       harness.render()
 
-      try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
+      try harness.perform(.press, on: DefaultPromptAccessory.submitIdentifier)
       // The composer calls the host closure in the same step as it starts
       // the prompt task, so a press that sent nothing stops the test here.
       try #require(draft.submitCount == 1)

@@ -346,7 +346,7 @@
       #expect(Self.listValue(in: harness) == firstPage)
       #expect(harness.element(identifier: ConversationLayout.loadEarlierIdentifier) != nil)
 
-      try harness.press(identifier: ConversationLayout.loadEarlierIdentifier)
+      try harness.perform(.press, on: ConversationLayout.loadEarlierIdentifier)
 
       let allEntries = ConversationLayout.listValue(
         shown: Self.longEntryCount, count: Self.longEntryCount)
@@ -510,7 +510,7 @@
       try #require(anchors.newItemsSinceUnpinned == 1)
       try #require(harness.element(identifier: ScrollToBottomPill.identifier) != nil)
 
-      try harness.press(identifier: ScrollToBottomPill.identifier)
+      try harness.perform(.press, on: ScrollToBottomPill.identifier)
 
       #expect(anchors.newItemsSinceUnpinned == 0)
       #expect(anchors.isPinnedToBottom)
@@ -563,7 +563,7 @@
       try #require(!Self.showsRow(lastKey, in: harness))
       try #require(harness.element(identifier: ScrollToBottomPill.identifier) != nil)
 
-      try harness.press(identifier: ScrollToBottomPill.identifier)
+      try harness.perform(.press, on: ScrollToBottomPill.identifier)
       try #require(anchors.isPinnedToBottom)
       try #require(harness.element(identifier: ScrollToBottomPill.identifier) == nil)
 
@@ -619,7 +619,7 @@
         SessionStateBannersHostedTests.stateUpdate(#""state": "idle", "stopReason": "refusal""#))
       await ObservationWait.until { model.agentState != stateBefore }
       harness.hostingView.layoutSubtreeIfNeeded()
-      try harness.press(identifier: StateBanner.showErrorIdentifier)
+      try harness.perform(.press, on: StateBanner.showErrorIdentifier)
       harness.hostingView.layoutSubtreeIfNeeded()
     }
 

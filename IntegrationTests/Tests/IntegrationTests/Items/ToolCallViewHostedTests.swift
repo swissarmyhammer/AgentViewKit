@@ -193,7 +193,7 @@
       let bodyID = ToolCallView.bodyIdentifier(for: key)
       #expect(!store.isExpanded(entry: .toolCall(call)))
 
-      try harness.press(identifier: toggleID)
+      try harness.perform(.press, on: toggleID)
 
       #expect(store.isExpanded(entry: .toolCall(call)))
       #expect(harness.element(identifier: ToolCallView.locationsIdentifier(for: key)) != nil)
@@ -201,7 +201,7 @@
       #expect(harness.element(identifier: ToolCallView.contentIdentifier(for: key, index: 0)) != nil)
       #expect(harness.element(identifier: ToolCallView.outputIdentifier(for: key)) == nil)
 
-      try harness.press(identifier: toggleID)
+      try harness.perform(.press, on: toggleID)
 
       #expect(!store.isExpanded(entry: .toolCall(call)))
       #expect(harness.element(identifier: bodyID) == nil)

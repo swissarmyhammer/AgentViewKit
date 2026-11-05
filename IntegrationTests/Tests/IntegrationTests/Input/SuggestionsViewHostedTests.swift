@@ -45,7 +45,7 @@ import Testing
     let harness = Self.mount(model)
     defer { harness.close() }
 
-    try harness.press(identifier: SuggestionsView.chipIdentifier(at: 1))
+    try harness.perform(.press, on: SuggestionsView.chipIdentifier(at: 1))
 
     #expect(model.plainText == "Write the tests")
     #expect(model.submitCount == 0)

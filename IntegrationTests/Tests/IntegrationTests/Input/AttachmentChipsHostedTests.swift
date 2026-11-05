@@ -94,7 +94,7 @@ struct AttachmentComposerHost: View {
     #expect(harness.element(identifier: AttachmentChips.chipIdentifier(for: first)) != nil)
     #expect(harness.element(identifier: AttachmentChips.chipIdentifier(for: second)) != nil)
 
-    try harness.press(identifier: AttachmentChips.removeIdentifier(for: first))
+    try harness.perform(.press, on: AttachmentChips.removeIdentifier(for: first))
 
     #expect(model.attachments.map(\.id) == [second])
     #expect(harness.element(identifier: AttachmentChips.chipIdentifier(for: first)) == nil)
@@ -260,7 +260,7 @@ struct AttachmentComposerHost: View {
     defer { harness.close() }
     harness.render()
 
-    try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
+    try harness.perform(.press, on: DefaultPromptAccessory.submitIdentifier)
     // The composer clears its attachments in the same step as it starts the
     // prompt task, so a submit that sent nothing stops the test here.
     try #require(model.attachments.isEmpty)
@@ -285,7 +285,7 @@ struct AttachmentComposerHost: View {
     defer { harness.close() }
     harness.render()
 
-    try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
+    try harness.perform(.press, on: DefaultPromptAccessory.submitIdentifier)
     try #require(model.attachments.isEmpty)
     await ObservationWait.until { !session.promptBlocks.isEmpty }
 

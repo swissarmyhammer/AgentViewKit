@@ -113,7 +113,7 @@ import Textual
       harness.render()
 
       try pasteboard.expectOneCopy(of: Self.swiftCode) {
-        try harness.press(identifier: CodeBlockView.copyIdentifier)
+        try harness.perform(.press, on: CodeBlockView.copyIdentifier)
       }
     }
   }
@@ -141,7 +141,7 @@ import Textual
       let element = harness.element(identifier: CodeBlockView.identifier)
       #expect(element?.label == "json code block")
       try pasteboard.expectOneCopy(of: "{\"a\": 1}") {
-        try harness.press(identifier: CodeBlockView.copyIdentifier)
+        try harness.perform(.press, on: CodeBlockView.copyIdentifier)
       }
     }
   }

@@ -127,7 +127,7 @@ import Testing
     let harness = Self.mount(turn, requestStartReport: starts.report) { MessageActions(entry: turn.agent) }
     defer { harness.close() }
 
-    try harness.press(identifier: MessageActions.Action.retry.identifier)
+    try harness.perform(.press, on: MessageActions.Action.retry.identifier)
     // The Retry button starts the prompt in the same step as the press, so a
     // press that started nothing stops the test here.
     try #require(starts.values == [ScriptedSession.promptMethod])
@@ -181,7 +181,7 @@ import Testing
 
       #expect(Self.shownActions(in: harness) == [MessageActions.Action.copy.identifier])
       try pasteboard.expectOneCopy(of: Self.answerChunks.joined()) {
-        try harness.press(identifier: MessageActions.Action.copy.identifier)
+        try harness.perform(.press, on: MessageActions.Action.copy.identifier)
       }
     }
   }
@@ -194,7 +194,7 @@ import Testing
       defer { harness.close() }
 
       try pasteboard.expectOneCopy(of: Self.answerChunks.joined()) {
-        try harness.press(identifier: MessageActions.Action.copy.identifier)
+        try harness.perform(.press, on: MessageActions.Action.copy.identifier)
       }
     }
   }
@@ -209,11 +209,14 @@ import Testing
       defer { harness.close() }
 
       try pasteboard.expectOneCopy(of: expected) {
-        try harness.press(identifier: MessageActions.Action.copyThread.identifier)
+        try harness.perform(.press, on: MessageActions.Action.copyThread.identifier)
       }
     }
   }
 
+  /// The footer stands under the user message only: each message's row of
+  /// actions has a copy thread button with the same identifier, and a press
+  /// needs exactly one.
   @Test func copyThreadInTheFooterOfAThreadViewRunsTheCopyThreadCommand() async throws {
     let turn = try await Self.openTurn()
     defer { turn.session.close() }
@@ -223,13 +226,15 @@ import Testing
       let copyThread = MessageActions.Action.copyThread.identifier
       let harness = Self.mount(turn, pasteboard: pasteboard) {
         AgentThreadView(session: turn.session.model)
-          .messageFooter { MessageActions(entry: $0) }
+          .messageFooter { entry in
+            if case .user = entry { MessageActions(entry: entry) }
+          }
       }
       defer { harness.close() }
       #expect(Self.shownActions(in: harness).contains(copyThread))
 
       try pasteboard.expectOneCopy(of: expected) {
-        try harness.press(identifier: copyThread)
+        try harness.perform(.press, on: copyThread)
       }
     }
   }
@@ -247,7 +252,7 @@ import Testing
     }
     defer { harness.close() }
 
-    try harness.press(identifier: MessageActions.Action.edit.identifier)
+    try harness.perform(.press, on: MessageActions.Action.edit.identifier)
 
     #expect(model.plainText == Self.question)
   }
@@ -262,7 +267,7 @@ import Testing
     }
     defer { harness.close() }
 
-    try harness.press(identifier: MessageActions.Action.edit.identifier)
+    try harness.perform(.press, on: MessageActions.Action.edit.identifier)
 
     #expect(model.plainText == Self.question)
   }

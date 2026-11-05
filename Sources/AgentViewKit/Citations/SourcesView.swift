@@ -28,7 +28,8 @@ import SwiftUI
 /// identifier `sources-number-<index>`. The number of the current source has
 /// the value ``highlightedValue`` and the selected trait. The link mark of a
 /// row is an element with the label "Link" and the identifier
-/// `sources-link-mark-<index>`.
+/// `sources-link-mark-<index>`. The link card of a row has the identifier
+/// `sources-card-<index>`.
 public struct SourcesView: View {
   /// The accessibility identifier of the footer.
   public static let identifier = "sources"
@@ -41,6 +42,9 @@ public struct SourcesView: View {
 
   /// The start of the accessibility identifier of the link mark of each row.
   public static let linkMarkIdentifierPrefix = "sources-link-mark-"
+
+  /// The start of the accessibility identifier of the link card of each row.
+  public static let cardIdentifierPrefix = "sources-card-"
 
   /// The accessibility value of the number of the current source.
   public static let highlightedValue = "Highlighted"
@@ -89,6 +93,16 @@ public struct SourcesView: View {
   /// - Returns: `sources-link-mark-<index>`.
   public static func linkMarkIdentifier(index: Int) -> String {
     AccessibilityIdentifier.make(prefix: linkMarkIdentifierPrefix, value: String(index))
+  }
+
+  /// The accessibility identifier of the ``LinkView`` card in the row of a
+  /// source, in place of ``LinkView/cardIdentifier``, so each card of the
+  /// footer has its own.
+  ///
+  /// - Parameter index: The one-based number of the source.
+  /// - Returns: `sources-card-<index>`.
+  public static func cardIdentifier(index: Int) -> String {
+    AccessibilityIdentifier.make(prefix: cardIdentifierPrefix, value: String(index))
   }
 
   public var body: some View {
@@ -198,6 +212,7 @@ private struct SourceLink: View {
         .accessibilityLabel(Text("Link", bundle: .module))
         .accessibilityIdentifier(SourcesView.linkMarkIdentifier(index: index))
       LinkView(link: link)
+        .accessibilityIdentifier(SourcesView.cardIdentifier(index: index))
     }
   }
 

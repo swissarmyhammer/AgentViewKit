@@ -120,7 +120,7 @@ import Testing
     defer { harness.close() }
     harness.render()
 
-    try harness.press(identifier: ToolToggles.toggleIdentifier(for: Self.issueID))
+    try harness.perform(.press, on: ToolToggles.toggleIdentifier(for: Self.issueID))
     await ObservationWait.until { !recorder.values.isEmpty }
 
     #expect(recorder.values == [.init(id: Self.issueID, isEnabled: true)])

@@ -100,7 +100,7 @@ import Testing
     let announcements = announcer.announcements
     let moves = reporter.moves
 
-    try harness.press(identifier: RequestDeck.dismissIdentifier(forWithdrawn: record.id))
+    try harness.perform(.press, on: RequestDeck.dismissIdentifier(forWithdrawn: record.id))
     // The model removes the record in the same step as the press, so a press
     // that did not dismiss stops the test here.
     try #require(session.model.withdrawnRequests.isEmpty)
@@ -208,7 +208,7 @@ import Testing
         RecordingAnnouncer.Announcement(message: notice, priority: .medium),
       ])
 
-    try harness.press(identifier: RequestDeck.dismissIdentifier(forWithdrawn: record.id))
+    try harness.perform(.press, on: RequestDeck.dismissIdentifier(forWithdrawn: record.id))
     // The connection model removes the record in the same step as the press.
     try #require(connection.withdrawnRequests.isEmpty)
     harness.render()

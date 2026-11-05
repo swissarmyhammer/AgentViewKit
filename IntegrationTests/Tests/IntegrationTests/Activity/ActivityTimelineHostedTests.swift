@@ -186,12 +186,12 @@
       #expect(harness.element(identifier: rowID) != nil)
       #expect(harness.element(identifier: ToolCallView.identifier(for: key)) == nil)
 
-      try harness.press(identifier: rowID)
+      try harness.perform(.press, on: rowID)
 
       #expect(harness.element(identifier: detailID) != nil)
       #expect(harness.element(identifier: ToolCallView.identifier(for: key)) != nil)
 
-      try harness.press(identifier: rowID)
+      try harness.perform(.press, on: rowID)
 
       #expect(harness.element(identifier: detailID) == nil)
     }
@@ -209,7 +209,7 @@
       let rowID = ActivityTimeline.rowIdentifier(for: key)
       #expect(harness.element(identifier: rowID)?.label == SessionEntryRowsHostedTests.command)
 
-      try harness.press(identifier: rowID)
+      try harness.perform(.press, on: rowID)
 
       #expect(harness.element(identifier: TerminalView.commandIdentifier) != nil)
     }

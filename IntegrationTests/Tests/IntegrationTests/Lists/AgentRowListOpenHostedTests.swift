@@ -120,7 +120,7 @@ import Testing
     defer { bed.harness.close() }
 
     let row = OpenBed.scope.rowIdentifier(for: OpenBed.ids[1])
-    try bed.harness.performCustomAction(named: AgentRowClicks.openActionName, identifier: row)
+    try bed.harness.perform(.custom(AgentRowClicks.openActionName), on: row)
 
     #expect(bed.opened.values == [OpenBed.ids[1]])
   }
@@ -132,7 +132,7 @@ import Testing
     defer { bed.harness.close() }
 
     let row = OpenBed.scope.rowIdentifier(for: OpenBed.ids[0])
-    try bed.harness.performCustomAction(named: AgentRowClicks.openActionName, identifier: row)
+    try bed.harness.perform(.custom(AgentRowClicks.openActionName), on: row)
 
     #expect(bed.opened.values == [OpenBed.ids[0]])
   }
@@ -144,7 +144,7 @@ import Testing
     defer { bed.harness.close() }
 
     let row = OpenBed.scope.rowIdentifier(for: OpenBed.ids[1])
-    try bed.harness.performCustomAction(named: AgentRowClicks.selectActionName, identifier: row)
+    try bed.harness.perform(.custom(AgentRowClicks.selectActionName), on: row)
 
     #expect(bed.focusedScope() == OpenBed.rowPath(1))
   }

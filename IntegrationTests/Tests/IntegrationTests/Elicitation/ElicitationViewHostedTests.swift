@@ -232,8 +232,8 @@ import Testing
   /// - Parameter harness: The harness of the form.
   /// - Throws: The error of a press.
   static func submitRed(_ harness: HostedViewHarness<AnyView>) throws {
-    try harness.press(identifier: ElicitationFieldView.choiceIdentifier(for: "color", value: "red"))
-    try harness.press(identifier: ElicitationView.submitIdentifier)
+    try harness.perform(.press, on: ElicitationFieldView.choiceIdentifier(for: "color", value: "red"))
+    try harness.perform(.press, on: ElicitationView.submitIdentifier)
   }
 
   /// The identifiers of the tab elements of a harness.
@@ -288,7 +288,7 @@ import Testing
     #expect(harness.element(identifier: ElicitationFieldView.identifier(for: "agree")) != nil)
     #expect(harness.element(identifier: ElicitationFieldView.identifier(for: "count")) == nil)
 
-    try harness.press(identifier: ElicitationView.tabIdentifier(for: "count"))
+    try harness.perform(.press, on: ElicitationView.tabIdentifier(for: "count"))
 
     #expect(harness.element(identifier: ElicitationFieldView.identifier(for: "count")) != nil)
     #expect(harness.element(identifier: ElicitationFieldView.identifier(for: "agree")) == nil)
@@ -367,8 +367,8 @@ import Testing
     let before = try #require(harness.element(identifier: ElicitationView.submitIdentifier))
     #expect(!before.isEnabled)
 
-    try harness.press(
-      identifier: ElicitationFieldView.choiceIdentifier(for: "color", value: "blue"))
+    try harness.perform(
+      .press, on: ElicitationFieldView.choiceIdentifier(for: "color", value: "blue"))
 
     let after = try #require(harness.element(identifier: ElicitationView.submitIdentifier))
     #expect(after.isEnabled)
@@ -381,10 +381,10 @@ import Testing
     defer { mounted.close() }
     let harness = mounted.harness
 
-    try harness.press(identifier: ElicitationView.tabIdentifier(for: "color"))
-    try harness.press(
-      identifier: ElicitationFieldView.choiceIdentifier(for: "color", value: "red"))
-    try harness.press(identifier: ElicitationView.submitIdentifier)
+    try harness.perform(.press, on: ElicitationView.tabIdentifier(for: "color"))
+    try harness.perform(
+      .press, on: ElicitationFieldView.choiceIdentifier(for: "color", value: "red"))
+    try harness.perform(.press, on: ElicitationView.submitIdentifier)
     let result = try await mounted.result()
 
     #expect(result == (try JSONValue(json: #"{"action": "accept", "content": {"color": "red", "count": 3}}"#)))
@@ -408,8 +408,8 @@ import Testing
     let harness = mounted.harness
     let choice = ElicitationFieldView.choiceIdentifier(for: "tags", value: "a")
 
-    try harness.press(identifier: choice)
-    try harness.press(identifier: choice)
+    try harness.perform(.press, on: choice)
+    try harness.perform(.press, on: choice)
     try Self.submitRed(harness)
 
     #expect(try await mounted.result() == (try JSONValue(json: Self.acceptedRed)))
@@ -419,7 +419,7 @@ import Testing
     let mounted = try await Self.mountCustomNote(writing: .null)
     defer { mounted.close() }
 
-    try mounted.harness.press(identifier: Self.customTextFieldIdentifier)
+    try mounted.harness.perform(.press, on: Self.customTextFieldIdentifier)
     try Self.submitRed(mounted.harness)
 
     #expect(try await mounted.result() == (try JSONValue(json: Self.acceptedRed)))
@@ -430,8 +430,8 @@ import Testing
     defer { mounted.close() }
     let harness = mounted.harness
 
-    try harness.press(identifier: Self.customTextFieldIdentifier)
-    try harness.press(identifier: ElicitationFieldView.choiceIdentifier(for: "color", value: "red"))
+    try harness.perform(.press, on: Self.customTextFieldIdentifier)
+    try harness.perform(.press, on: ElicitationFieldView.choiceIdentifier(for: "color", value: "red"))
 
     let submit = try #require(harness.element(identifier: ElicitationView.submitIdentifier))
     #expect(!submit.isEnabled)
@@ -471,7 +471,7 @@ import Testing
     defer { mounted.close() }
     let harness = mounted.harness
 
-    try harness.press(identifier: ElicitationView.submitIdentifier)
+    try harness.perform(.press, on: ElicitationView.submitIdentifier)
 
     #expect(mounted.session.model.pendingElicitations.count == 1)
     #expect(harness.element(identifier: ElicitationView.failureIdentifier)?.label == Self.leapSecondFailure)
@@ -488,7 +488,7 @@ import Testing
     let issue = try #require(pending.validationIssue(of: .object(["when": .string(Self.leapSecond)])))
     #expect(issue == PendingElicitation.ValidationIssue(field: "when", kind: .invalidFormat(.dateTime)))
 
-    try harness.press(identifier: ElicitationView.submitIdentifier)
+    try harness.perform(.press, on: ElicitationView.submitIdentifier)
 
     let failure = try #require(harness.element(identifier: ElicitationView.failureIdentifier)?.label)
     #expect(failure == Self.leapSecondFailure)
@@ -515,7 +515,7 @@ import Testing
     try Self.submitRed(harness)
     #expect(harness.element(identifier: ElicitationView.failureIdentifier) != nil)
 
-    try harness.press(identifier: ElicitationFieldView.choiceIdentifier(for: "color", value: "blue"))
+    try harness.perform(.press, on: ElicitationFieldView.choiceIdentifier(for: "color", value: "blue"))
 
     #expect(harness.element(identifier: ElicitationView.failureIdentifier) == nil)
   }
@@ -534,7 +534,7 @@ import Testing
     let mounted = try await Self.mount(Self.oneFieldParams)
     defer { mounted.close() }
 
-    try mounted.harness.press(identifier: ElicitationView.declineIdentifier)
+    try mounted.harness.perform(.press, on: ElicitationView.declineIdentifier)
 
     #expect(try await mounted.result() == (try JSONValue(json: #"{"action": "decline"}"#)))
   }
@@ -543,7 +543,7 @@ import Testing
     let mounted = try await Self.mount(Self.oneFieldParams)
     defer { mounted.close() }
 
-    try mounted.harness.press(identifier: ElicitationView.cancelIdentifier)
+    try mounted.harness.perform(.press, on: ElicitationView.cancelIdentifier)
 
     #expect(try await mounted.result() == (try JSONValue(json: #"{"action": "cancel"}"#)))
   }
@@ -578,11 +578,11 @@ import Testing
     #expect(harness.element(identifier: ElicitationView.cancelIdentifier) == nil)
     #expect(harness.element(identifier: Self.customFooterStateIdentifier)?.label == "Waiting")
 
-    try harness.press(
-      identifier: ElicitationFieldView.choiceIdentifier(for: "color", value: "blue"))
+    try harness.perform(
+      .press, on: ElicitationFieldView.choiceIdentifier(for: "color", value: "blue"))
     #expect(harness.element(identifier: Self.customFooterStateIdentifier)?.label == "Ready")
 
-    try harness.press(identifier: Self.customFooterIdentifier)
+    try harness.perform(.press, on: Self.customFooterIdentifier)
 
     #expect(try await mounted.result() == (try JSONValue(json: #"{"action": "decline"}"#)))
   }

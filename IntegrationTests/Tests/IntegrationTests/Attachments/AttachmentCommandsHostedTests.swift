@@ -72,7 +72,7 @@ struct HostInspectorWithAttachmentActions: View {
   /// - Throws: The error of a press.
   static func pressEach(_ identifiers: [String], in harness: HostedViewHarness<some View>) throws {
     for identifier in identifiers {
-      try harness.press(identifier: identifier)
+      try harness.perform(.press, on: identifier)
     }
   }
 
@@ -94,7 +94,7 @@ struct HostInspectorWithAttachmentActions: View {
     }
     defer { harness.close() }
     try Shared.withoutAnimation {
-      try harness.press(identifier: AttachmentView.identifier(for: .chip))
+      try harness.perform(.press, on: AttachmentView.identifier(for: .chip))
     }
     await RunLoopBlockFence.afterPendingBlocks()
     harness.render()
@@ -122,7 +122,7 @@ struct HostInspectorWithAttachmentActions: View {
       size: Shared.hostSize)
     defer { harness.close() }
     harness.render()
-    try harness.press(identifier: AttachmentView.identifier(for: .chip))
+    try harness.perform(.press, on: AttachmentView.identifier(for: .chip))
     try #require(state.selection?.attachment == attachment)
     harness.render()
     try #require(Shared.shownName(of: attachment, in: harness) == "blob.bin")

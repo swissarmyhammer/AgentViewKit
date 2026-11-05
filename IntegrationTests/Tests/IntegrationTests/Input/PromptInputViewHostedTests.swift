@@ -178,7 +178,7 @@ struct PromptInputHost: View {
 
     #expect(harness.element(identifier: EditorKitPromptEditor.identifier) == nil)
     #expect(harness.element(identifier: "custom-editor")?.label == "plan")
-    try harness.press(identifier: "custom-editor")
+    try harness.perform(.press, on: "custom-editor")
     // The composer takes the text in the same step as it starts the prompt
     // task, so a press that sent nothing stops the test here.
     try #require(model.plainText.isEmpty)
@@ -220,7 +220,7 @@ struct PromptInputHost: View {
     defer { harness.close() }
     harness.render()
 
-    try harness.press(identifier: DefaultPromptAccessory.submitIdentifier)
+    try harness.perform(.press, on: DefaultPromptAccessory.submitIdentifier)
     try #require(model.submitCount == 1)
     await ObservationWait.until { !session.promptTexts.isEmpty }
 
