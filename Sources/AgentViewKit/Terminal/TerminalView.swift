@@ -14,7 +14,9 @@ import SwiftUI
 ///
 /// - A header with the command in the code font and the working directory.
 /// - The output in a read-only EditorKit editor that grows to the height of
-///   its text. ``ANSIText`` removes the escape sequences: the editor shows the
+///   its text and wraps a long line to its width, with no scroll of its own,
+///   so its host scrolls the view (`EditorView.sizedToContent()`).
+///   ``ANSIText`` removes the escape sequences: the editor shows the
 ///   text with no escape sequences, and the SGR colors as EditorKit color
 ///   runs (`EditorModel.setColorRuns(_:)`). When the output has more rows
 ///   than the row limit, the editor shows only the last rows, and a Show All
@@ -172,7 +174,7 @@ public struct TerminalView: View {
         capRow(rows)
       }
       EditorView(model: model)
-        .editorSizingMode(.intrinsic)
+        .sizedToContent()
       footer
     }
     .contentTile()

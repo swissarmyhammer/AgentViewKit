@@ -55,6 +55,9 @@ final class KeyStatusReportingWindow: NSWindow {
 /// target. The test process sets no activation policy, as in EditorKit, so
 /// these tests read the real focus state.
 @Suite(.serialized, .hostedSerially) @MainActor struct HostedFocusTests {
+  /// The accessibility identifier of the view that the focus action focuses.
+  static let focusTarget = "hosted-focus-target"
+
   @Test func aMountedViewThatGetsAKeyShowsNoWindowAndTakesNoFocus() throws {
     let log = HostedEventLog()
     let harness = HostedViewHarness(KeyRecordingView(log: log))
@@ -64,6 +67,20 @@ final class KeyStatusReportingWindow: NSWindow {
     try harness.sendKey(.escape)
 
     #expect(NSApp.windows.allSatisfy { !$0.isVisible })
+    #expect(!harness.testProcessHasFocus)
+  }
+
+  /// The harness of EditorKit drives the focus with an accessibility action
+  /// (`perform(.focus, on:)`): the action focuses the view, and the window
+  /// refuses the key status.
+  @Test func aFocusActionLeavesTheWindowNotKey() throws {
+    let harness = HostedViewHarness(Text("focus").focusable().accessibilityIdentifier(Self.focusTarget))
+    defer { harness.close() }
+    harness.render()
+
+    try harness.perform(.focus, on: Self.focusTarget)
+
+    #expect(!harness.window.isKeyWindow)
     #expect(!harness.testProcessHasFocus)
   }
 
