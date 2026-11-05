@@ -35,6 +35,18 @@ public struct AgentRowListScope: Hashable, Sendable {
   public func rowSegment(for id: String) -> FocusSegment {
     FocusSegment(kind: rowKind, id: id)
   }
+
+  /// The fixed start of the accessibility identifier of each row.
+  public static let rowIdentifierPrefix = "agent-row-"
+
+  /// The accessibility identifier of the row with `id`: the element that
+  /// holds the content of the row and has its Open or Select action.
+  ///
+  /// - Parameter id: The id of the row.
+  /// - Returns: `agent-row-<list>/<rowKind>:<id>`.
+  public func rowIdentifier(for id: String) -> String {
+    AccessibilityIdentifier.make(prefix: Self.rowIdentifierPrefix, value: "\(list)/\(rowSegment(for: id))")
+  }
 }
 
 /// What opens a row of an ``AgentRowList`` with the mouse. Return opens the
@@ -150,10 +162,13 @@ public enum AgentRowDensity: Hashable, Sendable {
 /// or a scope in it (``SwiftUI/View/agentRowListKeys(listPath:focusedPath:)``).
 /// When no ancestor installs a command system, the list uses one of its own.
 ///
-/// The row content gives its own accessibility elements, so VoiceOver reads
-/// each row as the content tells. Each of those elements has the accessibility
-/// action Open, which opens the row as Return does, or Select in a list with no
-/// `onOpen`, which selects the row. VoiceOver lists it in its Actions menu.
+/// Each row is one accessibility element that contains the elements of its
+/// content, so VoiceOver reads each row as the content tells. The row element
+/// has the identifier ``AgentRowListScope/rowIdentifier(for:)`` and the
+/// accessibility action Open, which opens the row as Return does, or Select in
+/// a list with no `onOpen`, which selects the row. VoiceOver lists it in the
+/// Actions menu of the row; a control in the row, such as a delete button,
+/// keeps only its own actions.
 ///
 /// The list scrolls itself, so give it a bounded height: the content of a
 /// sidebar column, or any frame with a height. Do not put it in a SwiftUI
@@ -333,7 +348,8 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
     let segment = scope.rowSegment(for: id)
     let rowPath = listPath.appending(segment)
     return AgentRowListRow(
-      segment: segment, isSelected: isSelected(rowWithID: id, at: rowPath),
+      segment: segment, identifier: scope.rowIdentifier(for: id),
+      isSelected: isSelected(rowWithID: id, at: rowPath),
       select: { _ = system.geometry.requestFocus(at: rowPath) }, open: opener(of: item),
       openTrigger: openTrigger, density: density, wrapper: rowWrapper.map { wrap in { wrap($0, item) } }
     ) {
@@ -535,6 +551,10 @@ struct AgentRowListRow<Content: View>: View {
   /// The segment of the scope of the row.
   let segment: FocusSegment
 
+  /// The accessibility identifier of the row element
+  /// (``AgentRowListScope/rowIdentifier(for:)``).
+  let identifier: String
+
   /// Whether this is the selected row of the list: the current row of the
   /// host, or the focused row in a list with no current row.
   let isSelected: Bool
@@ -562,7 +582,7 @@ struct AgentRowListRow<Content: View>: View {
   var body: some View {
     wrappedSurface
       .focusEffectDisabled()
-      .modifier(AgentRowClicks(trigger: openTrigger, select: select, open: open))
+      .modifier(AgentRowClicks(trigger: openTrigger, select: select, open: open, identifier: identifier))
       .commandScope(segment: segment)
       .navScrollable(.vertical)
       .scopeFocusRing(radius: AgentRowListLayout.radius)
@@ -596,13 +616,12 @@ struct AgentRowListRow<Content: View>: View {
 /// the focus back from the item that the first click opened. A `nav.*` move and
 /// a jump still focus the row, through its scope.
 ///
-/// Under each trigger, the row has the accessibility action
-/// ``openActionName``, which opens the row as Return does, or
-/// ``selectActionName`` in a list with no `onOpen`, which selects it.
-/// VoiceOver lists it in its Actions menu. The action is a named one, and not
-/// the press, because SwiftUI gives it to each accessibility element of the row
-/// content: a press there would take the place of the press of a button in the
-/// row, such as the delete button of a session row.
+/// Under each trigger, the row is a container element with the identifier of
+/// the row and the accessibility action ``openActionName``, which opens the row
+/// as Return does, or ``selectActionName`` in a list with no `onOpen`, which
+/// selects it. VoiceOver lists the action in the Actions menu of the row. The
+/// action stands on the container, so the elements of the content, such as the
+/// delete button of a session row, keep only their own actions.
 struct AgentRowClicks: ViewModifier {
   /// What opens the row with the mouse.
   let trigger: AgentRowOpenTrigger
@@ -613,14 +632,25 @@ struct AgentRowClicks: ViewModifier {
   /// The action that opens the row, or `nil` for a row that does not open.
   let open: (() -> Void)?
 
+  /// The accessibility identifier of the row element.
+  let identifier: String
+
   /// The name of the accessibility action of a row that opens.
   static var openActionName: String { String(localized: "Open", bundle: .module) }
 
   /// The name of the accessibility action of a row that does not open.
   static var selectActionName: String { String(localized: "Select", bundle: .module) }
 
+  /// SwiftUI folds a container element whose one child is a container
+  /// element into that child, and the identifier of the row would then take
+  /// the place of the identifier of a content such as a `ConnectionRow`. A
+  /// clear overlay that is hidden from accessibility, and takes no click, is a
+  /// second child, so the row element stands a level above the content.
   func body(content: Content) -> some View {
     clicks(on: content)
+      .overlay { Color.clear.accessibilityHidden(true).allowsHitTesting(false) }
+      .accessibilityElement(children: .contain)
+      .accessibilityIdentifier(identifier)
       .accessibilityAction(named: Text(open == nil ? Self.selectActionName : Self.openActionName), activate)
   }
 

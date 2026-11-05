@@ -344,7 +344,8 @@ private nonisolated let densities: [AgentRowDensity] = [.regular, .compact]
     let bed = try await RowBed(current: RowBed.ids[1])
     defer { bed.harness.close() }
 
-    try bed.harness.performCustomAction(named: AgentRowClicks.openActionName, identifier: RowBed.ids[0])
+    let row = RowBed.scope.rowIdentifier(for: RowBed.ids[0])
+    try bed.harness.performCustomAction(named: AgentRowClicks.openActionName, identifier: row)
     await bed.settle()
 
     #expect(bed.opened.values == [RowBed.ids[0]])

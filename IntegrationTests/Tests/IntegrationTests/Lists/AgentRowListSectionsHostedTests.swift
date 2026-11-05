@@ -299,7 +299,8 @@ import Testing
     let bed = await SectionBed()
     defer { bed.harness.close() }
 
-    try bed.harness.performCustomAction(named: AgentRowClicks.openActionName, identifier: SectionBed.recent.items[1])
+    let row = SectionBed.scope.rowIdentifier(for: SectionBed.recent.items[1])
+    try bed.harness.performCustomAction(named: AgentRowClicks.openActionName, identifier: row)
 
     #expect(bed.opened.values == [SectionBed.recent.items[1]])
   }

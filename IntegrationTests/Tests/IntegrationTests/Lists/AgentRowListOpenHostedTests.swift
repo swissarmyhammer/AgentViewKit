@@ -119,7 +119,8 @@ import Testing
     let bed = try await OpenBed(trigger: .click)
     defer { bed.harness.close() }
 
-    try bed.harness.performCustomAction(named: AgentRowClicks.openActionName, identifier: OpenBed.ids[1])
+    let row = OpenBed.scope.rowIdentifier(for: OpenBed.ids[1])
+    try bed.harness.performCustomAction(named: AgentRowClicks.openActionName, identifier: row)
 
     #expect(bed.opened.values == [OpenBed.ids[1]])
   }
@@ -130,7 +131,8 @@ import Testing
     let bed = try await OpenBed(trigger: .doubleClick)
     defer { bed.harness.close() }
 
-    try bed.harness.performCustomAction(named: AgentRowClicks.openActionName, identifier: OpenBed.ids[0])
+    let row = OpenBed.scope.rowIdentifier(for: OpenBed.ids[0])
+    try bed.harness.performCustomAction(named: AgentRowClicks.openActionName, identifier: row)
 
     #expect(bed.opened.values == [OpenBed.ids[0]])
   }
@@ -141,7 +143,8 @@ import Testing
     let bed = try await OpenBed(trigger: .click, opens: false)
     defer { bed.harness.close() }
 
-    try bed.harness.performCustomAction(named: AgentRowClicks.selectActionName, identifier: OpenBed.ids[1])
+    let row = OpenBed.scope.rowIdentifier(for: OpenBed.ids[1])
+    try bed.harness.performCustomAction(named: AgentRowClicks.selectActionName, identifier: row)
 
     #expect(bed.focusedScope() == OpenBed.rowPath(1))
   }

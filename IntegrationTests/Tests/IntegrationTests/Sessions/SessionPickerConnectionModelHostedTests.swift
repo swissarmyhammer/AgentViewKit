@@ -395,6 +395,21 @@ import Testing
 
   // MARK: - Capability flags
 
+  /// The Open and Select actions of a row stand on the row, not on the
+  /// controls in it, so VoiceOver offers no Open on the delete button.
+  @Test func theDeleteButtonHasNoActionOfTheRow() async throws {
+    let session = try await Self.openSession(initialize: Self.deleteCapableInitialize)
+    defer { session.close() }
+    let harness = await Self.mountPicker(session)
+    defer { harness.close() }
+    let delete = SessionListView.deleteIdentifier(for: SessionId(rawValue: Self.closedSessionID))
+
+    let actions = try #require(harness.element(identifier: delete)).customActions
+
+    #expect(!actions.contains(AgentRowClicks.openActionName))
+    #expect(!actions.contains(AgentRowClicks.selectActionName))
+  }
+
   @Test func withNoDeleteCapabilityNoDeleteControlShows() async throws {
     let session = try await Self.openSession()
     defer { session.close() }
