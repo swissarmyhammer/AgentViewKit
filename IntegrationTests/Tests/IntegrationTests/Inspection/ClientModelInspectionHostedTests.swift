@@ -239,7 +239,31 @@ import Testing
   ///   - harness: The harness that shows the row.
   /// - Returns: The paths.
   static func chipPaths<Content: View>(in row: String, of harness: HostedViewHarness<Content>) -> [String] {
-    harness.inspectorDriver.pathChips(in: row).compactMap(accessibilityValue(of:))
+    chipText(in: row, of: harness, accessibilityValue(of:))
+  }
+
+  /// The names that the chips of the paths row `row` show, in order: the
+  /// accessibility label of each chip.
+  ///
+  /// - Parameters:
+  ///   - row: The scheme id of the paths row.
+  ///   - harness: The harness that shows the row.
+  /// - Returns: The names.
+  static func chipNames<Content: View>(in row: String, of harness: HostedViewHarness<Content>) -> [String] {
+    chipText(in: row, of: harness, accessibilityLabel(of:))
+  }
+
+  /// The text that `accessor` reads from each chip of the paths row `row`, in order.
+  ///
+  /// - Parameters:
+  ///   - row: The scheme id of the paths row.
+  ///   - harness: The harness that shows the row.
+  ///   - accessor: The accessibility text of a chip.
+  /// - Returns: The text of each chip that has it.
+  private static func chipText<Content: View>(
+    in row: String, of harness: HostedViewHarness<Content>, _ accessor: (NSObject) -> String?
+  ) -> [String] {
+    harness.inspectorDriver.pathChips(in: row).compactMap(accessor)
   }
 
   @Test func theLocationsRowOfAToolCallFollowsItsLocations() async throws {
@@ -269,7 +293,7 @@ import Testing
     let row = Self.row(of: entry, group: "tool-call", field: "locations")
 
     let names = Self.locationFiles.map { PathChip.Parts(path: $0, line: Self.locationLine).name }
-    #expect(harness.inspectorDriver.pathChips(in: row).compactMap(accessibilityLabel(of:)) == names)
+    #expect(Self.chipNames(in: row, of: harness) == names)
   }
 
   @Test func theAdditionalDirectoriesRowOfASessionShowsAChipForEachFolder() async throws {
@@ -279,9 +303,9 @@ import Testing
     let harness = Self.mount(model)
     defer { harness.close() }
 
-    #expect(
-      Self.chipPaths(in: Self.row(of: model, group: "session", field: "additional-directories"), of: harness)
-        == model.additionalDirectories.map { InspectionPath.folder($0).path(percentEncoded: false) })
+    let row = Self.row(of: model, group: "session", field: "additional-directories")
+    let folders = Self.additionalFolders.map { InspectionPath.folder(AbsolutePath(rawValue: $0)).path(percentEncoded: false) }
+    #expect(Self.chipPaths(in: row, of: harness) == folders)
   }
 
   @Test func theAdditionalDirectoriesRowOfASessionWithNoneShowsTheDash() async throws {

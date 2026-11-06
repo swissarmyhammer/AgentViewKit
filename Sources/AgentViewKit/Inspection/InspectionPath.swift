@@ -24,7 +24,7 @@ enum InspectionPath {
   /// - Returns: The URL of the folder, or ``rootFolder`` for `nil`.
   static func folder(_ path: AbsolutePath?) -> URL {
     guard let path else { return rootFolder }
-    return URL(filePath: path.rawValue, directoryHint: .isDirectory)
+    return url(path, directoryHint: .isDirectory)
   }
 
   /// The URL of a file, such as a location of a tool call: a file URL with
@@ -33,7 +33,17 @@ enum InspectionPath {
   /// - Parameter path: The path of the file.
   /// - Returns: The URL of the file.
   static func file(_ path: AbsolutePath) -> URL {
-    URL(filePath: path.rawValue, directoryHint: .notDirectory)
+    url(path, directoryHint: .notDirectory)
+  }
+
+  /// The file URL of a path, with the hint that picks the symbol of its chip.
+  ///
+  /// - Parameters:
+  ///   - path: The path.
+  ///   - directoryHint: Whether the path names a folder.
+  /// - Returns: The URL of the path.
+  private static func url(_ path: AbsolutePath, directoryHint: URL.DirectoryHint) -> URL {
+    URL(filePath: path.rawValue, directoryHint: directoryHint)
   }
 
   /// The location of a tool call as its chip of a paths row shows it: the
