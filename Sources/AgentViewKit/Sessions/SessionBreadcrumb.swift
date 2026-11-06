@@ -22,7 +22,7 @@ import SwiftUI
 ///
 /// The bar owns the layout of the path: with less room it hides the oldest
 /// ancestors in a leading "…" crumb, and a last crumb that still lacks room
-/// wraps its title, so no title is cut. Each crumb is one accessibility
+/// collapses into it too, so no title is cut or wrapped. Each crumb is one accessibility
 /// element and a jump target at `FocusSegment.editorBreadcrumb(id:)`, whose
 /// id is the id of its session.
 struct SessionBreadcrumb: View {

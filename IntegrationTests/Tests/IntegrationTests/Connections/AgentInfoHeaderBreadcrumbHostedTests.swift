@@ -198,10 +198,10 @@ import Testing
     return harness
   }
 
-  /// A production change that fails this test: the bar hides the last crumb
-  /// when it has no room, cuts it from the accessibility tree, or hides the
-  /// root and shows no overflow crumb that holds it.
-  @Test func aSqueezedCrumbCollapsesIntoTheOverflowAndThenWraps() async throws {
+  /// A production change that fails this test: a squeezed crumb wraps or
+  /// stays in the bar with no room, or the overflow crumb does not hold the
+  /// whole path of the session, so a crumb is lost to accessibility.
+  @Test func aSqueezedPathCollapsesIntoTheOverflow() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let child = try await session.announceChild(Self.longChild, title: Self.longSessionTitle)
@@ -210,11 +210,10 @@ import Testing
     defer { harness.close() }
 
     let overflow = try harness.perform(.showMenu, on: EditorBreadcrumbBar.overflowAccessibilityIdentifier)
-    let last = harness.element(identifier: SessionBreadcrumb.crumbIdentifier(for: Self.longChild))
 
     #expect(harness.element(identifier: SessionBreadcrumb.crumbIdentifier(for: root.sessionId)) == nil)
-    #expect(overflow?.items.map(\.title) == [root.displayTitle])
-    #expect(last?.label == Self.longSessionTitle)
+    #expect(harness.element(identifier: SessionBreadcrumb.crumbIdentifier(for: Self.longChild)) == nil)
+    #expect(overflow?.items.map(\.title) == [root.displayTitle, Self.longSessionTitle])
   }
 
   /// A production change that fails this test: a crumb splits its title and

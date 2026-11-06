@@ -26,8 +26,9 @@ the children of the shown session, with a limit and a count of the others.
 
 The crumbs are EditorKit's `EditorBreadcrumbBar`. When the path does not fit the
 width of the bar, the oldest ancestors collapse into a leading "…" crumb whose
-menu lists them, and the last crumb wraps rather than cut its title. The agent
-keeps its place. This is a rule of the width of the bar and not of the number of
+menu lists them. When even the last crumb does not fit, it collapses into that
+crumb too, whose menu then lists the whole path, so no title is cut or wrapped
+and the bar stays one line tall. The agent keeps its place. This is a rule of the width of the bar and not of the number of
 sessions in the path.
 
 ### Commands and jump

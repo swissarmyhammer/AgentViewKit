@@ -29,7 +29,8 @@ import SwiftUI
 /// level (``SessionBreadcrumb``). With no session, the header shows the agent
 /// alone. When the path does not fit the width, the bar hides the oldest
 /// ancestors in a leading "…" crumb, one at a time, and a last crumb that
-/// still lacks room wraps its title. That is a rule of the width, and not of
+/// still lacks room collapses into it too, whose menu then lists the whole
+/// path. That is a rule of the width, and not of
 /// the number of sessions. The agent segment has the higher layout priority,
 /// so the crumbs collapse first.
 ///
@@ -138,8 +139,8 @@ public struct AgentInfoHeader: View {
 }
 
 /// The segments of an ``AgentInfoHeader``: the agent, and the crumbs of the
-/// path after it, whose bar collapses and wraps them to the width that the
-/// agent leaves. The row takes the whole width it gets and stands at its
+/// path after it, whose bar collapses them to the width that the agent
+/// leaves. The row takes the whole width it gets and stands at its
 /// leading edge, with no spacer that would take a share of the width from
 /// the bar.
 ///
