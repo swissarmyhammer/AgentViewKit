@@ -36,6 +36,12 @@ import SwiftUI
 /// on every selected file, in transcript order, and a command on a file
 /// that is not selected acts on that file alone (card ^zsr2pbf,
 /// ``AttachmentCommandFiles``).
+///
+/// The scope of a view that shows several files together, an
+/// ``AttachmentInspector``, is the scope of its first file, and it gives
+/// every file of the view to the context of its commands in the same way,
+/// so each attachment command there acts on every file, in the order of the
+/// view (card ^xbhtytm, ``SwiftUI/View/agentAttachmentScope(files:)``).
 struct AgentAttachmentScope: ViewModifier {
   /// The attachment of the scope.
   let attachment: Attachment
@@ -47,6 +53,11 @@ struct AgentAttachmentScope: ViewModifier {
   /// The action that changes the file selection for a press on the file
   /// view, or `nil` for a view that selects no file.
   let select: ((AttachmentSelectionChange) -> Void)?
+
+  /// The files that each command at the scope acts on, in order, for a
+  /// view of several files such as an ``AttachmentInspector``, or `nil` for
+  /// a view of ``attachment``, whose commands read the file selection.
+  let files: [Attachment]?
 
   @Environment(\.commandSystem) private var ambientSystem
   @Environment(\.commandScopePath) private var parentPath
@@ -83,9 +94,13 @@ struct AgentAttachmentScope: ViewModifier {
     }
   }
 
-  /// Reads the selected files that a command at the scope acts on, or `nil`
-  /// for a view that selects no file.
+  /// Reads the files that a command at the scope acts on: the ``files`` of
+  /// a view of several files, or the selected files of a view that selects
+  /// its file. `nil` for a view of one file that selects no file.
   private var commandFiles: (() -> [Attachment])? {
+    if let files {
+      return { files }
+    }
     guard select != nil else { return nil }
     return { [attachment, fileSelection] in fileSelection.commandFiles(at: attachment) }
   }
@@ -116,7 +131,30 @@ extension View {
     select: ((AttachmentSelectionChange) -> Void)? = nil
   ) -> some View {
     if let attachment {
-      modifier(AgentAttachmentScope(attachment: attachment, focusRingCorners: focusRingCorners, select: select))
+      modifier(
+        AgentAttachmentScope(attachment: attachment, focusRingCorners: focusRingCorners, select: select, files: nil))
+    } else {
+      self
+    }
+  }
+
+  /// Puts this view, which shows `files` together, in the scope of the
+  /// first file, with the attachment commands at the path of the scope.
+  ///
+  /// Each command at the scope acts on every file of `files`, in order, and
+  /// is available only when it can run on each one: the scope gives the
+  /// files to the context of its commands as its selection
+  /// (``AgentAttachmentTarget/contributeSelection(to:)``). An
+  /// ``AttachmentInspector`` is such a view: its action row, its context
+  /// menu and the command palette run each verb on every file it shows.
+  ///
+  /// - Parameter files: The files of the view, in order. With no file the
+  ///   view makes no scope.
+  /// - Returns: A view in the scope of the files, or this view.
+  @ViewBuilder
+  func agentAttachmentScope(files: [Attachment]) -> some View {
+    if let first = files.first {
+      modifier(AgentAttachmentScope(attachment: first, focusRingCorners: .card, select: nil, files: files))
     } else {
       self
     }
@@ -194,9 +232,9 @@ struct AgentAttachmentMount: NSViewRepresentable {
     /// The select action of the file view of the scope, or `nil` when the
     /// view selects no file.
     let select: ((AttachmentSelectionChange) -> Void)?
-    /// Reads the selected files that a command at the scope acts on, or
-    /// `nil` when the view selects no file
-    /// (``AgentAttachmentTarget/selection``).
+    /// Reads the selected files, or the files of a view of several files,
+    /// that a command at the scope acts on, or `nil` when the view shows
+    /// one file and selects no file (``AgentAttachmentTarget/selection``).
     let selection: (() -> [Attachment])?
   }
 

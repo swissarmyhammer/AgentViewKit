@@ -10,9 +10,9 @@ import Testing
 /// files, read with EditorKit's `InspectorDriver` by their scheme ids.
 ///
 /// One file shows its name, its actions and the EditorKit preview of the
-/// file. Several files fold into one form: the header counts them, the
-/// preview reads "Mixed", and no action shows, because each action runs on
-/// one file.
+/// file. Several files fold into one form: the header counts them and the
+/// preview reads "Mixed". ``AttachmentInspectorFilesHostedTests`` checks the
+/// Files row and the actions of several files.
 @Suite(.serialized, .hostedSerially) @MainActor struct AttachmentInspectorRowsHostedTests {
   /// The width of a narrow docked panel, in points.
   static let narrowWidth: CGFloat = 240
@@ -89,17 +89,6 @@ import Testing
     let header = EditorInspectorStrings.blockHeader(
       title: AttachmentInspector.inspection.title, count: attachments.count)
     #expect(harness.rowValue(AttachmentInspector.nameIdentifier(of: attachments)) == header)
-  }
-
-  @Test func severalFilesShowNoAction() throws {
-    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
-    defer { directory.remove() }
-    let harness = Self.mount(AttachmentInspector(try Self.attachments(in: directory)))
-    defer { harness.close() }
-
-    for identifier in AttachmentInspector.actionIdentifiers {
-      #expect(harness.element(identifier: identifier) == nil, "Unexpected action \(identifier).")
-    }
   }
 
   /// The inspector as the content of a narrow host panel, which owns the
