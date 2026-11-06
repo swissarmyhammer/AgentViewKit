@@ -244,18 +244,13 @@ nonisolated struct AgentCommand: EditorCommands.Command {
   var title: String { verb.title }
 
   func availability(in context: CommandContext) -> Availability {
-    MainActor.assumeIsolated {
-      guard let target else {
-        return .unavailable(reason: String(localized: "The thread is not shown.", bundle: .module))
-      }
-      return target.availability(of: verb, payload: itemPayload)
-    }
+    CommandTargetAccess.availability(
+      at: target, unavailable: .unavailable(reason: String(localized: "The thread is not shown.", bundle: .module))
+    ) { $0.availability(of: verb, payload: itemPayload) }
   }
 
   func run(in context: CommandContext) -> Bool {
-    MainActor.assumeIsolated {
-      target?.run(verb, payload: itemPayload) ?? false
-    }
+    CommandTargetAccess.run(at: target) { $0.run(verb, payload: itemPayload) }
   }
 
   /// The payload of the dispatch, with the item of the scope when the payload

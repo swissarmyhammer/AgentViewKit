@@ -44,54 +44,18 @@ nonisolated enum AgentFileSelectionVerb: String, CaseIterable, Sendable {
   var title: String {
     change.actionName
   }
-}
 
-/// One selection command: a verb and the target of the scope of its file.
-///
-/// The command holds its target weakly, as ``AgentAttachmentCommand`` does,
-/// and runs the select action of the target with the change of its verb.
-nonisolated struct AgentFileSelectionCommand: EditorCommands.Command {
-  /// The verb of the command.
-  let verb: AgentFileSelectionVerb
-
-  /// The target of the scope that registered the command.
-  weak let target: AgentAttachmentTarget?
-
-  var id: CommandID { verb.id }
-
-  var title: String { verb.title }
-
-  func availability(in context: CommandContext) -> Availability {
-    MainActor.assumeIsolated {
-      target?.select == nil ? .attachmentNotShown : .available
-    }
-  }
-
-  /// Runs the select action of the target with the change of the verb.
-  ///
-  /// - Parameter context: The context of the invocation.
-  /// - Returns: `true` when the target has a select action.
-  func run(in context: CommandContext) -> Bool {
-    MainActor.assumeIsolated {
-      guard let select = target?.select else { return false }
-      select(verb.change)
-      return true
-    }
-  }
-
-  /// The EditorKit definition of `verb` for `target`, with the title of the
-  /// verb and no place in a menu.
-  ///
-  /// - Parameters:
-  ///   - verb: The verb.
-  ///   - target: The target of the scope.
-  /// - Returns: The definition.
-  static func definition(of verb: AgentFileSelectionVerb, for target: AgentAttachmentTarget) -> CommandDefinition {
-    CommandDefinition(
-      id: verb.id,
-      title: .static(verb.title),
-      make: { [weak target] _ in
-        AgentFileSelectionCommand(verb: verb, target: target)
+  /// The command action of the verb: it runs the select action of the
+  /// target with the change of the verb, and it has no place in a menu. With
+  /// no select action, the command is unavailable and its run declines.
+  var action: AgentAttachmentCommand.Action {
+    AgentAttachmentCommand.Action(
+      id: id, title: title,
+      availability: { target, _ in target.select == nil ? .attachmentNotShown : .available },
+      run: { [change] target, _ in
+        guard let select = target.select else { return false }
+        select(change)
+        return true
       })
   }
 }

@@ -55,17 +55,14 @@ import Testing
       report(id)
       if movesFocusOnOpen { _ = system.geometry.requestFocus(at: Self.tabPath) }
     }
-    harness = HostedViewHarness(
-      AnyView(
-        HStack {
-          AgentRowList(Self.ids, id: \.self, scope: Self.scope, openOn: trigger, onOpen: opens ? open : nil) { id in
-            Text(id).accessibilityIdentifier(id)
-          }
-          Color.clear.commandScope(segment: Self.tabPath.segments[0])
+    harness = try await CommandWindow(system: system, beacons: [Self.tabPath, Self.rowPath(0), Self.rowPath(1)]) {
+      HStack {
+        AgentRowList(Self.ids, id: \.self, scope: Self.scope, openOn: trigger, onOpen: opens ? open : nil) { id in
+          Text(id).accessibilityIdentifier(id)
         }
-        .commandSystem(system)))
-    await RunLoopBlockFence.afterPendingBlocks()
-    try #require(waitForLiveBeacons([Self.tabPath, Self.rowPath(0), Self.rowPath(1)], in: system))
+        Color.clear.commandScope(segment: Self.tabPath.segments[0])
+      }
+    }.harness
   }
 
   /// The path of the scope of the row at `index`.

@@ -41,20 +41,18 @@ import Testing
   /// - Parameters:
   ///   - sections: The sections of the list.
   ///   - style: The style of the window.
-  init(sections: [AgentRowSection<String>] = [pinned, recent], style: EditorStyle = .default) async {
+  init(sections: [AgentRowSection<String>] = [pinned, recent], style: EditorStyle = .default) async throws {
     let reportOpen = opened.report
     let reportBuilt = built.report
-    harness = HostedViewHarness(
-      AnyView(
-        AgentRowList(
-          sections: sections, id: \.self, scope: Self.scope, openOn: .click, density: .compact,
-          onOpen: { reportOpen($0) }
-        ) { id in
-          Text(id).accessibilityIdentifier(id).onAppear { reportBuilt(id) }
-        }
-        .environment(\.editorStyle, style)
-        .commandSystem(system)))
-    await RunLoopBlockFence.afterPendingBlocks()
+    harness = try await CommandWindow(system: system) {
+      AgentRowList(
+        sections: sections, id: \.self, scope: Self.scope, openOn: .click, density: .compact,
+        onOpen: { reportOpen($0) }
+      ) { id in
+        Text(id).accessibilityIdentifier(id).onAppear { reportBuilt(id) }
+      }
+      .environment(\.editorStyle, style)
+    }.harness
   }
 
   /// The path of the scope of the row with `id`.
@@ -161,7 +159,7 @@ import Testing
   }
 
   @Test func eachHeaderStandsAboveTheRowsOfItsSection() async throws {
-    let bed = await SectionBed()
+    let bed = try await SectionBed()
     defer { bed.harness.close() }
 
     let tops = [
@@ -176,7 +174,7 @@ import Testing
 
   @Test func anEmptySectionShowsNoHeader() async throws {
     let empty = AgentRowSection<String>(id: "pinned", title: "Pinned", items: [])
-    let bed = await SectionBed(sections: [empty, SectionBed.recent])
+    let bed = try await SectionBed(sections: [empty, SectionBed.recent])
     defer { bed.harness.close() }
 
     #expect(bed.headerFrame(of: empty) == nil)
@@ -184,14 +182,14 @@ import Testing
 
   @Test func theSectionAfterAnEmptySectionKeepsItsHeader() async throws {
     let empty = AgentRowSection<String>(id: "pinned", title: "Pinned", items: [])
-    let bed = await SectionBed(sections: [empty, SectionBed.recent])
+    let bed = try await SectionBed(sections: [empty, SectionBed.recent])
     defer { bed.harness.close() }
 
     #expect(bed.headerFrame(of: SectionBed.recent) != nil)
   }
 
   @Test func voiceOverHearsTheHeaderAsAHeading() async throws {
-    let bed = await SectionBed()
+    let bed = try await SectionBed()
     defer { bed.harness.close() }
 
     let header = bed.harness.element(identifier: AgentRowSectionHeader.identifier(for: SectionBed.pinned.id))
@@ -206,7 +204,7 @@ import Testing
   @Test func theHeaderLinesUpWithTheContentOfARow() async throws {
     var style = EditorStyle.default
     style.spacing.s *= 2
-    let bed = await SectionBed(style: style)
+    let bed = try await SectionBed(style: style)
     defer { bed.harness.close() }
 
     let header = try #require(bed.headerFrame(of: SectionBed.pinned))
@@ -216,7 +214,7 @@ import Testing
   }
 
   @Test func theDownArrowCrossesIntoTheNextSection() async throws {
-    let bed = await SectionBed()
+    let bed = try await SectionBed()
     defer { bed.harness.close() }
     try bed.select(SectionBed.pinned.items[0])
 
@@ -226,7 +224,7 @@ import Testing
   }
 
   @Test func theUpArrowCrossesBackIntoTheSectionBefore() async throws {
-    let bed = await SectionBed()
+    let bed = try await SectionBed()
     defer { bed.harness.close() }
     try bed.select(SectionBed.recent.items[0])
 
@@ -240,7 +238,7 @@ import Testing
   @Test func theDownArrowRevealsTheFirstRowOfTheNextSection() async throws {
     let first = Self.longSection("first", count: 40)
     let second = Self.longSection("second", count: 40)
-    let bed = await SectionBed(sections: [first, second])
+    let bed = try await SectionBed(sections: [first, second])
     defer { bed.harness.close() }
     try bed.select(first.items[0])
 
@@ -252,7 +250,7 @@ import Testing
   @Test func theDownArrowShowsTheHeaderOfTheNextSection() async throws {
     let first = Self.longSection("first", count: 40)
     let second = Self.longSection("second", count: 40)
-    let bed = await SectionBed(sections: [first, second])
+    let bed = try await SectionBed(sections: [first, second])
     defer { bed.harness.close() }
     try bed.select(first.items[0])
 
@@ -265,7 +263,7 @@ import Testing
   @Test func theUpArrowShowsTheHeaderOfTheSectionItLandsIn() async throws {
     let first = Self.longSection("first", count: 2)
     let second = Self.longSection("second", count: 40)
-    let bed = await SectionBed(sections: [first, second])
+    let bed = try await SectionBed(sections: [first, second])
     defer { bed.harness.close() }
     try bed.select(first.items[0])
     let rows = first.items + second.items.prefix(31)
@@ -279,7 +277,7 @@ import Testing
 
   @Test func theUpArrowShowsTheHeaderOfTheFirstRowOfTheList() async throws {
     let first = Self.longSection("first", count: 40)
-    let bed = await SectionBed(sections: [first])
+    let bed = try await SectionBed(sections: [first])
     defer { bed.harness.close() }
     try bed.select(first.items[0])
     let rows = first.items.prefix(31)
@@ -292,7 +290,7 @@ import Testing
   }
 
   @Test func theOpenActionOpensARowOfTheSecondSection() async throws {
-    let bed = await SectionBed()
+    let bed = try await SectionBed()
     defer { bed.harness.close() }
 
     let row = SectionBed.scope.rowIdentifier(for: SectionBed.recent.items[1])
@@ -302,7 +300,7 @@ import Testing
   }
 
   @Test func returnOpensASelectedRowOfTheSecondSection() async throws {
-    let bed = await SectionBed()
+    let bed = try await SectionBed()
     defer { bed.harness.close() }
     try bed.select(SectionBed.recent.items[0])
 
@@ -313,7 +311,7 @@ import Testing
 
   /// A header is no row: it has no open action, so it opens nothing.
   @Test func aHeaderHasNoOpenAction() async throws {
-    let bed = await SectionBed()
+    let bed = try await SectionBed()
     defer { bed.harness.close() }
     let header = AgentRowSectionHeader.identifier(for: SectionBed.recent.id)
     let open = AgentRowClicks.openActionName
@@ -327,7 +325,7 @@ import Testing
   @Test func theRowsStayLazy() async throws {
     let first = Self.longSection("first", count: 200)
     let second = Self.longSection("second", count: 200)
-    let bed = await SectionBed(sections: [first, second])
+    let bed = try await SectionBed(sections: [first, second])
     defer { bed.harness.close() }
 
     #expect(bed.built.values.contains(first.items[0]))

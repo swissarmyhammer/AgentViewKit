@@ -54,14 +54,29 @@ nonisolated struct RowClickRecorder: Command {
   /// The accessibility identifier of the caption of the row.
   static let captionIdentifier = "row-caption"
 
+  /// The width of the window, which holds the caption and the chips of the
+  /// row on one line each.
+  static let windowWidth: CGFloat = 600
+
+  /// The height of the window, which holds the caption and the files of the
+  /// row.
+  static let windowHeight: CGFloat = 300
+
   /// The size of the window.
-  static let size = CGSize(width: 600, height: 300)
+  static let size = CGSize(width: windowWidth, height: windowHeight)
 
   /// The folder of the files.
   let directory: TemporaryFolder
 
   /// The files, in transcript order.
   let files: [AgentViewKit.Attachment]
+
+  /// The first file, which the selection starts with: the anchor of an
+  /// extend.
+  let anchor: AgentViewKit.Attachment
+
+  /// The last file, the file of the attachment chip that the tests click.
+  let clicked: AgentViewKit.Attachment
 
   /// The inspector selection of the window.
   let selection: InspectorSelection
@@ -77,7 +92,9 @@ nonisolated struct RowClickRecorder: Command {
   init() async throws {
     let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     let files = try Self.names.map { try AttachmentFixtures.attachment(named: $0, in: directory) }
-    let selection = InspectorSelection(attachments: [files[0]])
+    let anchor = try #require(files.first)
+    let clicked = try #require(files.last)
+    let selection = InspectorSelection(attachments: [anchor])
     let rowRuns = SubjectLog<CommandID>()
     let system = CommandSystem()
     for command in [Self.addCommand, Self.extendCommand] {
@@ -88,35 +105,41 @@ nonisolated struct RowClickRecorder: Command {
     }
     self.directory = directory
     self.files = files
+    self.anchor = anchor
+    self.clicked = clicked
     self.selection = selection
     self.rowRuns = rowRuns
-    harness = HostedViewHarness(
-      AnyView(
-        Self.row(files: files)
-          .commandScope(segment: Self.window)
-          .environment(\.inspectorSelection, selection)
-          .environment(\.transcriptFileOrder, TranscriptFileOrder())
-          .commandSystem(system)),
-      size: Self.size)
-    await RunLoopBlockFence.afterPendingBlocks()
-    try #require(waitForLiveBeacons([.root(Self.window), .root(Self.window).appending(Self.row)], in: system))
+    let window = FocusPath.root(Self.window)
+    harness = try await CommandWindow(
+      system: system, size: Self.size, beacons: [window, window.appending(Self.row)]
+    ) {
+      Self.row(locationFiles: files.dropLast(), clicked: clicked)
+        .commandScope(segment: Self.window)
+        .environment(\.inspectorSelection, selection)
+        .environment(\.transcriptFileOrder, TranscriptFileOrder())
+    }.harness
   }
 
-  /// The row: a caption over the location chips of the first two files and
-  /// the attachment view of the third, in the scope of the row, with the
+  /// The row: a caption over the location chips of the first files and the
+  /// attachment view of the clicked file, in the scope of the row, with the
   /// bound clicks of the row around that scope.
   ///
-  /// - Parameter files: The files, in transcript order.
+  /// - Parameters:
+  ///   - locationFiles: The files of the location chips, in transcript order.
+  ///   - clicked: The file of the attachment view, the last in transcript
+  ///     order.
   /// - Returns: The row.
-  private static func row(files: [AgentViewKit.Attachment]) -> some View {
-    let locations = files.dropLast().enumerated().map { index, file in
+  private static func row(
+    locationFiles: ArraySlice<AgentViewKit.Attachment>, clicked: AgentViewKit.Attachment
+  ) -> some View {
+    let locations = locationFiles.enumerated().map { index, file in
       ToolCallLocationChips.Location(
         path: file.url.path(percentEncoded: false), line: nil, identifier: "row-location-\(index)")
     }
     return VStack(alignment: .leading) {
       Text(captionIdentifier).accessibilityIdentifier(captionIdentifier)
-      ToolCallLocationChips(locations: Array(locations))
-      AttachmentView(files[files.count - 1])
+      ToolCallLocationChips(locations: locations)
+      AttachmentView(clicked)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     .commandScope(segment: row)
@@ -164,7 +187,7 @@ nonisolated struct RowClickRecorder: Command {
 
     try await bed.clickChip(with: .command)
 
-    #expect(bed.selection.attachments == [bed.files[0], bed.files[2]])
+    #expect(bed.selection.attachments == [bed.anchor, bed.clicked])
   }
 
   @Test func aCommandClickOnTheFileRunsNoCommandOfTheRow() async throws {

@@ -117,15 +117,47 @@ public nonisolated enum AgentAttachmentVerb: String, CaseIterable, Sendable {
 
 // MARK: - Command
 
-/// One attachment command: a verb and the target of its scope.
+/// One command of an attachment scope: an action and the target of its
+/// scope.
 ///
 /// The command is a value, as EditorKit requires. It holds its target
 /// weakly, so a registry that outlives the view does not keep the target.
 /// The command reads the ``Attachment`` of the nearest attachment scope with
-/// `@FromTarget`, and runs the verb on it with the service of the target.
+/// `@FromTarget`, and its ``Action`` decides at the target whether it can run
+/// and what a run does: an ``AgentAttachmentVerb`` runs on the attachment
+/// with the service of the target, and an ``AgentFileSelectionVerb`` runs the
+/// select action of the target.
 nonisolated struct AgentAttachmentCommand: EditorCommands.Command {
-  /// The verb of the command.
-  let verb: AgentAttachmentVerb
+  /// What one command of an attachment scope is and does: its id, its title
+  /// and places, its availability and its run at the live target of the
+  /// scope, with the attachment of the scope.
+  struct Action: Sendable {
+    /// The command id.
+    let id: CommandID
+
+    /// The title that the menus and the palette show.
+    let title: String
+
+    /// The SF Symbol of the command, or `nil`.
+    var icon: String?
+
+    /// The place of the command in the File menu, or `nil` for none.
+    var menu: MenuPlacement?
+
+    /// The place of the command in the context menu, or `nil` for none.
+    var contextMenu: ContextMenuPlacement?
+
+    /// Whether the command can run at the target, with the attachment of
+    /// the scope.
+    let availability: @MainActor @Sendable (AgentAttachmentTarget, Attachment?) -> Availability
+
+    /// Runs the command at the target, with the attachment of the scope.
+    /// Returns `false` when the run declines.
+    let run: @MainActor @Sendable (AgentAttachmentTarget, Attachment?) -> Bool
+  }
+
+  /// The action of the command.
+  let action: Action
 
   /// The target of the scope that registered the command.
   weak let target: AgentAttachmentTarget?
@@ -133,66 +165,77 @@ nonisolated struct AgentAttachmentCommand: EditorCommands.Command {
   /// The attachment of the nearest attachment scope, or `nil`.
   @FromTarget(kind: AgentScopeKind.attachment) var attachment: Attachment?
 
-  /// Makes the command of `verb` for `target`.
+  /// Makes the command of `action` for `target`.
   ///
   /// - Parameters:
-  ///   - verb: The verb of the command.
+  ///   - action: The action of the command.
   ///   - target: The target of the scope, or `nil`.
-  init(verb: AgentAttachmentVerb, target: AgentAttachmentTarget?) {
-    self.verb = verb
+  init(action: Action, target: AgentAttachmentTarget?) {
+    self.action = action
     self.target = target
   }
 
-  var id: CommandID { verb.id }
+  var id: CommandID { action.id }
 
-  var title: String { verb.title }
+  var title: String { action.title }
 
   func availability(in context: CommandContext) -> Availability {
-    MainActor.assumeIsolated {
-      guard target?.service != nil, let attachment else {
-        return .attachmentNotShown
-      }
-      return verb.availability(for: attachment)
+    CommandTargetAccess.availability(at: target, unavailable: .attachmentNotShown) {
+      action.availability($0, attachment)
     }
   }
 
-  /// Runs the verb on the attachment of the scope with the service of the
-  /// target.
+  /// Runs the action at the target of the scope. With no target, the run
+  /// declines.
   ///
-  /// The run declines where the command cannot run, the same checks as
-  /// ``availability(in:)``: a key then goes on to the next binding of its
-  /// chord (EditorKit ^jaxzzkn). A run that reaches the service handles the
+  /// - Parameter context: The context of the invocation.
+  /// - Returns: `true` when the action ran.
+  func run(in context: CommandContext) -> Bool {
+    CommandTargetAccess.run(at: target) { action.run($0, attachment) }
+  }
+
+  /// The EditorKit definition of `action` for `target`, with the title, the
+  /// icon, the menu and the context menu of the action.
+  ///
+  /// - Parameters:
+  ///   - action: The action.
+  ///   - target: The target of the scope.
+  /// - Returns: The definition.
+  static func definition(of action: Action, for target: AgentAttachmentTarget) -> CommandDefinition {
+    CommandDefinition(
+      id: action.id,
+      title: .static(action.title),
+      icon: action.icon,
+      menu: action.menu,
+      contextMenu: action.contextMenu,
+      make: { [weak target] _ in
+        AgentAttachmentCommand(action: action, target: target)
+      })
+  }
+}
+
+extension AgentAttachmentVerb {
+  /// The command action of the verb: it runs on the attachment of the scope
+  /// with the service of the target.
+  ///
+  /// The run declines where the command cannot run, the same checks as the
+  /// availability: a key then goes on to the next binding of its chord
+  /// (EditorKit ^jaxzzkn). A run that reaches the service handles the
   /// invocation, also when the service cannot start the action (it logs the
   /// failure): the user aimed the key at this attachment, so the key does not
   /// go on to another command of the chord (^zb5td6w).
-  ///
-  /// - Parameter context: The context of the invocation.
-  /// - Returns: `true` when the service ran the verb.
-  func run(in context: CommandContext) -> Bool {
-    MainActor.assumeIsolated {
-      guard let service = target?.service, let attachment, verb.availability(for: attachment).isAvailable
-      else { return false }
-      _ = service.run(verb, on: attachment)
-      return true
-    }
-  }
-
-  /// The EditorKit definition of `verb` for `target`, with the title, the
-  /// icon, the menu and the context menu of the verb.
-  ///
-  /// - Parameters:
-  ///   - verb: The verb.
-  ///   - target: The target of the scope.
-  /// - Returns: The definition.
-  static func definition(of verb: AgentAttachmentVerb, for target: AgentAttachmentTarget) -> CommandDefinition {
-    CommandDefinition(
-      id: verb.id,
-      title: .static(verb.title),
-      icon: verb.icon,
-      menu: verb.menu,
-      contextMenu: verb.contextMenu,
-      make: { [weak target] _ in
-        AgentAttachmentCommand(verb: verb, target: target)
+  var action: AgentAttachmentCommand.Action {
+    AgentAttachmentCommand.Action(
+      id: id, title: title, icon: icon, menu: menu, contextMenu: contextMenu,
+      availability: { [self] target, attachment in
+        guard target.service != nil, let attachment else { return .attachmentNotShown }
+        return availability(for: attachment)
+      },
+      run: { [self] target, attachment in
+        guard let service = target.service, let attachment, availability(for: attachment).isAvailable
+        else { return false }
+        _ = service.run(self, on: attachment)
+        return true
       })
   }
 }
@@ -255,12 +298,12 @@ enum AgentAttachmentRegistration {
   ) {
     let definitions = AgentAttachmentVerb.allCases.map { verb in
       AgentCommandRegistration.GroupedDefinition(
-        group: verb.group, definition: AgentAttachmentCommand.definition(of: verb, for: target))
+        group: verb.group, definition: AgentAttachmentCommand.definition(of: verb.action, for: target))
     }
     AgentCommandRegistration.register(definitions, at: path, into: &registry, groupsOff: groupsOff)
     for verb in AgentFileSelectionVerb.allCases {
       if selects {
-        registry.register(AgentFileSelectionCommand.definition(of: verb, for: target), at: path)
+        registry.register(AgentAttachmentCommand.definition(of: verb.action, for: target), at: path)
       } else {
         registry.unregister(verb.id, at: path)
       }

@@ -44,7 +44,7 @@ import Testing
 
   /// Mounts the list, waits for the beacons of its rows, and gives the focus
   /// to the second row.
-  init() throws {
+  init() async throws {
     let system = CommandSystem()
     let opened = ReportRecorder<String>()
     let hostKeys = ReportRecorder<String>()
@@ -53,19 +53,17 @@ import Testing
     self.system = system
     self.opened = opened
     self.hostKeys = hostKeys
-    harness = HostedViewHarness(
-      AnyView(
-        AgentRowList(Self.ids, id: \.self, scope: Self.scope) { id in
-          open(id)
-        } row: { id in
-          Text(id)
-        }
-        .onKeyPress(phases: .down) { press in
-          reportKey(press.characters)
-          return .ignored
-        }
-        .commandSystem(system)))
-    try #require(waitForLiveBeacons([Self.rowPath(0), Self.rowPath(1)], in: system))
+    harness = try await CommandWindow(system: system, beacons: [Self.rowPath(0), Self.rowPath(1)]) {
+      AgentRowList(Self.ids, id: \.self, scope: Self.scope) { id in
+        open(id)
+      } row: { id in
+        Text(id)
+      }
+      .onKeyPress(phases: .down) { press in
+        reportKey(press.characters)
+        return .ignored
+      }
+    }.harness
     try #require(system.geometry.requestFocus(at: Self.rowPath(1)))
     harness.render()
   }
@@ -100,8 +98,8 @@ import Testing
 /// is the Open command for Return, and a key that every command declines
 /// leaves the key handler of the list `.ignored`, so the host gets it.
 @Suite(.serialized, .hostedSerially) @MainActor struct AgentRowListDeclinedKeyHostedTests {
-  @Test func returnThatACommandOfTheRowDeclinesOpensTheRow() throws {
-    let bed = try DeclineBed()
+  @Test func returnThatACommandOfTheRowDeclinesOpensTheRow() async throws {
+    let bed = try await DeclineBed()
     defer { bed.harness.close() }
     bed.bindDecliner(to: KeyChord.return)
 
@@ -111,8 +109,8 @@ import Testing
     #expect(bed.opened.values == [DeclineBed.ids[1]])
   }
 
-  @Test func aKeyThatEveryCommandDeclinesGoesOnToTheHost() throws {
-    let bed = try DeclineBed()
+  @Test func aKeyThatEveryCommandDeclinesGoesOnToTheHost() async throws {
+    let bed = try await DeclineBed()
     defer { bed.harness.close() }
     let key: KeyEquivalent = "x"
     bed.bindDecliner(to: KeyChord(String(key.character)))
