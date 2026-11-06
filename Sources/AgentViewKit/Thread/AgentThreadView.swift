@@ -191,6 +191,9 @@ public struct AgentThreadView<Composer: View>: View {
   @Environment(\.connectionModel) private var hostConnection
   @Environment(\.editorStyle) private var editorStyle
 
+  /// The scale of ``AgentThreadLayout/minimumWidth``, whose bars hold ui text.
+  @ThemeFontScale(.ui) private var fontScale
+
   /// The report that gets the close decision of the view when it goes away,
   /// or `nil`.
   @Environment(\.threadCloseReport) private var reportClose
@@ -287,6 +290,9 @@ public struct AgentThreadView<Composer: View>: View {
 
   public var body: some View {
     content
+      // The least width is inside the inspector, so the `.inspector` of the
+      // built-in mode reads it as the least width of its main content.
+      .frame(minWidth: AgentThreadLayout.minimumWidth * fontScale)
       // The agent command scope reads neither scope, so it can be inside
       // them.
       .accessibilityReadingScope()
@@ -557,6 +563,19 @@ public enum AgentThreadLayout {
   /// state banner, the login prompt, the scroll-to-bottom pill and the
   /// composer slot, in one glass container in the bottom bar.
   public static let floatingControlsIdentifier = "thread-floating-controls"
+
+  /// The least width of a thread, in points at the default theme font.
+  ///
+  /// The transcript scrolls, so the least height of a thread is the height
+  /// of its bars, and a bar is as tall as its text is at its width. The
+  /// `.inspector` of the built-in attachment inspector asks its main content
+  /// for its size at no width and holds the window to that height. With no
+  /// least width the session crumb of the header got a sliver of width and
+  /// wrapped its title one character to a line, so a thread with a pending
+  /// request needed 787.5 points of height (^ret3w0j). At this width the
+  /// header, the request deck and the composer keep a few words to a line,
+  /// and the least height of the thread stays near the height of its bars.
+  static let minimumWidth: CGFloat = 360
 }
 
 extension EnvironmentValues {
