@@ -25,8 +25,15 @@ comments:
     - evidence: review sha d5ac8afc..HEAD — 1 finding (1 confirmed, 4 refuted) — IntegrationTests/Tests/IntegrationTests/Attachments/AttachmentInspectorFilesHostedTests.swift:40 (reuse/reuse)
     - next: implement the Review Findings (2026-11-06 05:37) item, then re-review
   timestamp: 2026-11-06T11:40:16.767474+00:00
-position_column: review
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m6rbkjg3j71xysmabemqy46v
+  text: |-
+    ### review — clean
+    - evidence: review sha 09e0d2e3..HEAD — 0 findings (0 confirmed, 0 refuted; 1 file reviewed, 2 .kanban files ignored). The prior finding at AttachmentInspectorFilesHostedTests.swift:40 (reuse/reuse) is fixed by d96c6aa4, which calls `AttachmentInspectorRowsHostedTests.mount` and ticks it. The four subtasks (done in cd304dad) are ticked.
+    - next: none — moved to done
+  timestamp: 2026-11-06T11:58:48.323394+00:00
+position_column: done
+position_ordinal: ffffffc180
 title: Inspector of several files lists them and acts on every one
 ---
 Found while doing ^zsr2pbf. The `AttachmentInspector` of several files folds into one EK form that shows only the header (title and count) and a Preview row reading "Mixed". It never names the files, and it shows no action row, because the action row is the attachment scope of one file (`.agentAttachmentScope(soleAttachment)`).
@@ -37,10 +44,10 @@ User decision (2026-11-06): the inspector of several files lists them, and its a
 - Action row: Open, Reveal in Finder, Share, Save and Quick Look show for several files too, and each runs its `AgentAttachmentVerb` command on every file in the inspector's order, with availability over the whole set. Use a scope whose context gives the files as its selection, as `AgentAttachmentTarget.contributeSelection(to:)` does — no AVK-only button styling, EK buttons only.
 - Display text from the catalog / FormatStyles only.
 
-- [ ] Files row of chips for several files; a chip opens its file
-- [ ] Action row for several files; each verb runs on every file, in inspector order, availability over the set
-- [ ] Docs (AttachmentInspector doc comment, DocC) say what several files show
-- [ ] Hosted test through accessibility: fold several files, read the chips (`InspectorDriver.pathChips(in:)`), open one (`openPath(at:in:)`) and the recording hook gets that file; press each action and the recording hook gets every file
+- [x] Files row of chips for several files; a chip opens its file
+- [x] Action row for several files; each verb runs on every file, in inspector order, availability over the set
+- [x] Docs (AttachmentInspector doc comment, DocC) say what several files show
+- [x] Hosted test through accessibility: fold several files, read the chips (`InspectorDriver.pathChips(in:)`), open one (`openPath(at:in:)`) and the recording hook gets that file; press each action and the recording hook gets every file
 
 ## Review Findings (2026-11-06 05:37)
 
@@ -50,4 +57,4 @@ User decision (2026-11-06): the inspector of several files lists them, and its a
 > - `README.md` — no validator matches this file
 > - `Sources/AgentViewKit/Resources/Localizable.xcstrings` — no validator matches this file
 
-- [ ] `IntegrationTests/Tests/IntegrationTests/Attachments/AttachmentInspectorFilesHostedTests.swift:40` `reuse/reuse` — The new `mount` rebuilds a `HostedViewHarness` around an `AttachmentInspector`, sets the size, and calls `render()`. That is the same helper shape that already exists for these hosted inspector tests, so the new suite carries a second copy that can drift from the first. The existing `AttachmentInspectorRowsHostedTests.mount(_:size:)` takes any view and a size, so it could host the inspector directly. The copy is an AVK-specific helper, so it belongs in a shared AVK test helper, not in EditorTestSupport. Call the existing helper instead of copying it, for example `AttachmentInspectorRowsHostedTests.mount(AttachmentInspector(files).environment(\.attachmentFileService, service))`, and keep the service injection in the call site. If the shared helper should not live in the Rows suite, move `mount` into a shared AVK hosted-test support type and have all three suites use it, rather than adding a fourth copy.
+- [x] `IntegrationTests/Tests/IntegrationTests/Attachments/AttachmentInspectorFilesHostedTests.swift:40` `reuse/reuse` — The new `mount` rebuilds a `HostedViewHarness` around an `AttachmentInspector`, sets the size, and calls `render()`. That is the same helper shape that already exists for these hosted inspector tests, so the new suite carries a second copy that can drift from the first. The existing `AttachmentInspectorRowsHostedTests.mount(_:size:)` takes any view and a size, so it could host the inspector directly. The copy is an AVK-specific helper, so it belongs in a shared AVK test helper, not in EditorTestSupport. Call the existing helper instead of copying it, for example `AttachmentInspectorRowsHostedTests.mount(AttachmentInspector(files).environment(\.attachmentFileService, service))`, and keep the service injection in the call site. If the shared helper should not live in the Rows suite, move `mount` into a shared AVK hosted-test support type and have all three suites use it, rather than adding a fourth copy.
