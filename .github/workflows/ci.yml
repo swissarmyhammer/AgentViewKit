@@ -121,3 +121,4 @@ jobs:
           name: examples-${{ matrix.example }}-results
           path: .build/examples/${{ matrix.example }}
           if-no-files-found: ignore
+          retention-days: 7
