@@ -1,8 +1,8 @@
 ---
 assignees:
 - claude-code
-position_column: todo
-position_ordinal: '8180'
+position_column: done
+position_ordinal: ffffffbf80
 title: Remove the dead AgentScopeKind.crumb scope kind
 ---
 ^dax7gt3 moved the session crumbs onto EK `EditorBreadcrumbBar`. Each crumb is now a jump target at EK's `breadcrumb:<sessionId>` (`FocusSegment.editorBreadcrumb(id:)`), not at AVK's `agentCrumb:<sessionId>`.
