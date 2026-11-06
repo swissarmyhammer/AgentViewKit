@@ -87,7 +87,7 @@ import Testing
 
     let window = ResolvedColor(.windowBackgroundColor, in: resolved)
     for run in try Self.runs(of: runs, coveringEachGrayOf: Self.grayCount) {
-      let text = try ResolvedColor(NSColor(#require(run.foreground)), in: resolved)
+      let text = try ResolvedColor(#require(run.foreground).platformColor, in: resolved)
       #expect(text.over(window).contrast(with: window) >= Self.minimumTextContrast, "\(run.range)")
     }
   }
@@ -116,8 +116,8 @@ import Testing
 
     let window = ResolvedColor(.windowBackgroundColor, in: resolved)
     for run in try Self.runs(of: runs, coveringEachGrayOf: Self.grayCount) {
-      let fill = try ResolvedColor(NSColor(#require(run.background)), in: resolved).over(window)
-      let text = try ResolvedColor(NSColor(#require(run.foreground)), in: resolved).over(fill)
+      let fill = try ResolvedColor(#require(run.background).platformColor, in: resolved).over(window)
+      let text = try ResolvedColor(#require(run.foreground).platformColor, in: resolved).over(fill)
       #expect(fill.contrast(with: window) >= Self.minimumFillContrast, "\(run.range)")
       #expect(text.contrast(with: fill) >= Self.minimumTextContrast, "\(run.range)")
     }
