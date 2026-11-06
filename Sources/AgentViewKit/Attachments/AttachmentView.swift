@@ -1,3 +1,4 @@
+import EditorCommandsUI
 import EditorStyle
 import SwiftUI
 import UniformTypeIdentifiers
@@ -109,7 +110,7 @@ public struct AttachmentView: View {
   public var body: some View {
     renderedFile
       .onPreferenceChange(AttachmentSurfaceCornersKey.self) { shownCorners = $0 }
-      .agentAttachmentScope(attachment, focusRingCorners: surfaceCorners)
+      .agentAttachmentScope(attachment, focusRingCorners: surfaceCorners, select: select)
   }
 
   /// The corners of the view of the file, which the focus ring of the scope
@@ -180,6 +181,20 @@ struct AttachmentSurfaceCornersKey: PreferenceKey {
 /// accessibility action for each kind, Select, Add to Selection and Extend
 /// Selection, so VoiceOver and a test do what each click does.
 ///
+/// The Command-click and the Shift-click are EditorKit bound clicks
+/// (`.commandClick`, card ^se9sxxe): each runs its ``AgentFileSelectionVerb``
+/// command, which the scope of the file registers with the same `action`
+/// (``SwiftUI/View/agentAttachmentScope(_:focusRingCorners:select:)``).
+/// EditorKit takes a bound click in the window before any gesture sees it,
+/// and of two bindings that catch one click the outer one wins, so a host
+/// row around the view that binds the same clicks, as a chat row of
+/// TestudoApp does, would take them. The view keeps the bound clicks of each
+/// binding around it from its place (`.blocksCommandClicks()`), and its own
+/// bindings still catch theirs, so the click changes the file selection and
+/// runs no command of the row. The blocker covers the rectangle of the view,
+/// and so do the bindings. The bindings add no accessibility action: the
+/// view names each command as an action of its own.
+///
 /// The view places its file in the ``TranscriptFileOrder`` of the
 /// environment, with the position of its row and its frame in that row, so
 /// that an extend reads the files of the thread in transcript order.
@@ -221,6 +236,9 @@ struct InspectorSelectable: ViewModifier {
     return content
       .selectableSurface(selectForInspector.isSelected(file), corners: corners)
       .gesture(pressGesture)
+      .commandClick(.command, command: AgentFileSelectionVerb.addFileToSelection.id, accessibilityAction: .hidden)
+      .commandClick(.shift, command: AgentFileSelectionVerb.extendFileSelection.id, accessibilityAction: .hidden)
+      .blocksCommandClicks()
       .accessibilityAction(.default) { action(.select) }
       .accessibilityActions {
         ForEach(AttachmentSelectionChange.allCases, id: \.self) { change in
@@ -234,8 +252,11 @@ struct InspectorSelectable: ViewModifier {
       .onDisappear { order?.remove(view: viewID) }
   }
 
-  /// The press on the view: a Shift-click extends, a Command-click toggles,
-  /// and a click selects. A Shift-click with Command held extends.
+  /// The press on the view: a click selects. A click with Shift and another
+  /// key, such as a Shift-click with Command held, extends, and a click with
+  /// Command and another key toggles. A click with Shift alone or Command
+  /// alone never reaches the gesture: the bound clicks of the view take it
+  /// in the window and run the same change through its command.
   private var pressGesture: some Gesture {
     tap(.shift, .extend)
       .exclusively(before: tap(.command, .toggle))

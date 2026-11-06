@@ -78,14 +78,15 @@ public struct ImageView: View {
   public var body: some View {
     if let data, let nsImage = NSImage(data: data) {
       let file = file(of: data)
+      let select = { (change: AttachmentSelectionChange) in self.select(data: data, change: change) }
       Image(nsImage: nsImage)
         .resizable()
         .scaledToFit()
         .frame(maxHeight: PreviewLayout.maximumPreviewHeight * fontScale)
         .accessibilityLabel(name)
-        .modifier(InspectorSelectable(file: file, corners: Self.corners) { select(data: data, change: $0) })
+        .modifier(InspectorSelectable(file: file, corners: Self.corners, action: select))
         .accessibilityIdentifier(Self.imageIdentifier)
-        .agentAttachmentScope(file, focusRingCorners: Self.corners)
+        .agentAttachmentScope(file, focusRingCorners: Self.corners, select: select)
         .task(id: file.url) { await Self.writeFile(of: data, named: file.name) }
     } else {
       Label(name, systemImage: AgentSymbol.imageFailure)

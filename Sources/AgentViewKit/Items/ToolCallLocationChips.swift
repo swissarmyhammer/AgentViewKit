@@ -67,11 +67,11 @@ private struct LocationChip: View {
   /// of the location as its accessibility identifier.
   var body: some View {
     let file = Attachment(url: URL(filePath: location.path))
+    let select = { (change: AttachmentSelectionChange) in selectForInspector(file, change: change) }
     PathChip(location.path, line: location.line)
       .accessibilityIdentifier(location.identifier)
-      .modifier(
-        InspectorSelectable(file: file, corners: .pathChip) { selectForInspector(file, change: $0) })
-      .agentAttachmentScope(file, focusRingCorners: .pathChip)
+      .modifier(InspectorSelectable(file: file, corners: .pathChip, action: select))
+      .agentAttachmentScope(file, focusRingCorners: .pathChip, select: select)
   }
 }
 

@@ -55,6 +55,13 @@ struct HostInspectorWithAttachmentActions: View {
   /// The size of a view with one attachment.
   static let viewSize = CGSize(width: 600, height: 400)
 
+  /// The ids of the commands at the scope of a file view that selects its
+  /// file: the five attachment verbs, and Add to Selection and Extend
+  /// Selection, which its bound clicks run (card ^se9sxxe).
+  static var fileViewCommandIDs: Set<CommandID> {
+    Set(AttachmentFixtures.verbIDs + AgentFileSelectionVerb.allCases.map(\.id))
+  }
+
   /// The calls that a press on each button gives, in the order of the
   /// buttons.
   ///
@@ -182,14 +189,16 @@ struct HostInspectorWithAttachmentActions: View {
     )
   }
 
-  @Test func aChipRegistersTheFiveCommandsAtItsScope() throws {
+  /// The context menu shows the five verbs only: the selection commands
+  /// have no place in a menu.
+  @Test func aChipRegistersTheFiveCommandsAndTheSelectionCommandsAtItsScope() throws {
     let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let attachment = try AttachmentFixtures.attachment(named: "blob.bin", in: directory)
 
     let ids = try Self.commandIDs(of: AttachmentView(attachment), at: attachment.id)
 
-    #expect(ids.definitions == Set(AttachmentFixtures.verbIDs))
+    #expect(ids.definitions == Self.fileViewCommandIDs)
     #expect(ids.contextMenu == AttachmentFixtures.verbIDs)
   }
 
@@ -215,13 +224,13 @@ struct HostInspectorWithAttachmentActions: View {
 
   /// An image is the scope of its block file. The id is the id of the
   /// attachment that ``ContentBlockFile`` gives to the bytes of the image.
-  @Test func anImageRegistersTheFiveCommandsAtTheScopeOfItsFile() throws {
+  @Test func anImageRegistersTheFiveCommandsAndTheSelectionCommandsAtTheScopeOfItsFile() throws {
     let (png, image) = try TestImage.makePNGContent(uri: WireContentBlockViewHostedTests.imageURI)
     let file = ContentBlockFile.attachment(of: png, named: WireContentBlockViewHostedTests.imageName, type: .png)
 
     let ids = try Self.commandIDs(of: ImageView(image: image), at: file.id)
 
-    #expect(ids.definitions == Set(AttachmentFixtures.verbIDs))
+    #expect(ids.definitions == Self.fileViewCommandIDs)
   }
 
   /// The chip of an ``AttachmentView`` is in the scope of the view, and makes

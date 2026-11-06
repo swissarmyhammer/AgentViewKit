@@ -150,7 +150,7 @@ nonisolated struct AgentAttachmentCommand: EditorCommands.Command {
   func availability(in context: CommandContext) -> Availability {
     MainActor.assumeIsolated {
       guard target?.service != nil, let attachment else {
-        return .unavailable(reason: String(localized: "The attachment is not shown.", bundle: .module))
+        return .attachmentNotShown
       }
       return verb.availability(for: attachment)
     }
@@ -210,8 +210,21 @@ final class AgentAttachmentTarget {
   /// The service that runs the verbs, or `nil` before the mount gives one.
   var service: (any AttachmentFileService)?
 
-  /// Makes a target with no service.
+  /// The action that changes the file selection for a press on the file
+  /// view of the scope, which the ``AgentFileSelectionVerb`` commands run,
+  /// or `nil` when the view selects no file.
+  var select: ((AttachmentSelectionChange) -> Void)?
+
+  /// Makes a target with no service and no select action.
   init() {}
+}
+
+nonisolated extension Availability {
+  /// The availability of an attachment command whose scope shows no
+  /// attachment, or whose target is gone.
+  static var attachmentNotShown: Availability {
+    .unavailable(reason: String(localized: "The attachment is not shown.", bundle: .module))
+  }
 }
 
 // MARK: - Registration
@@ -232,19 +245,31 @@ enum AgentAttachmentRegistration {
   ///   - path: The path of the scope.
   ///   - registry: The registry to register into.
   ///   - groupsOff: The groups whose verbs the call does not register.
+  ///   - selects: Whether the file view of the scope selects its file, so
+  ///     the call registers the ``AgentFileSelectionVerb`` commands too. A
+  ///     call without them unregisters them. No group turns them off: they
+  ///     are the bound clicks of the view, which no menu shows.
   static func register(
     _ target: AgentAttachmentTarget, at path: FocusPath, into registry: inout CommandRegistry,
-    groupsOff: Set<AgentCommandGroup> = []
+    groupsOff: Set<AgentCommandGroup> = [], selects: Bool = false
   ) {
     let definitions = AgentAttachmentVerb.allCases.map { verb in
       AgentCommandRegistration.GroupedDefinition(
         group: verb.group, definition: AgentAttachmentCommand.definition(of: verb, for: target))
     }
     AgentCommandRegistration.register(definitions, at: path, into: &registry, groupsOff: groupsOff)
+    for verb in AgentFileSelectionVerb.allCases {
+      if selects {
+        registry.register(AgentFileSelectionCommand.definition(of: verb, for: target), at: path)
+      } else {
+        registry.unregister(verb.id, at: path)
+      }
+    }
   }
 
-  /// Removes each attachment command at `path`, and the `.host` part of the
-  /// node that ``register(_:at:into:groupsOff:)`` wrote.
+  /// Removes each attachment command and each file selection command at
+  /// `path`, and the `.host` part of the node that
+  /// ``register(_:at:into:groupsOff:selects:)`` wrote.
   ///
   /// The `.scope` part of the node stays: the beacon of the scope removes it
   /// when its view goes away.
@@ -253,8 +278,9 @@ enum AgentAttachmentRegistration {
   ///   - path: The path of the scope.
   ///   - registry: The registry to remove the commands from.
   static func deregister(at path: FocusPath, from registry: inout CommandRegistry) {
-    for verb in AgentAttachmentVerb.allCases {
-      registry.unregister(verb.id, at: path)
+    let ids = AgentAttachmentVerb.allCases.map(\.id) + AgentFileSelectionVerb.allCases.map(\.id)
+    for id in ids {
+      registry.unregister(id, at: path)
     }
     registry.tree = registry.tree.removing(.host, at: path)
   }

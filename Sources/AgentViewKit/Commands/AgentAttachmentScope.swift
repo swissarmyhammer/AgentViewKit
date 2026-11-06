@@ -26,6 +26,11 @@ import SwiftUI
 ///
 /// A scope inside a scope for the same attachment, for example the chip of
 /// an ``AttachmentView``, does not make a second scope.
+///
+/// The scope of a file view that selects its file for the inspector
+/// (``InspectorSelectable``) gets the select action of the view, and then
+/// also registers the ``AgentFileSelectionVerb`` commands, which the
+/// Command-click and the Shift-click of the view run (card ^se9sxxe).
 struct AgentAttachmentScope: ViewModifier {
   /// The attachment of the scope.
   let attachment: Attachment
@@ -33,6 +38,10 @@ struct AgentAttachmentScope: ViewModifier {
   /// The corners of the surface of the attachment, which the focus ring of
   /// the scope follows.
   let focusRingCorners: SurfaceCorners
+
+  /// The action that changes the file selection for a press on the file
+  /// view, or `nil` for a view that selects no file.
+  let select: ((AttachmentSelectionChange) -> Void)?
 
   @Environment(\.commandSystem) private var ambientSystem
   @Environment(\.commandScopePath) private var parentPath
@@ -57,7 +66,7 @@ struct AgentAttachmentScope: ViewModifier {
       let system = ambientSystem ?? standaloneSystem
       let registration = AgentAttachmentMount.Registration(
         system: system, path: parentPath?.appending(segment) ?? .root(segment),
-        service: hostService ?? presenter, groupsOff: groupsOff)
+        service: hostService ?? presenter, groupsOff: groupsOff, select: select)
       content
         .environment(\.agentAttachmentScopeSegment, segment)
         .background(AgentAttachmentMount(target: target, presenter: presenter, registration: registration))
@@ -82,13 +91,19 @@ extension View {
   ///     example an artifact with no file.
   ///   - focusRingCorners: The corners of the surface of the view. The
   ///     default is the corners of a card.
+  ///   - select: The action that changes the file selection for a press on
+  ///     the view, the action of its ``InspectorSelectable``, or `nil` for a
+  ///     view that selects no file. With an action, the scope registers the
+  ///     ``AgentFileSelectionVerb`` commands that the view binds its
+  ///     Command-click and its Shift-click to.
   /// - Returns: A view in the scope of the attachment, or this view.
   @ViewBuilder
   func agentAttachmentScope(
-    _ attachment: Attachment?, focusRingCorners: SurfaceCorners = .card
+    _ attachment: Attachment?, focusRingCorners: SurfaceCorners = .card,
+    select: ((AttachmentSelectionChange) -> Void)? = nil
   ) -> some View {
     if let attachment {
-      modifier(AgentAttachmentScope(attachment: attachment, focusRingCorners: focusRingCorners))
+      modifier(AgentAttachmentScope(attachment: attachment, focusRingCorners: focusRingCorners, select: select))
     } else {
       self
     }
@@ -159,6 +174,9 @@ struct AgentAttachmentMount: NSViewRepresentable {
     let service: any AttachmentFileService
     /// The groups of the commands that the scope does not register.
     let groupsOff: Set<AgentCommandGroup>
+    /// The select action of the file view of the scope, or `nil` when the
+    /// view selects no file.
+    let select: ((AttachmentSelectionChange) -> Void)?
   }
 
   /// The target to keep current.
@@ -189,7 +207,8 @@ struct AgentAttachmentMount: NSViewRepresentable {
   }
 
   /// Writes the values to the target and the presenter, and registers the
-  /// commands at the current path.
+  /// commands at the current path: the file selection commands too when the
+  /// registration has a select action.
   ///
   /// A change of the path or of the system ends the registration at the old
   /// place first.
@@ -200,9 +219,12 @@ struct AgentAttachmentMount: NSViewRepresentable {
   private func apply(anchor: NSView, scopeMount: AgentScopeMount) {
     presenter.anchor = anchor
     target.service = registration.service
+    target.select = registration.select
     scopeMount.mount(at: registration.path, in: registration.system) {
-      [target, path = registration.path, groupsOff = registration.groupsOff] registry in
-      AgentAttachmentRegistration.register(target, at: path, into: &registry, groupsOff: groupsOff)
+      [target, path = registration.path, groupsOff = registration.groupsOff,
+        selects = registration.select != nil] registry in
+      AgentAttachmentRegistration.register(
+        target, at: path, into: &registry, groupsOff: groupsOff, selects: selects)
     }
   }
 }
