@@ -69,24 +69,11 @@ nonisolated extension AgentScopeKind {
   /// or the composer editor (`agentControlScope(_:corners:)`).
   public static let control = "agentControl"
 
-  /// The kind of the scope of one crumb of the path in the header. The crumbs
-  /// take the keyboard focus, and the `nav.*` commands of the host move
-  /// between them.
-  public static let crumb = "agentCrumb"
-
   /// The kinds of the item scopes in a thread.
   ///
   /// An attachment is an item, so the context menu of an attachment in a
   /// message shows the attachment verbs and not the verbs of the message.
   static let items: Set<String> = [message, request, toolCall, attachment]
-
-  /// The segment of the scope of the crumb of a session.
-  ///
-  /// - Parameter id: The id of the session.
-  /// - Returns: The segment `agentCrumb:<sessionId>`.
-  static func crumb(_ id: SessionId) -> FocusSegment {
-    FocusSegment(kind: crumb, id: id.rawValue)
-  }
 
   /// The segment of the scope of a message row.
   ///

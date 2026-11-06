@@ -24,9 +24,11 @@ level, each with its state and its count of open questions. A crumb has a mark
 when the session, or a session below it, needs the user. A last dropdown lists
 the children of the shown session, with a limit and a count of the others.
 
-When the path does not fit the width of the bar, the middle crumbs collapse into
-one "..." dropdown. The agent keeps its place. This is a rule of the width of
-the bar and not of the number of sessions in the path.
+The crumbs are EditorKit's `EditorBreadcrumbBar`. When the path does not fit the
+width of the bar, the oldest ancestors collapse into a leading "…" crumb whose
+menu lists them, and the last crumb wraps rather than cut its title. The agent
+keeps its place. This is a rule of the width of the bar and not of the number of
+sessions in the path.
 
 ### Commands and jump
 
@@ -34,8 +36,8 @@ The session commands are in the View menu and in the palette: Go to Parent
 Session, Open Child Session, Next and Previous Sibling Session, and Jump to
 Session. The jump command opens a list of the ancestors and descendants of the
 shown session, filtered by name, each with its path, such as
-"Agent › Reviewer › Linter". Each crumb has its own focus scope, so the
-keyboard moves between the crumbs.
+"Agent › Reviewer › Linter". Each crumb is a jump target, and a jump onto a
+crumb opens its menu.
 
 ### Banners
 
