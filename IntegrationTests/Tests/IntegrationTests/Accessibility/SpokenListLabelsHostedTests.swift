@@ -10,8 +10,8 @@
 
   /// The labels that VoiceOver reads for a list of names or facts, as
   /// accessibility reads them in the locale of the environment: the "who
-  /// asks" line of an elicitation card, the banner of a notice and a crumb of
-  /// the session path.
+  /// asks" line of an elicitation card, the banner of a notice and the crumbs
+  /// of the session path.
   ///
   /// Each label puts its parts in the list format of the locale
   /// (`FormatStyle/spokenParts(locale:)`), so the tests give the English
@@ -59,7 +59,7 @@
           == "Warning, Quota low, Half of the monthly quota is used.")
     }
 
-    @Test func theCrumbOfAChildReadsItsTitleAndItsState() async throws {
+    @Test func theCrumbsOfAChildReadTheirPathAsAList() async throws {
       let session = try await ScriptedSession.open()
       defer { session.close() }
       let child = try await session.announceChild(Self.child, title: "Reviewer")
@@ -70,9 +70,9 @@
       defer { harness.close() }
       harness.render()
 
-      let crumb = try #require(harness.element(identifier: SessionBreadcrumb.crumbIdentifier(for: Self.child)))
+      let bar = try #require(harness.element(identifier: SessionBreadcrumb.barIdentifier))
 
-      #expect(crumb.label == "Reviewer, In progress")
+      #expect(bar.label == "\(session.model.displayTitle), Reviewer")
     }
   }
 #endif

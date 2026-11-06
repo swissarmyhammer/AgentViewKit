@@ -1,4 +1,5 @@
 import AgentViewKitTestSupport
+import EditorSwiftUI
 import EditorTestSupport
 import Foundation
 import FoundationModelsACP
@@ -8,7 +9,7 @@ import Testing
 @testable import AgentViewKit
 
 /// What VoiceOver reads for the path of a chain of three sessions, with no
-/// window: the label of the header, the label of each crumb, and the notes of
+/// window: the label of the header, the title of each crumb, and the notes of
 /// the marks. The chain of three sessions is only a test size.
 @Suite @MainActor struct SessionPathAccessibilityTests {
   static let child = SessionId(rawValue: "child")
@@ -31,25 +32,22 @@ import Testing
     #expect(label == "Path: Agent, then \(titles[0]), then Reviewer, then Linter")
   }
 
-  @Test func eachCrumbReadsItsTitleAndItsState() async throws {
+  @Test func aCrumbWhoseSessionNeedsNothingHasNoMark() async throws {
     let session = try await Self.openChain()
     defer { session.close() }
 
-    let label = SessionBreadcrumb.accessibilityLabel(
-      for: try #require(session.session(Self.grandchild)), locale: Locale(identifier: "en_US"))
-
-    #expect(label == "Linter, In progress")
+    #expect(SessionBreadcrumb.attentionMark(of: try #require(session.session(Self.grandchild))) == nil)
   }
 
-  @Test func aCrumbThatNeedsTheUserSaysSoInItsLabelAndNotOnlyInItsIcon() async throws {
+  @Test func aCrumbThatNeedsTheUserSaysSoInItsMarkLabelAndNotOnlyInItsIcon() async throws {
     let session = try await Self.openChain()
     defer { session.close() }
     let grandchild = try #require(session.session(Self.grandchild))
     try await session.sendInOrder([.permission(id: 1, sessionId: Self.grandchild)], to: grandchild)
 
-    let label = SessionBreadcrumb.accessibilityLabel(for: try #require(session.session(Self.child)))
+    let mark = SessionBreadcrumb.attentionMark(of: try #require(session.session(Self.child)))
 
-    #expect(label.hasSuffix("needs your attention"))
+    #expect(mark == .symbol(.severity(.warning), label: "needs your attention"))
   }
 
   @Test func eachSessionCommandHasATitleForTheMenusAndThePalette() {
@@ -61,12 +59,11 @@ import Testing
 
   @Test func theBannerButtonAndTheCrumbsHaveIdentifiers() async throws {
     #expect(WaitingDescendantBanner.jumpIdentifier == "session-waiting-descendant-jump")
-    #expect(SessionBreadcrumb.crumbIdentifier(for: Self.child) == "session-crumb-child")
-    #expect(SessionBreadcrumb.overflowIdentifier == "session-crumb-overflow")
+    #expect(SessionBreadcrumb.crumbIdentifier(for: Self.child) == "breadcrumb-child")
   }
 }
 
-/// The labels and the menus for a long path and for many children, with no
+/// The titles and the menus for a long path and for many children, with no
 /// window.
 @Suite @MainActor struct LargeSessionTreeAccessibilityTests {
   /// A chain of five sessions below the root.
@@ -96,30 +93,14 @@ import Testing
     #expect(label.hasSuffix(", then Level 1, then Level 2, then Level 3, then Level 4, then Level 5"))
   }
 
-  @Test func theCollapsedPathOfFiveCrumbsHoldsTheThreeMiddleCrumbsInTheDropdown() async throws {
+  @Test func eachCrumbOfALongPathHasItsOwnTitle() async throws {
     let (session, ids) = try await Self.openChainOfFive()
     defer { session.close() }
     let path = try #require(session.session(ids[4])).path
 
-    let segments = BreadcrumbSegment.segments(of: path, collapsed: true)
+    let titles = AgentInfoHeader.titles(of: path, sessionTitle: nil).dropFirst()
 
-    #expect(segments.count == 3)
-    guard case .overflow(let middle) = segments[1] else {
-      Issue.record("The middle of the path is one dropdown.")
-      return
-    }
-    #expect(middle.count == 4)
-    #expect(BreadcrumbCollapse.collapsedIndices(for: .collapsed, count: path.count) == 1..<5)
-  }
-
-  @Test func eachCrumbOfALongPathHasItsOwnLabel() async throws {
-    let (session, ids) = try await Self.openChainOfFive()
-    defer { session.close() }
-
-    let labels = try ids.map { SessionBreadcrumb.accessibilityLabel(for: try #require(session.session($0))) }
-
-    #expect(Set(labels).count == 5)
-    #expect(labels.first == "Level 1, In progress")
+    #expect(Array(titles) == ["Level 1", "Level 2", "Level 3", "Level 4", "Level 5"])
   }
 
   @Test func aMenuOfFortyChildrenListsTheFirstOnesAndNamesTheRest() async throws {
