@@ -38,11 +38,7 @@ import Testing
   /// - Parameter files: The files of the inspector, in selection order.
   /// - Returns: The harness. The caller closes it.
   func mount(_ files: [AgentViewKit.Attachment]) -> HostedViewHarness<some View> {
-    let harness = HostedViewHarness(
-      AttachmentInspector(files).environment(\.attachmentFileService, service),
-      size: AttachmentInspectorHostedTests.hostSize)
-    harness.render()
-    return harness
+    AttachmentInspectorRowsHostedTests.mount(AttachmentInspector(files).environment(\.attachmentFileService, service))
   }
 
   @Test func theFilesRowShowsAChipForEachFileInSelectionOrder() {
