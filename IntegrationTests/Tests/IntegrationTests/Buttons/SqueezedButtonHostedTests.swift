@@ -32,15 +32,18 @@ import Testing
   /// The identifier of the Show All button of the capped output row.
   static let showAllIdentifier = "squeezed-show-all"
 
-  /// Mounts `content` at ``squeezedWidth`` and renders it until the tooltip
-  /// that a hidden caption sets has landed: the caption hides in one layout,
-  /// and the tooltip follows in the next update.
+  /// Mounts `content` at `width` and renders it until the tooltip that a
+  /// hidden caption sets has landed: the caption hides in one layout, and
+  /// the tooltip follows in the next update.
   ///
-  /// - Parameter content: The view under test.
+  /// - Parameters:
+  ///   - content: The view under test.
+  ///   - width: The width that the view gets. The default is
+  ///     ``squeezedWidth``.
   /// - Returns: The harness, which the test closes.
-  static func mountSqueezed(_ content: some View) -> HostedViewHarness<some View> {
+  static func mountSqueezed(_ content: some View, width: CGFloat = squeezedWidth) -> HostedViewHarness<some View> {
     let harness = HostedViewHarness(
-      content.frame(width: squeezedWidth, alignment: .leading), size: windowSize)
+      content.frame(width: width, alignment: .leading), size: windowSize)
     harness.render()
     harness.render()
     return harness

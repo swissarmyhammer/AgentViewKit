@@ -171,24 +171,21 @@ struct SessionBreadcrumb: View {
       identifier: Self.overflowIdentifier)
   }
 
-  /// One dropdown: a borderless menu with a choice for each session entry.
+  /// One dropdown of a crumb: a borderless menu with a choice for each
+  /// session entry, whose label is the title of the crumb, which truncates.
   ///
   /// - Parameters:
   ///   - choices: The sessions to choose from.
+  ///   - current: The id of the shown session, or `nil`.
   ///   - label: The label of the menu.
   ///   - accessibilityLabel: The VoiceOver label of the menu.
   ///   - identifier: The accessibility identifier of the menu.
   private func dropdown<Label: View>(
     choices: [SessionPathEntry], current: SessionId?, @ViewBuilder label: () -> Label,
-    accessibilityLabel: String, identifier: String, more: Int = 0
+    accessibilityLabel: String, identifier: String
   ) -> some View {
     Menu {
-      ForEach(choices) { entry in
-        choiceButton(entry, isCurrent: entry.sessionId == current)
-      }
-      if more > 0 {
-        Text(String(localized: "\(more) more. Use Jump to Session to search.", bundle: .module))
-      }
+      choiceRows(choices, current: current)
     } label: {
       label()
     }
@@ -198,6 +195,23 @@ struct SessionBreadcrumb: View {
     .fixedSize(horizontal: false, vertical: true)
     .accessibilityLabel(accessibilityLabel)
     .accessibilityIdentifier(identifier)
+  }
+
+  /// The rows of a dropdown: a choice for each session entry, then the note
+  /// of the entries that the menu does not list.
+  ///
+  /// - Parameters:
+  ///   - choices: The sessions to choose from.
+  ///   - current: The id of the shown session, or `nil`.
+  ///   - more: The number of the entries that the menu does not list.
+  @ViewBuilder
+  private func choiceRows(_ choices: [SessionPathEntry], current: SessionId?, more: Int = 0) -> some View {
+    ForEach(choices) { entry in
+      choiceButton(entry, isCurrent: entry.sessionId == current)
+    }
+    if more > 0 {
+      Text(String(localized: "\(more) more. Use Jump to Session to search.", bundle: .module))
+    }
   }
 
   /// One choice of a dropdown.
@@ -216,20 +230,26 @@ struct SessionBreadcrumb: View {
     .accessibilityAddTraits(isCurrent ? .isSelected : [])
   }
 
-  /// The dropdown of the children of the shown session, as a trailing crumb.
+  /// The menu of the children of the shown session, as a trailing crumb: an
+  /// EditorKit `EditorMenuButton`, which hides its caption and keeps its
+  /// symbol when squeezed. The symbol is the warning mark when a child needs
+  /// the user.
   private func childrenDropdown(of session: SessionModel) -> some View {
     let entries = session.children.filter { !$0.isClosed }.map(\.pathEntry)
     let split = ChildrenMenu.split(entries)
     let attention = entries.contains(where: \.needsAttention)
-    return dropdown(
-      choices: split.listed, current: nil,
-      label: {
-        titleLabel(String(localized: "Children (\(entries.count))", bundle: .module), needsAttention: attention)
-      },
-      accessibilityLabel: attention
+    return EditorMenuButton(
+      String(localized: "Children (\(entries.count))", bundle: .module),
+      systemImage: attention ? EditorSymbol.severity(.warning).systemImage : AgentSymbol.childSession
+    ) {
+      choiceRows(split.listed, current: nil, more: split.more)
+    }
+    .accessibilityLabel(
+      attention
         ? String(localized: "Children, \(entries.count), one needs your attention", bundle: .module)
-        : String(localized: "Children, \(entries.count)", bundle: .module),
-      identifier: Self.childrenIdentifier, more: split.more)
+        : String(localized: "Children, \(entries.count)", bundle: .module)
+    )
+    .accessibilityIdentifier(Self.childrenIdentifier)
   }
 
   /// The symbol of a choice: a checkmark for the shown session, a warning for

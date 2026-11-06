@@ -32,7 +32,9 @@ import SwiftUI
 /// in a later `config_option_update`. A failed call adds an error entry to
 /// the transcript.
 ///
-/// ``Style/menu`` shows the sections in a menu for a toolbar.
+/// ``Style/menu`` shows the sections in the menu of an EditorKit
+/// `EditorMenuButton` for a toolbar, which hides its caption and keeps its
+/// symbol when squeezed.
 /// ``Style/form`` shows the sections as the content of an inspector: an
 /// EditorKit `InspectorView` of the session, with one group for each
 /// category and one row for each option, a choice row for a select and a
@@ -205,8 +207,7 @@ public struct ConfigOptionsView: View {
   private func content(_ sections: [CategorySection]) -> some View {
     switch style {
     case .menu:
-      Menu(String(localized: "Session Options", bundle: .module), systemImage: Self.menuSymbolName)
-      {
+      EditorMenuButton(String(localized: "Session Options", bundle: .module), systemImage: Self.menuSymbolName) {
         sectionList(sections)
       }
       .accessibilityIdentifier(Self.menuIdentifier)

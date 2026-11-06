@@ -11,7 +11,9 @@ import Testing
 /// Each family is one of EditorKit's button components: the action button of
 /// a bar (``StatusBar``), the action buttons of a request card
 /// (``PermissionView`` and ``ElicitationFooter``), and the bare toolbar
-/// buttons of a row of content (``OutputCapRow`` and ``MessageActions``). At
+/// buttons of a row of content (``OutputCapRow`` and ``MessageActions``), and
+/// the menu buttons of a toolbar (the menu styles of ``ConfigOptionsView`` and
+/// ``ToolToggles``). At
 /// the narrow width a button with too little room shows its symbol alone, and
 /// at the wide width it shows its whole caption: no caption is ever cut.
 @MainActor
@@ -40,7 +42,8 @@ enum ButtonGalleryFixtures {
 
   /// The families, from the top: a bar with its button, a permission card
   /// with its answers, the footer of an elicitation form, the capped row of
-  /// an output, and the action row of a message, the tile margin apart.
+  /// an output, the action row of a message, and the Session Options and
+  /// Tools menus, the tile margin apart.
   ///
   /// - Returns: The stack of the families.
   /// - Throws: The issue of `#require` when the permission fixture holds no
@@ -60,6 +63,10 @@ enum ButtonGalleryFixtures {
       OutputCapRow(rows: rows, capIdentifier: capIdentifier, showAllIdentifier: showAllIdentifier, showAll: {})
       MessageActions(entry: message)
         .environment(\.sessionModel, session)
+      HStack(spacing: style.tile.margin) {
+        ConfigOptionsView(session: PreviewFixtures.configuredSession, style: .menu)
+        ToolToggles(tools: SnapshotFixtures.controlTools, style: .menu) { _, _ in }
+      }
     }
     .padding(style.tile.margin)
     .frame(maxHeight: .infinity, alignment: .top)

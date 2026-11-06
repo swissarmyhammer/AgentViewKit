@@ -871,16 +871,6 @@
         }
       }
     },
-    "Hide reasoning" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hide reasoning"
-          }
-        }
-      }
-    },
     "Hides the details" : {
       "localizations" : {
         "en" : {
@@ -1702,6 +1692,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Retry"
+          }
+        }
+      }
+    },
+    "Reveal" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reveal"
           }
         }
       }
@@ -3365,16 +3365,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Transport"
-          }
-        }
-      }
-    },
-    "Turn tools on or off" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Turn tools on or off"
           }
         }
       }

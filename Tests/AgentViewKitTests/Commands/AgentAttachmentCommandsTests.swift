@@ -125,6 +125,20 @@ import Testing
     }
   }
 
+  /// A production change that fails this test: the definition of a verb
+  /// drops the short title of its button, so the button shows the full title
+  /// of the menus.
+  @Test func theDefinitionsCarryTheButtonTitles() throws {
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
+    defer { directory.remove() }
+    let fixture = Self.makeFixture(for: try AttachmentFixtures.attachment(named: "blob.bin", in: directory))
+
+    for verb in AgentAttachmentVerb.allCases {
+      let definition = try #require(fixture.registry.definition(for: verb.id, at: fixture.path))
+      #expect(definition.buttonTitle.flatMap(Self.staticText) == verb.buttonTitle, "\(verb)")
+    }
+  }
+
   @Test func noVerbIsAvailableAtAPathOutsideTheAttachmentScope() throws {
     let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }

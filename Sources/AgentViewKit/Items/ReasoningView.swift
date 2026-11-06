@@ -186,7 +186,21 @@ struct ReasoningBlock<Content: View>: View {
     store.isExpanded(entry: policyEntry)
   }
 
-  /// The title and the expand button.
+  /// The open state of the block as the binding of its expand toggle: it
+  /// reads the store, and a press of the toggle, which flips the state,
+  /// toggles the user decision.
+  ///
+  /// - Parameter store: The store of the user decisions.
+  /// - Returns: The binding.
+  private func isExpandedBinding(in store: ExpandedBlocksStore) -> Binding<Bool> {
+    let entry = policyEntry
+    return Binding(
+      get: { store.isExpanded(entry: entry) },
+      set: { _ in store.toggle(entry: entry) })
+  }
+
+  /// The title and the expand button: an EditorKit toolbar toggle, on while
+  /// the block is open.
   ///
   /// - Parameters:
   ///   - store: The store of the user decisions.
@@ -199,9 +213,8 @@ struct ReasoningBlock<Content: View>: View {
       title(duration: duration)
       Spacer(minLength: editorStyle.spacing.s)
       EditorToolbarButton(
-        expanded
-          ? String(localized: "Hide reasoning", bundle: .module) : String(localized: "Show reasoning", bundle: .module),
-        symbol: .action(.disclosure), action: toggle
+        String(localized: "Show reasoning", bundle: .module), symbol: .action(.disclosure),
+        isOn: isExpandedBinding(in: store)
       )
       .editorButtonCaptions(.hidden)
       .rotationEffect(expanded ? ReasoningView.expandedChevronAngle : .zero)

@@ -53,6 +53,16 @@ public nonisolated enum AgentAttachmentVerb: String, CaseIterable, Sendable {
     }
   }
 
+  /// The short title that the button of the verb shows, with ``title`` as
+  /// its tooltip, or `nil` for a button that shows ``title``. Reveal in
+  /// Finder, the longest title of the action row, shows "Reveal".
+  public var buttonTitle: String? {
+    switch self {
+    case .revealAttachment: String(localized: "Reveal", bundle: .module)
+    case .openAttachment, .shareAttachment, .saveAttachment, .quickLookAttachment: nil
+    }
+  }
+
   /// The SF Symbol of the verb.
   public var icon: String {
     switch self {
@@ -138,6 +148,10 @@ nonisolated struct AgentAttachmentCommand: EditorCommands.Command {
     /// The title that the menus and the palette show.
     let title: String
 
+    /// The short title that a button of the command shows, or `nil` for a
+    /// button that shows ``title``.
+    var buttonTitle: String?
+
     /// The SF Symbol of the command, or `nil`.
     var icon: String?
 
@@ -195,7 +209,7 @@ nonisolated struct AgentAttachmentCommand: EditorCommands.Command {
   }
 
   /// The EditorKit definition of `action` for `target`, with the title, the
-  /// icon, the menu and the context menu of the action.
+  /// button title, the icon, the menu and the context menu of the action.
   ///
   /// - Parameters:
   ///   - action: The action.
@@ -205,6 +219,7 @@ nonisolated struct AgentAttachmentCommand: EditorCommands.Command {
     CommandDefinition(
       id: action.id,
       title: .static(action.title),
+      buttonTitle: action.buttonTitle.map(CommandTitle.static),
       icon: action.icon,
       menu: action.menu,
       contextMenu: action.contextMenu,
@@ -226,7 +241,7 @@ extension AgentAttachmentVerb {
   /// go on to another command of the chord (^zb5td6w).
   var action: AgentAttachmentCommand.Action {
     AgentAttachmentCommand.Action(
-      id: id, title: title, icon: icon, menu: menu, contextMenu: contextMenu,
+      id: id, title: title, buttonTitle: buttonTitle, icon: icon, menu: menu, contextMenu: contextMenu,
       availability: { [self] target, attachment in
         guard target.service != nil, let attachment else { return .attachmentNotShown }
         return availability(for: attachment)

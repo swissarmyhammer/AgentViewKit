@@ -141,12 +141,20 @@ struct HostInspectorWithAttachmentActions: View {
 
   // MARK: - Artifact
 
+  /// An artifact of a text file in `directory`.
+  ///
+  /// - Parameter directory: The folder of the file.
+  /// - Returns: The artifact.
+  /// - Throws: The error of the write of the file.
+  static func textArtifact(in directory: TemporaryFolder) throws -> ArtifactPayload {
+    let url = try directory.write("plan.txt", contents: Data(AttachmentFixtures.fileText.utf8))
+    return ArtifactPayload(id: "artifact-1", title: "The plan", type: UTType.plainText.identifier, url: url)
+  }
+
   @Test func eachButtonOfAnArtifactRunsItsCommand() throws {
     let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
-    let url = try directory.write("plan.txt", contents: Data(AttachmentFixtures.fileText.utf8))
-    let artifact = ArtifactPayload(
-      id: "artifact-1", title: "The plan", type: UTType.plainText.identifier, url: url)
+    let artifact = try Self.textArtifact(in: directory)
     let service = RecordingAttachmentFileService()
     let harness = HostedViewHarness(
       ArtifactView(artifact: artifact).environment(\.attachmentFileService, service), size: Self.viewSize)
@@ -156,7 +164,26 @@ struct HostInspectorWithAttachmentActions: View {
     try Self.pressEach(ArtifactView.actionIdentifiers, in: harness)
 
     #expect(service.calls.map(\.verb) == AgentAttachmentVerb.allCases)
-    #expect(service.calls.allSatisfy { $0.attachment.url == url })
+    #expect(service.calls.allSatisfy { $0.attachment.url == artifact.url })
+  }
+
+  /// A production change that fails this test: the Reveal in Finder button
+  /// of the action row shows the full title of the menus, the longest
+  /// caption of the row, or drops it from its tooltip.
+  @Test func theRevealButtonOfAnArtifactShowsItsShortTitleWithTheFullTitleAsItsTooltip() throws {
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
+    defer { directory.remove() }
+    let artifact = try Self.textArtifact(in: directory)
+    let harness = HostedViewHarness(ArtifactView(artifact: artifact), size: Self.viewSize)
+    defer { harness.close() }
+    harness.render()
+
+    let reveal = try #require(
+      harness.element(
+        identifier: AgentAttachmentVerb.revealAttachment.identifier(prefix: ArtifactView.identifierPrefix)))
+
+    #expect(reveal.label == "Reveal")
+    #expect(reveal.hint == "Reveal in Finder")
   }
 
   // MARK: - Scopes

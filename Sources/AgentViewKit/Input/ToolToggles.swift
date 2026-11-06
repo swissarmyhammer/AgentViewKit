@@ -32,7 +32,9 @@ public nonisolated struct ToolToggle: Sendable, Hashable, Identifiable {
 
 /// The toggles that turn the tools of the agent on and off (plan.md §9 D).
 ///
-/// ``Style/menu`` shows the toggles in a menu for the composer accessory.
+/// ``Style/menu`` shows the toggles in the menu of an EditorKit
+/// `EditorMenuButton` for the composer accessory, which hides its caption and
+/// keeps its symbol when squeezed.
 /// ``Style/list`` shows them as the content of an inspector, a sheet or a
 /// popover: an EditorKit `InspectorView` of the list, with one toggle row for
 /// each tool. Its rows take EditorKit's scheme ids: the view and the
@@ -116,12 +118,9 @@ public struct ToolToggles: View {
     if !tools.isEmpty {
       switch style {
       case .menu:
-        Menu(String(localized: "Tools", bundle: .module), systemImage: Self.menuSymbolName) {
+        EditorMenuButton(String(localized: "Tools", bundle: .module), systemImage: Self.menuSymbolName) {
           toolSection
         }
-        .menuIndicator(.hidden)
-        .fixedSize()
-        .help(String(localized: "Turn tools on or off", bundle: .module))
         .accessibilityIdentifier(Self.menuIdentifier)
       case .list:
         InspectorView(list, Self.inspection(of: tools, onToggle: onToggle), id: Self.listIdentifier)

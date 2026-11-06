@@ -479,14 +479,15 @@ import UniformTypeIdentifiers
   }
 
   /// Presses the button of each attachment verb, in order, through EditorKit's
-  /// `InspectorDriver`, by the title of the button.
+  /// `InspectorDriver`, by the caption of the button: the short button title
+  /// of the verb, or its title.
   ///
   /// - Parameter harness: The harness that shows the inspector.
   /// - Throws: The error of a press.
   static func pressEachAction<Content: View>(in harness: HostedViewHarness<Content>) throws {
     let driver = harness.inspectorDriver
     for verb in AgentAttachmentVerb.allCases {
-      try driver.pressAction(verb.title)
+      try driver.pressAction(verb.buttonTitle ?? verb.title)
     }
   }
 }

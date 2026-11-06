@@ -111,8 +111,8 @@ import Testing
     #expect(harness.element(identifier: ToolToggles.menuIdentifier) != nil)
   }
 
-  /// A hosted window cannot open the menu, so the test shows the toggle of
-  /// one tool as the menu holds it.
+  /// The test shows the toggle of one tool as the menu holds it, and presses
+  /// it through accessibility. ``MenuButtonHostedTests`` opens the menu.
   @Test func aToggleOfTheMenuCallsOnToggleWithTheIdAndTheNewValue() async throws {
     let recorder = ReportRecorder<Call>()
     let harness = HostedViewHarness(
