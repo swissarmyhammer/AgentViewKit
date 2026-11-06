@@ -51,7 +51,7 @@ public struct AttachmentFileSet {
   public static let selectionNames = ["first.bin", "second.txt", "third.swift"]
 
   /// The folder of the files.
-  public let directory: TemporaryFolder
+  let directory: TemporaryFolder
 
   /// The attachments of the files, in the order of their names.
   public let files: [AgentViewKit.Attachment]
