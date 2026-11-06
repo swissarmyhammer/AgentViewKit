@@ -259,6 +259,19 @@ import Testing
     #expect(Self.chipPaths(in: row, of: harness) == Self.locationFiles)
   }
 
+  @Test func theLocationsRowOfAToolCallShowsTheLineOfEachLocation() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    try await session.sendUpdate(Self.locationsUpdate)
+    let entry = try await Self.entry(ToolCallEntry.self, in: session)
+    let harness = Self.mount(entry)
+    defer { harness.close() }
+    let row = Self.row(of: entry, group: "tool-call", field: "locations")
+
+    let names = Self.locationFiles.map { PathChip.Parts(path: $0, line: Self.locationLine).name }
+    #expect(harness.inspectorDriver.pathChips(in: row).compactMap(accessibilityLabel(of:)) == names)
+  }
+
   @Test func theAdditionalDirectoriesRowOfASessionShowsAChipForEachFolder() async throws {
     let session = try await ScriptedSession.open(additionalDirectories: Self.additionalFolders.map(AbsolutePath.init))
     defer { session.close() }

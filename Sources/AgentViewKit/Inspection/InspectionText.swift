@@ -16,15 +16,6 @@ enum InspectionText {
     ThreadExporter.markdown(for: content)
   }
 
-  /// The text of a location of a tool call: its path, then its line, as
-  /// its location chip names it.
-  ///
-  /// - Parameter location: The location.
-  /// - Returns: The text, such as `/tmp/Package.swift:12`.
-  static func location(_ location: ToolCallLocation) -> String {
-    ToolCallLocationChips.Location.text(path: location.path.rawValue, line: location.line.map { Int($0.rawValue) })
-  }
-
   /// The text of a step of a plan: its status, then its content.
   ///
   /// - Parameters:

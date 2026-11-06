@@ -52,9 +52,8 @@ extension ToolCallEntry: InspectableClientModel {
   /// call, and its times.
   ///
   /// The Locations row shows a path chip for the file of each location, in
-  /// the order of the agent, and a dash for a call with no location. A chip
-  /// shows the path of its file and not the line, because EditorKit's paths
-  /// kind has no line.
+  /// the order of the agent, with the line in the `name:line` form when the
+  /// agent gave one, and a dash for a call with no location.
   public static var inspection: Inspection<InspectedClientModel<ToolCallEntry>> {
     .named(
       FieldLabel(localized: "Tool Call", bundle: .module), id: ClientInspectionID.toolCall,
@@ -65,7 +64,7 @@ extension ToolCallEntry: InspectableClientModel {
       Field(FieldLabel(localized: "Kind", bundle: .module)) { $0.model.shownKind.wireValue }
       Field(FieldLabel(localized: "Tool", bundle: .module)) { $0.model.name }
       Field(FieldLabel(localized: "Locations", bundle: .module)) { entry in
-        entry.model.locations.map { InspectionPath.file($0.path) }
+        entry.model.locations.map(InspectionPath.location)
       }
     } more: {
       timeGroup

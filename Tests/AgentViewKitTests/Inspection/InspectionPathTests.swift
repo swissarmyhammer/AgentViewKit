@@ -15,6 +15,9 @@ import Testing
   /// The path of the file of the tests.
   private static let file = "/tmp/Project/Package.swift"
 
+  /// The line of the location of the tests.
+  private static let line: UInt32 = 12
+
   /// The kind of the field with `key` in the group with `group` of
   /// `inspection`, or `nil` when it has no such field.
   ///
@@ -55,6 +58,24 @@ import Testing
     let url = InspectionPath.file(AbsolutePath(rawValue: Self.file))
 
     #expect(url.path(percentEncoded: false) == Self.file)
+  }
+
+  @Test func aLocationIsAtItsFile() {
+    let location = ToolCallLocation(path: AbsolutePath(rawValue: Self.file))
+
+    #expect(InspectionPath.location(location).url == InspectionPath.file(location.path))
+  }
+
+  @Test func aLocationWithALineKeepsItsLine() {
+    let location = ToolCallLocation(path: AbsolutePath(rawValue: Self.file), line: LineNumber(rawValue: Self.line))
+
+    #expect(InspectionPath.location(location).line == Int(Self.line))
+  }
+
+  @Test func aLocationWithNoLineHasNoLine() {
+    let location = ToolCallLocation(path: AbsolutePath(rawValue: Self.file))
+
+    #expect(InspectionPath.location(location).line == nil)
   }
 
   @Test func aFolderHasTheFolderSymbol() {

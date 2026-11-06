@@ -38,17 +38,6 @@ struct ToolCallLocationChips: View {
 
     /// The identity of the location: the identifier of its chip.
     var id: String { identifier }
-
-    /// The text of a location: the path, and `:<line>` when there is a line.
-    ///
-    /// - Parameters:
-    ///   - path: The path text to show.
-    ///   - line: The line in the file, if the source gave one.
-    /// - Returns: `<path>`, or `<path>:<line>` when there is a line.
-    static func text(path: String, line: Int?) -> String {
-      guard let line else { return path }
-      return "\(path):\(line)"
-    }
   }
 
   /// The locations to show, in order.
