@@ -32,16 +32,15 @@ import Testing
   /// The identifier of the Show All button of the capped output row.
   static let showAllIdentifier = "squeezed-show-all"
 
-  /// Mounts `content` at `width` and renders it until the tooltip that a
-  /// hidden caption sets has landed: the caption hides in one layout, and
-  /// the tooltip follows in the next update.
+  /// Mounts `content` at `width` in a window of ``windowSize``, and renders
+  /// it until the tooltip that a hidden caption sets has landed: the caption
+  /// hides in one layout, and the tooltip follows in the next update.
   ///
   /// - Parameters:
   ///   - content: The view under test.
-  ///   - width: The width that the view gets. The default is
-  ///     ``squeezedWidth``.
+  ///   - width: The width that the view gets, such as ``squeezedWidth``.
   /// - Returns: The harness, which the test closes.
-  static func mountSqueezed(_ content: some View, width: CGFloat = squeezedWidth) -> HostedViewHarness<some View> {
+  static func mount(_ content: some View, width: CGFloat) -> HostedViewHarness<some View> {
     let harness = HostedViewHarness(
       content.frame(width: width, alignment: .leading), size: windowSize)
     harness.render()
@@ -66,8 +65,8 @@ import Testing
   /// caption it has no room for, so the bar cuts it and sets no tooltip.
   @Test func aSqueezedBarButtonKeepsItsNameAsItsLabelAndItsTooltip() throws {
     let action = StatusBarFixtures.reloadAction(identifier: Self.barActionIdentifier)
-    let harness = Self.mountSqueezed(
-      StatusBar(message: StatusBarTests.message(.failure), action: action))
+    let harness = Self.mount(
+      StatusBar(message: StatusBarTests.message(.failure), action: action), width: Self.squeezedWidth)
     defer { harness.close() }
     let element = try Self.button(Self.barActionIdentifier, in: harness)
 
@@ -81,7 +80,7 @@ import Testing
   @Test func aSqueezedRequestActionKeepsItsNameAsItsLabelAndItsTooltip() throws {
     let footer = ElicitationFooter(
       context: ElicitationFooterContext(canSubmit: true, submit: {}, decline: {}, cancel: {}))
-    let harness = Self.mountSqueezed(footer)
+    let harness = Self.mount(footer, width: Self.squeezedWidth)
     defer { harness.close() }
     let element = try Self.button(ElicitationView.submitIdentifier, in: harness)
 
@@ -96,7 +95,7 @@ import Testing
     let rows = CappedOutputFixtures.rows
     let row = OutputCapRow(
       rows: rows, capIdentifier: Self.capIdentifier, showAllIdentifier: Self.showAllIdentifier, showAll: {})
-    let harness = Self.mountSqueezed(row)
+    let harness = Self.mount(row, width: Self.squeezedWidth)
     defer { harness.close() }
     let element = try Self.button(Self.showAllIdentifier, in: harness)
 

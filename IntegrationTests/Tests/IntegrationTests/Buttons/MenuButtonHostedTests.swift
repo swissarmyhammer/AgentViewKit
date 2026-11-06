@@ -17,7 +17,8 @@ import Testing
 /// whose show-menu action opens its menu, and a squeezed one hides its
 /// caption and keeps its name as its label and its tooltip. The tests read the
 /// accessibility tree and the menu that the action opens, never pixels or
-/// frames.
+/// frames. The count of the elements of an identifier is EditorKit's search
+/// by identifier, `accessibilityElements(identifiedAs:under:)`.
 @Suite(.serialized, .hostedSerially) @MainActor struct MenuButtonHostedTests {
   /// The locale of the views whose labels the tests read.
   static let locale = Locale(identifier: "en_US")
@@ -34,6 +35,13 @@ import Testing
     ToolToggle(id: ToolToggleID("terminal"), name: "Terminal", isEnabled: false),
   ]
 
+  /// The suite whose mount and element read the tests use.
+  typealias Squeezed = SqueezedButtonHostedTests
+
+  /// A width that holds each menu button with its whole caption: the width
+  /// of the window.
+  static let wideWidth = Squeezed.windowSize.width
+
   /// A width that holds the symbol of the Tools menu and not its short
   /// caption, in points.
   static let toolsSqueezedWidth: CGFloat = 32
@@ -49,26 +57,6 @@ import Testing
   /// The Tools menu of ``tools``.
   static var toolMenu: some View {
     ToolToggles(tools: tools) { _, _ in }
-  }
-
-  /// Mounts `content` in a window wider than each view under test.
-  ///
-  /// - Parameter content: The view under test.
-  /// - Returns: The harness, after one render pass. The caller closes it.
-  static func mount(_ content: some View) -> HostedViewHarness<some View> {
-    let harness = HostedViewHarness(content, size: SqueezedButtonHostedTests.windowSize)
-    harness.render()
-    return harness
-  }
-
-  /// The number of accessibility elements with `identifier`.
-  ///
-  /// - Parameters:
-  ///   - identifier: The accessibility identifier.
-  ///   - harness: The harness that shows the view.
-  /// - Returns: The count.
-  static func elementCount(_ identifier: String, in harness: HostedViewHarness<some View>) -> Int {
-    harness.accessibilityElements().filter { $0.identifier == identifier }.count
   }
 
   /// The titles of the items of the menu that the show-menu action of the
@@ -91,16 +79,17 @@ import Testing
   /// an element of its own around its control, or splits its icon and its
   /// caption into elements.
   @Test func theSessionOptionsMenuIsOneElement() {
-    let harness = Self.mount(Self.sessionOptions)
+    let harness = Squeezed.mount(Self.sessionOptions, width: Self.wideWidth)
     defer { harness.close() }
 
-    #expect(Self.elementCount(ConfigOptionsView.menuIdentifier, in: harness) == 1)
+    #expect(
+      accessibilityElements(identifiedAs: ConfigOptionsView.menuIdentifier, under: harness.hostingView).count == 1)
   }
 
   /// A production change that fails this test: the Session Options menu opens
   /// no menu through accessibility, or a menu without the options.
   @Test func showingTheSessionOptionsMenuListsEachOption() throws {
-    let harness = Self.mount(Self.sessionOptions)
+    let harness = Squeezed.mount(Self.sessionOptions, width: Self.wideWidth)
     defer { harness.close() }
 
     let titles = try Self.menuTitles(of: ConfigOptionsView.menuIdentifier, in: harness)
@@ -114,9 +103,9 @@ import Testing
   /// keeps a caption it has no room for, so its row cuts it and sets no
   /// tooltip.
   @Test func aSqueezedSessionOptionsMenuKeepsItsNameAsItsLabelAndItsTooltip() throws {
-    let harness = SqueezedButtonHostedTests.mountSqueezed(Self.sessionOptions)
+    let harness = Squeezed.mount(Self.sessionOptions, width: Squeezed.squeezedWidth)
     defer { harness.close() }
-    let element = try SqueezedButtonHostedTests.button(ConfigOptionsView.menuIdentifier, in: harness)
+    let element = try Squeezed.button(ConfigOptionsView.menuIdentifier, in: harness)
 
     #expect(element.label == "Session Options")
     #expect(element.hint == "Session Options")
@@ -128,16 +117,17 @@ import Testing
   /// element of its own around its control, or splits its icon and its
   /// caption into elements.
   @Test func theToolsMenuIsOneElement() {
-    let harness = Self.mount(Self.toolMenu)
+    let harness = Squeezed.mount(Self.toolMenu, width: Self.wideWidth)
     defer { harness.close() }
 
-    #expect(Self.elementCount(ToolToggles.menuIdentifier, in: harness) == 1)
+    #expect(
+      accessibilityElements(identifiedAs: ToolToggles.menuIdentifier, under: harness.hostingView).count == 1)
   }
 
   /// A production change that fails this test: the Tools menu opens no menu
   /// through accessibility, or a menu without a toggle for each tool.
   @Test func showingTheToolsMenuListsEachTool() throws {
-    let harness = Self.mount(Self.toolMenu)
+    let harness = Squeezed.mount(Self.toolMenu, width: Self.wideWidth)
     defer { harness.close() }
 
     let titles = try Self.menuTitles(of: ToolToggles.menuIdentifier, in: harness)
@@ -148,9 +138,9 @@ import Testing
   /// A production change that fails this test: the Tools menu keeps a
   /// caption it has no room for, so its row cuts it and sets no tooltip.
   @Test func aSqueezedToolsMenuKeepsItsNameAsItsLabelAndItsTooltip() throws {
-    let harness = SqueezedButtonHostedTests.mountSqueezed(Self.toolMenu, width: Self.toolsSqueezedWidth)
+    let harness = Squeezed.mount(Self.toolMenu, width: Self.toolsSqueezedWidth)
     defer { harness.close() }
-    let element = try SqueezedButtonHostedTests.button(ToolToggles.menuIdentifier, in: harness)
+    let element = try Squeezed.button(ToolToggles.menuIdentifier, in: harness)
 
     #expect(element.label == "Tools")
     #expect(element.hint == "Tools")
@@ -162,13 +152,14 @@ import Testing
   /// root session, whose crumbs end with the children menu.
   ///
   /// - Parameter session: The scripted session.
-  /// - Returns: The harness, after one render pass. The caller closes it.
+  /// - Returns: The harness. The caller closes it.
   /// - Throws: The error of the announce of the child.
   static func mountHeaderWithAChild(of session: ScriptedSession) async throws -> HostedViewHarness<some View> {
     _ = try await session.announceChild(Self.child, title: Self.childTitle)
-    return Self.mount(
+    return Squeezed.mount(
       AgentInfoHeader(connection: session.connection, session: session.model)
-        .environment(\.locale, Self.locale))
+        .environment(\.locale, Self.locale),
+      width: Self.wideWidth)
   }
 
   /// A production change that fails this test: the children menu adds an
@@ -180,7 +171,8 @@ import Testing
     let harness = try await Self.mountHeaderWithAChild(of: session)
     defer { harness.close() }
 
-    #expect(Self.elementCount(SessionBreadcrumb.childrenIdentifier, in: harness) == 1)
+    #expect(
+      accessibilityElements(identifiedAs: SessionBreadcrumb.childrenIdentifier, under: harness.hostingView).count == 1)
   }
 
   /// A production change that fails this test: the children menu opens no
@@ -207,7 +199,8 @@ import Testing
     let entry = try #require(PreviewFixtures.firstEntry(in: .previewSample, as: ThoughtEntry.self))
     let store = ExpandedBlocksStore()
     store.collapse(entry: .thought(entry))
-    let harness = Self.mount(ReasoningView(entry: entry).environment(\.expandedBlocksStore, store))
+    let harness = Squeezed.mount(
+      ReasoningView(entry: entry).environment(\.expandedBlocksStore, store), width: Self.wideWidth)
     defer { harness.close() }
     let toggle = ReasoningView.toggleIdentifier(for: entry.id.rowKey)
 

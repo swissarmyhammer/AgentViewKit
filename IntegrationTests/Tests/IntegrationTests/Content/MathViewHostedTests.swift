@@ -19,18 +19,6 @@ import Testing
   /// An expression that the engine cannot parse: the command does not exist.
   static let malformedSource = #"\nosuchcommand{x}"#
 
-  /// The number of elements in `harness` that have `identifier`.
-  ///
-  /// - Parameters:
-  ///   - identifier: The accessibility identifier to count.
-  ///   - harness: The harness that hosts the view.
-  /// - Returns: The number of elements.
-  static func count(
-    _ identifier: String, in harness: HostedViewHarness<some View>
-  ) -> Int {
-    harness.accessibilityElements().filter { $0.identifier == identifier }.count
-  }
-
   /// Mounts a response with one Markdown text.
   ///
   /// - Parameters:
@@ -104,8 +92,8 @@ import Testing
       id: "math-paragraph-inline", text: "The energy is $\(Self.inlineSource)$ here.")
     defer { harness.close() }
 
-    #expect(Self.count(MathView.inlineIdentifier, in: harness) == 1)
-    #expect(Self.count(MathView.blockIdentifier, in: harness) == 0)
+    #expect(accessibilityElements(identifiedAs: MathView.inlineIdentifier, under: harness.hostingView).count == 1)
+    #expect(accessibilityElements(identifiedAs: MathView.blockIdentifier, under: harness.hostingView).count == 0)
     #expect(harness.element(identifier: MathView.inlineIdentifier)?.label == Self.inlineSource)
     #expect(harness.element(identifier: ResponseView.paragraphIdentifier(index: 0)) != nil)
   }
@@ -115,8 +103,8 @@ import Testing
       id: "math-paragraph-block", text: "$$\(Self.blockSource)$$")
     defer { harness.close() }
 
-    #expect(Self.count(MathView.blockIdentifier, in: harness) == 1)
-    #expect(Self.count(MathView.inlineIdentifier, in: harness) == 0)
+    #expect(accessibilityElements(identifiedAs: MathView.blockIdentifier, under: harness.hostingView).count == 1)
+    #expect(accessibilityElements(identifiedAs: MathView.inlineIdentifier, under: harness.hostingView).count == 0)
     #expect(harness.element(identifier: MathView.blockIdentifier)?.label == Self.blockSource)
   }
 
@@ -124,8 +112,8 @@ import Testing
     let harness = Self.mountResponse(id: "math-paragraph-none", text: "It costs 5 dollars.")
     defer { harness.close() }
 
-    #expect(Self.count(MathView.inlineIdentifier, in: harness) == 0)
-    #expect(Self.count(MathView.blockIdentifier, in: harness) == 0)
+    #expect(accessibilityElements(identifiedAs: MathView.inlineIdentifier, under: harness.hostingView).count == 0)
+    #expect(accessibilityElements(identifiedAs: MathView.blockIdentifier, under: harness.hostingView).count == 0)
   }
 
   @Test func malformedMathInAParagraphShowsTheSource() {
@@ -133,7 +121,7 @@ import Testing
       id: "math-paragraph-malformed", text: "Bad $\(Self.malformedSource)$ math.")
     defer { harness.close() }
 
-    #expect(Self.count(MathView.inlineIdentifier, in: harness) == 0)
+    #expect(accessibilityElements(identifiedAs: MathView.inlineIdentifier, under: harness.hostingView).count == 0)
     let texts = harness.accessibilityElements().compactMap { $0.value ?? $0.label }
     #expect(texts.contains { $0.contains(Self.malformedSource) })
   }
