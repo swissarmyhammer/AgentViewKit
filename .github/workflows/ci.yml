@@ -11,9 +11,10 @@
 #     the runner: the unit tests only, with no window and no capture. It also
 #     builds the nested `IntegrationTests/` package. Its integration job runs
 #     that package after the unit job: the hosted, snapshot, pixel, focus-ring
-#     and review gallery tests. This is the shape of EditorKit and TestudoApp.
-#   - examples: the demo gate. `Scripts/test-examples.sh` makes the Xcode
-#     project of each example again, builds it, and runs its UI tests.
+#     and review gallery tests. Its examples job is the demo gate:
+#     `Scripts/test-examples.sh` makes the Xcode project of each example
+#     again, builds it, and runs its UI tests. Unit, integration and examples
+#     are the same three gates in every view kit; no job builds documentation.
 name: CI
 
 on:
@@ -33,92 +34,9 @@ jobs:
       # The integration suite is a nested package. This input makes the unit
       # job build it on every run and makes the integration job run it.
       integration-package-path: IntegrationTests
-
-  # The demo gate (plan.md §1). `Scripts/test-examples.sh` holds the whole
-  # gate: the project generation, the build, and the UI tests of each example.
-  #
-  # THE UI TESTS NEED TWO THINGS ON THE RUNNER. The tests drive the app through
-  # XCUIApplication. The runner service user must have a logged-in session, and
-  # macOS UI Automation Mode must be on for that user:
-  #   sudo automationmodetool enable-automationmode-without-authentication
-  # A person runs that command one time on the runner. Without it the test
-  # step waits for a permission prompt that nobody answers, and the time limit
-  # of the script stops it.
-  #
-  # The project generators call the `xcodeproj` gem. A gem is per user, so the
-  # step below installs it into the user gem directory when the runner has
-  # none. The install runs one time per runner.
-  #
-  # On failure the `.xcresult` bundles upload as `examples-<name>-results`.
-  examples:
-    name: Examples (${{ matrix.example }})
-    runs-on: [self-hosted, macOS]
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        example: [AgentViewKitDemo]
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Toolchain versions
-        run: |
-          sw_vers
-          xcodebuild -version
-          ruby --version
-
-      - name: Install the xcodeproj gem when the runner has none
-        run: |
-          if ruby -e 'require "xcodeproj"' 2>/dev/null; then
-            echo "The xcodeproj gem is available."
-          else
-            echo "The xcodeproj gem is absent. Installing it; this runs one time per runner."
-            gem install --user-install xcodeproj
-            ruby -e 'require "xcodeproj"'
-            echo "The xcodeproj gem is now available."
-          fi
-
-      # XCUIApplication can activate the app only in the session that is on the
-      # console, with the screen not locked. This step records the session
-      # state and changes no setting of the runner. It stops the job at once
-      # when the console belongs to a different user or the screen is locked.
-      - name: Check the UI session of the runner
-        run: |
-          console_user=$(stat -f %Su /dev/console)
-          echo "Runner user: $(whoami). Console user: ${console_user}."
-          ioreg -n Root -d1 -a | plutil -extract IOConsoleUsers xml1 -o - - 2>/dev/null \
-            | grep -A1 -E 'CGSSessionScreenIsLocked|kCGSSessionOnConsoleKey|kCGSSessionUserNameKey' || true
-          front=$(lsappinfo front)
-          echo "Front app: $(lsappinfo info -only name "${front%:}" 2>/dev/null | sed -n 1p)"
-          if [ "${console_user}" != "$(whoami)" ]; then
-            echo "error: the console belongs to ${console_user}, not to $(whoami). Switch the console of the runner to $(whoami)." >&2
-            exit 1
-          fi
-          # A locked screen shows loginwindow in front, and macOS activates no
-          # other app. The runner cannot unlock the screen. A person turns off
-          # the screen lock and the display sleep of the runner user one time:
-          #   sysadminctl -screenLock off -password -
-          #   sudo pmset -a displaysleep 0 sleep 0
-          if ioreg -n Root -d1 -a | plutil -extract IOConsoleUsers xml1 -o - - 2>/dev/null \
-            | grep -A1 CGSSessionScreenIsLocked | grep -q '<true/>'; then
-            echo "The power, screen lock and screen saver settings of the runner:"
-            pmset -g || true
-            pmset -g assertions | grep -iE 'display|user' || true
-            sysadminctl -screenLock status 2>&1 || true
-            defaults -currentHost read com.apple.screensaver 2>&1 || true
-            pgrep -lx ScreenSaverEngine || echo "No screen saver runs."
-            echo "error: the screen of the runner is locked, so the UI tests cannot activate the app. Unlock it, and turn off the screen lock and the display sleep of $(whoami) (see ci.yml)." >&2
-            exit 1
-          fi
-
-      - name: Make the project again, build the application, and run its UI tests
-        run: ./Scripts/test-examples.sh ${{ matrix.example }}
-
-      - name: Upload the result bundles
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: examples-${{ matrix.example }}-results
-          path: .build/examples/${{ matrix.example }}
-          if-no-files-found: ignore
-          retention-days: 7
+      # The demo gate: each leg runs `Scripts/test-examples.sh <name>`, which
+      # regenerates the project, builds the app, and runs its UI tests. The UI
+      # tests need a logged-in console session of the runner user, an unlocked
+      # screen, and UI Automation Mode on for that user (one time, by a person:
+      #   sudo automationmodetool enable-automationmode-without-authentication).
+      examples: '["AgentViewKitDemo"]'
