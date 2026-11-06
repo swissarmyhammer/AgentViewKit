@@ -30,7 +30,12 @@ import SwiftUI
 /// The scope of a file view that selects its file for the inspector
 /// (``InspectorSelectable``) gets the select action of the view, and then
 /// also registers the ``AgentFileSelectionVerb`` commands, which the
-/// Command-click and the Shift-click of the view run (card ^se9sxxe).
+/// Command-click and the Shift-click of the view run (card ^se9sxxe). Such a
+/// scope also gives the selected files to the context of its commands while
+/// its file is selected, so each attachment command on a selected file acts
+/// on every selected file, in transcript order, and a command on a file
+/// that is not selected acts on that file alone (card ^zsr2pbf,
+/// ``AttachmentCommandFiles``).
 struct AgentAttachmentScope: ViewModifier {
   /// The attachment of the scope.
   let attachment: Attachment
@@ -48,6 +53,7 @@ struct AgentAttachmentScope: ViewModifier {
   @Environment(\.agentAttachmentScopeSegment) private var enclosingSegment
   @Environment(\.attachmentFileService) private var hostService
   @Environment(\.agentCommandGroupsOff) private var groupsOff
+  @Environment(\.attachmentSelect) private var fileSelection
 
   /// The target of this scope.
   @State private var target = AgentAttachmentTarget()
@@ -66,7 +72,7 @@ struct AgentAttachmentScope: ViewModifier {
       let system = ambientSystem ?? standaloneSystem
       let registration = AgentAttachmentMount.Registration(
         system: system, path: parentPath?.appending(segment) ?? .root(segment),
-        service: hostService ?? presenter, groupsOff: groupsOff, select: select)
+        service: hostService ?? presenter, groupsOff: groupsOff, select: select, selection: commandFiles)
       content
         .environment(\.agentAttachmentScopeSegment, segment)
         .background(AgentAttachmentMount(target: target, presenter: presenter, registration: registration))
@@ -75,6 +81,13 @@ struct AgentAttachmentScope: ViewModifier {
         .environment(\.agentCommandSystem, system)
         .commandSystem(system)
     }
+  }
+
+  /// Reads the selected files that a command at the scope acts on, or `nil`
+  /// for a view that selects no file.
+  private var commandFiles: (() -> [Attachment])? {
+    guard select != nil else { return nil }
+    return { [attachment, fileSelection] in fileSelection.commandFiles(at: attachment) }
   }
 }
 
@@ -121,7 +134,10 @@ extension EnvironmentValues {
 /// ``AttachmentPresenter``.
 ///
 /// The Save command writes the attachment to save, and the Quick Look command
-/// writes the file to show. Each panel clears its value when it closes.
+/// writes the file to show, with the files to browse. Each panel clears its
+/// value when it closes. A save of several files shows a save panel for each
+/// file in turn: the update after a panel closes gives the exporter the next
+/// file, so the exporter sees its panel close before it shows the next one.
 private struct AttachmentPresentation: ViewModifier {
   /// The presenter of the scope.
   @Bindable var presenter: AttachmentPresenter
@@ -136,13 +152,14 @@ private struct AttachmentPresentation: ViewModifier {
     content
       .fileExporter(
         isPresented: Binding(
-          get: { exported != nil }, set: { if !$0 { presenter.exportedAttachment = nil } }),
+          get: { exported != nil }, set: { if !$0 { presenter.exportDidClose() } }),
         document: exported.map { AttachmentDocument(url: $0.url) },
         contentType: exported?.type ?? .data,
         defaultFilename: exported?.name,
         onCompletion: { FileExportLog.record($0, of: exported?.name ?? "", to: logger) }
       )
-      .quickLookPreview($presenter.quickLookURL)
+      .onChange(of: exported) { presenter.exportNextFile() }
+      .quickLookPreview($presenter.quickLookURL, in: presenter.quickLookURLs)
   }
 }
 
@@ -177,6 +194,10 @@ struct AgentAttachmentMount: NSViewRepresentable {
     /// The select action of the file view of the scope, or `nil` when the
     /// view selects no file.
     let select: ((AttachmentSelectionChange) -> Void)?
+    /// Reads the selected files that a command at the scope acts on, or
+    /// `nil` when the view selects no file
+    /// (``AgentAttachmentTarget/selection``).
+    let selection: (() -> [Attachment])?
   }
 
   /// The target to keep current.
@@ -220,6 +241,7 @@ struct AgentAttachmentMount: NSViewRepresentable {
     presenter.anchor = anchor
     target.service = registration.service
     target.select = registration.select
+    target.selection = registration.selection
     scopeMount.mount(at: registration.path, in: registration.system) {
       [target, path = registration.path, groupsOff = registration.groupsOff,
         selects = registration.select != nil] registry in

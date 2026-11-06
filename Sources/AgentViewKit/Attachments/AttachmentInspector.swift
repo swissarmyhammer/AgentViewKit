@@ -216,7 +216,9 @@ private nonisolated struct VerticalInsets: Equatable, Sendable {
 /// preview at the preview height of the style, in its `.preview` row.
 /// Several files fold into one form: the header names the title and the
 /// count, the preview row reads "Mixed" when the files differ, and no action
-/// shows, because each action runs on one file.
+/// shows, because the action row is the scope of one file. The context menu
+/// and the keys of a selected file in a thread view run each action on every
+/// selected file (card ^zsr2pbf).
 ///
 /// The rows take EditorKit's scheme ids, which ``nameIdentifier(of:)`` and
 /// ``previewIdentifier(of:)`` give:

@@ -4,13 +4,16 @@
 ///
 /// The previews give it to their file actions, so that a press in the canvas
 /// opens nothing (``PreviewFixtures/attachmentFileService``). The tests reach
-/// it through `@testable import` and read what each command ran.
+/// it through `@testable import` and read what each command ran. A run on
+/// several files records one call for each file, in order, through the
+/// default run of the service.
 final class RecordingAttachmentFileService: AttachmentFileService {
-  /// One recorded run: the verb and the attachment that the command read.
+  /// One recorded run on one file: the verb and the file that the command
+  /// acted on.
   struct Call: Equatable {
     /// The verb of the command.
     let verb: AgentAttachmentVerb
-    /// The attachment of the scope of the command.
+    /// A file of the command.
     let attachment: Attachment
   }
 
@@ -34,7 +37,7 @@ final class RecordingAttachmentFileService: AttachmentFileService {
   ///
   /// - Parameters:
   ///   - verb: The verb of the command.
-  ///   - attachment: The attachment of the scope of the command.
+  ///   - attachment: A file of the command.
   /// - Returns: ``startsAction``.
   func run(_ verb: AgentAttachmentVerb, on attachment: Attachment) -> Bool {
     calls.append(Call(verb: verb, attachment: attachment))

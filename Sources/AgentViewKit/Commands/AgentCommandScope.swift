@@ -138,24 +138,27 @@ enum AgentCommandRegistration {
 
   /// Registers the scope node and the definitions at `path`.
   ///
-  /// The call writes only the `.host` part of the node, with no
-  /// contribution. It does not register a definition of a group in
-  /// `groupsOff`. It unregisters that definition, so
-  /// `CommandRegistry.unregister` also removes each key of it. Thus a group
-  /// that a later call turns off goes away, and a group that a later call
-  /// turns on comes back. The thread scope and each attachment scope use this
-  /// call.
+  /// The call writes only the `.host` part of the node, with `contribution`
+  /// as its part of the context: an attachment scope gives the selected
+  /// files there (``AgentAttachmentTarget/contributeSelection(to:)``). It
+  /// does not register a definition of a group in `groupsOff`. It
+  /// unregisters that definition, so `CommandRegistry.unregister` also
+  /// removes each key of it. Thus a group that a later call turns off goes
+  /// away, and a group that a later call turns on comes back. The thread
+  /// scope and each attachment scope use this call.
   ///
   /// - Parameters:
   ///   - definitions: The definitions of the scope, each with its group.
   ///   - path: The path of the scope.
   ///   - registry: The registry to register into.
   ///   - groupsOff: The groups whose definitions the call does not register.
+  ///   - contribution: The part of the context that the `.host` part of the
+  ///     node writes, or `nil` for none.
   static func register(
     _ definitions: [GroupedDefinition], at path: FocusPath, into registry: inout CommandRegistry,
-    groupsOff: Set<AgentCommandGroup>
+    groupsOff: Set<AgentCommandGroup>, contribution: (@Sendable (inout CommandContext) -> Void)? = nil
   ) {
-    registry.tree = registry.tree.merging(nil, by: .host, at: path)
+    registry.tree = registry.tree.merging(contribution, by: .host, at: path)
     for entry in definitions {
       if groupsOff.contains(entry.group) {
         registry.unregister(entry.definition.id, at: path)

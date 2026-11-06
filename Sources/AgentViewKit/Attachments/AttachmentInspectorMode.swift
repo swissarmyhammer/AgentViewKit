@@ -100,6 +100,12 @@ public enum AttachmentInspectorMode {
     selection.wrappedValue.contains { isOwn($0) && $0.attachment.url == file.url }
   }
 
+  /// The files of the binding that the user selected in the thread view, in
+  /// selection order. A file of another thread view is not one of them.
+  var selectedFiles: [Attachment] {
+    selection.wrappedValue.filter(isOwn).map(\.attachment)
+  }
+
   /// Whether a selection of the binding is a file of this thread view.
   ///
   /// - Parameter selection: A selection of the binding.
@@ -165,6 +171,18 @@ public enum AttachmentInspectorMode {
     }
     return selection?.attachments.contains { $0.url == file.url } ?? false
   }
+
+  /// The files that a command at the scope of the view of `file` acts on
+  /// (``AttachmentCommandFiles``, card ^zsr2pbf): the files that the
+  /// inspector shows, in the transcript order of the thread, when it shows
+  /// `file`, and none when it does not.
+  ///
+  /// - Parameter file: The file of a view.
+  /// - Returns: The selected files in transcript order, or an empty list.
+  func commandFiles(at file: Attachment) -> [Attachment] {
+    let selected = hostTarget?.selectedFiles ?? selection?.attachments ?? []
+    return AttachmentCommandFiles.files(at: file, selection: selected, order: order?.files ?? [])
+  }
 }
 
 extension EnvironmentValues {
@@ -198,7 +216,9 @@ extension View {
   /// pressed. The host shows the files, for example with
   /// ``AttachmentInspector``, which folds several files into one form, and
   /// whose actions Open, Reveal in Finder, Share, Save and Quick Look work
-  /// in each mode on one file. The host closes its inspector with a write of
+  /// in each mode on one file. The context menu and the keys of a selected
+  /// file in a thread view run each action on every selected file of that
+  /// thread view (card ^zsr2pbf). The host closes its inspector with a write of
   /// an empty list to the binding.
   ///
   /// For an example window, see `InspectorWindow` in the README.
