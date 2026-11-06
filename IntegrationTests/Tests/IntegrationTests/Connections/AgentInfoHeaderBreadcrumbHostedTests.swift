@@ -117,6 +117,16 @@ import Testing
     #expect(harness.element(identifier: AgentBreadcrumb.sessionIdentifier) == nil)
   }
 
+  /// A production change that fails this test: the row of the agent alone
+  /// still mounts the session crumbs, so an empty bar stands after the agent
+  /// behind a stray separator.
+  @Test func theAgentAloneShowsNoBreadcrumbBar() {
+    let harness = Self.mountRow(sessionTitle: nil, size: Self.wideSize)
+    defer { harness.close() }
+
+    #expect(harness.element(identifier: SessionBreadcrumb.barIdentifier) == nil)
+  }
+
   @Test func theSessionSegmentFollowsTheAgentSegment() throws {
     let harness = Self.mountRow(sessionTitle: Self.sessionTitle, size: Self.wideSize)
     defer { harness.close() }

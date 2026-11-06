@@ -210,7 +210,7 @@ struct AgentBreadcrumb: View {
           .font(editorTheme.font(for: .ui, style: .headline))
           .lineLimit(1)
           .accessibilityIdentifier(Self.sessionIdentifier)
-      } else {
+      } else if !path.isEmpty {
         SessionBreadcrumb(path: path, rootTitle: sessionTitle, select: select)
       }
     }
