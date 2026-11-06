@@ -22,7 +22,7 @@ import Testing
   @Test func theStyleHasNoPaddingByte() {
     StoredLayout<EditorStyle>(
       \.spacing, \.radii, \.tile, \.chip, \.previewHeight, \.gutterGap, \.breadcrumbs, \.symbolWeight, \.buttons,
-      \.density
+      \.density, \.invalidChipTint
     ).expectNoPaddingByte()
   }
 
