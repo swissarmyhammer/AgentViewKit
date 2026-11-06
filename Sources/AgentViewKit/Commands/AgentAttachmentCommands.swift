@@ -7,14 +7,16 @@ import Foundation
 /// The scope of each attachment chip, image, artifact file and attachment
 /// inspector (`agentAttachment:<id>`, see ``AgentScopeKind/attachment``)
 /// registers one command for each verb at its own path. A command reads the
-/// ``Attachment`` of its scope with `@FromTarget`. Thus the buttons of the
-/// inspector, the context menu of the attachment and the command palette run
-/// the same command.
+/// files that it acts on with `@FromSelection`: the ``Attachment`` of its
+/// scope, or every selected file when the scope is the view of a selected
+/// file (card ^zsr2pbf, ``AttachmentCommandFiles``). Thus the buttons of the
+/// inspector, the context menu of the attachment, the keys and the command
+/// palette run the same command on the same files.
 ///
 /// Each verb is in the group ``AgentCommandGroup/attachment``, in the File
 /// menu and in the context menu of the attachment. A verb is available only
-/// when it can run: a file URL must point to a file that exists, and Reveal in
-/// Finder, Save and Quick Look need a local file.
+/// when it can run on each of its files: a file URL must point to a file that
+/// exists, and Reveal in Finder, Save and Quick Look need a local file.
 public nonisolated enum AgentAttachmentVerb: String, CaseIterable, Sendable {
   /// Opens the file in its default application.
   case openAttachment
@@ -132,15 +134,18 @@ public nonisolated enum AgentAttachmentVerb: String, CaseIterable, Sendable {
 ///
 /// The command is a value, as EditorKit requires. It holds its target
 /// weakly, so a registry that outlives the view does not keep the target.
-/// The command reads the ``Attachment`` of the nearest attachment scope with
-/// `@FromTarget`, and its ``Action`` decides at the target whether it can run
-/// and what a run does: an ``AgentAttachmentVerb`` runs on the attachment
-/// with the service of the target, and an ``AgentFileSelectionVerb`` runs the
-/// select action of the target.
+/// The command reads its files with `@FromSelection`, with EditorKit's
+/// Finder rule: the selected files that the scope of a selected file gives
+/// the context (``AgentAttachmentTarget/contributeSelection(to:)``), or the
+/// ``Attachment`` of the clicked or the focused attachment scope alone. Its
+/// ``Action`` decides at the target whether it can run and what a run does:
+/// an ``AgentAttachmentVerb`` runs on the files with the service of the
+/// target, and an ``AgentFileSelectionVerb`` runs the select action of the
+/// target.
 nonisolated struct AgentAttachmentCommand: EditorCommands.Command {
   /// What one command of an attachment scope is and does: its id, its title
   /// and places, its availability and its run at the live target of the
-  /// scope, with the attachment of the scope.
+  /// scope, with the files of the command.
   struct Action: Sendable {
     /// The command id.
     let id: CommandID
@@ -161,13 +166,13 @@ nonisolated struct AgentAttachmentCommand: EditorCommands.Command {
     /// The place of the command in the context menu, or `nil` for none.
     var contextMenu: ContextMenuPlacement?
 
-    /// Whether the command can run at the target, with the attachment of
-    /// the scope.
-    let availability: @MainActor @Sendable (AgentAttachmentTarget, Attachment?) -> Availability
+    /// Whether the command can run at the target, with the files of the
+    /// command, in order.
+    let availability: @MainActor @Sendable (AgentAttachmentTarget, [Attachment]) -> Availability
 
-    /// Runs the command at the target, with the attachment of the scope.
-    /// Returns `false` when the run declines.
-    let run: @MainActor @Sendable (AgentAttachmentTarget, Attachment?) -> Bool
+    /// Runs the command at the target, with the files of the command, in
+    /// order. Returns `false` when the run declines.
+    let run: @MainActor @Sendable (AgentAttachmentTarget, [Attachment]) -> Bool
   }
 
   /// The action of the command.
@@ -176,8 +181,10 @@ nonisolated struct AgentAttachmentCommand: EditorCommands.Command {
   /// The target of the scope that registered the command.
   weak let target: AgentAttachmentTarget?
 
-  /// The attachment of the nearest attachment scope, or `nil`.
-  @FromTarget(kind: AgentScopeKind.attachment) var attachment: Attachment?
+  /// The files of the command, in order: every selected file in transcript
+  /// order on a selected file, otherwise the file of the clicked or the
+  /// focused attachment scope alone, or none.
+  @FromSelection(kind: AgentScopeKind.attachment) var attachments: [Attachment]
 
   /// Makes the command of `action` for `target`.
   ///
@@ -195,7 +202,7 @@ nonisolated struct AgentAttachmentCommand: EditorCommands.Command {
 
   func availability(in context: CommandContext) -> Availability {
     CommandTargetAccess.availability(at: target, unavailable: .attachmentNotShown) {
-      action.availability($0, attachment)
+      action.availability($0, attachments)
     }
   }
 
@@ -205,7 +212,7 @@ nonisolated struct AgentAttachmentCommand: EditorCommands.Command {
   /// - Parameter context: The context of the invocation.
   /// - Returns: `true` when the action ran.
   func run(in context: CommandContext) -> Bool {
-    CommandTargetAccess.run(at: target) { action.run($0, attachment) }
+    CommandTargetAccess.run(at: target) { action.run($0, attachments) }
   }
 
   /// The EditorKit definition of `action` for `target`, with the title, the
@@ -230,28 +237,38 @@ nonisolated struct AgentAttachmentCommand: EditorCommands.Command {
 }
 
 extension AgentAttachmentVerb {
-  /// The command action of the verb: it runs on the attachment of the scope
+  /// The command action of the verb: it runs on the files of the command
   /// with the service of the target.
   ///
   /// The run declines where the command cannot run, the same checks as the
   /// availability: a key then goes on to the next binding of its chord
   /// (EditorKit ^jaxzzkn). A run that reaches the service handles the
   /// invocation, also when the service cannot start the action (it logs the
-  /// failure): the user aimed the key at this attachment, so the key does not
-  /// go on to another command of the chord (^zb5td6w).
+  /// failure): the user aimed the key at these files, so the key does not go
+  /// on to another command of the chord (^zb5td6w).
   var action: AgentAttachmentCommand.Action {
     AgentAttachmentCommand.Action(
       id: id, title: title, buttonTitle: buttonTitle, icon: icon, menu: menu, contextMenu: contextMenu,
-      availability: { [self] target, attachment in
-        guard target.service != nil, let attachment else { return .attachmentNotShown }
-        return availability(for: attachment)
+      availability: { [self] target, attachments in
+        target.service == nil ? .attachmentNotShown : availability(for: attachments)
       },
-      run: { [self] target, attachment in
-        guard let service = target.service, let attachment, availability(for: attachment).isAvailable
-        else { return false }
-        _ = service.run(self, on: attachment)
+      run: { [self] target, attachments in
+        guard let service = target.service, availability(for: attachments).isAvailable else { return false }
+        _ = service.run(self, on: attachments)
         return true
       })
+  }
+
+  /// Tells if the verb can run on each of `attachments`, with the reason of
+  /// the first file that it cannot run on.
+  ///
+  /// - Parameter attachments: The files of the command, in order.
+  /// - Returns: `.unavailable` with no file, or with the reason of
+  ///   ``availability(for:)`` for the first file that the verb cannot run
+  ///   on; otherwise `.available`.
+  func availability(for attachments: [Attachment]) -> Availability {
+    guard !attachments.isEmpty else { return .attachmentNotShown }
+    return attachments.lazy.map(availability(for:)).first { !$0.isAvailable } ?? .available
   }
 }
 
@@ -273,8 +290,35 @@ final class AgentAttachmentTarget {
   /// or `nil` when the view selects no file.
   var select: ((AttachmentSelectionChange) -> Void)?
 
-  /// Makes a target with no service and no select action.
+  /// Reads the files of the selection that a command at the scope acts on
+  /// (``AttachmentCommandFiles``): every selected file, in transcript order,
+  /// when the file of the scope is selected, and none when it is not. `nil`
+  /// when the view of the scope selects no file.
+  var selection: (() -> [Attachment])?
+
+  /// Makes a target with no service, no select action and no selection.
   init() {}
+
+  /// Writes the selected files into the context of the scope, as the board
+  /// of KanbanViewKit writes its selected cards, so each command reads them
+  /// with `@FromSelection(kind: AgentScopeKind.attachment)`.
+  ///
+  /// The selection is the segment of each file, in transcript order, and
+  /// the subject of each segment is its file: a selected file in another
+  /// row has no scope on the path of the command. When the file of the scope
+  /// is not selected, the function writes nothing, so a command acts on that
+  /// file alone. The registry folds the context on the main actor.
+  ///
+  /// - Parameter context: The context of the scope.
+  nonisolated func contributeSelection(to context: inout CommandContext) {
+    let files = MainActor.assumeIsolated { selection?() ?? [] }
+    guard !files.isEmpty else { return }
+    let segments = files.map { AgentScopeKind.attachment($0.id) }
+    for (segment, file) in zip(segments, files) {
+      context.contributeSubject(segment, file)
+    }
+    context.selection = segments
+  }
 }
 
 nonisolated extension Availability {
@@ -292,7 +336,8 @@ nonisolated extension Availability {
 /// The mount of a scope and the headless tests use the same calls.
 enum AgentAttachmentRegistration {
   /// Registers the scope node and one command for each verb of `target` at
-  /// `path`.
+  /// `path`. The `.host` part of the node gives the selected files of the
+  /// target to the context (``AgentAttachmentTarget/contributeSelection(to:)``).
   ///
   /// The call does not register a verb of a group in `groupsOff`, and it
   /// unregisters a verb that an earlier call registered, with the same rule
@@ -315,7 +360,9 @@ enum AgentAttachmentRegistration {
       AgentCommandRegistration.GroupedDefinition(
         group: verb.group, definition: AgentAttachmentCommand.definition(of: verb.action, for: target))
     }
-    AgentCommandRegistration.register(definitions, at: path, into: &registry, groupsOff: groupsOff)
+    AgentCommandRegistration.register(
+      definitions, at: path, into: &registry, groupsOff: groupsOff,
+      contribution: { [weak target] in target?.contributeSelection(to: &$0) })
     for verb in AgentFileSelectionVerb.allCases {
       if selects {
         registry.register(AgentAttachmentCommand.definition(of: verb.action, for: target), at: path)

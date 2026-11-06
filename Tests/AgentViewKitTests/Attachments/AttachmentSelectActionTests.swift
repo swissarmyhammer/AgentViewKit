@@ -110,6 +110,32 @@ import UniformTypeIdentifiers
 
     #expect(action.isSelected(Attachment(url: Self.shownURL)))
   }
+
+  // MARK: - Command files
+
+  /// A command on a file of the thread reads the files of the host binding
+  /// that the user selected in this thread, and no file of another thread
+  /// (card ^zsr2pbf).
+  @Test func theCommandFilesOfAFileInTheHostModeAreTheSelectedFilesOfTheThread() {
+    let action = Self.hostAction(holding: [
+      AgentAttachmentSelection(attachment: Attachment(url: Self.otherURL), sessionId: Self.threadSessionID),
+      AgentAttachmentSelection(attachment: Attachment(url: Self.shownURL), sessionId: Self.otherSessionID),
+      AgentAttachmentSelection(attachment: Attachment(url: Self.shownURL), sessionId: Self.threadSessionID),
+    ])
+
+    let files = action.commandFiles(at: Attachment(url: Self.shownURL))
+
+    #expect(files.map(\.url) == [Self.otherURL, Self.shownURL])
+  }
+
+  @Test func theCommandFilesOfAFileReadTheInspectorSelection() {
+    let selection = InspectorSelection(attachments: [Attachment(url: Self.shownURL), Attachment(url: Self.otherURL)])
+    let action = AttachmentSelectAction(hostTarget: nil, selection: selection, order: nil)
+
+    let files = action.commandFiles(at: Attachment(url: Self.otherURL))
+
+    #expect(files.map(\.url) == [Self.shownURL, Self.otherURL])
+  }
 }
 
 /// Tests for the changes that the action makes to the binding of a host
