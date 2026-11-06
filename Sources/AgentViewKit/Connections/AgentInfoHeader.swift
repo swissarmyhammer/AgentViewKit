@@ -23,15 +23,15 @@ import SwiftUI
 ///
 /// The header follows the path control of the macOS HIG. The first segment
 /// is the agent: its symbol, its name and its version line. When the host
-/// gives a session, a chevron in the `.secondary` style and a crumb follow
-/// for each session on the path from the root to it. Each crumb is a
-/// dropdown with the siblings at its level (``SessionBreadcrumb``). With no
-/// session, the header shows the agent alone. Each text has one line. When
-/// the path does not fit the width, the middle crumbs collapse into one "..."
-/// dropdown. That is a rule of the width, and not of the number of sessions.
-/// The agent segment has the higher layout priority, so a long title
-/// truncates first, and each crumb can truncate, so the header never sets
-/// the least width of its pane.
+/// gives a session, a chevron in the `.secondary` style and the crumbs of the
+/// sessions on the path from the root to it follow, in an EditorKit
+/// `EditorBreadcrumbBar`. Each crumb opens a menu with the siblings at its
+/// level (``SessionBreadcrumb``). With no session, the header shows the agent
+/// alone. When the path does not fit the width, the bar hides the oldest
+/// ancestors in a leading "…" crumb, one at a time, and a last crumb that
+/// still lacks room wraps its title. That is a rule of the width, and not of
+/// the number of sessions. The agent segment has the higher layout priority,
+/// so the crumbs collapse first.
 ///
 /// The host can give a session title, such as the title of a tab (D142).
 /// The first crumb shows it in place of the title of its session, and
@@ -49,7 +49,7 @@ import SwiftUI
 /// ``identifier``. Its label names the path, such as "Agent, Reviewer,
 /// Linter", with the session title of the host for the first crumb, or the
 /// name of the agent alone, and its value is the version
-/// line. With a session, the header is a container, so each dropdown stays
+/// line. With a session, the header is a container, so each crumb stays
 /// reachable.
 ///
 /// The symbol is a ``DecorativeSymbolImage``, and the chevron is EditorKit's
@@ -138,11 +138,10 @@ public struct AgentInfoHeader: View {
 }
 
 /// The segments of an ``AgentInfoHeader``: the agent, and the crumbs of the
-/// path after it.
-///
-/// The row tries the full path first, then the path with the middle crumbs
-/// collapsed, and last the collapsed path with truncated text, whatever fits
-/// the width first (`ViewThatFits`).
+/// path after it, whose bar collapses and wraps them to the width that the
+/// agent leaves. The row takes the whole width it gets and stands at its
+/// leading edge, with no spacer that would take a share of the width from
+/// the bar.
 ///
 /// The row has no accessibility element of its own. The header makes it one
 /// element (or one container, with a path), so only a test that shows the row
@@ -156,7 +155,7 @@ struct AgentBreadcrumb: View {
   static let sessionIdentifier = "agent-info-session"
 
   /// The layout priority of the agent segment over the crumbs, so that the
-  /// crumbs truncate first.
+  /// crumbs collapse first.
   static let agentPriority: Double = 1
 
   /// The name of the agent.
@@ -200,15 +199,6 @@ struct AgentBreadcrumb: View {
   @Environment(\.editorTheme) private var editorTheme
 
   var body: some View {
-    ViewThatFits(in: .horizontal) {
-      row(collapsed: false).fixedSize(horizontal: true, vertical: false)
-      row(collapsed: true).fixedSize(horizontal: true, vertical: false)
-      row(collapsed: true)
-    }
-  }
-
-  /// The row of the agent and the crumbs.
-  private func row(collapsed: Bool) -> some View {
     HStack(alignment: .firstTextBaseline, spacing: editorStyle.spacing.s) {
       agentSegment
         .layoutPriority(Self.agentPriority)
@@ -221,10 +211,10 @@ struct AgentBreadcrumb: View {
           .lineLimit(1)
           .accessibilityIdentifier(Self.sessionIdentifier)
       } else {
-        SessionBreadcrumb(path: path, rootTitle: sessionTitle, collapsed: collapsed, select: select)
+        SessionBreadcrumb(path: path, rootTitle: sessionTitle, select: select)
       }
-      Spacer(minLength: editorStyle.spacing.s)
     }
+    .frame(maxWidth: .infinity, alignment: .leading)
   }
 
   /// The version line of an agent, such as "Version 2.1.0".

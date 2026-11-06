@@ -20,6 +20,10 @@ import Testing
   static let second = SessionId(rawValue: "second")
   static let linter = SessionId(rawValue: "linter")
 
+  /// The mark of a crumb whose session, or a session below it, needs the
+  /// user: the warning, which VoiceOver speaks as "needs your attention".
+  static let attentionMark = EditorBreadcrumbMark.symbol(.severity(.warning), label: "needs your attention")
+
   /// A root, a child with a title, a second child, and a grandchild.
   static func openTree() async throws -> ScriptedSession {
     let session = try await ScriptedSession.open()
@@ -46,7 +50,7 @@ import Testing
     #expect(AgentInfoHeader.titles(of: [], sessionTitle: nil).isEmpty)
   }
 
-  // MARK: - Path and collapse
+  // MARK: - Path
 
   @Test func thePathOfTheGrandchildHasTheRootTheChildAndTheGrandchild() async throws {
     let session = try await Self.openTree()
@@ -55,42 +59,6 @@ import Testing
     let path = try #require(session.session(Self.linter)).path
 
     #expect(path.map(\.sessionId) == [session.model.sessionId, Self.reviewer, Self.linter])
-  }
-
-  @Test func theFullPathHasOneCrumbForEachSession() async throws {
-    let session = try await Self.openTree()
-    defer { session.close() }
-    let path = try #require(session.session(Self.linter)).path
-
-    let segments = BreadcrumbSegment.segments(of: path, collapsed: false)
-
-    #expect(segments.count == 3)
-  }
-
-  @Test func theCollapsedPathHoldsTheMiddleCrumbsInOneDropdown() async throws {
-    let session = try await Self.openTree()
-    defer { session.close() }
-    let path = try #require(session.session(Self.linter)).path
-
-    let segments = BreadcrumbSegment.segments(of: path, collapsed: true)
-
-    guard segments.count == 3, case .crumb(let first) = segments[0], case .overflow(let middle) = segments[1],
-      case .crumb(let last) = segments[2]
-    else {
-      Issue.record("The collapsed path is a crumb, a dropdown and a crumb.")
-      return
-    }
-    #expect(first.sessionId == session.model.sessionId)
-    #expect(middle.map(\.sessionId) == [Self.reviewer])
-    #expect(last.sessionId == Self.linter)
-  }
-
-  @Test func aPathWithNoMiddleCrumbHasNothingToCollapse() async throws {
-    let session = try await Self.openTree()
-    defer { session.close() }
-    let path = try #require(session.session(Self.reviewer)).path
-
-    #expect(BreadcrumbSegment.segments(of: path, collapsed: true).count == 2)
   }
 
   @Test func theHeaderLabelReadsThePathOneNameAfterTheOther() {
@@ -131,7 +99,7 @@ import Testing
     let grandchild = try #require(session.session(Self.linter))
     try await session.sendInOrder([.permission(id: 1, sessionId: Self.linter)], to: grandchild)
 
-    #expect(SessionBreadcrumb.accessibilityLabel(for: try #require(session.session(Self.reviewer))).hasSuffix("needs your attention"))
+    #expect(SessionBreadcrumb.attentionMark(of: try #require(session.session(Self.reviewer))) == Self.attentionMark)
     #expect(session.model.needsAttention)
 
     let pending = try #require(grandchild.pendingPermissions.first)
@@ -139,7 +107,7 @@ import Testing
     await grandchild.selectPermission(pending.id, option: option.optionId)
     await ObservationWait.until { !session.model.needsAttention }
 
-    #expect(!SessionBreadcrumb.accessibilityLabel(for: try #require(session.session(Self.reviewer))).contains("needs your attention"))
+    #expect(SessionBreadcrumb.attentionMark(of: try #require(session.session(Self.reviewer))) == nil)
   }
 
   // MARK: - Fallback

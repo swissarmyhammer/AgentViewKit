@@ -1,5 +1,6 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
+import EditorSwiftUI
 import EditorTestSupport
 import FoundationModelsACP
 import FoundationModelsACPClient
@@ -32,12 +33,28 @@ import Testing
   /// A size too narrow to show the long session title whole.
   static let narrowSize = CGSize(width: 420, height: 120)
 
-  /// The width of the small area of a host window, such as the chat pane of
-  /// Testudo: the header must fit it with a long crumb.
-  static let paneSize = CGSize(width: 260, height: 120)
+  /// The size of the small area of a host window, such as the chat pane of
+  /// Testudo: too narrow for the root crumb beside a long crumb, and tall
+  /// enough for the long crumb to wrap.
+  static let paneSize = CGSize(width: 260, height: 320)
 
   /// The id of the child with the long title in the session tests.
   static let longChild = SessionId(rawValue: "long-child")
+
+  /// The id of the child of the crumb tests.
+  static let child = SessionId(rawValue: "reviewer")
+
+  /// The title of the child of the crumb tests.
+  static let childTitle = "Reviewer"
+
+  /// The id of the sibling of the child of the crumb tests.
+  static let sibling = SessionId(rawValue: "linter")
+
+  /// The title of the sibling of the child of the crumb tests.
+  static let siblingTitle = "Linter"
+
+  /// The locale of the views whose labels the tests read.
+  static let locale = Locale(identifier: "en_US")
 
   /// The largest difference between two widths that the tests take as the
   /// same width, in points.
@@ -150,21 +167,90 @@ import Testing
 
   // MARK: - The crumbs of a session
 
-  @Test func aLongCrumbTruncatesInANarrowPane() async throws {
+  /// Mounts the header of a session in a window of `size`, in the locale of
+  /// the tests.
+  ///
+  /// - Parameters:
+  ///   - session: The session whose path the header shows.
+  ///   - connection: The connection of the session.
+  ///   - size: The size of the window.
+  /// - Returns: The harness, after the render passes that land the shape of
+  ///   the bar that fits.
+  static func mountCrumbs(
+    of session: SessionModel, connection: ConnectionModel, size: CGSize
+  ) -> HostedViewHarness<some View> {
+    let harness = HostedViewHarness(size: size) {
+      AgentInfoHeader(connection: connection, session: session)
+        .environment(\.locale, Self.locale)
+    }
+    harness.render()
+    harness.render()
+    return harness
+  }
+
+  /// A production change that fails this test: the bar hides the last crumb
+  /// when it has no room, cuts it from the accessibility tree, or hides the
+  /// root and shows no overflow crumb that holds it.
+  @Test func aSqueezedCrumbCollapsesIntoTheOverflowAndThenWraps() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let child = try await session.announceChild(Self.longChild, title: Self.longSessionTitle)
-    let harness = HostedViewHarness(size: Self.paneSize) {
-      AgentInfoHeader(connection: session.connection, session: child)
-    }
+    let root = session.model
+    let harness = Self.mountCrumbs(of: child, connection: session.connection, size: Self.paneSize)
     defer { harness.close() }
-    harness.render()
 
-    let crumb = try #require(harness.frame(identifier: SessionBreadcrumb.crumbIdentifier(for: Self.longChild)))
-    let host = harness.screenFrame(of: harness.hostingView)
+    let overflow = try harness.perform(.showMenu, on: EditorBreadcrumbBar.overflowAccessibilityIdentifier)
+    let last = harness.element(identifier: SessionBreadcrumb.crumbIdentifier(for: Self.longChild))
 
-    #expect(crumb.minX >= host.minX, "crumb \(crumb), host \(host)")
-    #expect(crumb.maxX <= host.maxX, "crumb \(crumb), host \(host)")
+    #expect(harness.element(identifier: SessionBreadcrumb.crumbIdentifier(for: root.sessionId)) == nil)
+    #expect(overflow?.items.map(\.title) == [root.displayTitle])
+    #expect(last?.label == Self.longSessionTitle)
+  }
+
+  /// A production change that fails this test: a crumb splits its title and
+  /// its mark into two elements, or the bar publishes a second element for a
+  /// crumb.
+  @Test func eachCrumbIsOneElement() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let child = try await session.announceChild(Self.child, title: Self.childTitle)
+    let harness = Self.mountCrumbs(of: child, connection: session.connection, size: Self.wideSize)
+    defer { harness.close() }
+
+    let crumbs = harness.accessibilityElements().filter { $0.label == Self.childTitle }
+
+    #expect(crumbs.count == 1, "the elements are \(crumbs)")
+  }
+
+  /// A production change that fails this test: the crumb of a session opens
+  /// no menu through accessibility, or a menu without its siblings.
+  @Test func showingTheMenuOfACrumbListsItsSiblings() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let child = try await session.announceChild(Self.child, title: Self.childTitle)
+    try await session.announceChild(Self.sibling, title: Self.siblingTitle)
+    let harness = Self.mountCrumbs(of: child, connection: session.connection, size: Self.wideSize)
+    defer { harness.close() }
+
+    let menu = try harness.perform(.showMenu, on: SessionBreadcrumb.crumbIdentifier(for: Self.child))
+    let expected = child.siblingsIncludingSelf.map { SessionStateText.choiceLabel(for: $0, locale: Self.locale) }
+
+    #expect(menu?.items.map(\.title) == expected)
+  }
+
+  /// A production change that fails this test: the warning mark of a crumb
+  /// whose child waits for the user is drawn and not spoken.
+  @Test func aCrumbThatNeedsTheUserSpeaksItAsItsValue() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let child = try await session.announceChild(Self.child, title: Self.childTitle)
+    try await session.sendInOrder([.permission(id: 1, sessionId: Self.child)], to: child)
+    let harness = Self.mountCrumbs(of: child, connection: session.connection, size: Self.wideSize)
+    defer { harness.close() }
+
+    let crumb = harness.element(identifier: SessionBreadcrumb.crumbIdentifier(for: Self.child))
+
+    #expect(crumb?.value == SessionStateText.needsAttention)
   }
 
   @Test func theFirstCrumbShowsTheSessionTitleOfTheHostAndFollowsItsChanges() async throws {

@@ -21,19 +21,24 @@ import Testing
   /// target as a value, so the style must have no padding byte either.
   @Test func theStyleHasNoPaddingByte() {
     StoredLayout<EditorStyle>(
-      \.spacing, \.radii, \.tile, \.chip, \.previewHeight, \.gutterGap, \.symbolWeight, \.buttons, \.density
+      \.spacing, \.radii, \.tile, \.chip, \.previewHeight, \.gutterGap, \.breadcrumbs, \.symbolWeight, \.buttons,
+      \.density
     ).expectNoPaddingByte()
   }
 
   @Test func theButtonTokensHaveNoPaddingByte() {
     StoredLayout<EditorStyle.Buttons>(
-      \.labelSpacing, \.pressedOpacity, \.disabledOpacity, \.captionStyle, \.toolbarCaptionStyle, \.tint,
-      \.subduedTint, \.destructiveTint, \.toolbarTint, \.hoverTint, \.selectedTint, \.spinnerSizes, \.density, \.toolbarDensity
+      \.labelSpacing, \.pressedOpacity, \.disabledOpacity, \.captionStyle, \.toolbarCaptionStyle,
+      \.crumbCaptionStyle, \.tint, \.subduedTint, \.destructiveTint, \.toolbarTint, \.hoverTint, \.selectedTint, \.spinnerSizes, \.density, \.toolbarDensity
     ).expectNoPaddingByte()
   }
 
   @Test func theSpinnerSizesHaveNoPaddingByte() {
     StoredLayout<EditorStyle.SpinnerSizes>(\.compact, \.balanced, \.detailed).expectNoPaddingByte()
+  }
+
+  @Test func theBreadcrumbTokensHaveNoPaddingByte() {
+    StoredLayout<EditorStyle.Breadcrumbs>(\.separatorSpacing, \.markSpacing).expectNoPaddingByte()
   }
 
   @Test func theTileTokensHaveNoPaddingByte() {
