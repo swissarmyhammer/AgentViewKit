@@ -10,7 +10,9 @@ import FoundationModelsACP
 /// symbol for a URL with a directory path and the document symbol otherwise
 /// (`EditorSymbol.FileKind(location:)`), and the line of a `PathLocation`
 /// after its name. The client models hold their paths
-/// as ACP `AbsolutePath`s, so each path row makes its URLs here.
+/// as ACP `AbsolutePath`s, so each path row makes its URLs here. A press on
+/// a chip of any path row opens its URL, as the Open command of an
+/// attachment does (``InspectedClientModel/openPath(_:)``).
 enum InspectionPath {
   /// The root folder, `/`: the stand-in URL of a path row whose model has no
   /// path. The row shows only when the model has a path, so no row shows it.
@@ -57,14 +59,16 @@ enum InspectionPath {
   }
 
   /// The Working Directory row of a model: the path chip of its folder,
-  /// shown only while the model knows the folder.
+  /// shown only while the model knows the folder. A press on the chip opens
+  /// the folder (``InspectedClientModel/openPath(_:)``).
   ///
   /// - Parameter directory: The working directory of a model, or `nil`.
   /// - Returns: The read-only path field.
-  static func workingDirectory<Object: AnyObject>(
-    _ directory: @escaping @MainActor (Object) -> AbsolutePath?
-  ) -> Field<Object, URL> {
+  static func workingDirectory<Model: InspectableClientModel>(
+    _ directory: @escaping @MainActor (InspectedClientModel<Model>) -> AbsolutePath?
+  ) -> Field<InspectedClientModel<Model>, URL> {
     Field(InspectionLabel.workingDirectory) { folder(directory($0)) }
       .visible { directory($0) != nil }
+      .opening { $0.openPath($1) }
   }
 }

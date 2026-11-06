@@ -320,6 +320,93 @@ import Testing
         == EditorInspectorStrings.noValue)
   }
 
+  // MARK: - Opening a path
+
+  /// Mounts an `InspectorView` of the client model `model`, whose path chips
+  /// open their URL with `service`, and makes one render pass.
+  ///
+  /// - Parameters:
+  ///   - model: The model to inspect.
+  ///   - service: The service that records each open.
+  /// - Returns: The harness. The caller closes it.
+  static func mount<Model: InspectableClientModel>(
+    _ model: Model, opening service: RecordingAttachmentFileService
+  ) -> HostedViewHarness<InspectorView> {
+    mount(InspectedClientModel(model, fileService: service))
+  }
+
+  /// The run of the Open verb on the file or the folder at `url`, as the
+  /// recording service records it.
+  ///
+  /// - Parameter url: The URL that a chip opens.
+  /// - Returns: The recorded call.
+  static func openCall(of url: URL) -> RecordingAttachmentFileService.Call {
+    RecordingAttachmentFileService.Call(verb: .openAttachment, attachment: Attachment(url: url))
+  }
+
+  @Test func pressingTheWorkingDirectoryOfATerminalOpensItsFolder() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    try await session.sendUpdate(
+      #"""
+      {"sessionUpdate": "terminal_update", "terminalId": "\#(Self.terminalID)", "command": "ls",
+       "cwd": "\#(Self.terminalFolder)"}
+      """#)
+    let entry = try await Self.entry(TerminalEntry.self, in: session)
+    let service = RecordingAttachmentFileService()
+    let harness = Self.mount(entry, opening: service)
+    defer { harness.close() }
+
+    try harness.inspectorDriver.open(Self.row(of: entry, group: "terminal", field: "working-directory"))
+
+    #expect(service.calls == [Self.openCall(of: InspectionPath.folder(entry.cwd))])
+  }
+
+  @Test func pressingTheWorkingDirectoryOfASessionOpensItsFolder() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let model = session.model
+    let service = RecordingAttachmentFileService()
+    let harness = Self.mount(model, opening: service)
+    defer { harness.close() }
+
+    try harness.inspectorDriver.open(Self.row(of: model, group: "session", field: "working-directory"))
+
+    #expect(service.calls == [Self.openCall(of: InspectionPath.folder(model.cwd))])
+  }
+
+  @Test func openingALocationOfAToolCallOpensItsFile() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    try await session.sendUpdate(Self.locationsUpdate)
+    let entry = try await Self.entry(ToolCallEntry.self, in: session)
+    let service = RecordingAttachmentFileService()
+    let harness = Self.mount(entry, opening: service)
+    defer { harness.close() }
+    let index = Self.locationFiles.count - 1
+
+    try harness.inspectorDriver.openPath(at: index, in: Self.row(of: entry, group: "tool-call", field: "locations"))
+
+    let file = InspectionPath.file(AbsolutePath(rawValue: Self.locationFiles[index]))
+    #expect(service.calls == [Self.openCall(of: file)])
+  }
+
+  @Test func openingAnAdditionalDirectoryOfASessionOpensItsFolder() async throws {
+    let session = try await ScriptedSession.open(additionalDirectories: Self.additionalFolders.map(AbsolutePath.init))
+    defer { session.close() }
+    let model = session.model
+    let service = RecordingAttachmentFileService()
+    let harness = Self.mount(model, opening: service)
+    defer { harness.close() }
+    let index = Self.additionalFolders.count - 1
+
+    try harness.inspectorDriver.openPath(
+      at: index, in: Self.row(of: model, group: "session", field: "additional-directories"))
+
+    let folder = InspectionPath.folder(AbsolutePath(rawValue: Self.additionalFolders[index]))
+    #expect(service.calls == [Self.openCall(of: folder)])
+  }
+
   @Test func theTextRowOfAnAgentMessageFollowsItsChunks() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }

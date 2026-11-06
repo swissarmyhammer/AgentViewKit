@@ -89,4 +89,13 @@ import Testing
 
     #expect(url.path(percentEncoded: false) == Self.folder + "/")
   }
+
+  @Test func openingAPathRunsTheOpenVerbOfTheFileServiceOnItsFile() {
+    let service = RecordingAttachmentFileService()
+    let url = InspectionPath.file(AbsolutePath(rawValue: Self.file))
+
+    InspectedClientModel(SessionModel.preview(), fileService: service).openPath(url)
+
+    #expect(service.calls == [RecordingAttachmentFileService.Call(verb: .openAttachment, attachment: Attachment(url: url))])
+  }
 }

@@ -21,7 +21,7 @@ import FoundationModelsACPClient
 // (`EditorStatus`), which the inspector shows as a read-only `.status` row.
 // The working directory of a session is EditorKit's path kind, and its
 // additional directories are its paths kind, a path chip for each folder
-// (``InspectionPath``).
+// (``InspectionPath``). A press on a chip opens its folder.
 
 extension SessionModel: InspectableClientModel {
   /// The object id of the session: its raw session id, such as `sess_1`.
@@ -32,7 +32,9 @@ extension SessionModel: InspectableClientModel {
   /// window, its subagents and its transcript.
   ///
   /// The Additional Directories row shows a path chip for each folder, in
-  /// the order of the session, and a dash for a session with none.
+  /// the order of the session, and a dash for a session with none. A press
+  /// on a chip of the Working Directory or the Additional Directories row
+  /// opens its folder.
   public static var inspection: Inspection<InspectedClientModel<SessionModel>> {
     .named(
       FieldLabel(localized: "Session", bundle: .module), id: ClientInspectionID.session,
@@ -46,6 +48,7 @@ extension SessionModel: InspectableClientModel {
       Field(FieldLabel(localized: "Additional Directories", bundle: .module)) { session in
         session.model.additionalDirectories.map { InspectionPath.folder($0) }
       }
+      .opening { $0.openPath($1) }
     } more: {
       FieldGroup(FieldLabel(localized: "Agent", bundle: .module)) {
         Field(FieldLabel(localized: "Context Used", bundle: .module)) { $0.model.usage?.used }

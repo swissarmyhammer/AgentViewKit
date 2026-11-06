@@ -19,7 +19,7 @@ import FoundationModelsACPClient
 // (`EditorStatus`), which the inspector shows as a read-only `.status` row.
 // The working directory of a terminal is EditorKit's path kind, and the
 // locations of a tool call are its paths kind, a path chip for each file
-// (``InspectionPath``).
+// (``InspectionPath``). A press on a chip opens its file or its folder.
 
 extension ObservableTranscriptEntry where Self: InspectableClientModel {
   /// The group of the start and end times of the entry, as the client saw
@@ -53,7 +53,8 @@ extension ToolCallEntry: InspectableClientModel {
   ///
   /// The Locations row shows a path chip for the file of each location, in
   /// the order of the agent, with the line in the `name:line` form when the
-  /// agent gave one, and a dash for a call with no location.
+  /// agent gave one, and a dash for a call with no location. A press on a
+  /// chip opens its file.
   public static var inspection: Inspection<InspectedClientModel<ToolCallEntry>> {
     .named(
       FieldLabel(localized: "Tool Call", bundle: .module), id: ClientInspectionID.toolCall,
@@ -66,6 +67,7 @@ extension ToolCallEntry: InspectableClientModel {
       Field(FieldLabel(localized: "Locations", bundle: .module)) { entry in
         entry.model.locations.map(InspectionPath.location)
       }
+      .opening { $0.openPath($1) }
     } more: {
       timeGroup
     }

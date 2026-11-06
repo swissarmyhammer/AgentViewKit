@@ -57,14 +57,49 @@ public final class InspectedClientModel<Model: InspectableClientModel>: Inspecta
   /// The readable id of the model, ``InspectableClientModel/inspectorObjectID``.
   public var id: String { model.inspectorObjectID }
 
+  /// The service that opens the path of a chip of the model's path rows, or
+  /// `nil` for the system default, a new ``AttachmentPresenter``.
+  ///
+  /// The inspection of a model is static, so its path rows cannot read the
+  /// ``SwiftUI/EnvironmentValues/attachmentFileService`` of the view. A test
+  /// gives a recording service here instead, so that no file opens.
+  let fileService: (any AttachmentFileService)?
+
   /// The inspection of the model.
   public static var inspection: Inspection<InspectedClientModel<Model>> { Model.inspection }
 
-  /// Makes the inspected object of a model.
+  /// Makes the inspected object of a model, whose path chips open their
+  /// file in its default application.
   ///
   /// - Parameter model: The model.
-  public init(_ model: Model) {
+  public convenience init(_ model: Model) {
+    self.init(model, fileService: nil)
+  }
+
+  /// Makes the inspected object of a model, whose path chips open their
+  /// file with `fileService`.
+  ///
+  /// - Parameters:
+  ///   - model: The model.
+  ///   - fileService: The service that opens a path, or `nil` for the
+  ///     system default.
+  init(_ model: Model, fileService: (any AttachmentFileService)?) {
     self.model = model
+    self.fileService = fileService
+  }
+
+  /// Opens the file or the folder at `url`, as the Open command of an
+  /// attachment does: runs ``AgentAttachmentVerb/openAttachment`` on the
+  /// attachment of `url` with ``fileService``, or with the system default.
+  ///
+  /// Each path row of the inspection runs it for a press on one of its
+  /// chips (``InspectionPath``). A service that cannot open the path logs
+  /// the failure.
+  ///
+  /// - Parameter url: The URL of the chip.
+  func openPath(_ url: URL) {
+    let service = fileService ?? AttachmentPresenter()
+    _ = service.run(.openAttachment, on: Attachment(url: url))
   }
 }
 
