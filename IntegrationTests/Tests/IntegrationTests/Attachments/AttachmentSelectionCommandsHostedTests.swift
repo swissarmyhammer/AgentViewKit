@@ -23,9 +23,6 @@ import Testing
 /// ``RecordingAttachmentFileService``, the hook of a host, so no system UI
 /// opens. The window is never ordered in and never key, and no test clicks.
 @Suite(.serialized, .hostedSerially) @MainActor struct AttachmentSelectionCommandsHostedTests {
-  /// The file names of the chips, in transcript order.
-  static let names = ["first.bin", "second.txt", "third.swift"]
-
   /// The size of a host window with a thread and an inspector.
   static let hostSize = CGSize(width: 1_200, height: 700)
 
@@ -35,11 +32,8 @@ import Testing
   /// The scripted session of the thread view.
   let session: ScriptedSession
 
-  /// The folder of the files.
-  let directory: TemporaryFolder
-
-  /// The files of the chips, in transcript order.
-  let files: [AgentViewKit.Attachment]
+  /// The files of the chips, in transcript order, and their folder.
+  let fileSet: AttachmentFileSet
 
   /// The state of the host.
   let state = HostAttachmentState()
@@ -51,15 +45,19 @@ import Testing
   let system = CommandSystem()
 
   init() async throws {
-    directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
-    let directory = directory
-    files = try Self.names.map { try AttachmentFixtures.attachment(named: $0, in: directory) }
+    fileSet = try AttachmentFileSet()
     session = try await ScriptedSession.open()
+  }
+
+  /// The files of the chips, in transcript order.
+  var files: [AgentViewKit.Attachment] {
+    fileSet.files
   }
 
   /// The accessibility identifier of the chip of a file.
   ///
-  /// - Parameter index: The position of the file in ``names``.
+  /// - Parameter index: The position of the file in
+  ///   ``AttachmentFileSet/selectionNames``.
   /// - Returns: The identifier.
   static func chip(_ index: Int) -> String {
     "selection-command-chip-\(index)"
@@ -98,19 +96,6 @@ import Testing
       size: Self.hostSize)
     harness.render()
     return harness
-  }
-
-  /// Runs the named accessibility action of `change` on the chip of a file.
-  ///
-  /// - Parameters:
-  ///   - change: The kind of the press.
-  ///   - index: The position of the file.
-  ///   - harness: The harness of the mounted view.
-  /// - Throws: The error of the action.
-  func perform(_ change: AttachmentSelectionChange, on index: Int, in harness: HostedViewHarness<some View>)
-    throws
-  {
-    try harness.perform(.custom(change.actionName), on: Self.chip(index))
   }
 
   /// The path of the attachment scope of the chip of a file.
@@ -154,69 +139,59 @@ import Testing
     try #require(system.registry.performKey(Self.key.asSequence, mode: .cua, at: path))
   }
 
-  /// The calls of a run of `verb` on the files at `indices`, in order.
-  ///
-  /// - Parameters:
-  ///   - verb: The verb.
-  ///   - indices: The positions of the files.
-  /// - Returns: The calls.
-  func calls(of verb: AgentAttachmentVerb, on indices: Int...) -> [RecordingAttachmentFileService.Call] {
-    indices.map { .init(verb: verb, attachment: files[$0]) }
-  }
-
   /// Closes the session and removes the files.
   func close() {
     session.close()
-    directory.remove()
+    fileSet.remove()
   }
 
   @Test func theOpenRowOfASelectedFileOpensEverySelectedFileInTranscriptOrder() throws {
     defer { close() }
     let harness = mount()
     defer { harness.close() }
-    try perform(.select, on: 2, in: harness)
-    try perform(.toggle, on: 0, in: harness)
-    try perform(.toggle, on: 1, in: harness)
+    try harness.performSelection(.select, on: Self.chip(2))
+    try harness.performSelection(.toggle, on: Self.chip(0))
+    try harness.performSelection(.toggle, on: Self.chip(1))
 
     try runContextMenuRow(.openAttachment, on: 2, in: harness)
 
-    #expect(service.calls == calls(of: .openAttachment, on: 0, 1, 2))
+    #expect(service.calls == AttachmentFixtures.calls(of: .openAttachment, on: files))
   }
 
   @Test func aKeyOnASelectedFileRevealsEverySelectedFile() throws {
     defer { close() }
     let harness = mount()
     defer { harness.close() }
-    try perform(.select, on: 0, in: harness)
-    try perform(.extend, on: 2, in: harness)
+    try harness.performSelection(.select, on: Self.chip(0))
+    try harness.performSelection(.extend, on: Self.chip(2))
 
     try runKey(.revealAttachment, on: 1)
 
-    #expect(service.calls == calls(of: .revealAttachment, on: 0, 1, 2))
+    #expect(service.calls == AttachmentFixtures.calls(of: .revealAttachment, on: files))
   }
 
   @Test func theOpenRowOfAFileOutsideTheSelectionOpensThatFileAlone() throws {
     defer { close() }
     let harness = mount()
     defer { harness.close() }
-    try perform(.select, on: 0, in: harness)
-    try perform(.toggle, on: 2, in: harness)
+    try harness.performSelection(.select, on: Self.chip(0))
+    try harness.performSelection(.toggle, on: Self.chip(2))
 
     try runContextMenuRow(.openAttachment, on: 1, in: harness)
 
-    #expect(service.calls == calls(of: .openAttachment, on: 1))
+    #expect(service.calls == AttachmentFixtures.calls(of: .openAttachment, on: [files[1]]))
   }
 
   @Test func aKeyOnAFileOutsideTheSelectionRunsOnThatFileAlone() throws {
     defer { close() }
     let harness = mount()
     defer { harness.close() }
-    try perform(.select, on: 0, in: harness)
-    try perform(.toggle, on: 2, in: harness)
+    try harness.performSelection(.select, on: Self.chip(0))
+    try harness.performSelection(.toggle, on: Self.chip(2))
 
     try runKey(.quickLookAttachment, on: 1)
 
-    #expect(service.calls == calls(of: .quickLookAttachment, on: 1))
+    #expect(service.calls == AttachmentFixtures.calls(of: .quickLookAttachment, on: [files[1]]))
   }
 
   /// The context menu of an item leaves out a command that is not available
@@ -227,8 +202,8 @@ import Testing
     let harness = mount()
     defer { harness.close() }
     let open = AgentAttachmentVerb.openAttachment.id
-    try perform(.select, on: 0, in: harness)
-    try perform(.extend, on: 2, in: harness)
+    try harness.performSelection(.select, on: Self.chip(0))
+    try harness.performSelection(.extend, on: Self.chip(2))
     try #require(try harness.contextMenuItems(of: Self.chip(0)).contains { $0.commandID == open })
     try FileManager.default.removeItem(at: files[2].url)
 
@@ -244,12 +219,12 @@ import Testing
     let selection = InspectorSelection()
     let harness = mount { $0.environment(\.inspectorSelection, selection) }
     defer { harness.close() }
-    try perform(.select, on: 1, in: harness)
-    try perform(.extend, on: 2, in: harness)
+    try harness.performSelection(.select, on: Self.chip(1))
+    try harness.performSelection(.extend, on: Self.chip(2))
     try #require(selection.attachments == [files[1], files[2]])
 
     try runContextMenuRow(.openAttachment, on: 1, in: harness)
 
-    #expect(service.calls == calls(of: .openAttachment, on: 1, 2))
+    #expect(service.calls == AttachmentFixtures.calls(of: .openAttachment, on: Array(files[1...2])))
   }
 }

@@ -30,34 +30,32 @@ struct FoldingHostInspector: View {
 /// click, a Command-click and a Shift-click do. The window is never ordered
 /// in and never key, and no test clicks.
 @Suite(.serialized, .hostedSerially) @MainActor struct AttachmentMultiSelectHostedTests {
-  /// The file names of the chips, in transcript order.
-  static let names = ["first.bin", "second.txt", "third.swift"]
-
   /// The size of a host window with a thread and an inspector.
   static let hostSize = CGSize(width: 1_200, height: 700)
 
   /// The scripted session of the thread view.
   let session: ScriptedSession
 
-  /// The folder of the files.
-  let directory: TemporaryFolder
-
-  /// The files of the chips, in transcript order.
-  let files: [AgentViewKit.Attachment]
+  /// The files of the chips, in transcript order, and their folder.
+  let fileSet: AttachmentFileSet
 
   /// The state of the host.
   let state = HostAttachmentState()
 
   init() async throws {
-    directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
-    let directory = directory
-    files = try Self.names.map { try AttachmentFixtures.attachment(named: $0, in: directory) }
+    fileSet = try AttachmentFileSet()
     session = try await ScriptedSession.open()
+  }
+
+  /// The files of the chips, in transcript order.
+  var files: [AgentViewKit.Attachment] {
+    fileSet.files
   }
 
   /// The accessibility identifier of the chip of a file.
   ///
-  /// - Parameter index: The position of the file in ``names``.
+  /// - Parameter index: The position of the file in
+  ///   ``AttachmentFileSet/selectionNames``.
   /// - Returns: The identifier.
   static func chip(_ index: Int) -> String {
     "multi-select-chip-\(index)"
@@ -85,19 +83,6 @@ struct FoldingHostInspector: View {
     return harness
   }
 
-  /// Runs the named accessibility action of `change` on the chip of a file.
-  ///
-  /// - Parameters:
-  ///   - change: The kind of the press.
-  ///   - index: The position of the file.
-  ///   - harness: The harness of the mounted view.
-  /// - Throws: The error of the action.
-  func perform(_ change: AttachmentSelectionChange, on index: Int, in harness: HostedViewHarness<some View>)
-    throws
-  {
-    try harness.perform(.custom(change.actionName), on: Self.chip(index))
-  }
-
   /// The selections of the files at `indices`, with the session id of the
   /// thread.
   ///
@@ -110,7 +95,7 @@ struct FoldingHostInspector: View {
   /// Closes the session and removes the files.
   func close() {
     session.close()
-    directory.remove()
+    fileSet.remove()
   }
 
   @Test func theSelectActionSelectsOneFile() throws {
@@ -118,7 +103,7 @@ struct FoldingHostInspector: View {
     let harness = mount()
     defer { harness.close() }
 
-    try perform(.select, on: 1, in: harness)
+    try harness.performSelection(.select, on: Self.chip(1))
 
     #expect(state.selection == selections(1))
   }
@@ -127,9 +112,9 @@ struct FoldingHostInspector: View {
     defer { close() }
     let harness = mount()
     defer { harness.close() }
-    try perform(.select, on: 2, in: harness)
+    try harness.performSelection(.select, on: Self.chip(2))
 
-    try perform(.toggle, on: 0, in: harness)
+    try harness.performSelection(.toggle, on: Self.chip(0))
 
     #expect(state.selection == selections(2, 0))
   }
@@ -138,10 +123,10 @@ struct FoldingHostInspector: View {
     defer { close() }
     let harness = mount()
     defer { harness.close() }
-    try perform(.select, on: 2, in: harness)
-    try perform(.toggle, on: 0, in: harness)
+    try harness.performSelection(.select, on: Self.chip(2))
+    try harness.performSelection(.toggle, on: Self.chip(0))
 
-    try perform(.toggle, on: 2, in: harness)
+    try harness.performSelection(.toggle, on: Self.chip(2))
 
     #expect(state.selection == selections(0))
   }
@@ -150,9 +135,9 @@ struct FoldingHostInspector: View {
     defer { close() }
     let harness = mount()
     defer { harness.close() }
-    try perform(.select, on: 0, in: harness)
+    try harness.performSelection(.select, on: Self.chip(0))
 
-    try perform(.extend, on: 2, in: harness)
+    try harness.performSelection(.extend, on: Self.chip(2))
 
     #expect(state.selection == selections(0, 1, 2))
   }
@@ -161,10 +146,10 @@ struct FoldingHostInspector: View {
     defer { close() }
     let harness = mount()
     defer { harness.close() }
-    try perform(.select, on: 0, in: harness)
-    try perform(.extend, on: 2, in: harness)
+    try harness.performSelection(.select, on: Self.chip(0))
+    try harness.performSelection(.extend, on: Self.chip(2))
 
-    try perform(.select, on: 1, in: harness)
+    try harness.performSelection(.select, on: Self.chip(1))
 
     #expect(state.selection == selections(1))
   }
@@ -175,8 +160,8 @@ struct FoldingHostInspector: View {
     defer { close() }
     let harness = mount()
     defer { harness.close() }
-    try perform(.select, on: 0, in: harness)
-    try perform(.toggle, on: 2, in: harness)
+    try harness.performSelection(.select, on: Self.chip(0))
+    try harness.performSelection(.toggle, on: Self.chip(2))
 
     harness.render()
 

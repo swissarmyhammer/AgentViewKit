@@ -28,4 +28,47 @@ public enum AttachmentFixtures {
   public static var verbIDs: [CommandID] {
     AgentAttachmentVerb.allCases.map(\.id)
   }
+
+  /// The calls that a recording service gets from a run of `verb` on each
+  /// of `files`, in order: one call for each file.
+  ///
+  /// - Parameters:
+  ///   - verb: The verb of the run.
+  ///   - files: The files of the run, in order.
+  /// - Returns: The calls.
+  public static func calls(
+    of verb: AgentAttachmentVerb, on files: [AgentViewKit.Attachment]
+  ) -> [RecordingAttachmentFileService.Call] {
+    files.map { .init(verb: verb, attachment: $0) }
+  }
+}
+
+/// Temporary files of several types for the tests of a selection of files:
+/// the folder, and the attachment of each file, in the order of their names.
+public struct AttachmentFileSet {
+  /// The names of the three files of a selection test, each of another
+  /// type, in transcript order.
+  public static let selectionNames = ["first.bin", "second.txt", "third.swift"]
+
+  /// The folder of the files.
+  public let directory: TemporaryFolder
+
+  /// The attachments of the files, in the order of their names.
+  public let files: [AgentViewKit.Attachment]
+
+  /// Writes one file for each of `names` in a new temporary folder.
+  ///
+  /// - Parameter names: The file names, with their extensions. The default
+  ///   is ``selectionNames``.
+  /// - Throws: The error of a write.
+  public init(named names: [String] = selectionNames) throws {
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
+    self.directory = directory
+    files = try names.map { try AttachmentFixtures.attachment(named: $0, in: directory) }
+  }
+
+  /// Removes the folder and its files.
+  public func remove() {
+    directory.remove()
+  }
 }

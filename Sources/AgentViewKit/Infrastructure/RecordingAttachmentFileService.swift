@@ -7,14 +7,29 @@
 /// it through `@testable import` and read what each command ran. A run on
 /// several files records one call for each file, in order, through the
 /// default run of the service.
-final class RecordingAttachmentFileService: AttachmentFileService {
+///
+/// The class and its call are `public`, so `AgentViewKitTestSupport` builds
+/// the expected calls of a run for the tests of both test packages: the
+/// nested `IntegrationTests/` package is another package, which `package`
+/// access does not reach. The run and the recorded calls stay internal.
+public final class RecordingAttachmentFileService: AttachmentFileService {
   /// One recorded run on one file: the verb and the file that the command
   /// acted on.
-  struct Call: Equatable {
+  public struct Call: Equatable {
     /// The verb of the command.
-    let verb: AgentAttachmentVerb
+    public let verb: AgentAttachmentVerb
     /// A file of the command.
-    let attachment: Attachment
+    public let attachment: Attachment
+
+    /// Makes the call of a run of `verb` on `attachment`.
+    ///
+    /// - Parameters:
+    ///   - verb: The verb of the command.
+    ///   - attachment: A file of the command.
+    public init(verb: AgentAttachmentVerb, attachment: Attachment) {
+      self.verb = verb
+      self.attachment = attachment
+    }
   }
 
   /// Each run, in call order.
