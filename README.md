@@ -390,9 +390,12 @@ inspector, for example with
 `AttachmentInspector`, an EditorKit `InspectorView` of the file with its
 preview, whose actions Open, Reveal in Finder, Share, Save and Quick Look work
 in each mode. `AttachmentInspector([files])` folds several files into one
-form, whose preview reads "Mixed". Each action is an EditorKit command of the scope
-of the attachment, so the context menu and the command palette run it too. A
-write of an empty list closes the inspector.
+form: a Files row shows a path chip for each file, in selection order, and a
+press on a chip opens its file; each action runs on every file, and is
+available only when it can run on each one; the preview reads "Mixed". Each
+action is an EditorKit command of the scope of the attachment, so the context
+menu and the command palette run it too. A write of an empty list closes the
+inspector.
 
 ```swift
 import AgentViewKit

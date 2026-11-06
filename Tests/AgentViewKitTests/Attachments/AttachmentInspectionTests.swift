@@ -14,10 +14,15 @@ import UniformTypeIdentifiers
     id: AttachmentID("draft/notes.md"), url: URL(fileURLWithPath: "/tmp/notes.md"), type: .plainText,
     name: "notes.md")
 
-  @Test func theInspectionShowsTheFileAsOnePreview() {
+  /// The file of the second chip of the Files row of an inspector of
+  /// several files.
+  private static let plan = Attachment(
+    id: AttachmentID("plan"), url: URL(fileURLWithPath: "/tmp/plan.txt"), type: .plainText, name: "plan.txt")
+
+  @Test func theInspectionShowsTheFilesAsPathsThenThePreview() {
     let kinds = AttachmentInspector.inspection.groups.flatMap(\.fields).map(\.kind)
 
-    #expect(kinds == [.preview])
+    #expect(kinds == [.paths, .preview])
   }
 
   @Test func theOneGroupHasTheKeyOfThePreviewRowID() {
@@ -39,6 +44,21 @@ import UniformTypeIdentifiers
     #expect(
       AttachmentInspector.nameIdentifier(of: [Self.draft])
         == "inspection:attachment/object:draft%2Fnotes%2Emd/name")
+  }
+
+  @Test func theFilesIdentifierIsTheSchemeIdOfTheFilesRow() {
+    #expect(
+      AttachmentInspector.filesIdentifier(of: [Self.draft, Self.plan])
+        == "inspection:attachment/object:draft%2Fnotes%2Emd+plan/field:attachment.files")
+  }
+
+  @Test func openingAChipRunsTheOpenVerbOfTheFileServiceOnItsFile() {
+    let service = RecordingAttachmentFileService()
+    let files = [Self.draft, Self.plan]
+
+    InspectedAttachment(Self.draft, files: files, fileService: service).open(Self.plan.url)
+
+    #expect(service.calls == [RecordingAttachmentFileService.Call(verb: .openAttachment, attachment: Self.plan)])
   }
 
   @Test func thePreviewIdentifierIsTheSchemeIdOfThePreviewRow() {

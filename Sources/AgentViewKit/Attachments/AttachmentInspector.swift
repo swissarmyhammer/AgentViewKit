@@ -214,15 +214,20 @@ private nonisolated struct VerticalInsets: Equatable, Sendable {
 /// and pop-out Quick Look in an EditorKit `InspectorActionRow` under the
 /// name, and EditorKit's one-value preview of the file, a live QuickLook
 /// preview at the preview height of the style, in its `.preview` row.
-/// Several files fold into one form: the header names the title and the
-/// count, the preview row reads "Mixed" when the files differ, and no action
-/// shows, because the action row is the scope of one file. The context menu
-/// and the keys of a selected file in a thread view run each action on every
+/// Several files fold into one form (card ^xbhtytm): the header names the
+/// title and the count, a Files row of EditorKit's paths kind shows a path
+/// chip for each file, in selection order, the same action row acts on
+/// every file, and the preview row reads "Mixed" when the files differ. A
+/// press on a chip opens its file, as the Open command does. Each action
+/// runs on every file of the inspector, in selection order, and is
+/// available only when it can run on each file. The context menu and the
+/// keys of a selected file in a thread view also run each action on every
 /// selected file (card ^zsr2pbf).
 ///
-/// The rows take EditorKit's scheme ids, which ``nameIdentifier(of:)`` and
-/// ``previewIdentifier(of:)`` give:
-/// `inspection:attachment/object:<object id>/name` and
+/// The rows take EditorKit's scheme ids, which ``nameIdentifier(of:)``,
+/// ``filesIdentifier(of:)`` and ``previewIdentifier(of:)`` give:
+/// `inspection:attachment/object:<object id>/name`,
+/// `inspection:attachment/object:<object id>/field:attachment.files` and
 /// `inspection:attachment/object:<object id>/field:attachment.preview`.
 /// `attachment` is the explicit id of the inspection, ``viewIdentifier``.
 /// The object id is the raw id of each attachment (``Identifier/rawValue``),
@@ -234,10 +239,12 @@ private nonisolated struct VerticalInsets: Equatable, Sendable {
 /// padding of its own and no background, and it scrolls by itself unless
 /// the host owns the scrolling (`.inspectorScrolling(.host)`).
 ///
-/// The view of one file is the scope of its attachment
-/// (`agentAttachment:<id>`, AVK-11). Each action button runs the
-/// ``AgentAttachmentVerb`` command of that scope, so the buttons, the
-/// context menu and the command palette run the same commands. This is true
+/// The view is the scope of its first file (`agentAttachment:<id>`,
+/// AVK-11), which gives every file of the view to the context of its
+/// commands as their selection. Each action button runs the
+/// ``AgentAttachmentVerb`` command of that scope on those files, so the
+/// buttons, the context menu and the command palette run the same commands
+/// on the same files. This is true
 /// in the built-in inspector of an ``AgentThreadView`` and in the inspector
 /// of a host (``AttachmentInspectorMode/host(_:)``).
 public struct AttachmentInspector: View {
@@ -245,7 +252,7 @@ public struct AttachmentInspector: View {
   public static let identifierPrefix = "inspector"
 
   /// The accessibility identifier of the grouped form that holds the name,
-  /// the preview and the actions.
+  /// the actions, the Files row of several files and the preview.
   public static let formIdentifier = "inspector-form"
 
   /// The id of the `InspectorView` and of its inspection, `attachment`: the
@@ -253,9 +260,13 @@ public struct AttachmentInspector: View {
   /// follow the name of a type.
   public static let viewIdentifier = "attachment"
 
-  /// The group part of the scheme id of the preview row: the key that
-  /// EditorKit gives the one group of the inspection, named "Attachment".
+  /// The group part of the scheme id of the Files row and of the preview
+  /// row: the key that EditorKit gives the one group of the inspection,
+  /// named "Attachment".
   static let groupIdentifier = "attachment"
+
+  /// The field part of the scheme id of the Files row.
+  static let filesFieldIdentifier = "files"
 
   /// The field part of the scheme id of the preview row.
   static let previewFieldIdentifier = "preview"
@@ -269,11 +280,22 @@ public struct AttachmentInspector: View {
   }
 
   /// The inspection of the files: one group, named as the inspection, with
-  /// the preview of the file. Its id is ``viewIdentifier``.
+  /// the Files row of several files and the preview of the file. Its id is
+  /// ``viewIdentifier``.
+  ///
+  /// The Files row is EditorKit's paths kind: a path chip for each file of
+  /// the inspector, in selection order. Each object of one inspector holds
+  /// the same files (``InspectedAttachment/files``), so the row folds to
+  /// that list, and it shows only for several files. A press on a chip
+  /// opens its file (``InspectedAttachment/open(_:)``).
   static var inspection: Inspection<InspectedAttachment> {
     .named(
       FieldLabel(localized: "Attachment", bundle: .module), id: viewIdentifier, name: { $0.attachment.name }
     ) {
+      Field(FieldLabel(localized: "Files", bundle: .module)) { $0.files.map(\.url) }
+        .identifier(filesFieldIdentifier)
+        .visible { $0.files.count > 1 }
+        .opening { $0.open($1) }
       Field(FieldLabel(localized: "Preview", bundle: .module)) { PreviewValue.file($0.attachment.url) }
         .identifier(previewFieldIdentifier)
     }
@@ -284,6 +306,10 @@ public struct AttachmentInspector: View {
 
   /// The objects of the `InspectorView`, which follow ``attachments``.
   @State private var files: [InspectedAttachment]
+
+  /// The service of the environment, which opens a chip of the Files row,
+  /// or `nil` for the system default.
+  @Environment(\.attachmentFileService) private var fileService
 
   /// Makes the inspector content for a file.
   ///
@@ -297,7 +323,7 @@ public struct AttachmentInspector: View {
   /// - Parameter attachments: The files to show, in selection order.
   public init(_ attachments: [Attachment]) {
     self.attachments = attachments
-    _files = State(initialValue: attachments.map(InspectedAttachment.init))
+    _files = State(initialValue: InspectedAttachment.objects(of: attachments, fileService: nil))
   }
 
   /// The scheme id of the name row of the inspector of `attachments`.
@@ -311,6 +337,22 @@ public struct AttachmentInspector: View {
   public static func nameIdentifier(of attachments: [Attachment]) -> String {
     let block = InspectorScheme.blockIdentifier(view: viewIdentifier, object: objectIdentifier(of: attachments))
     return InspectorScheme.identifier(of: namePart, inRow: block)
+  }
+
+  /// The scheme id of the Files row of the inspector of `attachments`, which
+  /// shows for several files.
+  ///
+  /// The object id is the escaped raw id of each file, joined with `+`. For
+  /// the attachments with the ids `draft/notes.md` and `plan` the id is
+  /// `inspection:attachment/object:draft%2Fnotes%2Emd+plan/field:attachment.files`.
+  ///
+  /// - Parameter attachments: The files of the inspector, in selection order.
+  /// - Returns:
+  ///   `inspection:attachment/object:<object id>/field:attachment.files`.
+  public static func filesIdentifier(of attachments: [Attachment]) -> String {
+    InspectorScheme.rowIdentifier(
+      view: viewIdentifier, object: objectIdentifier(of: attachments), group: groupIdentifier,
+      field: filesFieldIdentifier)
   }
 
   /// The scheme id of the preview row of the inspector of `attachments`.
@@ -338,27 +380,21 @@ public struct AttachmentInspector: View {
     InspectorScheme.objectID(of: attachments.map(InspectedAttachment.init), key: viewIdentifier)
   }
 
-  /// The one file of the view, or `nil` for several.
-  private var soleAttachment: Attachment? {
-    attachments.count == 1 ? attachments.first : nil
-  }
-
   public var body: some View {
-    inspector
-      .accessibilityIdentifier(Self.formIdentifier)
-      .agentAttachmentScope(soleAttachment)
-      .onChange(of: attachments) {
-        files = attachments.map(InspectedAttachment.init)
+    InspectorView(files, Self.inspection, id: Self.viewIdentifier)
+      .actions {
+        AttachmentActions(identifierPrefix: Self.identifierPrefix)
       }
-  }
-
-  /// The `InspectorView` of the files, with the actions of the one file.
-  private var inspector: InspectorView {
-    let view = InspectorView(files, Self.inspection, id: Self.viewIdentifier)
-    guard soleAttachment != nil else { return view }
-    return view.actions {
-      AttachmentActions(identifierPrefix: Self.identifierPrefix)
-    }
+      .accessibilityIdentifier(Self.formIdentifier)
+      .agentAttachmentScope(files: attachments)
+      .onChange(of: attachments) {
+        files = InspectedAttachment.objects(of: attachments, fileService: fileService)
+      }
+      .onChange(of: fileService.map(ObjectIdentifier.init), initial: true) {
+        for file in files {
+          file.fileService = fileService
+        }
+      }
   }
 }
 
@@ -374,14 +410,67 @@ final class InspectedAttachment: Identifiable {
   /// The file.
   let attachment: Attachment
 
+  /// The files of the inspector that shows the file, in selection order.
+  /// Each object of one inspector holds the same files, so the Files row,
+  /// which reads them, folds to one list.
+  let files: [Attachment]
+
+  /// The service that opens the file of a chip of the Files row: the
+  /// ``SwiftUI/EnvironmentValues/attachmentFileService`` of the inspector,
+  /// or `nil` for the system default, a new ``AttachmentPresenter``.
+  ///
+  /// The inspection is static, so its rows cannot read the environment of
+  /// the view. The ``AttachmentInspector`` writes the service of its
+  /// environment here, as `InspectedClientModel` takes a service for its
+  /// path rows.
+  @ObservationIgnored var fileService: (any AttachmentFileService)?
+
   /// The raw id of the attachment.
   var id: String { attachment.id.rawValue }
 
-  /// Makes the object of a file.
+  /// Makes the object of a file in an inspector of `files`.
+  ///
+  /// - Parameters:
+  ///   - attachment: The file.
+  ///   - files: The files of the inspector, in selection order.
+  ///   - fileService: The service that opens a chip of the Files row, or
+  ///     `nil` for the system default.
+  init(_ attachment: Attachment, files: [Attachment], fileService: (any AttachmentFileService)?) {
+    self.attachment = attachment
+    self.files = files
+    self.fileService = fileService
+  }
+
+  /// Makes the object of a file in an inspector of that file alone, which
+  /// opens a chip with the system default.
   ///
   /// - Parameter attachment: The file.
-  init(_ attachment: Attachment) {
-    self.attachment = attachment
+  convenience init(_ attachment: Attachment) {
+    self.init(attachment, files: [attachment], fileService: nil)
+  }
+
+  /// The objects of an inspector of `attachments`, one for each file.
+  ///
+  /// - Parameters:
+  ///   - attachments: The files of the inspector, in selection order.
+  ///   - fileService: The service that opens a chip of the Files row, or
+  ///     `nil` for the system default.
+  /// - Returns: The objects, in selection order.
+  static func objects(
+    of attachments: [Attachment], fileService: (any AttachmentFileService)?
+  ) -> [InspectedAttachment] {
+    attachments.map { InspectedAttachment($0, files: attachments, fileService: fileService) }
+  }
+
+  /// Opens the file of a chip of the Files row, as the Open command of an
+  /// attachment does: runs ``AgentAttachmentVerb/openAttachment`` on the
+  /// file of ``files`` at `url` with ``fileService``, or with the system
+  /// default. A service that cannot open the file logs the failure.
+  ///
+  /// - Parameter url: The URL of the chip.
+  func open(_ url: URL) {
+    let file = files.first { $0.url == url } ?? Attachment(url: url)
+    _ = (fileService ?? AttachmentPresenter()).run(.openAttachment, on: file)
   }
 }
 

@@ -8,8 +8,9 @@ import Foundation
 /// inspector (`agentAttachment:<id>`, see ``AgentScopeKind/attachment``)
 /// registers one command for each verb at its own path. A command reads the
 /// files that it acts on with `@FromSelection`: the ``Attachment`` of its
-/// scope, or every selected file when the scope is the view of a selected
-/// file (card ^zsr2pbf, ``AttachmentCommandFiles``). Thus the buttons of the
+/// scope, every selected file when the scope is the view of a selected
+/// file (card ^zsr2pbf, ``AttachmentCommandFiles``), or every file of an
+/// inspector of several files (card ^xbhtytm). Thus the buttons of the
 /// inspector, the context menu of the attachment, the keys and the command
 /// palette run the same command on the same files.
 ///
@@ -292,8 +293,10 @@ final class AgentAttachmentTarget {
 
   /// Reads the files of the selection that a command at the scope acts on
   /// (``AttachmentCommandFiles``): every selected file, in transcript order,
-  /// when the file of the scope is selected, and none when it is not. `nil`
-  /// when the view of the scope selects no file.
+  /// when the file of the scope is selected, and none when it is not; or
+  /// every file of the view, in its order, for a view of several files such
+  /// as an ``AttachmentInspector``. `nil` when the view of the scope shows
+  /// one file and selects no file.
   var selection: (() -> [Attachment])?
 
   /// Makes a target with no service, no select action and no selection.
