@@ -34,6 +34,7 @@
     static func recordSnapshots() async throws {
       let hosted = HostedSnapshotTests()
       try await hosted.theThread()
+      try await hosted.theThreadWithTheTimeOfEachRow()
       try await hosted.theButtonsOfTheBottomBarBelowTheTranscript()
       try await hosted.theSignInCardWhileSigningIn()
       try await hosted.theIdleComposer()
@@ -44,6 +45,7 @@
       try await hosted.theStatusBanner()
       try await hosted.theStatusOfEachKind()
       try await hosted.theTitleLinesOfTheBars()
+      try await hosted.theConfigAndToolControls()
       try await hosted.theChipRowsInANarrowColumn()
       try await hosted.theButtonsInANarrowColumn()
       try await hosted.theButtonsInAWideColumn()
