@@ -33,8 +33,16 @@ comments:
     - Sent to editorkit-b5 with the mechanism; waiting on their fix SHA. No AVK workaround.
     - next: when EK's fix lands, run AVK CI on it; once Examples is green, tick the subtasks and review.
   timestamp: 2026-11-07T11:48:43.405130+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m6v16zqpm70vwpawsbgxhwf6
+  text: |-
+    ### done — fixed in EditorKit
+    - evidence: AVK CI run 42372831389 (main 9c5128d1, EK main a0f6d417): Build & test ✅, Integration ✅, Examples (AgentViewKitDemo) ✅
+    - AVK made no code change; it keeps `.boundedHeight`. EK a0f6d417 makes AccessibilityHitTestCorrection enter a scroll area that sits in a layer over the answer, and pins the case in the UI tests of its Composer example.
+    - Closed without an AVK review because there is no AVK code delta to review.
+  timestamp: 2026-11-07T12:54:53.430951+00:00
+position_column: done
+position_ordinal: ffffffc580
 title: Demo composer editor is not hittable (CI red since Nov 4)
 ---
 CI's Examples (AgentViewKitDemo) leg fails on every run since Nov 4 (last green AVK 4909e9fc): `ACPTabEndToEndTests.testASendOfHelloShowsTheReplyOfTheAgent` at Examples/AgentViewKitDemo/Tests/ACPTabEndToEndTests.swift:92 — `XCTAssertTrue failed - The composer editor is not hittable.` The session shows and the `prompt-editor` element exists, but XCUI's isHittable (an AX hit test at the element's centre) answers another element. Latest run: https://github.com/swissarmyhammer/AgentViewKit/actions/runs/42292592822
@@ -43,7 +51,7 @@ EK's suspects (editorkit-b5), most likely first: 1fe50719 ^bavw691 (.floatingGla
 
 User decision: find it headless — no XCUI run, no focus stealing.
 
-- [ ] Hosted (headless, accessibility) test that reproduces it: the AX hit test at the centre of the composer editor in the thread's floating bar answers the editor (fails today)
-- [ ] Find the cause (AVK or EK; bisect EK pins if needed)
-- [ ] Fix in AVK, or send EK the first bad SHA + the repro and take their fix
-- [ ] CI's Examples leg green
+- [x] Reproduce it: a headless in-process hit test does NOT reproduce it (the harness window is never on screen), so the user approved a CI probe instead; EK now pins the case with an out-of-process hit test in its Composer example's UI tests
+- [x] Find the cause (AVK or EK; bisect EK pins if needed): EK's AccessibilityHitTestCorrection stopped its descent at the first scroll area, and `.boundedHeight` (adopted by AVK 47b24b1a) put one around the composer editor
+- [x] Fix in AVK, or send EK the first bad SHA + the repro and take their fix: EK a0f6d417, no AVK change
+- [x] CI's Examples leg green: run 42372831389 on AVK 9c5128d1 + EK a0f6d417, all three jobs green
