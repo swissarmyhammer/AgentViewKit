@@ -84,4 +84,19 @@ import Testing
   @Test func anOptionThatIsGoneHasNoValue() {
     #expect(ConfigOptionFields.value(of: Self.modelID, in: [Self.web]) == nil)
   }
+
+  /// A production change that fails this test: the tooltip of a menu field
+  /// shows only the description of its option, and not its name first.
+  @Test func theTooltipOfAnOptionWithADescriptionIsItsNameThenItsDescription() {
+    var option = Self.web
+    option.description = "Searches the web."
+
+    #expect(ConfigOptionFields.tooltip(of: option) == "Web Search\nSearches the web.")
+  }
+
+  /// A production change that fails this test: the tooltip of a menu field
+  /// with no description shows its name two times.
+  @Test func theTooltipOfAnOptionWithNoDescriptionIsItsName() {
+    #expect(ConfigOptionFields.tooltip(of: Self.web) == "Web Search")
+  }
 }

@@ -38,7 +38,10 @@ import SwiftUI
 /// ``Style/form`` shows the sections as the content of an inspector: an
 /// EditorKit `InspectorView` of the session, with one group for each
 /// category and one row for each option, a choice row for a select and a
-/// toggle row for a boolean. The view is not `SessionModel.inspection`: the agent names
+/// toggle row for a boolean. The form shows the name of each option at the
+/// leading edge of its row, as a row of System Settings does
+/// (`.inspectorFieldLabels(.visible)`), and the toggle row of a boolean is a
+/// switch. The view is not `SessionModel.inspection`: the agent names
 /// the options of each session, and the inspection of a type is the same for
 /// each session, so the form builds its own inspection from the options that
 /// the model holds. The rows take EditorKit's scheme ids: the view is
@@ -215,7 +218,9 @@ public struct ConfigOptionsView: View {
       InspectorView(
         InspectedClientModel(session),
         ConfigOptionFields.inspection(title: Self.formTitle, sections: sections, reporting: reportRequestStart),
-        id: Self.viewIdentifier)
+        id: Self.viewIdentifier
+      )
+      .inspectorFieldLabels(.visible)
     }
   }
 
@@ -260,7 +265,7 @@ struct ConfigOptionControl: View {
   /// identifier of the control.
   var body: some View {
     control
-      .help(option.description ?? option.name)
+      .help(ConfigOptionFields.tooltip(of: option))
       .accessibilityIdentifier(ConfigOptionsView.controlIdentifier(for: option.configId))
   }
 

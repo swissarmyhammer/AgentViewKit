@@ -56,7 +56,7 @@ public struct PermissionModePicker: View {
         for: option.configId, current: select.currentValue, send: SetSessionConfigOptionRequest.Value.id)
       ChoiceField(option.name, selection: selection, options: choices.options.map { $0.choiceOption() })
         .pickerStyle(.segmented)
-        .help(option.description ?? option.name)
+        .help(ConfigOptionFields.tooltip(of: option))
         .accessibilityIdentifier(Self.pickerIdentifier)
         .agentControlScope(Self.pickerIdentifier)
     }

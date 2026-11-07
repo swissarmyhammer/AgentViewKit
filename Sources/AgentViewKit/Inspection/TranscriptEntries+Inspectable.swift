@@ -7,10 +7,13 @@ import FoundationModelsACPClient
 // The inspections of the transcript entries of FoundationModelsACPClient, so
 // a host shows any entry in an EditorKit `InspectorView`
 // (`InspectorView(entry)`, or `InspectorView([any Inspectable])` with
-// `InspectedClientModel(entry)` for a selection of several kinds). Each entry
-// is an ``InspectableClientModel``: the inspector shows it through an
-// ``InspectedClientModel``, whose id is the readable object id of the entry,
-// such as `tool-call-call_1` (``InspectableClientModel/inspectorObjectID``).
+// `InspectedClientModel(entry)` for a selection of several kinds). The host
+// applies `.inspectorFieldLabels(.visible)` to the inspector of a tool call
+// and of a terminal, and keeps the default (`.placeholder`) for the other
+// entries. Each entry is an ``InspectableClientModel``: the inspector shows
+// it through an ``InspectedClientModel``, whose id is the readable object id
+// of the entry, such as `tool-call-call_1`
+// (``InspectableClientModel/inspectorObjectID``).
 //
 // Each row is read-only: the agent owns each entry. Each get block reads the
 // entry when the row draws, so an update of the agent redraws the row. The
@@ -55,6 +58,16 @@ extension ToolCallEntry: InspectableClientModel {
   /// the order of the agent, with the line in the `name:line` form when the
   /// agent gave one, and a dash for a call with no location. A press on a
   /// chip opens its file.
+  ///
+  /// The status, the kind and the tool name of a call are read-only values
+  /// that are not clear without their names, so the inspector shows the
+  /// name of each row, as a row of System Settings does. The host makes the
+  /// `InspectorView`, so the host applies the modifier:
+  ///
+  /// ```swift
+  /// InspectorView(toolCall)
+  ///   .inspectorFieldLabels(.visible)
+  /// ```
   public static var inspection: Inspection<InspectedClientModel<ToolCallEntry>> {
     .named(
       FieldLabel(localized: "Tool Call", bundle: .module), id: ClientInspectionID.toolCall,
@@ -77,6 +90,16 @@ extension ToolCallEntry: InspectableClientModel {
 extension TerminalEntry: InspectableClientModel {
   /// The command, the exit, the output and the working directory of the
   /// terminal, and its times.
+  ///
+  /// The command and the exit status of a terminal are read-only values
+  /// that are not clear without their names, so the inspector shows the
+  /// name of each row, as a row of System Settings does. The host makes the
+  /// `InspectorView`, so the host applies the modifier:
+  ///
+  /// ```swift
+  /// InspectorView(terminal)
+  ///   .inspectorFieldLabels(.visible)
+  /// ```
   public static var inspection: Inspection<InspectedClientModel<TerminalEntry>> {
     .named(
       FieldLabel(localized: "Terminal", bundle: .module), id: ClientInspectionID.terminal,

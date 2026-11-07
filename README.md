@@ -531,7 +531,7 @@ The list follows the inventory of [`plan.md`](plan.md) §9.
 
 - `PromptInputView`: the composer on EditorKit, with slash commands, `@file`, attachments, tool toggles, and the mic. Give the composer the prefix-completion routes of the host with one modifier, `.composerCompletions([PrefixCompletionRoute])` from EditorKit `EditorComplete`, on the thread view or on the composer: for example `@` to files, `^` to tasks, `#` to tags and `/` to commands. Typing a sigil lists the rows of its route in a popup at the caret, above the field. Return and Tab accept the selected row, as one entry of the window undo stack. A `/` route replaces the slash commands of the agent, and an `@` route replaces the `@file` references.
 - `ConfigOptionsView`: the picker of `configOptions`, grouped by category: a menu, or the rows of an EditorKit `InspectorView` (`.form`).
-- Inspection: `SessionModel`, `ConnectionModel`, `MCPServerItem` and each transcript entry conform to EditorKit's `Inspectable`, so `InspectorView(model)` shows any of them.
+- Inspection: `SessionModel`, `ConnectionModel`, `MCPServerItem` and each transcript entry conform to EditorKit's `Inspectable`, so `InspectorView(model)` shows any of them. The inspector of a session, a tool call or a terminal shows the names of its rows, as a row of System Settings does: apply `.inspectorFieldLabels(.visible)` to it, for example `InspectorView(session).inspectorFieldLabels(.visible)`. The other inspectors keep the default, where the name of a field is the placeholder of an empty value and is in its tooltip.
 - `SuggestionsView` and `SpeechInputButton`: the suggestion chips and the speech input.
 
 **Human in the loop**

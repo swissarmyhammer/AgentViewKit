@@ -19,7 +19,10 @@ import SwiftUI
 ///
 /// The subjects: the attachment inspector in each ``AttachmentInspectorMode``,
 /// the form style of ``ConfigOptionsView``, the list style of
-/// ``ToolToggles``, and the inspection of each client model.
+/// ``ToolToggles``, and the inspection of each client model. The inspectors
+/// of a session, a tool call and a terminal show the names of their rows
+/// (`.inspectorFieldLabels(.visible)`), as the kit tells a host to show
+/// them; the other inspectors keep the default.
 @MainActor
 enum InspectorGallery {
   /// The section of the page of the inspector images.
@@ -65,11 +68,15 @@ enum InspectorGallery {
     ///   - first: The object of the single image, and the first of the
     ///     Mixed image.
     ///   - second: The second object of the Mixed image.
-    init<Object: Inspectable>(_ name: String, _ first: Object, _ second: Object) {
+    ///   - fieldLabels: How each row shows the name of its field, as the
+    ///     host of the inspector sets it.
+    init<Object: Inspectable>(
+      _ name: String, _ first: Object, _ second: Object, fieldLabels: InspectorFieldLabels = .placeholder
+    ) {
       self.name = name
-      one = AnyView(InspectorView(first))
+      one = AnyView(InspectorView(first).inspectorFieldLabels(fieldLabels))
       let objects = [first, second]
-      several = AnyView(InspectorView(objects))
+      several = AnyView(InspectorView(objects).inspectorFieldLabels(fieldLabels))
     }
 
     /// Makes the subject of a client model type, which the view shows
@@ -80,8 +87,12 @@ enum InspectorGallery {
     ///   - first: The model of the single image, and the first of the
     ///     Mixed image.
     ///   - second: The second model of the Mixed image.
-    init<Model: InspectableClientModel>(_ name: String, _ first: Model, _ second: Model) {
-      self.init(name, InspectedClientModel(first), InspectedClientModel(second))
+    ///   - fieldLabels: How each row shows the name of its field, as the
+    ///     host of the inspector sets it.
+    init<Model: InspectableClientModel>(
+      _ name: String, _ first: Model, _ second: Model, fieldLabels: InspectorFieldLabels = .placeholder
+    ) {
+      self.init(name, InspectedClientModel(first), InspectedClientModel(second), fieldLabels: fieldLabels)
     }
 
     /// Makes the subject of a view that shows one object.

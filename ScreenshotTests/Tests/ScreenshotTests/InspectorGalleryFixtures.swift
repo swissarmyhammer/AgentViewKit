@@ -154,14 +154,14 @@ struct InspectorGalleryFixtures {
         InspectorGallery.Subject(
           "config-options", view: ConfigOptionsView(session: PreviewFixtures.configuredSession, style: .form)),
         InspectorGallery.Subject("tool-toggles", view: ToolToggles(tools: tools, style: .list) { _, _ in }),
-        InspectorGallery.Subject("session", session.model, Self.secondSession),
+        InspectorGallery.Subject("session", session.model, Self.secondSession, fieldLabels: .visible),
         InspectorGallery.Subject("connection", ConnectionModel.preview(), ConnectionModel.preview(state: .connecting)),
         InspectorGallery.Subject("mcp-server", try #require(servers.first), try #require(servers.last)),
         try pair("user-message", UserMessageEntry.self),
         try pair("agent-message", AgentMessageEntry.self),
         try pair("thought", ThoughtEntry.self),
-        try pair("tool-call", ToolCallEntry.self),
-        try pair("terminal", TerminalEntry.self),
+        try pair("tool-call", ToolCallEntry.self, fieldLabels: .visible),
+        try pair("terminal", TerminalEntry.self, fieldLabels: .visible),
         try pair("plan", PlanTranscriptEntry.self),
         try pair("compaction", CompactionEntry.self),
         try pair("session-message", SessionMessageEntry.self),
@@ -179,12 +179,16 @@ struct InspectorGalleryFixtures {
   /// - Parameters:
   ///   - name: The name of the subject.
   ///   - type: The class of the entries.
+  ///   - fieldLabels: How each row shows the name of its field, as the host
+  ///     of the inspector sets it.
   /// - Returns: The subject.
   /// - Throws: When the transcript has fewer than two entries of the type.
-  private func pair<Entry: InspectableClientModel>(_ name: String, _ type: Entry.Type) throws -> InspectorGallery.Subject {
+  private func pair<Entry: InspectableClientModel>(
+    _ name: String, _ type: Entry.Type, fieldLabels: InspectorFieldLabels = .placeholder
+  ) throws -> InspectorGallery.Subject {
     let entries = session.model.transcript.compactMap { $0.object as? Entry }
     try #require(entries.count >= Self.pairCount, "The transcript has \(entries.count) entries of \(type).")
     let pair = entries.prefix(Self.pairCount)
-    return InspectorGallery.Subject(name, try #require(pair.first), try #require(pair.last))
+    return InspectorGallery.Subject(name, try #require(pair.first), try #require(pair.last), fieldLabels: fieldLabels)
   }
 }

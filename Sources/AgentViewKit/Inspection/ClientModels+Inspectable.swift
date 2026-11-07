@@ -7,6 +7,10 @@ import FoundationModelsACPClient
 // of FoundationModelsACPClient, so a host shows each one in an EditorKit
 // `InspectorView`.
 //
+// The host applies `.inspectorFieldLabels(.visible)` to the inspector of a
+// session, and keeps the default (`.placeholder`) for the connection and the
+// MCP server.
+//
 // The session is an ``InspectableClientModel``: the inspector shows it
 // through an ``InspectedClientModel``, whose id is the raw session id, such
 // as `sess_1`, in place of the debug description of its `SessionId`. The
@@ -35,6 +39,16 @@ extension SessionModel: InspectableClientModel {
   /// the order of the session, and a dash for a session with none. A press
   /// on a chip of the Working Directory or the Additional Directories row
   /// opens its folder.
+  ///
+  /// The status and the id of a session are read-only values that are not
+  /// clear without their names, so the inspector shows the name of each
+  /// row, as a row of System Settings does. The host makes the
+  /// `InspectorView`, so the host applies the modifier:
+  ///
+  /// ```swift
+  /// InspectorView(session)
+  ///   .inspectorFieldLabels(.visible)
+  /// ```
   public static var inspection: Inspection<InspectedClientModel<SessionModel>> {
     .named(
       FieldLabel(localized: "Session", bundle: .module), id: ClientInspectionID.session,

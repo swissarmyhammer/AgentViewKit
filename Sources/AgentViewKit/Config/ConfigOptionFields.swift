@@ -69,6 +69,17 @@ enum ConfigOptionFields {
     return boolean.currentValue
   }
 
+  /// The tooltip of the menu field of `option`: the name of the option,
+  /// then its description on the next line when it has one. It is the same
+  /// text as the tooltip of an inspector row of the option
+  /// (EditorKit `FieldLabel.tooltip(help:)`).
+  ///
+  /// - Parameter option: The option.
+  /// - Returns: The text of the tooltip.
+  static func tooltip(of option: SessionConfigOption) -> String {
+    FieldLabel.verbatim(option.name).tooltip(help: option.description)
+  }
+
   // MARK: - Inspection
 
   /// The inspection of the options of `sections`: one group for each
@@ -97,6 +108,9 @@ enum ConfigOptionFields {
     }
   }
 
+  /// The inspector row of one option of the session.
+  private typealias OptionField<Value> = Field<InspectedClientModel<SessionModel>, Value>
+
   /// The value of a row whose option the session no longer reports. No
   /// option of the row has it, so the row shows no choice until the
   /// inspection drops the row.
@@ -110,16 +124,18 @@ enum ConfigOptionFields {
   /// - Returns: The row.
   private static func selectField(
     _ option: SessionConfigOption, reporting report: ObservationReport<String>?
-  ) -> Field<InspectedClientModel<SessionModel>, SessionConfigValueId>? {
+  ) -> OptionField<SessionConfigValueId>? {
     guard case .select = option.type else { return nil }
     let id = option.configId
-    return Field(.verbatim(option.name)) { value(of: id, in: $0.model.configOptions ?? []) ?? goneValue }
-      .options { options(of: id, in: $0.model.configOptions ?? []) }
-      .editing { inspected, value in
-        inspected.model.startSetConfigOption(id, to: .id(value), reporting: report)
-      }
-      .help(option.description ?? option.name)
-      .identifier(id.rawValue)
+    let field = OptionField<SessionConfigValueId>(.verbatim(option.name)) {
+      value(of: id, in: $0.model.configOptions ?? []) ?? goneValue
+    }
+    .options { options(of: id, in: $0.model.configOptions ?? []) }
+    .editing { inspected, value in
+      inspected.model.startSetConfigOption(id, to: .id(value), reporting: report)
+    }
+    .identifier(id.rawValue)
+    return helped(field, by: option)
   }
 
   /// The toggle row of a boolean option, or `nil` for another type.
@@ -130,14 +146,29 @@ enum ConfigOptionFields {
   /// - Returns: The row.
   private static func booleanField(
     _ option: SessionConfigOption, reporting report: ObservationReport<String>?
-  ) -> Field<InspectedClientModel<SessionModel>, Bool>? {
+  ) -> OptionField<Bool>? {
     guard case .boolean = option.type else { return nil }
     let id = option.configId
-    return Field(.verbatim(option.name)) { isOn(id, in: $0.model.configOptions ?? []) ?? false }
-      .editing { inspected, isOn in
-        inspected.model.startSetConfigOption(id, to: .boolean(isOn), reporting: report)
-      }
-      .help(option.description ?? option.name)
-      .identifier(id.rawValue)
+    let field = OptionField<Bool>(.verbatim(option.name)) {
+      isOn(id, in: $0.model.configOptions ?? []) ?? false
+    }
+    .editing { inspected, isOn in
+      inspected.model.startSetConfigOption(id, to: .boolean(isOn), reporting: report)
+    }
+    .identifier(id.rawValue)
+    return helped(field, by: option)
+  }
+
+  /// Gives `field` the description of `option` as its help, when the option
+  /// has one. The tooltip of the row shows the name of the option, then the
+  /// help (EditorKit `FieldLabel.tooltip(help:)`), so an option with no
+  /// description gets no help, and its tooltip shows its name one time.
+  ///
+  /// - Parameters:
+  ///   - field: The row of the option.
+  ///   - option: The option.
+  /// - Returns: The row, with the help of the option.
+  private static func helped<Value>(_ field: OptionField<Value>, by option: SessionConfigOption) -> OptionField<Value> {
+    option.description.map(field.help) ?? field
   }
 }
