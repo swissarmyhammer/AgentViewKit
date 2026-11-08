@@ -230,6 +230,9 @@ public struct DiffView: View {
   /// symbol of its change, and its line counts when the diff has patch text.
   /// A press selects the file, and the chip of the file that the renderer
   /// shows sits on the shared selection surface, in the corners of the chip.
+  /// The chip has no command scope of its own, so it shows the selection
+  /// only: the scope around the diff, such as the scope of a tool call, keeps
+  /// its own focus look (EditorKit style.md, "Selection and focus").
   ///
   /// - Parameters:
   ///   - file: The file of the chip.
@@ -242,7 +245,7 @@ public struct DiffView: View {
     }
     .accessibilityAddTraits(isSelected ? .isSelected : [])
     .accessibilityIdentifier(Self.fileChipIdentifier(for: file.path))
-    .selectableSurface(isSelected, corners: .pathChip)
+    .selectionSurface(isSelected, corners: .pathChip)
   }
 
   /// The renderer, the hunk actions, and the attach button, or the note of a

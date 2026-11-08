@@ -110,16 +110,16 @@ public struct AttachmentView: View {
   public var body: some View {
     renderedFile
       .onPreferenceChange(AttachmentSurfaceCornersKey.self) { shownCorners = $0 }
-      .agentAttachmentScope(attachment, focusRingCorners: surfaceCorners, select: select)
+      .agentAttachmentScope(attachment, focusLook: .contentSurface, select: select)
   }
 
-  /// The corners of the view of the file, which the focus ring of the scope
-  /// follows: the corners that the shown surface of the default renderer
+  /// The corners of the view of the file, which the fill of its selection
+  /// and its focus follows: the corners that the shown surface of the default renderer
   /// reports, and square corners for a surface that reports none, such as a
   /// loaded preview, which has no rounded surface. A registered view keeps
   /// square corners, because the kit does not know its surface.
   ///
-  /// The chip reports its corners. So the ring has the corners of the chip
+  /// The chip reports its corners. So the fill has the corners of the chip
   /// both when the default renderer is the chip and when a preview that
   /// cannot load its file shows the chip in its place. Only the value of the
   /// corners changes, so the view keeps its identity and its state.
@@ -184,7 +184,7 @@ struct AttachmentSurfaceCornersKey: PreferenceKey {
 /// The Command-click and the Shift-click are EditorKit bound clicks
 /// (`.commandClick`, card ^se9sxxe): each runs its ``AgentFileSelectionVerb``
 /// command, which the scope of the file registers with the same `action`
-/// (``SwiftUI/View/agentAttachmentScope(_:focusRingCorners:select:)``).
+/// (``SwiftUI/View/agentAttachmentScope(_:focusLook:select:)``).
 /// EditorKit takes a bound click in the window before any gesture sees it,
 /// and of two bindings that catch one click the outer one wins, so a host
 /// row around the view that binds the same clicks, as a chat row of
@@ -199,14 +199,15 @@ struct AttachmentSurfaceCornersKey: PreferenceKey {
 /// environment, with the position of its row and its frame in that row, so
 /// that an extend reads the files of the thread in transcript order.
 ///
-/// While the inspector of the environment shows `file`
-/// (``AttachmentSelectAction/isSelected(_:)``), the view sits on the shared
-/// selection surface of EditorKit: the accent at a low opacity behind the
-/// view while the window is key, and the inactive grey while it is not. The
-/// text of the view stays `.primary`.
+/// The view is the item surface of its attachment scope (EditorKit style.md,
+/// "Selection and focus"). While the inspector of the environment shows
+/// `file` (``AttachmentSelectAction/isSelected(_:)``), the view shows the
+/// soft accent fill of its selection, and while the scope holds the focus,
+/// the stronger accent fill. While the window is not key, both are the
+/// inactive grey. The text of the view stays `.primary`, and the scope draws
+/// no focus ring around the view.
 ///
-/// The surface has the corners of the view, the same corners that the focus
-/// ring of its attachment scope follows (``SurfaceCorners``), and a tap
+/// The fill has the corners of the view (``SurfaceCorners``), and a tap
 /// lands in the same shape (``SelectableSurface``). The corners of an
 /// ``AttachmentView`` change when its preview shows the chip, and only the
 /// value of the radius changes, so the view keeps its identity and its state.

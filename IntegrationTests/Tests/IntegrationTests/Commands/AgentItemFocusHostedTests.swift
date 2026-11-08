@@ -2,11 +2,12 @@
 import AgentViewKitTestSupport
 import AppKit
 import EditorCommands
-import EditorCommandsUI
 import EditorTestSupport
 import FoundationModelsACPClient
 import SwiftUI
 import Testing
+
+@testable import EditorCommandsUI
 
 /// Tests for the first responder of an item of a thread that a `nav.*` move
 /// or a jump focuses (AVK-7d).
@@ -155,6 +156,17 @@ import Testing
   func theBeaconOfAnItemWithNoFocusableViewHoldsTheFocus(kind: ItemKind, landing: FocusLanding) async throws {
     try await Self.inspectFocusedItem(kind, landedBy: landing) { focused in
       #expect(focused.responder is GeometryProbeView)
+    }
+  }
+
+  /// A production change that fails this test: a message or a tool call, an
+  /// item with no surface of its own, loses the focus ring of its scope
+  /// (style.md, "Selection and focus").
+  @Test(arguments: [ItemKind.message, .toolCall])
+  func aFocusedItemWithNoSurfaceShowsItsScopeRing(kind: ItemKind) async throws {
+    try await Self.inspectFocusedItem(kind, landedBy: .nav) { focused in
+      let beacon = try #require(focused.responder as? GeometryProbeView)
+      #expect(beacon.focusIndicator.showsRing)
     }
   }
 

@@ -10,7 +10,10 @@ import UniformTypeIdentifiers
 /// An artifact with a URL shows its file in an ``AttachmentView`` and the
 /// file actions of the inspector. The panel is then the scope of its file
 /// (`agentAttachment:<id>`, AVK-11), and each action button runs the command
-/// of that scope. An artifact with inline text only shows the text by its
+/// of that scope. The file view in the panel has no scope of its own, and
+/// its selectable surface shows the focus of the panel's scope as the
+/// stronger accent fill (EditorKit style.md, "Selection and focus"). So the
+/// panel adds no second fill and its scope draws no ring. An artifact with inline text only shows the text by its
 /// type, and has no file actions, because it has no file.
 ///
 /// The panel is content, so it has no fill and no glass. A separator stroke
@@ -34,7 +37,7 @@ public struct ArtifactView: View {
   }
 
   /// The corners of the panel: the medium radius of `\.editorStyle`. The
-  /// edge of the panel and the focus ring of its scope both have them.
+  /// edge of the panel has them.
   static let corners = SurfaceCorners.rounded(.medium)
 
   /// The artifact to show.
@@ -77,7 +80,7 @@ public struct ArtifactView: View {
     .inlineEdge(radius: Self.corners.radius(in: editorStyle))
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier(Self.identifier)
-    .agentAttachmentScope(attachment, focusRingCorners: Self.corners)
+    .agentAttachmentScope(attachment, focusLook: .contentSurface)
   }
 
   /// The attachment of an artifact file.

@@ -1,8 +1,10 @@
+import EditorCommandsUI
 import EditorStyle
 import SwiftUI
 
-/// The corners of a surface of a view kit, which its selection surface, its
-/// hit shape and the focus ring of its scope follow.
+/// The corners of a surface of a view kit, which its selection and focus
+/// fill, its hit shape and, for a surface that draws no fill, the focus ring
+/// of its scope follow.
 ///
 /// The corners name a step of the radius scale of `\.editorStyle`, or square
 /// corners for a surface that is not rounded, such as an image. A view that
@@ -13,7 +15,7 @@ public nonisolated enum SurfaceCorners: Equatable, Sendable {
   /// `EditorStyle.Radii.m`.
   case rounded(EditorStyle.Radius)
 
-  /// Square corners: the surface and its ring are rectangles.
+  /// Square corners: the surface, its fill and its ring are rectangles.
   case square
 
   /// The corners of a card: the large radius of the scale, the least corner
@@ -22,7 +24,7 @@ public nonisolated enum SurfaceCorners: Equatable, Sendable {
 
   /// The corners of an EditorKit `PathChip`: the medium step of the scale,
   /// the corners of the fill of the chip. A kit that selects a path chip,
-  /// or gives it a scope, puts the selection surface and the focus ring in
+  /// or gives it a scope, puts the fill of its selection and its focus in
   /// these corners.
   public static let pathChip = SurfaceCorners.rounded(.medium)
 
@@ -39,43 +41,85 @@ public nonisolated enum SurfaceCorners: Equatable, Sendable {
 }
 
 extension View {
-  /// Puts this item on the shared selection surface of EditorKit when it is
-  /// selected, and gives it a hit and focus shape with the same corners.
+  /// Gives this item the look of its selection and its focus, in the surface
+  /// shape of a step of the radius scale (EditorKit style.md, "Selection and
+  /// focus").
+  ///
+  /// It is ``selectableSurface(_:corners:)`` with rounded corners. Put it
+  /// inside the `.commandScope` of the item.
   ///
   /// - Parameters:
   ///   - isSelected: Whether the item is selected.
   ///   - radius: The radius step of the surface, from the radius scale of
   ///     `\.editorStyle`.
-  /// - Returns: The item on its selectable surface.
+  /// - Returns: The item with the fill of its state and its hit shape.
   public func selectableSurface(_ isSelected: Bool, radius: EditorStyle.Radius) -> some View {
     selectableSurface(isSelected, corners: .rounded(radius))
   }
 
-  /// Puts this item on the shared selection surface of EditorKit when it is
-  /// selected, and gives it a hit and focus shape with the same corners.
+  /// Gives this item the look of its selection and its focus, in the surface
+  /// shape of its corners (EditorKit style.md, "Selection and focus").
+  ///
+  /// This is the one way that a view kit gives an item that it draws itself
+  /// (a card, a chip, a row, a tile) its selection and its focus. Put it
+  /// inside the `.commandScope` of the item:
+  ///
+  /// ```swift
+  /// CardContent(card)
+  ///   .selectableSurface(isSelected, corners: .card)
+  ///   .commandScope(segment: FocusSegment(kind: "card", id: card.id))
+  /// ```
+  ///
+  /// The item shows a fill in its own shape, never an outline: the soft
+  /// accent while it is selected, a stronger accent while its scope holds the
+  /// focus, and the inactive grey while the window is not key. The scope then
+  /// draws no focus ring. A base fill of the item, such as the fill of a
+  /// chip, stands inside this modifier and draws nothing while
+  /// `\.isItemStateFillShown` is `true`, so no two fills stack. Outside each
+  /// scope, for example in a gallery sample, the item shows its selection
+  /// only.
+  ///
+  /// A part that has no scope of its own inside another item, such as a tab
+  /// chip, uses ``selectionSurface(_:corners:)``: this modifier would show the
+  /// focus of the scope around it.
   ///
   /// - Parameters:
   ///   - isSelected: Whether the item is selected.
-  ///   - corners: The corners of the surface, the corners that the focus
-  ///     ring of the item follows.
-  /// - Returns: The item on its selectable surface.
+  ///   - corners: The corners of the surface of the item.
+  /// - Returns: The item with the fill of its state and its hit shape.
   public func selectableSurface(_ isSelected: Bool, corners: SurfaceCorners) -> some View {
     modifier(SelectableSurface(isSelected: isSelected, corners: corners))
   }
+
+  /// Puts this part on the shared selection surface of EditorKit when it is
+  /// selected, and gives it a hit and focus shape with the same corners.
+  ///
+  /// Use it for a part that has no command scope of its own inside another
+  /// item, such as a tab chip of a form or a file chip of a diff. The part
+  /// shows its selection only. It does not show the focus of the scope around
+  /// it, and it does not take the focus ring from that scope. An item in its
+  /// own scope uses ``selectableSurface(_:corners:)``.
+  ///
+  /// - Parameters:
+  ///   - isSelected: Whether the part is selected.
+  ///   - corners: The corners of the surface of the part.
+  /// - Returns: The part on its selection surface.
+  public func selectionSurface(_ isSelected: Bool, corners: SurfaceCorners) -> some View {
+    modifier(SelectionPartSurface(isSelected: isSelected, corners: corners))
+  }
 }
 
-/// The surface of an item that the user selects: the shared selection
-/// surface of EditorKit (`.selectionSurface(_:cornerRadius:)`), and the
-/// content shape of the item for a click and for the focus effect, in the
-/// surface shape of the same corner radius (card ^dn1m56r).
+/// The look of the selection and the focus of an item that a view kit draws
+/// itself: EditorKit's `.selectableItem(isSelected:cornerRadius:)` at the
+/// radius of the corners of the item (EditorKit style.md, "Selection and
+/// focus").
 ///
-/// The surface and the shape read one radius, so a click lands where the
-/// selection shows, and a focus ring that the system draws on the item
-/// follows the corners of the selection. Each selection of a view kit draws
-/// through this modifier, so no view pairs the two itself.
+/// The modifier gives the item the fill of its state, its hit and focus
+/// shape in the same corners, and tells the enclosing `.commandScope` to draw
+/// no focus ring. Thus the fill, the shape and the focus look always agree,
+/// and no view of a kit pairs them itself.
 ///
-/// The surface reads the corners as a radius, as the ring of an item scope
-/// does (`.scopeFocusRing(cornerRadius:)`). When the corners of an item
+/// The modifier reads the corners as a radius. When the corners of an item
 /// change, only the value of the radius changes, so the item keeps its
 /// identity and its state.
 public struct SelectableSurface: ViewModifier {
@@ -87,7 +131,7 @@ public struct SelectableSurface: ViewModifier {
 
   @Environment(\.editorStyle) private var editorStyle
 
-  /// Makes the selectable surface of an item.
+  /// Makes the look of the selection and the focus of an item.
   ///
   /// - Parameters:
   ///   - isSelected: Whether the item is selected.
@@ -97,11 +141,32 @@ public struct SelectableSurface: ViewModifier {
     self.corners = corners
   }
 
-  /// Puts `content` on the selection surface, with its hit and focus shape.
+  /// Gives `content` the fill of its state and its hit and focus shape.
   ///
   /// - Parameter content: The item.
-  /// - Returns: The item on its selectable surface.
+  /// - Returns: The item with the look of its selection and its focus.
   public func body(content: Content) -> some View {
+    content.selectableItem(isSelected: isSelected, cornerRadius: corners.radius(in: editorStyle))
+  }
+}
+
+/// The selection surface of a part with no command scope of its own: the
+/// shared selection surface of EditorKit (`.selectionSurface(_:cornerRadius:)`)
+/// and the hit and focus shape of the part, in the surface shape of the same
+/// corner radius.
+///
+/// The surface shows no focus and tells no scope about the part, so the scope
+/// around the part keeps its own focus look.
+private struct SelectionPartSurface: ViewModifier {
+  /// Whether the part is selected.
+  let isSelected: Bool
+
+  /// The corners of the surface.
+  let corners: SurfaceCorners
+
+  @Environment(\.editorStyle) private var editorStyle
+
+  func body(content: Content) -> some View {
     let radius = corners.radius(in: editorStyle)
     content
       .selectionSurface(isSelected, cornerRadius: radius)

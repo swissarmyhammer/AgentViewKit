@@ -96,8 +96,8 @@ public struct ElicitationLayout: View {
   /// The symbol of a tab with no answer.
   static let notAnsweredSymbol = AgentSymbol.notChosen
   /// The radius step of a tab chip: the medium radius, the corners of a chip
-  /// of the kit. The edge of the chip, the shared selection surface of the
-  /// selected tab and the focus ring of the tab button all have this shape.
+  /// of the kit. The edge of the chip and the shared selection surface of the
+  /// selected tab both have this shape.
   static let tabRadius = EditorStyle.Radius.medium
 
   /// The context of the layout.

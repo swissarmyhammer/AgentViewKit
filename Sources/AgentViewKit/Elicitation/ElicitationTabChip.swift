@@ -9,8 +9,10 @@ import SwiftUI
 ///
 /// The chip shows the title, the required mark and the answered mark of its
 /// field. The selected chip sits on the shared selection surface of
-/// EditorKit. A chip is not a content tile, so it keeps the small padding of
-/// a chip.
+/// EditorKit. The chip has no command scope of its own, so it shows its
+/// selection only, and the focus look of the scope around the form stays as
+/// it is (EditorKit style.md, "Selection and focus"). A chip is not a content
+/// tile, so it keeps the small padding of a chip.
 struct ElicitationTabChip: View {
   /// The context of the field of the tab.
   let field: ElicitationFieldContext
@@ -40,7 +42,7 @@ struct ElicitationTabChip: View {
       }
       .padding(.horizontal, editorStyle.spacing.s)
       .padding(.vertical, editorStyle.spacing.xs)
-      .selectableSurface(isSelected, radius: ElicitationLayout.tabRadius)
+      .selectionSurface(isSelected, corners: .rounded(ElicitationLayout.tabRadius))
       .inlineEdge(radius: editorStyle.radii[ElicitationLayout.tabRadius])
     }
     .buttonStyle(.plain)

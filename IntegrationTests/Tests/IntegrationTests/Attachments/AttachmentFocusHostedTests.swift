@@ -79,8 +79,13 @@ import UniformTypeIdentifiers
     }
   }
 
+  /// The views that have a surface of their own: each shows the focus of its
+  /// scope as a fill in its own shape, and the scope draws no ring.
+  nonisolated static let surfacesWithAFill: [Surface] = [.chip, .attachmentChip, .attachmentImage, .artifact, .image]
+
   /// Mounts the view that `makeView` makes, lands a `nav.*` move on the root
-  /// scope of its attachment, and gives the focused scope to `inspect`.
+  /// scope of its attachment, and gives the focused scope, the command system
+  /// of the window and the path of the scope to `inspect`.
   ///
   /// - Parameters:
   ///   - makeView: Makes the view to mount over a file in a temporary
@@ -90,7 +95,7 @@ import UniformTypeIdentifiers
   ///   focus does not land.
   static func inspectFocusedScope(
     of makeView: (TemporaryFolder) throws -> MountedSurface,
-    _ inspect: (AgentItemFocusHostedTests.FocusedItem) throws -> Void
+    _ inspect: (AgentItemFocusHostedTests.FocusedItem, CommandSystem, FocusPath) throws -> Void
   ) async throws {
     let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
@@ -101,18 +106,38 @@ import UniformTypeIdentifiers
     harness.render()
     let scope = FocusPath.root(AgentScopeKind.attachment(mounted.id))
 
-    try inspect(
-      try await AgentItemFocusHostedTests.focusedItem(at: scope, in: system, harness: harness) {
-        try #require(system.geometry.requestFocus(at: scope))
-      })
+    let focused = try await AgentItemFocusHostedTests.focusedItem(at: scope, in: system, harness: harness) {
+      try #require(system.geometry.requestFocus(at: scope))
+    }
+    try inspect(focused, system, scope)
   }
 
   /// The beacon of the scope holds the focus, and covers the view.
   @Test(arguments: Surface.allCases)
   func theBeaconOfTheScopeHoldsTheFocus(surface: Surface) async throws {
-    try await Self.inspectFocusedScope(of: { try Self.mount(surface, in: $0) }) { focused in
+    try await Self.inspectFocusedScope(of: { try Self.mount(surface, in: $0) }) { focused, _, _ in
       #expect(focused.responder is GeometryProbeView)
       #expect(WindowSpace.rect(of: focused.responder) == focused.itemRect)
+    }
+  }
+
+  /// A production change that fails this test: the scope of a view with a
+  /// surface draws its focus ring around the view, an outline in place of the
+  /// focused fill (style.md, "Selection and focus").
+  @Test(arguments: AttachmentFocusHostedTests.surfacesWithAFill)
+  func aFocusedViewWithASurfaceShowsNoScopeRing(surface: Surface) async throws {
+    try await Self.inspectFocusedScope(of: { try Self.mount(surface, in: $0) }) { _, system, scope in
+      let showsRing = try system.showsFocusRing(at: scope)
+      #expect(!showsRing)
+    }
+  }
+
+  /// A production change that fails this test: the inspector, a panel with
+  /// no surface of its own, loses the focus ring of its scope.
+  @Test func theFocusedInspectorShowsItsScopeRing() async throws {
+    try await Self.inspectFocusedScope(of: { try Self.mount(.inspector, in: $0) }) { _, system, scope in
+      let showsRing = try system.showsFocusRing(at: scope)
+      #expect(showsRing)
     }
   }
 }

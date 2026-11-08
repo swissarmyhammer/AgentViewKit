@@ -46,9 +46,8 @@ struct AgentAttachmentScope: ViewModifier {
   /// The attachment of the scope.
   let attachment: Attachment
 
-  /// The corners of the surface of the attachment, which the focus ring of
-  /// the scope follows.
-  let focusRingCorners: SurfaceCorners
+  /// How the view of the attachment shows the focus of the scope.
+  let focusLook: AgentItemFocusLook
 
   /// The action that changes the file selection for a press on the file
   /// view, or `nil` for a view that selects no file.
@@ -88,7 +87,7 @@ struct AgentAttachmentScope: ViewModifier {
         .environment(\.agentAttachmentScopeSegment, segment)
         .background(AgentAttachmentMount(target: target, presenter: presenter, registration: registration))
         .modifier(AttachmentPresentation(presenter: presenter))
-        .agentItemScope(segment, subject: attachment, focusRingCorners: focusRingCorners)
+        .agentItemScope(segment, subject: attachment, focusLook: focusLook)
         .environment(\.agentCommandSystem, system)
         .commandSystem(system)
     }
@@ -110,15 +109,18 @@ extension View {
   /// Puts this view in the scope of `attachment`, with the attachment
   /// commands at the path of the scope.
   ///
-  /// The focus ring of the scope follows the corners of the surface of the
-  /// view, which `focusRingCorners` names. A scope inside a scope for the
-  /// same attachment makes no scope, so the corners of the outer scope hold.
+  /// The view shows the focus of the scope by `focusLook` (EditorKit
+  /// style.md, "Selection and focus"). A scope inside a scope for the same
+  /// attachment makes no scope, so the look of the outer scope holds, and a
+  /// selectable surface of the inner view shows the focus of the outer
+  /// scope.
   ///
   /// - Parameters:
   ///   - attachment: The attachment of the scope, or `nil` for no scope, for
   ///     example an artifact with no file.
-  ///   - focusRingCorners: The corners of the surface of the view. The
-  ///     default is the corners of a card.
+  ///   - focusLook: How the view shows the focus of the scope. The default
+  ///     is the focus ring of the scope in the corners of a card, for a view
+  ///     with no surface of its own.
   ///   - select: The action that changes the file selection for a press on
   ///     the view, the action of its ``InspectorSelectable``, or `nil` for a
   ///     view that selects no file. With an action, the scope registers the
@@ -127,12 +129,12 @@ extension View {
   /// - Returns: A view in the scope of the attachment, or this view.
   @ViewBuilder
   func agentAttachmentScope(
-    _ attachment: Attachment?, focusRingCorners: SurfaceCorners = .card,
+    _ attachment: Attachment?, focusLook: AgentItemFocusLook = .ring(.card),
     select: ((AttachmentSelectionChange) -> Void)? = nil
   ) -> some View {
     if let attachment {
       modifier(
-        AgentAttachmentScope(attachment: attachment, focusRingCorners: focusRingCorners, select: select, files: nil))
+        AgentAttachmentScope(attachment: attachment, focusLook: focusLook, select: select, files: nil))
     } else {
       self
     }
@@ -147,6 +149,8 @@ extension View {
   /// (``AgentAttachmentTarget/contributeSelection(to:)``). An
   /// ``AttachmentInspector`` is such a view: its action row, its context
   /// menu and the command palette run each verb on every file it shows.
+  /// The view is a panel with no surface of its own, so it keeps the focus
+  /// ring of the scope.
   ///
   /// - Parameter files: The files of the view, in order. With no file the
   ///   view makes no scope.
@@ -154,7 +158,7 @@ extension View {
   @ViewBuilder
   func agentAttachmentScope(files: [Attachment]) -> some View {
     if let first = files.first {
-      modifier(AgentAttachmentScope(attachment: first, focusRingCorners: .card, select: nil, files: files))
+      modifier(AgentAttachmentScope(attachment: first, focusLook: .ring(.card), select: nil, files: files))
     } else {
       self
     }

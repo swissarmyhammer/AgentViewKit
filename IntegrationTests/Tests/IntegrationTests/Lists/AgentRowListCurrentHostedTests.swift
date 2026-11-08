@@ -310,6 +310,19 @@ private nonisolated let densities: [AgentRowDensity] = [.regular, .compact]
     #expect(try RowBed.ids.allSatisfy { try !bed.reportsSelected($0) })
   }
 
+  /// A production change that fails this test: the scope of a row draws its
+  /// focus ring around the row, an outline in place of the focused fill of
+  /// its surface (style.md, "Selection and focus").
+  @Test func aFocusedRowShowsNoScopeRing() async throws {
+    let bed = try await RowBed()
+    defer { bed.harness.close() }
+    let row = RowBed.path(ofRow: RowBed.ids[1])
+
+    try await bed.focus(row)
+
+    #expect(try !bed.system.showsFocusRing(at: row))
+  }
+
   /// The default stays: with no current row the selection follows the focus.
   @Test func byDefaultTheFocusedRowIsSelected() async throws {
     let bed = try await RowBed()

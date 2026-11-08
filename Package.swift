@@ -74,14 +74,19 @@ let editorKitProducts: [Target.Dependency] = [
 ]
 
 /// The EditorKit products that the style target links: the shared style and
-/// the theme, the SwiftUI views and the diff parser of the diff renderer, and
-/// the focus segment of a scope kind. None of them links an ACP product.
+/// the theme, the SwiftUI views and the diff parser of the diff renderer, the
+/// focus segment of a scope kind, and the look of the selection and the focus
+/// of an item (`.selectableItem`, EditorKit style.md, "Selection and focus").
+/// None of them links an ACP product. `EditorSwiftUI` links
+/// `EditorCommandsUI` already, so the closure of the style target does not
+/// grow.
 let styleEditorKitProducts: [Target.Dependency] = [
   .product(name: "EditorStyle", package: "EditorKit"),
   .product(name: "EditorTheme", package: "EditorKit"),
   .product(name: "EditorSwiftUI", package: "EditorKit"),
   .product(name: "EditorDiff", package: "EditorKit"),
   .product(name: "EditorCommands", package: "EditorKit"),
+  .product(name: "EditorCommandsUI", package: "EditorKit"),
 ]
 
 /// The ACP products: the wire types and the client connection. The kit

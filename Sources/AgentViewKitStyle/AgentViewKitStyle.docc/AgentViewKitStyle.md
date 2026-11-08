@@ -36,6 +36,15 @@ inspector. The library keeps no chip of its own for a path. A kit that
 selects a path chip puts its selection surface in
 ``SurfaceCorners/pathChip``.
 
+An item that a kit draws itself, such as a card, a chip, a row or a tile,
+shows its selection and its focus as a fill in its own shape, never as an
+outline (EditorKit style.md, "Selection and focus"):
+``SwiftUI/View/selectableSurface(_:corners:)``, inside the `.commandScope` of
+the item, wraps EditorKit's `.selectableItem`, so the scope draws no focus
+ring around the item. A part with no scope of its own inside another item,
+such as a tab chip, shows its selection only with
+``SwiftUI/View/selectionSurface(_:corners:)``.
+
 A view of the library takes the behaviour of a kit through a style protocol
 of the environment, in the shape of `ButtonStyle`. AgentViewKit gives the
 button of a ``StatusBar`` the focus scope of a bar control with
@@ -52,6 +61,7 @@ button of a ``StatusBar`` the focus scope of a bar control with
 - ``SurfaceCorners``
 - ``SwiftUI/View/selectableSurface(_:radius:)``
 - ``SwiftUI/View/selectableSurface(_:corners:)``
+- ``SwiftUI/View/selectionSurface(_:corners:)``
 - ``SwiftUI/View/changeHighlightEdge(corners:isShowing:)``
 - ``SwiftUI/View/changeHighlightEdge(radius:isShowing:)``
 

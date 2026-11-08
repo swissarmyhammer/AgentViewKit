@@ -143,9 +143,10 @@ public enum AgentRowDensity: Hashable, Sendable {
 /// A list has one selection: the current row, when the host names one, takes
 /// the selectable surface and the `.isSelected` trait in place of the focused
 /// row, so VoiceOver hears it as selected and the host adds no trait. The focus
-/// stays where it is, and a focused row elsewhere keeps the focus ring and has
-/// no fill: the fill is the selection and the ring is the focus (EditorKit
-/// `style.md`, "Accent and fills"), and a row that is both shows both. Return
+/// stays where it is, and a focused row elsewhere shows the stronger accent
+/// fill of the focus, with no selected trait (EditorKit `style.md`,
+/// "Selection and focus"). A row that is both shows the focus fill only.
+/// Return
 /// opens the focused row. An id that names no row marks no row. With no
 /// `current:`, the selection follows the focus.
 ///
@@ -523,7 +524,7 @@ extension AgentRowList {
 /// are in this separate type.
 enum AgentRowListLayout {
   /// The radius step of the selectable surface of a row, and of the focus
-  /// ring of a row and of the list.
+  /// ring of the list, an area with no surface of its own.
   static let radius = EditorStyle.Radius.small
 
   /// The number of taps of a double click, which opens a row.
@@ -545,8 +546,10 @@ enum AgentRowListLayout {
 /// `isSelected`. A click selects the row through the geometry of the command
 /// system, as a `nav.*` move does; ``AgentRowClicks`` holds the clicks, which
 /// depend on the open trigger of the list. The system focus effect is off: the
-/// selectable surface shows the selection, and the ring of the command scope
-/// shows the focus.
+/// selectable surface, inside the command scope of the row, shows the
+/// selection as the soft accent fill and the focus as the stronger accent
+/// fill, and the scope of the row draws no focus ring (EditorKit style.md,
+/// "Selection and focus").
 struct AgentRowListRow<Content: View>: View {
   /// The segment of the scope of the row.
   let segment: FocusSegment
@@ -585,7 +588,6 @@ struct AgentRowListRow<Content: View>: View {
       .modifier(AgentRowClicks(trigger: openTrigger, select: select, open: open, identifier: identifier))
       .commandScope(segment: segment)
       .navScrollable(.vertical)
-      .scopeFocusRing(radius: AgentRowListLayout.radius)
   }
 
   /// The content with its insets on the selectable surface, in the wrapper of

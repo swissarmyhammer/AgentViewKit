@@ -15,8 +15,10 @@ import SwiftUI
 /// adds or takes out, a Shift-click extends): the inspector of the host in
 /// the host mode of a thread view, otherwise the ``InspectorSelection``.
 /// While the
-/// inspector shows the file, the chip sits on the shared selection surface,
-/// in the corners of the chip (`SurfaceCorners.pathChip`). The chip is the
+/// inspector shows the file, the chip shows the soft accent fill of its
+/// selection, and while its scope holds the focus, the stronger accent fill,
+/// both in the corners of the chip (`SurfaceCorners.pathChip`, EditorKit
+/// style.md, "Selection and focus"). The chip is the
 /// scope of the file (`agentAttachment:<id>`, AVK-11), so its context menu
 /// and the command palette show the ``AgentAttachmentVerb`` commands for the
 /// file. The chip keeps its short label, because an ``AttachmentView`` would
@@ -71,7 +73,7 @@ private struct LocationChip: View {
     PathChip(location.path, line: location.line)
       .accessibilityIdentifier(location.identifier)
       .modifier(InspectorSelectable(file: file, corners: .pathChip, action: select))
-      .agentAttachmentScope(file, focusRingCorners: .pathChip, select: select)
+      .agentAttachmentScope(file, focusLook: .contentSurface, select: select)
   }
 }
 

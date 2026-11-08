@@ -14,15 +14,22 @@ import SwiftUI
 /// also in the composer: its context menu and the command palette show the
 /// ``AgentAttachmentVerb`` commands for the file. In an ``AttachmentView``,
 /// the chip uses the scope of the view.
+///
+/// The chip has a surface of its own, so it shows the focus of its scope as
+/// the stronger accent fill in its own shape, and the scope draws no ring
+/// (EditorKit style.md, "Selection and focus"). That fill, or the fill of the
+/// selection of an ``AttachmentView`` around the chip, replaces the base fill
+/// of the chip.
 public struct AttachmentChip: View {
   /// The side of the type icon, in points at the default theme font. The icon
   /// stands beside the two lines of text, so it scales with them.
   private static let iconSide: CGFloat = 28
 
-  /// The corners of the chip: the medium radius of `\.editorStyle`. The fill of
-  /// the chip and the focus ring of its scope both have them. The chip
-  /// reports them (``AttachmentSurfaceCornersKey``), so the scope of an
-  /// ``AttachmentView`` that shows the chip has them too.
+  /// The corners of the chip: the medium radius of `\.editorStyle`. The base
+  /// fill of the chip and the fill of its selection and its focus both have
+  /// them. The chip reports them (``AttachmentSurfaceCornersKey``), so the
+  /// selectable surface of an ``AttachmentView`` that shows the chip has them
+  /// too.
   static let corners = SurfaceCorners.rounded(.medium)
 
   /// The attached file.
@@ -31,7 +38,6 @@ public struct AttachmentChip: View {
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
   @Environment(\.placedSecondary) private var placedSecondary
-  @Environment(\.themeFill) private var themeFill
   @ThemeFontScale(.ui) private var fontScale
 
   /// Makes the chip of a file.
@@ -68,9 +74,27 @@ public struct AttachmentChip: View {
     }
     .padding(.horizontal, editorStyle.spacing.m)
     .padding(.vertical, editorStyle.spacing.xs)
-    .background(themeFill.quaternary, in: EditorSurface.shape(radius: Self.corners.radius(in: editorStyle)))
-    .agentAttachmentScope(attachment, focusRingCorners: Self.corners)
+    .modifier(AttachmentChipFill())
+    .agentAttachmentScope(attachment, focusLook: .fill(Self.corners))
     .preference(key: AttachmentSurfaceCornersKey.self, value: Self.corners)
+  }
+}
+
+/// The base fill of an ``AttachmentChip``: the quaternary fill of the theme
+/// in the corners of the chip, while no fill of the selection or the focus of
+/// the chip shows (`\.isItemStateFillShown`). The state fill replaces the
+/// base fill, so the two fills do not stack.
+private struct AttachmentChipFill: ViewModifier {
+  @Environment(\.editorStyle) private var editorStyle
+  @Environment(\.themeFill) private var themeFill
+  @Environment(\.isItemStateFillShown) private var isStateFillShown
+
+  func body(content: Content) -> some View {
+    content.background {
+      if !isStateFillShown {
+        SurfaceFill(themeFill.quaternary, radius: AttachmentChip.corners.radius(in: editorStyle))
+      }
+    }
   }
 }
 
