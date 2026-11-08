@@ -107,7 +107,7 @@ import Testing
   /// - Parameter harness: The harness of the window.
   /// - Returns: `true` when a view of the window draws the system focus ring.
   static func holdsSystemFocusRing(in harness: HostedViewHarness<some View>) -> Bool {
-    DepthFirstWalk.nodes(from: harness.hostingView, children: \.subviews).contains {
+    DepthFirstWalk.views(from: harness.hostingView).contains {
       String(describing: type(of: $0)) == systemFocusRingTypeName
     }
   }
@@ -118,7 +118,7 @@ import Testing
   /// - Returns: The layers.
   /// - Throws: An issue when the hosting view has no layer.
   private static func layers(in harness: HostedViewHarness<some View>) throws -> [CALayer] {
-    DepthFirstWalk.nodes(from: try #require(harness.hostingView.layer)) { $0.sublayers ?? [] }
+    DepthFirstWalk.layers(from: try #require(harness.hostingView.layer))
   }
 
   /// The fill colors of `layer` itself: a background color, and the fill of

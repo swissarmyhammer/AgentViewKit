@@ -50,6 +50,30 @@ comments:
     - evidence: 4 files — IntegrationTests/Tests/IntegrationTests/Helpers/DepthFirstWalk.swift (new), IntegrationTests/Tests/IntegrationTests/TestSupport/DepthFirstWalkTests.swift (new), IntegrationTests/Tests/IntegrationTests/Helpers/FocusLookBed.swift, IntegrationTests/Tests/IntegrationTests/Style/StatusBarReduceMotionHostedTests.swift. `swift test --package-path IntegrationTests`: 1042 tests in 146 suites passed, 5 known issues (FontRoleExpectationsTests, deliberate).
     - next: review
   timestamp: 2026-11-08T17:53:59.882961+00:00
+- actor: claude-code
+  id: 01m6y4xhwbj6k6vc7jr9qva482
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD — 1 finding (1 confirmed, 0 refuted): IntegrationTests/Tests/IntegrationTests/Style/StatusBarReduceMotionHostedTests.swift:47 reuse/reuse. The 2 prior items are checked.
+    - next: Write the CALayer sublayers walk one time. Make FocusLookBed.layers (or a FocusLookBed helper for the layer children closure) internal and call it from layerClasses in StatusBarReduceMotionHostedTests.
+  timestamp: 2026-11-08T17:57:21.931247+00:00
+- actor: claude-code
+  id: 01m6y4xx2qjk87ysjgtvfdeqnv
+  text: |-
+    ### finish iteration 2 — findings
+    - implement: changed — 4 files (2 findings fixed)
+    - test: green — IntegrationTests 1042 (5 known); no other package changed
+    - commit: 9e352ca0
+    - review: findings — IntegrationTests/Tests/IntegrationTests/Style/StatusBarReduceMotionHostedTests.swift:47
+  timestamp: 2026-11-08T17:57:33.399062+00:00
+- actor: claude-code
+  id: 01m6y522q3vtnrecevxfhkwg8v
+  text: |-
+    ### implement — changed
+    - The reuse finding is fixed. DepthFirstWalk now has `layers(from:)` (CALayer) and `views(from:)` (NSView). FocusLookBed.layers(in:), FocusLookBed.holdsSystemFocusRing(in:) and StatusBarReduceMotionHostedTests.layerClasses call them. Each children closure is now written one time only.
+    - evidence: Helpers/DepthFirstWalk.swift, Helpers/FocusLookBed.swift, Style/StatusBarReduceMotionHostedTests.swift; swift test --package-path IntegrationTests: 1042 tests in 146 suites passed, 5 known issues.
+    - next: review
+  timestamp: 2026-11-08T17:59:50.243609+00:00
 position_column: doing
 position_ordinal: '80'
 title: 'AgentRowList: a focused row shows the system focus ring, not the focused fill'
@@ -80,3 +104,12 @@ To do:
 
 - [x] `IntegrationTests/Tests/IntegrationTests/Helpers/FocusLookBed.swift:128` `reuse/reuse` — The new sublayers(of:) reimplements a depth-first walk of CALayer.sublayers that already exists in StatusBarReduceMotionHostedTests.classNames(in:). Both functions have the same recursive shape: the layer, then its sublayers flatMapped depth first. A second copy can drift from the first. Make one generic depth-first helper, for example func depthFirst<T>(_ root: T, children: (T) -> [T]) -> [T]. Use it for sublayers(of:) here and for classNames(in:) in StatusBarReduceMotionHostedTests, or move the helper to a shared test support file. Keep layers(in:) as the caller that passes CALayer.sublayers.
 - [x] `IntegrationTests/Tests/IntegrationTests/Helpers/FocusLookBed.swift:136` `reuse/reuse` — The new views(below:) is a second depth-first walk, this time over NSView.subviews. It has the same shape as sublayers(of:) at line 128 in the same file. Two copies of one traversal pattern in one file duplicate the capability instead of extending one generic helper. Replace both with one generic depth-first helper that takes the child accessor, for example children: { $0.sublayers ?? [] } for layers and { $0.subviews } for views. The helper can be shared with the StatusBarReduceMotionHostedTests walk noted above.
+
+## Review Findings (2026-11-08 11:56)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 4 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `IntegrationTests/Tests/IntegrationTests/Style/StatusBarReduceMotionHostedTests.swift:47` `reuse/reuse` — The layer walk in layerClasses repeats the walk that FocusLookBed.layers(in:) already does, including the same children closure `{ $0.sublayers ?? [] }`. Two copies of the same walk can diverge. FocusLookBed.layers is private, so this file cannot call it. Make FocusLookBed.layers an internal static function that takes a root CALayer, or add a FocusLookBed helper for the layer children closure, and call it from layerClasses so the sublayers walk is written once.

@@ -44,7 +44,7 @@ import Testing
     defer { harness.close() }
     let layer = try #require(harness.hostingView.layer)
     await harness.render { layer.sublayers?.isEmpty == false }
-    let layers = DepthFirstWalk.nodes(from: layer) { $0.sublayers ?? [] }
+    let layers = DepthFirstWalk.layers(from: layer)
     return layers.map { String(describing: type(of: $0)) }
   }
 
