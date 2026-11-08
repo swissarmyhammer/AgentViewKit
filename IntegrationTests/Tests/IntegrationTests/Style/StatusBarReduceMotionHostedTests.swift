@@ -44,15 +44,8 @@ import Testing
     defer { harness.close() }
     let layer = try #require(harness.hostingView.layer)
     await harness.render { layer.sublayers?.isEmpty == false }
-    return classNames(in: layer)
-  }
-
-  /// Gives the class name of `layer` and of each layer below it.
-  ///
-  /// - Parameter layer: The root of the layers.
-  /// - Returns: The class names, depth first.
-  static func classNames(in layer: CALayer) -> [String] {
-    [String(describing: type(of: layer))] + (layer.sublayers ?? []).flatMap(classNames(in:))
+    let layers = DepthFirstWalk.nodes(from: layer) { $0.sublayers ?? [] }
+    return layers.map { String(describing: type(of: $0)) }
   }
 
   /// A production change that fails this test: the probe of the Reduce

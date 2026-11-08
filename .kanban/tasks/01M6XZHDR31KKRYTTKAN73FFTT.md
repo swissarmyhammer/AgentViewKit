@@ -20,6 +20,36 @@ comments:
     - evidence: Sources/AgentViewKit/Lists/AgentRowList.swift, IntegrationTests/Tests/IntegrationTests/Lists/AgentRowListFocusLookHostedTests.swift (new, 2 tests), IntegrationTests/Tests/IntegrationTests/Helpers/FocusLookBed.swift (new), IntegrationTests/Tests/IntegrationTests/HumanInTheLoop/PermissionCardFocusLookHostedTests.swift, ARCHITECTURE.md. `swift test`: 1075 + 50 tests pass. `swift test --package-path IntegrationTests`: 1041 tests pass, 5 known issues (FontRoleExpectationsTests). `swift test --package-path ScreenshotTests`: 33 tests pass. item-focus-row-{light,dark}.png: "Drafts" shows the stronger accent fill, no ring; "Inbox" the soft fill. item-focus-row-not-key-{light,dark}.png: "Drafts" and "Inbox" show the inactive grey, no ring.
     - next: /review
   timestamp: 2026-11-08T17:42:52.551955+00:00
+- actor: claude-code
+  id: 01m6y4es6as22jzky9hxp2hn35
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD; 2 findings (2 confirmed, 0 refuted) — IntegrationTests/Tests/IntegrationTests/Helpers/FocusLookBed.swift:128, IntegrationTests/Tests/IntegrationTests/Helpers/FocusLookBed.swift:136
+    - next: implement the 2 reuse/reuse findings (one generic depth-first helper for the layer walk and the view walk), then review again.
+  timestamp: 2026-11-08T17:49:17.898161+00:00
+- actor: claude-code
+  id: 01m6y4fa89naq2gdbzetjbj9ey
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 5 files
+    - test: green — swift test 1075+50; IntegrationTests 1041 (5 known); ScreenshotTests 33
+    - commit: 7afe4a27
+    - review: findings — IntegrationTests/Tests/IntegrationTests/Helpers/FocusLookBed.swift:128, IntegrationTests/Tests/IntegrationTests/Helpers/FocusLookBed.swift:136
+  timestamp: 2026-11-08T17:49:35.369529+00:00
+- actor: claude-code
+  id: 01m6y4qa40h8gdzf64a2e6bket
+  text: |-
+    The two reuse findings are fixed. A new shared helper `DepthFirstWalk.nodes(from:children:)` is in IntegrationTests/Tests/IntegrationTests/Helpers/DepthFirstWalk.swift. It is a static func on an enum namespace, because the swift immutability rule does not permit a top-level func. FocusLookBed.layers(in:) uses it with `{ $0.sublayers ?? [] }`. FocusLookBed.holdsSystemFocusRing(in:) uses it with `\.subviews`. StatusBarReduceMotionHostedTests.layerClasses uses it and maps the layers to class names. The functions sublayers(of:), views(below:) and classNames(in:) are removed. A test of the order of the walk is in TestSupport/DepthFirstWalkTests.swift (RED: the type was missing; GREEN after the helper).
+
+    Search: no other recursive sublayers/subviews walk is in IntegrationTests. ScreenshotTests is a different package and cannot reach the helper; it has no such walk. Sources/AgentViewKit/Input/PromptCaretProbe.swift has a lazy search for the first text view, which is production code and not a full walk, so it stays.
+  timestamp: 2026-11-08T17:53:57.376145+00:00
+- actor: claude-code
+  id: 01m6y4qcjaxxvt119089dftvy5
+  text: |-
+    ### implement — changed
+    - evidence: 4 files — IntegrationTests/Tests/IntegrationTests/Helpers/DepthFirstWalk.swift (new), IntegrationTests/Tests/IntegrationTests/TestSupport/DepthFirstWalkTests.swift (new), IntegrationTests/Tests/IntegrationTests/Helpers/FocusLookBed.swift, IntegrationTests/Tests/IntegrationTests/Style/StatusBarReduceMotionHostedTests.swift. `swift test --package-path IntegrationTests`: 1042 tests in 146 suites passed, 5 known issues (FontRoleExpectationsTests, deliberate).
+    - next: review
+  timestamp: 2026-11-08T17:53:59.882961+00:00
 position_column: doing
 position_ordinal: '80'
 title: 'AgentRowList: a focused row shows the system focus ring, not the focused fill'
@@ -37,3 +67,16 @@ To do:
 - [x] Hide the system focus ring of the row (`.focusEffectDisabled()` around the `.focusable()`).
 - [x] Hosted test: a focused row shows the focused fill and no system focus ring.
 - [x] Run ScreenshotTests and check item-focus-row and item-focus-row-not-key: the focused row "Drafts" shows the stronger accent fill (grey when not key).
+
+## Review Findings (2026-11-08 11:47)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 4 file(s) reviewed, 5 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+> 1 file(s) not reviewed — no validator matched:
+> - `ARCHITECTURE.md` — no validator matches this file
+
+- [x] `IntegrationTests/Tests/IntegrationTests/Helpers/FocusLookBed.swift:128` `reuse/reuse` — The new sublayers(of:) reimplements a depth-first walk of CALayer.sublayers that already exists in StatusBarReduceMotionHostedTests.classNames(in:). Both functions have the same recursive shape: the layer, then its sublayers flatMapped depth first. A second copy can drift from the first. Make one generic depth-first helper, for example func depthFirst<T>(_ root: T, children: (T) -> [T]) -> [T]. Use it for sublayers(of:) here and for classNames(in:) in StatusBarReduceMotionHostedTests, or move the helper to a shared test support file. Keep layers(in:) as the caller that passes CALayer.sublayers.
+- [x] `IntegrationTests/Tests/IntegrationTests/Helpers/FocusLookBed.swift:136` `reuse/reuse` — The new views(below:) is a second depth-first walk, this time over NSView.subviews. It has the same shape as sublayers(of:) at line 128 in the same file. Two copies of one traversal pattern in one file duplicate the capability instead of extending one generic helper. Replace both with one generic depth-first helper that takes the child accessor, for example children: { $0.sublayers ?? [] } for layers and { $0.subviews } for views. The helper can be shared with the StatusBarReduceMotionHostedTests walk noted above.
