@@ -1,4 +1,5 @@
 import EditorStyle
+import EditorSwiftUI
 import SwiftUI
 
 extension View {
@@ -8,11 +9,13 @@ extension View {
   ///
   /// The button is its own glass, not a button on another glass, so it
   /// declares the content surface and keeps the glass style
-  /// (`.editorButtonSurface(_:)`, EditorKit `style.md`, rule 4). Its glass has
-  /// the id `glassID`, so a change of the floating controls morphs it
-  /// (`.floatingGlassID(_:)`, D113 answer 2). It is a control of a bar of a
-  /// thread, with the accessibility identifier `identifier` and its own focus
-  /// scope (``SwiftUI/View/agentControlScope(_:corners:yieldsToHostScope:)``).
+  /// (`.editorButtonSurface(_:)`, EditorKit `style.md`, rule 4). Its bezel is
+  /// a capsule (`.editorButtonBorderShape(_:)`), and the focus ring of its
+  /// scope follows that capsule. Its glass has the id `glassID`, so a change
+  /// of the floating controls morphs it (`.floatingGlassID(_:)`, D113 answer
+  /// 2). It is a control of a bar of a thread, with the accessibility
+  /// identifier `identifier` and its own focus scope
+  /// (``SwiftUI/View/agentControlScope(_:corners:yieldsToHostScope:)``).
   ///
   /// - Parameters:
   ///   - glassID: The id of the glass of the button.
@@ -21,7 +24,7 @@ extension View {
   /// - Returns: The button as a floating glass capsule.
   func floatingGlassAction(glassID: FloatingGlassID, identifier: String) -> some View {
     editorButtonSurface(.content)
-      .buttonBorderShape(.capsule)
+      .editorButtonBorderShape(.capsule)
       .floatingGlassID(glassID)
       .accessibilityIdentifier(identifier)
       .agentControlScope(identifier)

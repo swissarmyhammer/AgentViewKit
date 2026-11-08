@@ -25,11 +25,12 @@ import SwiftUI
 /// editor, or else the EditorKit beacon of the scope, and the scope then
 /// draws its focus ring around the control, in the theme accent
 /// (`\.themeAccent`), never in the `.tint` of a host (EditorKit ^d5f8cwa).
-/// `.scopeFocusRing(cornerRadius:)` gives that ring the corners of the
-/// control (``AgentControlCorners``). A `.focusEffectDisabled()` above the
-/// control turns the ring off. The leaf landing also makes the accessibility
-/// hit test of the window over the control answer the control, not a
-/// transcript row under the bar.
+/// The ring has the corners of the control (``AgentControlCorners``): an
+/// EditorKit button tells the scope the shape of its bezel, and
+/// `.scopeFocusRing(cornerRadius:)` gives the ring the corners of a surface
+/// of the kit. A `.focusEffectDisabled()` above the control turns the ring
+/// off. The leaf landing also makes the accessibility hit test of the window
+/// over the control answer the control, not a transcript row under the bar.
 ///
 /// The beacon draws nothing and takes no click, and the scope draws nothing
 /// but its focus ring, so the control keeps its look and its own background:
@@ -66,12 +67,25 @@ struct AgentControlScope: ViewModifier {
 
   func body(content: Content) -> some View {
     if isScoped {
-      content
-        .commandScope(segment: segment)
-        .targetable(true)
-        .scopeFocusRing(cornerRadius: corners.radius(in: editorStyle))
+      withRingCorners(content.commandScope(segment: segment).targetable(true))
     } else {
       content
+    }
+  }
+
+  /// `scope` with the request for the corners of its ring, when the corners
+  /// ask for a radius.
+  ///
+  /// - Parameter scope: The control in its scope.
+  /// - Returns: The scope, with `.scopeFocusRing(cornerRadius:)` for the
+  ///   corners of a surface, or with no request for the shape of the
+  ///   control.
+  @ViewBuilder
+  private func withRingCorners(_ scope: some View) -> some View {
+    if let radius = corners.radius(in: editorStyle) {
+      scope.scopeFocusRing(cornerRadius: radius)
+    } else {
+      scope
     }
   }
 }
@@ -79,26 +93,25 @@ struct AgentControlScope: ViewModifier {
 /// The corners of a bar control, which the focus ring of its scope
 /// (``AgentControlScope``) follows.
 enum AgentControlCorners: Equatable, Sendable {
-  /// A capsule: the border shape of a glass button of a bar, a circle
-  /// button, and the segmented permission-mode picker.
-  case capsule
+  /// The shape that the control tells its scope: the bezel of an EditorKit
+  /// button, such as the capsule of a floating glass action, the circle of a
+  /// round button, or the continuous corners of a button of a bar. A control
+  /// that tells no shape, such as the segmented permission-mode picker,
+  /// takes a capsule, the EditorKit ring of a leaf control scope.
+  case control
 
   /// The corners of a surface of the kit, such as the field of the composer
   /// around the editor.
   case surface(SurfaceCorners)
 
-  /// The corner radius of these corners.
-  ///
-  /// The ring of a scope is the rounded rectangle that `RoundedRectangle`
-  /// draws, which never rounds a corner past half a side. So the largest
-  /// radius draws a capsule over a control of any size.
+  /// The corner radius that the scope asks for.
   ///
   /// - Parameter style: The shared style that gives the radius scale.
-  /// - Returns: The largest radius for a capsule, or the radius of the
-  ///   surface.
-  func radius(in style: EditorStyle) -> CGFloat {
+  /// - Returns: The radius of the surface, or `nil` for the shape of the
+  ///   control, so the scope asks for no corners.
+  func radius(in style: EditorStyle) -> CGFloat? {
     switch self {
-    case .capsule: .greatestFiniteMagnitude
+    case .control: nil
     case .surface(let corners): corners.radius(in: style)
     }
   }
@@ -112,13 +125,13 @@ extension View {
   ///   - identifier: The accessibility identifier of the control, such as
   ///     `prompt-submit`. It is the id of the segment of the scope.
   ///   - corners: The corners of the control, which the focus ring of the
-  ///     scope follows. The default is a capsule, the shape of a glass
-  ///     button of a bar.
+  ///     scope follows. The default is the shape that the control tells the
+  ///     scope, such as the bezel of an EditorKit button.
   ///   - yieldsToHostScope: `true` to add no scope while a command scope of
   ///     the host, and not the agent command scope, encloses the control.
   /// - Returns: The control in its scope.
   func agentControlScope(
-    _ identifier: String, corners: AgentControlCorners = .capsule, yieldsToHostScope: Bool = false
+    _ identifier: String, corners: AgentControlCorners = .control, yieldsToHostScope: Bool = false
   ) -> some View {
     modifier(
       AgentControlScope(

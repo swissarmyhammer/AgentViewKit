@@ -68,7 +68,7 @@ public struct SpeechInputButton: View {
         toggle(transcriber: transcriber, text: text)
       }
       .editorButtonCaptions(.hidden)
-      .buttonBorderShape(.circle)
+      .editorButtonBorderShape(.circle)
       .accessibilityValue(Self.valueText(of: phase))
       .accessibilityIdentifier(Self.identifier)
       .agentControlScope(Self.identifier)

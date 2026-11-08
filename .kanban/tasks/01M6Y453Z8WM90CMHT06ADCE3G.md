@@ -1,7 +1,39 @@
 ---
 assignees:
 - claude-code
-position_column: todo
+comments:
+- actor: claude-code
+  id: 01m6y5bjasx8k1ar0h8qe4jybm
+  text: |-
+    Research (EK 4e673e2c):
+    - `.editorButtonBorderShape(_:)` sets only the environment value `\.editorButtonBorderShape`. EditorButton reads it: it applies `.buttonBorderShape(shape.buttonBorderShape)` itself (not for `.automatic`) and reports the same bezel to its scope (`reportsBezel`). All three AVK call sites are EditorButtons, so `.editorButtonBorderShape` replaces `.buttonBorderShape`; we do not keep both.
+    - An icon-alone action button (`.editorButtonCaptions(.hidden)`) is always a circle (`EditorIconFrame.borderShape`), so the circle buttons report a capsule ring already.
+    - The ring of a scope is `requested ?? control ?? (leaf ? capsule : rectangle)`. `agentControlScope` always requests corners (`AgentControlCorners.capsule` = `.scopeFocusRing(cornerRadius: .greatestFiniteMagnitude)`), so the request hides the bezel the button reports. Result: the status bar buttons (Show Error, Reload, Dismiss) and the Sign In / Sign Out buttons show a capsule ring around a bezel with 6 pt continuous corners. Item 3 finding: this is the ring that does not follow the bezel.
+    - Plan: `AgentControlCorners` gets a `control` case in place of `capsule`: the scope requests no corners, so the ring takes the shape the control reports (EK bezel), else the EK leaf default (capsule) for a control that reports none (the segmented PermissionModePicker). `.surface` keeps its request (composer editor, attachment Remove button).
+    - Attachment Remove button: a bare EditorToolbarButton (no bezel; EK reports toolbar glass = capsule). AVK requests `.surface(.rounded(.small))` on purpose. No change.
+    - Item 4: InlineCitation pill is drawn by Textual in a canvas, with no command scope and no focus; PendingRequestCountBadge is a display in a session row. Neither is selectable or focusable. No change.
+    - Hosted test plan: focus the scope of a bar control (`geometry.requestFocus(at:)`, no press), read the ring band layer (`ScopeFocusRingBandView`, a CAShapeLayer path, no pixels) and the corners the control reports.
+  timestamp: 2026-11-08T18:05:01.145325+00:00
+- actor: claude-code
+  id: 01m6y658aqd89gfeeb8bx6zq88
+  text: |-
+    Implementation landed (not committed):
+    - Items 1, 2: FloatingGlassAction uses `.editorButtonBorderShape(.capsule)` (with `import EditorSwiftUI`); DefaultPromptAccessory and SpeechInputButton use `.editorButtonBorderShape(.circle)`. No `.buttonBorderShape` stays in Sources.
+    - Item 3: `AgentControlCorners.capsule` is replaced by `.control`, the default of `agentControlScope`. The scope then asks for no corners, so the ring takes the bezel that the EditorKit button reports (status bar buttons, Sign In / Sign Out: 6 pt continuous corners; floating glass actions: capsule; round buttons: circle). The segmented PermissionModePicker reports no shape and keeps the EK leaf default, a capsule. `.surface` corners (composer editor, attachment Remove button) keep their request.
+    - Item 4: no change (InlineCitation and PendingRequestCountBadge are not selectable or focusable).
+    - Item 5: new IntegrationTests/Tests/IntegrationTests/Commands/BarButtonFocusRingHostedTests.swift. It focuses the scope with `geometry.requestFocus(at:)` (no press) and reads state: `focusIndicator.controlCorners` and the CGPath of the `ScopeFocusRingBandView` layer. BarControlThreadHost now sets `\.appearsActive` true so the band draws in a window that is not key.
+    - RED seen: band test failed for 10 of 10 bar buttons with the CGPath compare (before the AgentControlScope change, 6 failed: the capsule request hid the 6 pt bezel); floating glass test failed 2 of 2 until `.editorButtonBorderShape(.capsule)`.
+    - Dead end: comparing `Path(cgPath) == Path` fails for equal shapes (SwiftUI Path storage differs); compare CGPath to CGPath.
+    - Item 6: ScreenshotTests recorded again. Changed PNGs show no visible change (no shot focuses a bar button): snapshots/HostedSnapshotTests/item-focus-message-{light,dark}.png, generated/HostedSnapshotTests/item-focus-message-{light,dark}.png, screens/gallery-light.png; new files generated/GlassSnapshotTests/thread-header-{light,dark}.png.
+  timestamp: 2026-11-08T18:19:02.871758+00:00
+- actor: claude-code
+  id: 01m6y65bcze3k4htmn2wpvt9d0
+  text: |-
+    ### implement — changed
+    - evidence: 7 files — Sources/AgentViewKit/Commands/AgentControlScope.swift, Sources/AgentViewKit/Theme/FloatingGlassAction.swift, Sources/AgentViewKit/Input/DefaultPromptAccessory.swift, Sources/AgentViewKit/Input/SpeechInputButton.swift, Tests/AgentViewKitTests/Commands/AgentControlCornersTests.swift, IntegrationTests/Tests/IntegrationTests/Commands/ThreadBarControlJumpHostedTests.swift, new IntegrationTests/Tests/IntegrationTests/Commands/BarButtonFocusRingHostedTests.swift. `swift test`: 1075 + 50 passed. `swift test --package-path IntegrationTests`: 1045 passed, 5 known issues (FontRoleExpectationsTests). `swift test --package-path ScreenshotTests`: 33 passed.
+    - next: /review
+  timestamp: 2026-11-08T18:19:06.015129+00:00
+position_column: doing
 position_ordinal: '80'
 title: 'Button focus ring follows the bezel: use EK .editorButtonBorderShape (EK ^zw631dd)'
 ---

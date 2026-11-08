@@ -40,7 +40,9 @@
   /// The composer is a ``PromptInputView`` over the draft of the record, so
   /// that the field shows the Remove button of each attachment chip. The
   /// environment gives suggestions and a speech transcriber, so that the
-  /// composer shows the suggestion chips and the dictation button.
+  /// composer shows the suggestion chips and the dictation button. The
+  /// window appears active, so a focused scope draws its focus ring as in a
+  /// key window, and the test window does not become key.
   struct BarControlThreadHost: View {
     /// The session model of the thread.
     let session: SessionModel
@@ -68,6 +70,7 @@
       .environment(\.speechInputPhaseReport, record.speechPhases.report)
       .speechTranscriber(FakeSpeechTranscriber())
       .commandSystem(system)
+      .environment(\.appearsActive, true)
       .transaction { $0.disablesAnimations = true }
     }
   }

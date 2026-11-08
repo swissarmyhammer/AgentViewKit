@@ -128,7 +128,7 @@ public struct DefaultPromptAccessory: View {
   ) -> some View {
     EditorButton(title, systemImage: symbol, look: .action, action: action)
       .editorButtonCaptions(.hidden)
-      .buttonBorderShape(.circle)
+      .editorButtonBorderShape(.circle)
       .accessibilityIdentifier(identifier)
       .agentControlScope(identifier)
   }
