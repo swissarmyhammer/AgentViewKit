@@ -65,8 +65,25 @@ comments:
     - evidence: 3 files — new Sources/AgentViewKit/Theme/CircleAction.swift, Sources/AgentViewKit/Input/DefaultPromptAccessory.swift, Sources/AgentViewKit/Input/SpeechInputButton.swift. `swift test`: 1075 + 50 passed. `swift test --package-path IntegrationTests`: 1045 tests passed, 5 known issues (FontRoleExpectationsTests); BarButtonFocusRingHostedTests passed. `swift test --package-path ScreenshotTests`: 33 passed, no PNG changed.
     - next: /review
   timestamp: 2026-11-08T18:31:54.140163+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m6y75vhbrdfjv8vwsbfvempg
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (c80966e9): 0 findings, 0 confirmed, 0 refuted; 7 pairs attempted, 0 failed. All prior findings are checked.
+    - next: none. The task is in done.
+  timestamp: 2026-11-08T18:36:51.115723+00:00
+- actor: claude-code
+  id: 01m6y765nja37dk6jjbtwjt5wj
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — 3 files (1 finding fixed)
+    - test: green — swift test 1075+50; IntegrationTests 1045 (5 known); ScreenshotTests 33
+    - commit: c80966e9
+    - review: clean — 0 findings; task in done
+    - push: not done; the AVK user decides the push
+  timestamp: 2026-11-08T18:37:01.490232+00:00
+position_column: done
+position_ordinal: ffffffcc80
 title: 'Button focus ring follows the bezel: use EK .editorButtonBorderShape (EK ^zw631dd)'
 ---
 EK ^zw631dd is on EditorKit main 4e673e2c. The ring of a landed EditorButton now follows the real bezel of its style. SwiftUI cannot read a host `.buttonBorderShape(_:)`, so a kit must tell EditorKit the shape with `.editorButtonBorderShape(_:)` (EditorSwiftUI, Sources/EditorSwiftUI/EditorButtonBezel.swift; cases include `.capsule` and `.circle`). Otherwise the ring is a 6 pt rounded rectangle around a capsule or circle bezel.
