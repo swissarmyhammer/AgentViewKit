@@ -539,16 +539,20 @@ enum AgentRowListLayout {
 ///
 /// The row is focusable, as the rows of the EditorKit TodoList example are,
 /// so a `nav.*` move and a jump focus the row itself, and not a control in
-/// it. Without Keyboard Navigation, SwiftUI gives a focusable view no AppKit
-/// responder, so the beacon of the scope takes the first responder. Thus the
-/// list, and not the `@FocusState` of the row, knows the selection: it reads
-/// the focused path of the window and the current row of the host, and passes
-/// `isSelected`. A click selects the row through the geometry of the command
-/// system, as a `nav.*` move does; ``AgentRowClicks`` holds the clicks, which
-/// depend on the open trigger of the list. The system focus effect is off: the
-/// selectable surface, inside the command scope of the row, shows the
-/// selection as the soft accent fill and the focus as the stronger accent
-/// fill, and the scope of the row draws no focus ring (EditorKit style.md,
+/// it. The list, and not the `@FocusState` of the row, knows the selection:
+/// it reads the focused path of the window and the current row of the host,
+/// and passes `isSelected`. A click selects the row through the geometry of
+/// the command system, as a `nav.*` move does; ``AgentRowClicks`` holds the
+/// clicks, which depend on the open trigger of the list.
+///
+/// The focus lands on one of two views. A row that is focusable with each
+/// interaction (``AgentRowOpenTrigger/doubleClick``) takes the first
+/// responder itself, and the `@FocusState` of the row knows that focus. A row
+/// that is focusable only for activation leaves the first responder to the
+/// beacon of its scope. The selectable surface shows both as the stronger
+/// accent fill, and the selection as the soft accent fill. The system focus
+/// effect is off around the focusable view, so SwiftUI draws no focus ring,
+/// and the scope of the row draws no focus ring (EditorKit style.md,
 /// "Selection and focus").
 struct AgentRowListRow<Content: View>: View {
   /// The segment of the scope of the row.
@@ -582,10 +586,14 @@ struct AgentRowListRow<Content: View>: View {
 
   @Environment(\.editorStyle) private var editorStyle
 
+  /// Whether the focusable view of the row holds the keyboard focus itself.
+  @FocusState private var isFocused: Bool
+
   var body: some View {
     wrappedSurface
-      .focusEffectDisabled()
       .modifier(AgentRowClicks(trigger: openTrigger, select: select, open: open, identifier: identifier))
+      .focusEffectDisabled()
+      .focused($isFocused)
       .commandScope(segment: segment)
       .navScrollable(.vertical)
   }
@@ -598,7 +606,7 @@ struct AgentRowListRow<Content: View>: View {
       content
       .padding(density.rowInsets(in: editorStyle))
       .frame(maxWidth: .infinity, alignment: .leading)
-      .selectableSurface(isSelected, radius: AgentRowListLayout.radius)
+      .selectableSurface(isSelected, isFocused: isFocused, corners: .rounded(AgentRowListLayout.radius))
     if let wrapper {
       wrapper(AnyView(surface))
     } else {
