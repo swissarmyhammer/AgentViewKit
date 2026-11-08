@@ -41,8 +41,25 @@ comments:
     - evidence: swift test: 1074 tests in 123 suites passed (plus 50 tests in 10 suites passed), 0 failures. swift test --package-path IntegrationTests: 1037 tests in 143 suites passed, 5 known issues (deliberate negative tests in FontRoleExpectationsTests). swift test --package-path ScreenshotTests: 32 tests in 4 suites passed. No compiler warnings in changed code. Each run printed one SwiftPM build-system message, "missing creator for mutated node" for the mlx-swift_Cmlx.bundle. It is not in changed code.
     - next: review
   timestamp: 2026-11-08T16:12:07.494270+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m6xz0jjtgntx7vvkfttab0yp
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (e517de78). 0 findings, 0 confirmed, 0 refuted. 14 validator runs, 0 failed. 19 files reviewed.
+    - next: The task is in done.
+  timestamp: 2026-11-08T16:14:09.498452+00:00
+- actor: claude-code
+  id: 01m6xz0yyzhhct3k5tgamwxgqw
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 21 files
+    - test: green — swift test 1074+50 passed; IntegrationTests 1037 passed (5 known negative tests); ScreenshotTests 32 passed
+    - commit: e517de78
+    - review: clean — 0 findings; task in done
+    - push: not done; the AVK user decides the push
+  timestamp: 2026-11-08T16:14:22.175357+00:00
+position_column: done
+position_ordinal: ffffffc880
 title: 'Selection and focus: AVK items use EK .selectableItem (style.md "Selection and focus")'
 ---
 EditorKit style.md has a new rule, "Selection and focus" (EK 0a95dae6). EK card ^kzr7way adds the modifier, on EditorKit main bab334ea.
