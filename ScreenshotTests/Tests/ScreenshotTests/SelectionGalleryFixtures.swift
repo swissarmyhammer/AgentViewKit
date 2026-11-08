@@ -13,10 +13,12 @@ import Testing
 ///
 /// Each image shows the same items: an ``AgentRowList`` whose current row
 /// is selected, a focused ``AttachmentChip``, an ``AttachmentView`` chip that
-/// the inspector shows, and a user message. A selected item shows the soft
-/// accent fill, a focused item with a surface shows the stronger accent fill
-/// and no ring, and a focused message, which has no surface, shows the focus
-/// ring of its scope. In a window that is not key, the fills are the
+/// the inspector shows, a user message, and the permission card of a
+/// ``RequestDeck``. A selected item shows the soft accent fill, a focused
+/// item with a surface shows the stronger accent fill and no ring, and a
+/// focused message, which has no surface, shows the focus ring of its scope.
+/// The permission card, a card that takes the keyboard focus itself, shows
+/// the same fill and no ring. In a window that is not key, the fills are the
 /// inactive grey.
 ///
 /// A window holds one focus, so each image lands the focus on one item. The
@@ -36,6 +38,8 @@ enum SelectionGalleryFixtures {
     case chip
     /// The user message.
     case message
+    /// The permission card of the deck.
+    case permission
   }
 
   /// One image of the gallery.
@@ -54,6 +58,7 @@ enum SelectionGalleryFixtures {
     Shot(name: "item-focus-row", focus: .row, appearsActive: true),
     Shot(name: "item-focus-chip", focus: .chip, appearsActive: true),
     Shot(name: "item-focus-message", focus: .message, appearsActive: true),
+    Shot(name: "item-focus-permission", focus: .permission, appearsActive: true),
     Shot(name: "item-focus-row-not-key", focus: .row, appearsActive: false),
   ]
 
@@ -79,8 +84,9 @@ enum SelectionGalleryFixtures {
   /// The height of the list, in points: the three rows with room below them.
   static let listHeight: CGFloat = 140
 
-  /// The height of the image, in points.
-  static let height: CGFloat = 420
+  /// The height of the image, in points: the list, the chips, the message
+  /// and the permission card.
+  static let height: CGFloat = 460
 
   /// The size of the image: the narrow width of a card.
   static let size = CGSize(width: SnapshotFixtures.narrowWidth, height: height)
@@ -150,18 +156,26 @@ struct SelectionGalleryItems {
   /// The user message.
   let message: UserMessageEntry
 
-  /// Writes the files of the chips in `directory`, and opens the session of
-  /// the message.
+  /// The preview session of the permission card, which holds one request.
+  let permissionSession: SessionModel
+
+  /// The request of the permission card.
+  let permission: PendingPermissionRequest
+
+  /// Writes the files of the chips in `directory`, and opens the sessions of
+  /// the message and of the permission card.
   ///
   /// - Parameter directory: The directory of the files.
   /// - Throws: The error of a write, or an issue when the session holds no
-  ///   user message.
+  ///   user message or the permission session holds no request.
   init(in directory: TemporaryFolder) throws {
     chipFile = try AttachmentFixtures.attachment(named: SelectionGalleryFixtures.chipFileName, in: directory)
     selectedFile = try AttachmentFixtures.attachment(
       named: SelectionGalleryFixtures.selectedFileName, in: directory)
     session = PreviewFixtures.MessageSample.user.session
     message = try #require(PreviewFixtures.firstEntry(in: session, as: UserMessageEntry.self))
+    permissionSession = SnapshotFixtures.permissionSession
+    permission = try #require(permissionSession.pendingPermissions.first)
   }
 
   /// The path of the scope of `target`.
@@ -178,12 +192,16 @@ struct SelectionGalleryItems {
     case .message:
       return FocusPath.root(AgentCommandTarget.segment(for: session))
         .appending(AgentScopeKind.message(rowKey: message.id.rowKey))
+    case .permission:
+      return FocusPath.root(AgentCommandTarget.segment(for: permissionSession))
+        .appending(AgentScopeKind.request(permission.id))
     }
   }
 }
 
-/// The items of one image: the list, the two chips side by side, and the
-/// message, with the space between two blocks of the tile.
+/// The items of one image: the list, the two chips side by side, the
+/// message and the deck of the permission card, with the space between two
+/// blocks of the tile.
 private struct SelectionGallery: View {
   /// The models of the items.
   let items: SelectionGalleryItems
@@ -204,6 +222,8 @@ private struct SelectionGallery: View {
       }
       UserMessageView(entry: items.message)
         .agentCommandScope(session: items.session)
+      RequestDeck(session: items.permissionSession)
+        .agentCommandScope(session: items.permissionSession)
     }
     .padding(EditorStyle.default.tile.margin)
   }

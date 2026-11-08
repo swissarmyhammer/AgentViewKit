@@ -9,7 +9,31 @@ comments:
     Blocked by EK card ^tmwpx2x (01M6XZ1K6YHH8HD8RKATMWPX2X). It adds public `.selectableItem(isSelected:isFocused:radius:)` and `.selectableItem(isSelected:isFocused:cornerRadius:)`. The host gives isFocused from @FocusState, as with .editorFocusRing. The fill is the focused fill when isFocused is true or the scope holds the focus.
     Do not start until EK sends the sha on main. Then update the EK pin, use the new form on the permission card (RequestDeck.swift, PermissionView.swift) in place of .editorFocusRing, and add the hosted test.
   timestamp: 2026-11-08T16:14:53.864732+00:00
-position_column: todo
+- actor: claude-code
+  id: 01m6y12n8t0dd72162rqd1vtaj
+  text: |-
+    Research (implement step):
+    - EK pin is c277df00 (^tmwpx2x). Public API: `.selectableItem(isSelected:isFocused:radius:)` and `.selectableItem(isSelected:isFocused:cornerRadius:)` in EditorCommandsUI.
+    - In the deck, the front card can be taller than the PermissionView: DeckStackLayout gives the front card the height that the edges and the waiting cards do not take, and DeckCard applies `.frame(maxHeight: .infinity, alignment: .top)` before the edge. Thus the focus fill must be at the frame of the deck card, not in PermissionView (the reason for `permissionFrameIsExternal`).
+    - The focus of the card comes from PermissionView's @FocusState, through `PermissionCardFocusKey`, to `cardHasFocus` in DeckCard. A nav move or a jump lands the focus on the PermissionView itself (AgentItemFocusHostedTests), so `\.commandScopeHoldsFocus` stays false.
+    - Plan: add `.selectableSurface(_:isFocused:corners:)` to AgentViewKitStyle (it wraps the new EK form, as `.selectableSurface(_:corners:)` wraps the old). DeckCard: the permission card gets the frame, then `.selectableSurface(false, isFocused: cardHasFocus && showsWhole, corners: .card)`, inside its item scope with the `.contentSurface` look; remove `.editorFocusRing` and the `isFocusEffectEnabled` read. PermissionView without an external frame: the fill in place of `.editorFocusRing`.
+    - Test plan: hosted test in IntegrationTests that lands a nav move on the permission card (deck and standalone card in a scope) and reads the window layers, as EK SelectableItemHostedTests does: the focused fill color shows, and the count of layers with contents does not change with the focus (no ring Canvas).
+  timestamp: 2026-11-08T16:50:14.938529+00:00
+- actor: claude-code
+  id: 01m6y20n4396x57ysya71ac8rr
+  text: |-
+    Discovery: in a hosted window, a `nav.*` move (requestFocus) from a window with no focus lands on the BEACON of the card scope (GeometryProbeView), not on the PermissionView. The card holds the focus itself only by its `defaultFocus` when it shows at mount (responder KeyViewProxy). Thus the new hosted test reads the mount state (card holds the focus itself), then `makeFirstResponder(nil)` for the idle state. A first try that compared "before the nav move" with "after the nav move" was wrong: the card already held the focus before the move.
+    Implementation: `.selectableSurface(_:isFocused:corners:)` in AgentViewKitStyle (wraps EK `.selectableItem(isSelected:isFocused:cornerRadius:)`). DeckCard: the permission card gets `.frame(maxHeight: .infinity)`, then the fill from `cardHasFocus && showsWhole`, in its item scope with the `.contentSurface` look; `.editorFocusRing` and the `isFocusEffectEnabled` read are gone. PermissionView out of a deck: `PermissionCardSurface` draws the edge and the fill (was `PermissionCardEdge` + `.editorFocusRing`).
+  timestamp: 2026-11-08T17:06:37.827822+00:00
+- actor: claude-code
+  id: 01m6y28ayyayhae3vt1w2cc3kr
+  text: |-
+    ### implement — changed
+    - evidence: Sources/AgentViewKitStyle/Theme/SelectableSurface.swift, Sources/AgentViewKitStyle/AgentViewKitStyle.docc/AgentViewKitStyle.md, Sources/AgentViewKit/HumanInTheLoop/RequestDeck.swift, Sources/AgentViewKit/HumanInTheLoop/PermissionView.swift, ARCHITECTURE.md, IntegrationTests/.../HumanInTheLoop/PermissionCardFocusLookHostedTests.swift (new, 2 tests x 2 hosts: deck and card; RED on the old code for both, and the no-outline test also RED with `.editorFocusRing` put back), ScreenshotTests SelectionGalleryFixtures.swift + HostedSnapshotTests.swift (new shot item-focus-permission; the gallery now shows a RequestDeck under the message, height 460). swift test: 1074 tests + 50 passed. IntegrationTests: 1039 tests passed, 5 known issues (FontRoleExpectationsTests). ScreenshotTests: 33 tests passed.
+    - PNGs: ~/Library/Caches/AgentViewKit/screenshot-check/generated/HostedSnapshotTests/item-focus-{row,chip,message,permission,row-not-key}-{light,dark}.png
+    - next: review. AgentRowList is not changed (^n73fftt).
+  timestamp: 2026-11-08T17:10:49.566471+00:00
+position_column: doing
 position_ordinal: '80'
 title: 'Permission card: show keyboard focus as the focused fill, not as .editorFocusRing'
 ---
@@ -20,6 +44,6 @@ The permission card of the request deck is focusable (`@FocusState`, `.focusEffe
 The rule says: an item with a surface never shows a ring. EK permits `.editorFocusRing` for a focusable card, but EK has no public API to draw the focused fill from the focus of a focusable view (`selectableItemSurface(isSelected:isFocused:cornerRadius:)` is `package` in EditorStyle).
 
 To do:
-- [ ] Ask EK for a public form, for example `.selectableItem(isSelected:isFocused:cornerRadius:)`, or confirm that the ring stays for a focusable card.
-- [ ] Then show the focus of the permission card as the focused fill, and remove `.editorFocusRing` from the card.
-- [ ] Hosted test: a focused permission card shows no outline.
+- [x] Ask EK for a public form, for example `.selectableItem(isSelected:isFocused:cornerRadius:)`, or confirm that the ring stays for a focusable card.
+- [x] Then show the focus of the permission card as the focused fill, and remove `.editorFocusRing` from the card.
+- [x] Hosted test: a focused permission card shows no outline.

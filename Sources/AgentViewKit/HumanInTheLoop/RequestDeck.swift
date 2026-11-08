@@ -618,9 +618,6 @@ private struct DeckCard: View {
   /// `nil` out of a container.
   @Environment(\.floatingGlassNamespace) private var glassNamespace
 
-  /// Whether `.focusEffectDisabled()` above the deck is off, so the ring shows.
-  @Environment(\.isFocusEffectEnabled) private var isFocusEffectEnabled
-
   /// Whether the permission card holds the keyboard focus.
   @State private var cardHasFocus = false
 
@@ -635,7 +632,6 @@ private struct DeckCard: View {
     cardContent
       .environment(\.permissionFrameIsExternal, true)
       .focused(keyboardFocus, equals: request.id)
-      .frame(maxHeight: .infinity, alignment: .top)
       .opacity(showsWhole ? 1 : 0)
       // The edge fades, so a second card that arrives does not change the
       // identity of the card, and the card keeps its state.
@@ -645,10 +641,7 @@ private struct DeckCard: View {
           .opacity(drawsEdge ? 1 : 0)
       }
       .mask { DeckCardBand(role: role, edgeStep: edgeStep) }
-      // The ring is above the mask: the mask is the frame of the card plus
-      // 1 pt, and it would cut the outer 2 pt of the ring.
       .onPreferenceChange(PermissionCardFocusKey.self) { cardHasFocus = $0 }
-      .editorFocusRing(isFocused: cardHasFocus && showsWhole && isFocusEffectEnabled, radius: .large)
       .contentContainer(identifier: identifier)
       .accessibilityFocusTarget(identifier)
       .accessibilityHidden(!showsWhole)
@@ -659,19 +652,29 @@ private struct DeckCard: View {
       .layoutValue(key: DeckCardRoleKey.self, value: role)
   }
 
-  /// The card view of the request.
+  /// The card view of the request, at the whole frame of the card.
+  ///
+  /// The permission card takes the keyboard focus itself, so a jump or a
+  /// move gives the focus to the card and not to the beacon of its scope.
+  /// The card shows that focus as the focused fill of its surface, never as
+  /// an outline (EditorKit style.md, "Selection and focus"). The fill is at
+  /// the frame of the deck card, which can be taller than the card, so the
+  /// fill and the edge of the card agree.
   @ViewBuilder
   private var cardContent: some View {
     switch request {
     case .permission(let permission):
       if let session = source.session {
         PermissionView(request: permission, session: session)
+          .frame(maxHeight: .infinity, alignment: .top)
+          .selectableSurface(false, isFocused: cardHasFocus && role.showsWhole, corners: .card)
           .agentItemScope(
             AgentScopeKind.request(permission.id), subject: permission, isTargetable: role.showsWhole,
-            focusLook: .fill(.card))
+            focusLook: .contentSurface)
       }
     case .elicitation(let elicitation):
       ElicitationCard(request: elicitation, owner: source.elicitationOwner)
+        .frame(maxHeight: .infinity, alignment: .top)
     }
   }
 

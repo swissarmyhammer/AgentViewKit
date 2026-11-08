@@ -170,7 +170,8 @@ import Testing
   /// The selection and the focus of the items of the kit (^r3sm8nh,
   /// EditorKit `style.md`, "Selection and focus"): the rows of an
   /// ``AgentRowList``, an ``AttachmentChip``, the chip of an
-  /// ``AttachmentView`` and a message, with the focus on one item of each
+  /// ``AttachmentView``, a message and the permission card of a
+  /// ``RequestDeck``, with the focus on one item of each
   /// image, and the inactive grey of a window that is not key
   /// (``SelectionGalleryFixtures``).
   @Test func theSelectionAndTheFocusOfTheItems() async throws {

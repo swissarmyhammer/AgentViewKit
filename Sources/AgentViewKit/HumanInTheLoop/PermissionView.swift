@@ -188,14 +188,14 @@ public struct PermissionView: View {
     }
     .contentTile()
     .frame(maxWidth: .infinity, alignment: .leading)
-    .modifier(PermissionCardEdge(isDrawn: !frameIsExternal, radius: editorStyle.radii.l))
     // The card is a focusable view of its item scope, so a jump or a move
-    // lands the focus on the card and the scope draws no ring. EditorKit's
-    // focus ring (^8qtcdqc) draws it in the theme accent with the large
-    // radius of the style, and the system focus effect stays off.
+    // lands the focus on the card and not on the beacon of the scope. The
+    // card shows that focus as the focused fill of its surface, never as an
+    // outline (EditorKit style.md, "Selection and focus"), and the system
+    // focus effect stays off.
+    .modifier(PermissionCardSurface(isDrawn: !frameIsExternal, isFocused: isFocused))
     .focusable()
     .focusEffectDisabled()
-    .editorFocusRing(isFocused: isFocused && !frameIsExternal, radius: .large)
     .preference(key: PermissionCardFocusKey.self, value: isFocused)
     .focused($isFocused)
     .defaultFocus($isFocused, true)
@@ -471,7 +471,8 @@ struct PermissionAnswer: Equatable {
 }
 
 /// Whether a ``PermissionView`` holds the keyboard focus, for a host that draws
-/// the ring above a mask that would cut it (``RequestDeck``).
+/// the focused fill at a frame that can be taller than the card
+/// (``RequestDeck``).
 struct PermissionCardFocusKey: PreferenceKey {
   static let defaultValue = false
 
@@ -480,17 +481,25 @@ struct PermissionCardFocusKey: PreferenceKey {
   }
 }
 
-/// The content edge of a ``PermissionView`` that draws its own.
-private struct PermissionCardEdge: ViewModifier {
-  /// Whether the card draws the edge.
+/// The surface of a ``PermissionView`` that draws its own: the content edge,
+/// and the fill of the keyboard focus of the card.
+private struct PermissionCardSurface: ViewModifier {
+  /// The corners of the surface of the card.
+  static let corners = SurfaceCorners.card
+
+  /// Whether the card draws its surface.
   let isDrawn: Bool
 
-  /// The radius of the edge.
-  let radius: CGFloat
+  /// Whether the card holds the keyboard focus.
+  let isFocused: Bool
+
+  @Environment(\.editorStyle) private var editorStyle
 
   @ViewBuilder func body(content: Self.Content) -> some View {
     if isDrawn {
-      content.inlineEdge(radius: radius)
+      content
+        .inlineEdge(radius: Self.corners.radius(in: editorStyle))
+        .selectableSurface(false, isFocused: isFocused, corners: Self.corners)
     } else {
       content
     }
@@ -498,11 +507,10 @@ private struct PermissionCardEdge: ViewModifier {
 }
 
 extension EnvironmentValues {
-  /// Whether the host of a ``PermissionView`` draws its edge and its focus ring,
-  /// so the card draws neither. A ``RequestDeck`` draws both around each card:
-  /// a card can be shorter than the frame of the deck, and a second edge would
-  /// show inside the first, and its mask would cut the outer part of a ring on
-  /// the card.
+  /// Whether the host of a ``PermissionView`` draws its edge and its focus fill,
+  /// so the card draws neither. A ``RequestDeck`` draws both at the frame of
+  /// each card: a card can be shorter than the frame of the deck, and a second
+  /// edge and a second fill would show inside the first.
   @Entry var permissionFrameIsExternal: Bool = false
 
   /// The ``ObservationReport`` that gets each ``PermissionAnswer`` of the

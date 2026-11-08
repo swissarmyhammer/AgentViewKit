@@ -41,7 +41,10 @@ shows its selection and its focus as a fill in its own shape, never as an
 outline (EditorKit style.md, "Selection and focus"):
 ``SwiftUI/View/selectableSurface(_:corners:)``, inside the `.commandScope` of
 the item, wraps EditorKit's `.selectableItem`, so the scope draws no focus
-ring around the item. A part with no scope of its own inside another item,
+ring around the item. An item that takes the keyboard focus itself, such as
+a focusable card, gives that focus to
+``SwiftUI/View/selectableSurface(_:isFocused:corners:)``, and shows it as the
+same fill, with no ring. A part with no scope of its own inside another item,
 such as a tab chip, shows its selection only with
 ``SwiftUI/View/selectionSurface(_:corners:)``.
 
@@ -61,6 +64,7 @@ button of a ``StatusBar`` the focus scope of a bar control with
 - ``SurfaceCorners``
 - ``SwiftUI/View/selectableSurface(_:radius:)``
 - ``SwiftUI/View/selectableSurface(_:corners:)``
+- ``SwiftUI/View/selectableSurface(_:isFocused:corners:)``
 - ``SwiftUI/View/selectionSurface(_:corners:)``
 - ``SwiftUI/View/changeHighlightEdge(corners:isShowing:)``
 - ``SwiftUI/View/changeHighlightEdge(radius:isShowing:)``
