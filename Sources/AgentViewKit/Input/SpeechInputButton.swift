@@ -67,11 +67,8 @@ public struct SpeechInputButton: View {
       EditorButton(title, systemImage: symbol, variableValue: level, look: .action) {
         toggle(transcriber: transcriber, text: text)
       }
-      .editorButtonCaptions(.hidden)
-      .editorButtonBorderShape(.circle)
       .accessibilityValue(Self.valueText(of: phase))
-      .accessibilityIdentifier(Self.identifier)
-      .agentControlScope(Self.identifier)
+      .circleAction(identifier: Self.identifier)
       .onDisappear { stop(transcriber: transcriber) }
     }
   }

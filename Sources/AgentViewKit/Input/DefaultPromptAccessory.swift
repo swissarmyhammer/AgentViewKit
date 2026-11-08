@@ -113,8 +113,7 @@ public struct DefaultPromptAccessory: View {
   }
 
   /// A round button of the accessory: an EditorKit `EditorButton` in the
-  /// action look that shows its symbol alone, with its title as its label and
-  /// its tooltip, in the focus scope of a control of the bar.
+  /// action look, made round by ``SwiftUI/View/circleAction(identifier:)``.
   ///
   /// - Parameters:
   ///   - title: The localized title of the button.
@@ -127,10 +126,7 @@ public struct DefaultPromptAccessory: View {
     title: String, symbol: String, identifier: String, action: @escaping () -> Void
   ) -> some View {
     EditorButton(title, systemImage: symbol, look: .action, action: action)
-      .editorButtonCaptions(.hidden)
-      .editorButtonBorderShape(.circle)
-      .accessibilityIdentifier(identifier)
-      .agentControlScope(identifier)
+      .circleAction(identifier: identifier)
   }
 }
 

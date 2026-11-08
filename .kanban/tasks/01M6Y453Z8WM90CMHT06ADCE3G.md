@@ -33,6 +33,38 @@ comments:
     - evidence: 7 files — Sources/AgentViewKit/Commands/AgentControlScope.swift, Sources/AgentViewKit/Theme/FloatingGlassAction.swift, Sources/AgentViewKit/Input/DefaultPromptAccessory.swift, Sources/AgentViewKit/Input/SpeechInputButton.swift, Tests/AgentViewKitTests/Commands/AgentControlCornersTests.swift, IntegrationTests/Tests/IntegrationTests/Commands/ThreadBarControlJumpHostedTests.swift, new IntegrationTests/Tests/IntegrationTests/Commands/BarButtonFocusRingHostedTests.swift. `swift test`: 1075 + 50 passed. `swift test --package-path IntegrationTests`: 1045 passed, 5 known issues (FontRoleExpectationsTests). `swift test --package-path ScreenshotTests`: 33 passed.
     - next: /review
   timestamp: 2026-11-08T18:19:06.015129+00:00
+- actor: claude-code
+  id: 01m6y6g8kvb2px5vhrmsq228j1
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (22d0ba27); 1 finding (1 confirmed, 0 refuted) — Sources/AgentViewKit/Input/SpeechInputButton.swift:71 `reuse/reuse`
+    - next: implement the finding in the dated Review Findings section, then review again
+  timestamp: 2026-11-08T18:25:03.611009+00:00
+- actor: claude-code
+  id: 01m6y6gr6hrzgffzhtkfre4nn8
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 7 files
+    - test: green — swift test 1075+50; IntegrationTests 1045 (5 known); ScreenshotTests 33
+    - commit: 22d0ba27
+    - review: findings — Sources/AgentViewKit/Input/SpeechInputButton.swift:71
+  timestamp: 2026-11-08T18:25:19.569504+00:00
+- actor: claude-code
+  id: 01m6y6wq910zaf4fqaxd2g88xh
+  text: |-
+    Finding `reuse/reuse` (SpeechInputButton.swift:71) is fixed:
+    - New `View.circleAction(identifier:)` in Sources/AgentViewKit/Theme/CircleAction.swift, next to the `floatingGlassAction(glassID:identifier:)` analog. It applies `.editorButtonCaptions(.hidden)`, `.editorButtonBorderShape(.circle)`, `.accessibilityIdentifier(identifier)` and `.agentControlScope(identifier)`.
+    - `DefaultPromptAccessory.circleActionButton` and `SpeechInputButton.body` call it. The parts for each button (title, symbol, variable value, action, `.accessibilityValue`, `.onDisappear`) stay at the call sites. `.accessibilityValue` stays before the helper, on the button, as before.
+    - Search of the whole Sources tree: `.editorButtonBorderShape(.circle)` occurs only at these two sites. The other `.editorButtonCaptions(.hidden)` sites are EditorToolbarButtons or containers (RequestDeck, SessionListView, MessageActions, CodeBlockView, CommandOutputView, ReasoningView, AttachmentChips) with no circle bezel, so they are not copies of this chain.
+    - No behavior change: the existing BarButtonFocusRingHostedTests (Send, Stop and Dictation report a circle) are the guard, and they pass. No PNG changed.
+  timestamp: 2026-11-08T18:31:51.841948+00:00
+- actor: claude-code
+  id: 01m6y6wsgwwkdhg6xhda1pjmje
+  text: |-
+    ### implement — changed
+    - evidence: 3 files — new Sources/AgentViewKit/Theme/CircleAction.swift, Sources/AgentViewKit/Input/DefaultPromptAccessory.swift, Sources/AgentViewKit/Input/SpeechInputButton.swift. `swift test`: 1075 + 50 passed. `swift test --package-path IntegrationTests`: 1045 tests passed, 5 known issues (FontRoleExpectationsTests); BarButtonFocusRingHostedTests passed. `swift test --package-path ScreenshotTests`: 33 passed, no PNG changed.
+    - next: /review
+  timestamp: 2026-11-08T18:31:54.140163+00:00
 position_column: doing
 position_ordinal: '80'
 title: 'Button focus ring follows the bezel: use EK .editorButtonBorderShape (EK ^zw631dd)'
@@ -53,3 +85,12 @@ Step 0: Update the EditorKit pin to 4e673e2c or later in the root package, Integ
 Test rules: no clock/sleep/poll/retry/timeLimit/XCUITest; tests never show a window or take focus. No magic numbers, no duplicated code.
 
 Commit only. Do not push: the user of AVK decides the push.
+
+## Review Findings (2026-11-08 12:23)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 7 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Sources/AgentViewKit/Input/SpeechInputButton.swift:71` `reuse/reuse` — The new `.editorButtonBorderShape(.circle)` line repeats the round-button modifier chain of `DefaultPromptAccessory.circleActionButton`. The chain is `EditorButton` with the action look, `.editorButtonCaptions(.hidden)`, `.editorButtonBorderShape(.circle)`, `.accessibilityIdentifier`, and `.agentControlScope`. Two copies of this chain must change together when the round-button look changes. Move the shared round-button chain into one helper or modifier, for example a `View` extension that applies `.editorButtonCaptions(.hidden)`, `.editorButtonBorderShape(.circle)`, and the scope. Call it from both `circleActionButton` and `SpeechInputButton.body`. Keep the per-button parts (title, symbol, action, identifier, and the `SpeechInputButton` value and disappear handling) at the call sites.
