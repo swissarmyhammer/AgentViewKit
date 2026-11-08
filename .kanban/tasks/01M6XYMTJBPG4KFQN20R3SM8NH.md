@@ -29,14 +29,21 @@ comments:
     - evidence: swift test: 1074 + 50 tests passed. IntegrationTests: 1037 tests passed (5 known issues, deliberate negative tests in FontRoleExpectationsTests). ScreenshotTests: 33 tests passed. 0 failures, 0 skipped. Only warning: SwiftPM "missing creator for mutated node" for the mlx-swift_Cmlx.bundle, a build-system message outside the changed code.
     - next: review
   timestamp: 2026-11-08T16:31:42.022556+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m6y0365yb6d1pr72me3bss9z
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (1c0a6585): 0 findings, 0 confirmed, 0 refuted; 4 files reviewed, 6 .kanban files not reviewed (ignore rule). Commit 1c0a6585 has the screen, so the two To do boxes are ticked.
+    - next: none. The task moves to done.
+  timestamp: 2026-11-08T16:33:03.678459+00:00
+position_column: done
+position_ordinal: ffffffc980
 title: Snapshot of the selection and focus look of AVK items
 ---
 Found during ^v3zpcpd. No snapshot of ScreenshotTests shows a focused item, so after ^v3zpcpd no PNG changed and the user cannot review the new focus look.
 
 To do:
-- [ ] Add a HostedSnapshotTests screen (light and dark) with: an AgentRowList with a selected row and a focused row, a focused AttachmentChip, a selected AttachmentView chip, and a focused message (ring, no surface). Land the focus through the command system in the harness window. The window is never ordered in and never key; the inactive grey of a window that is not key is part of the look, so also show the active look as EK SelectableItemHostedTests does (`\.appearsActive`).
-- [ ] Give the PNG paths to the user.
+- [x] Add a HostedSnapshotTests screen (light and dark) with: an AgentRowList with a selected row and a focused row, a focused AttachmentChip, a selected AttachmentView chip, and a focused message (ring, no surface). Land the focus through the command system in the harness window. The window is never ordered in and never key; the inactive grey of a window that is not key is part of the look, so also show the active look as EK SelectableItemHostedTests does (`\.appearsActive`).
+- [x] Give the PNG paths to the user.
 
 Test rules: no clock/sleep/poll/retry/timeLimit/XCUITest; no window shown and no focus taken.
