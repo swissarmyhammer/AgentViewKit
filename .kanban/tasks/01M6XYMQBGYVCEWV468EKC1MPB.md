@@ -1,6 +1,14 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m6xz1xx8j8evw9k6dmznzvmc
+  text: |-
+    EK answer (editorkit-9f): the ring does NOT stay. A focusable card is a kit item with a surface: focused fill, no outline.
+    Blocked by EK card ^tmwpx2x (01M6XZ1K6YHH8HD8RKATMWPX2X). It adds public `.selectableItem(isSelected:isFocused:radius:)` and `.selectableItem(isSelected:isFocused:cornerRadius:)`. The host gives isFocused from @FocusState, as with .editorFocusRing. The fill is the focused fill when isFocused is true or the scope holds the focus.
+    Do not start until EK sends the sha on main. Then update the EK pin, use the new form on the permission card (RequestDeck.swift, PermissionView.swift) in place of .editorFocusRing, and add the hosted test.
+  timestamp: 2026-11-08T16:14:53.864732+00:00
 position_column: todo
 position_ordinal: '80'
 title: 'Permission card: show keyboard focus as the focused fill, not as .editorFocusRing'

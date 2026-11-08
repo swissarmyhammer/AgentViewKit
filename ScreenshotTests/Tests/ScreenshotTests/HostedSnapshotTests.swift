@@ -167,6 +167,16 @@ import Testing
       ChipRowsGalleryFixtures.gallery, named: "chip-rows-narrow", size: ChipRowsGalleryFixtures.size)
   }
 
+  /// The selection and the focus of the items of the kit (^r3sm8nh,
+  /// EditorKit `style.md`, "Selection and focus"): the rows of an
+  /// ``AgentRowList``, an ``AttachmentChip``, the chip of an
+  /// ``AttachmentView`` and a message, with the focus on one item of each
+  /// image, and the inactive grey of a window that is not key
+  /// (``SelectionGalleryFixtures``).
+  @Test func theSelectionAndTheFocusOfTheItems() async throws {
+    try await SelectionGalleryFixtures.record(in: ReviewGalleryScreenTests.gallery)
+  }
+
   /// The button families of the kit in a narrow column: each button with too
   /// little room shows its symbol alone, and no caption is cut
   /// (``ButtonGalleryFixtures``).
