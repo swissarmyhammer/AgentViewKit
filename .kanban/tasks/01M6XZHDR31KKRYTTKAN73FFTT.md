@@ -74,8 +74,25 @@ comments:
     - evidence: Helpers/DepthFirstWalk.swift, Helpers/FocusLookBed.swift, Style/StatusBarReduceMotionHostedTests.swift; swift test --package-path IntegrationTests: 1042 tests in 146 suites passed, 5 known issues.
     - next: review
   timestamp: 2026-11-08T17:59:50.243609+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m6y54h3s07eyrpr9brx0dj3k
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (c9917618). 0 findings, 0 confirmed, 0 refuted. 3 files reviewed. All prior review items are checked.
+    - next: none. The task is in done.
+  timestamp: 2026-11-08T18:01:10.521310+00:00
+- actor: claude-code
+  id: 01m6y54wmy25km5td85kp60twy
+  text: |-
+    ### finish iteration 3 — clean
+    - implement: changed — 3 files (1 finding fixed)
+    - test: green — IntegrationTests 1042 (5 known); no other package changed
+    - commit: c9917618
+    - review: clean — 0 findings; task in done
+    - push: not done; the AVK user decides the push
+  timestamp: 2026-11-08T18:01:22.334854+00:00
+position_column: done
+position_ordinal: ffffffcb80
 title: 'AgentRowList: a focused row shows the system focus ring, not the focused fill'
 ---
 Found during ^r3sm8nh (snapshot item-focus-row-light.png / -dark.png in ~/Library/Caches/AgentViewKit/screenshot-check/snapshots/HostedSnapshotTests/).
