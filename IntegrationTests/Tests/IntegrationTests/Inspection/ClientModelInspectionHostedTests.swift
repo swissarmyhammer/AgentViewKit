@@ -60,10 +60,23 @@ import Testing
 
   /// Mounts an `InspectorView` of `object` and makes one render pass.
   ///
-  /// - Parameter object: The model to inspect.
+  /// A host shows the session, tool-call and terminal inspectors with
+  /// `.inspectorFieldLabels(.visible)` (see `SessionModel.inspection`). A
+  /// test of an empty row of these inspectors mounts them the same way: in
+  /// visible mode an empty row speaks the dash, and in placeholder mode it
+  /// speaks its field name.
+  ///
+  /// - Parameters:
+  ///   - object: The model to inspect.
+  ///   - labels: The field label mode of the view.
   /// - Returns: The harness. The caller closes it.
-  static func mount<Object: Inspectable>(_ object: Object) -> HostedViewHarness<InspectorView> {
-    let harness = HostedViewHarness(InspectorView(object), size: size)
+  static func mount<Object: Inspectable>(
+    _ object: Object, labels: InspectorFieldLabels = .placeholder
+  ) -> HostedViewHarness<some View> {
+    let harness = HostedViewHarness(size: size) {
+      InspectorView(object)
+        .inspectorFieldLabels(labels)
+    }
     harness.render()
     return harness
   }
@@ -83,10 +96,14 @@ import Testing
   /// Mounts an `InspectorView` of the client model `model`, which the view
   /// shows through its `InspectedClientModel`, and makes one render pass.
   ///
-  /// - Parameter model: The model to inspect.
+  /// - Parameters:
+  ///   - model: The model to inspect.
+  ///   - labels: The field label mode of the view.
   /// - Returns: The harness. The caller closes it.
-  static func mount<Model: InspectableClientModel>(_ model: Model) -> HostedViewHarness<InspectorView> {
-    mount(InspectedClientModel(model))
+  static func mount<Model: InspectableClientModel>(
+    _ model: Model, labels: InspectorFieldLabels = .placeholder
+  ) -> HostedViewHarness<some View> {
+    mount(InspectedClientModel(model), labels: labels)
   }
 
   /// The scheme id of a row of the `InspectorView` of the client model
@@ -272,7 +289,7 @@ import Testing
     try await session.sendUpdate(
       WireBlockJSON.makeToolCallUpdate(id: Self.toolCallID, fields: #""title": "Read", "status": "pending""#))
     let entry = try await Self.entry(ToolCallEntry.self, in: session)
-    let harness = Self.mount(entry)
+    let harness = Self.mount(entry, labels: .visible)
     defer { harness.close() }
     let row = Self.row(of: entry, group: "tool-call", field: "locations")
     #expect(harness.rowValue(row) == EditorInspectorStrings.noValue)
@@ -312,7 +329,7 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let model = session.model
-    let harness = Self.mount(model)
+    let harness = Self.mount(model, labels: .visible)
     defer { harness.close() }
 
     #expect(
@@ -331,7 +348,7 @@ import Testing
   /// - Returns: The harness. The caller closes it.
   static func mount<Model: InspectableClientModel>(
     _ model: Model, opening service: RecordingAttachmentFileService
-  ) -> HostedViewHarness<InspectorView> {
+  ) -> HostedViewHarness<some View> {
     mount(InspectedClientModel(model, fileService: service))
   }
 
@@ -459,7 +476,7 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let model = session.model
-    let harness = Self.mount(model)
+    let harness = Self.mount(model, labels: .visible)
     defer { harness.close() }
     let row = Self.row(of: model, group: "agent", field: "context-used")
     #expect(harness.rowValue(row) == EditorInspectorStrings.noValue)
@@ -496,7 +513,8 @@ import Testing
   static let timedLocale = Locale(identifier: "en_US")
 
   /// Mounts an `InspectorView` of the timed tool call `entry` in
-  /// ``timedLocale`` and `timeZone`, and makes one render pass.
+  /// ``timedLocale`` and `timeZone`, in the visible field label mode of a
+  /// host, and makes one render pass.
   ///
   /// - Parameters:
   ///   - entry: The inspected tool call.
@@ -505,6 +523,7 @@ import Testing
   static func mountTimed(_ entry: ToolCallEntry, timeZone: TimeZone = .current) -> HostedViewHarness<some View> {
     let harness = HostedViewHarness(size: size) {
       InspectorView(InspectedClientModel(entry))
+        .inspectorFieldLabels(.visible)
         .environment(\.locale, timedLocale)
         .environment(\.timeZone, timeZone)
     }
