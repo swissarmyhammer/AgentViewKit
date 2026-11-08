@@ -193,8 +193,7 @@ struct SelectionGalleryItems {
       return FocusPath.root(AgentCommandTarget.segment(for: session))
         .appending(AgentScopeKind.message(rowKey: message.id.rowKey))
     case .permission:
-      return FocusPath.root(AgentCommandTarget.segment(for: permissionSession))
-        .appending(AgentScopeKind.request(permission.id))
+      return AgentCommandTarget.requestPath(in: permissionSession, request: permission)
     }
   }
 }

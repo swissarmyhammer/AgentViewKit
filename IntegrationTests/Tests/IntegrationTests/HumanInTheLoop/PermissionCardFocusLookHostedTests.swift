@@ -43,8 +43,11 @@ private enum PermissionFocusBed {
   /// The segment of the scope of a card out of a deck.
   static let cardSegment = FocusSegment(kind: "permissionCard")
 
+  /// The side of the square window.
+  static let windowSide: CGFloat = 480
+
   /// The size of the window.
-  static let windowSize = CGSize(width: 480, height: 480)
+  static let windowSize = CGSize(width: windowSide, height: windowSide)
 }
 
 /// The focus look of a focused permission card (EditorKit style.md,
@@ -142,7 +145,7 @@ private enum PermissionFocusBed {
   static func path(of host: Host, session: SessionModel, request: PendingPermissionRequest) -> FocusPath {
     switch host {
     case .deck:
-      .root(AgentCommandTarget.segment(for: session)).appending(AgentScopeKind.request(request.id))
+      AgentCommandTarget.requestPath(in: session, request: request)
     case .card:
       .root(PermissionFocusBed.cardSegment)
     }

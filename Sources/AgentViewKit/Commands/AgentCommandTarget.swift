@@ -136,6 +136,20 @@ final class AgentCommandTarget {
     FocusSegment(kind: segmentKind, id: session.sessionId.rawValue)
   }
 
+  /// The focus path of the scope of the card of `request`, when the scope of
+  /// `session` is the root of the path.
+  ///
+  /// A ``RequestDeck`` in the agent command scope of `session` adds this
+  /// scope to the card of the request.
+  ///
+  /// - Parameters:
+  ///   - session: The session model of the scope.
+  ///   - request: The pending permission request of the card.
+  /// - Returns: The path `agentThread:<sessionId>/agentRequest:<uuidString>`.
+  static func requestPath(in session: SessionModel, request: PendingPermissionRequest) -> FocusPath {
+    FocusPath.root(segment(for: session)).appending(AgentScopeKind.request(request.id))
+  }
+
   // MARK: - Dispatch
 
   /// Dispatches `verb` through the registry of the scope.

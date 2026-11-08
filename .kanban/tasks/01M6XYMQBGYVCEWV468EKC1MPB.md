@@ -33,6 +33,44 @@ comments:
     - PNGs: ~/Library/Caches/AgentViewKit/screenshot-check/generated/HostedSnapshotTests/item-focus-{row,chip,message,permission,row-not-key}-{light,dark}.png
     - next: review. AgentRowList is not changed (^n73fftt).
   timestamp: 2026-11-08T17:10:49.566471+00:00
+- actor: claude-code
+  id: 01m6y2g81x7m4yqx9ga418r8q1
+  text: |-
+    ### test — green
+    - evidence: swift test 1074+50 passed; IntegrationTests 1039 passed (5 known negative tests); ScreenshotTests 33 passed; 0 warnings in the changed code
+    - next: commit, then review
+  timestamp: 2026-11-08T17:15:08.733905+00:00
+- actor: claude-code
+  id: 01m6y2m044sbxdy93d25hc516g
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (4f8f79e9). 2 findings: IntegrationTests/Tests/IntegrationTests/HumanInTheLoop/PermissionCardFocusLookHostedTests.swift:47, ScreenshotTests/Tests/ScreenshotTests/SelectionGalleryFixtures.swift:196
+    - next: implement the 2 open items in "Review Findings (2026-11-08 11:15)". The task stays in review.
+  timestamp: 2026-11-08T17:17:11.684644+00:00
+- actor: claude-code
+  id: 01m6y2mj0vnjsh02c5kcrbzq4n
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 8 files
+    - test: green — swift test 1074+50; IntegrationTests 1039 (5 known); ScreenshotTests 33
+    - commit: 4f8f79e9
+    - review: findings — IntegrationTests/Tests/IntegrationTests/HumanInTheLoop/PermissionCardFocusLookHostedTests.swift:47, ScreenshotTests/Tests/ScreenshotTests/SelectionGalleryFixtures.swift:196
+  timestamp: 2026-11-08T17:17:30.011491+00:00
+- actor: claude-code
+  id: 01m6y33jze74jen4v07k0h5pqs
+  text: |-
+    Review findings (2026-11-08 11:15) are fixed.
+
+    - Finding 1 (magic-numbers-swift): the window size of the bed uses the new named constant `PermissionFocusBed.windowSide`. No other unnamed number stays in the file (swiftlint no_magic_numbers: 0 violations).
+    - Finding 2 (duplication): new internal helper `AgentCommandTarget.requestPath(in:request:)` in Sources/AgentViewKit/Commands/AgentCommandTarget.swift. Production code is the correct place: `AgentScopeKind.request(_:)` and `AgentCommandTarget.segment(for:)` are internal, and AgentViewKitTestSupport has no `@testable import`, so a helper in test support cannot reach them. IntegrationTests and ScreenshotTests both use `@testable import AgentViewKit`, so both reach the helper. The two inline copies are deleted. New unit test: Tests/AgentViewKitTests/Commands/AgentCommandTargetTests.swift (RED: no member `requestPath`; then GREEN).
+  timestamp: 2026-11-08T17:25:42.510718+00:00
+- actor: claude-code
+  id: 01m6y340xnwfe2r56ftgzp20j6
+  text: |-
+    ### implement — changed
+    - evidence: 4 files — Sources/AgentViewKit/Commands/AgentCommandTarget.swift, Tests/AgentViewKitTests/Commands/AgentCommandTargetTests.swift (new), IntegrationTests/Tests/IntegrationTests/HumanInTheLoop/PermissionCardFocusLookHostedTests.swift, ScreenshotTests/Tests/ScreenshotTests/SelectionGalleryFixtures.swift. `swift test`: 1075 + 50 passed. `swift test --package-path IntegrationTests`: 1039 passed, 5 known issues (deliberate FontRoleExpectationsTests). `swift test --package-path ScreenshotTests`: 33 passed. Both findings checked.
+    - next: /review
+  timestamp: 2026-11-08T17:25:56.789570+00:00
 position_column: doing
 position_ordinal: '80'
 title: 'Permission card: show keyboard focus as the focused fill, not as .editorFocusRing'
@@ -47,3 +85,17 @@ To do:
 - [x] Ask EK for a public form, for example `.selectableItem(isSelected:isFocused:cornerRadius:)`, or confirm that the ring stays for a focusable card.
 - [x] Then show the focus of the permission card as the focused fill, and remove `.editorFocusRing` from the card.
 - [x] Hosted test: a focused permission card shows no outline.
+
+## Review Findings (2026-11-08 11:15)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 6 file(s) reviewed, 4 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+> 2 file(s) not reviewed — no validator matched:
+> - `ARCHITECTURE.md` — no validator matches this file
+> - `Sources/AgentViewKitStyle/AgentViewKitStyle.docc/AgentViewKitStyle.md` — no validator matches this file
+
+- [x] `IntegrationTests/Tests/IntegrationTests/HumanInTheLoop/PermissionCardFocusLookHostedTests.swift:47` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `ScreenshotTests/Tests/ScreenshotTests/SelectionGalleryFixtures.swift:196` `duplication/duplication` — The new `.permission` case of `SelectionGalleryItems.path(of:)` repeats the scope-path construction of the `PermissionFocusBed.path(of:)` deck case in the new hosted test. Both build `FocusPath.root(AgentCommandTarget.segment(for: session))` and append `AgentScopeKind.request(request.id)`. If the path of a request scope changes, both copies must change in step, and they can drift apart. Add one shared helper, for example `AgentCommandTarget.requestPath(in: SessionModel, request: PendingPermissionRequest) -> FocusPath` in the production code or in the shared test support. Call it from this `.permission` case and from the deck case in the hosted test, and delete both inline copies.
