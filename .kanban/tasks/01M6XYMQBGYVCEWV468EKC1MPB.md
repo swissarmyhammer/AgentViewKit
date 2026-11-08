@@ -71,8 +71,25 @@ comments:
     - evidence: 4 files — Sources/AgentViewKit/Commands/AgentCommandTarget.swift, Tests/AgentViewKitTests/Commands/AgentCommandTargetTests.swift (new), IntegrationTests/Tests/IntegrationTests/HumanInTheLoop/PermissionCardFocusLookHostedTests.swift, ScreenshotTests/Tests/ScreenshotTests/SelectionGalleryFixtures.swift. `swift test`: 1075 + 50 passed. `swift test --package-path IntegrationTests`: 1039 passed, 5 known issues (deliberate FontRoleExpectationsTests). `swift test --package-path ScreenshotTests`: 33 passed. Both findings checked.
     - next: /review
   timestamp: 2026-11-08T17:25:56.789570+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m6y3dc60khtykq7yn6w9qnyz
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (fd4c8277): 0 findings, 0 confirmed, 0 refuted; 7 attempted, 0 failed. All prior findings are checked.
+    - next: none. The task is in done.
+  timestamp: 2026-11-08T17:31:03.232483+00:00
+- actor: claude-code
+  id: 01m6y3dpdx44x8fwaz5a9etm4v
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — 4 files (2 findings fixed)
+    - test: green — swift test 1075+50; IntegrationTests 1039 (5 known); ScreenshotTests 33
+    - commit: fd4c8277
+    - review: clean — 0 findings; task in done
+    - push: not done; the AVK user decides the push
+  timestamp: 2026-11-08T17:31:13.725242+00:00
+position_column: done
+position_ordinal: ffffffca80
 title: 'Permission card: show keyboard focus as the focused fill, not as .editorFocusRing'
 ---
 Found during ^v3zpcpd (style.md "Selection and focus").
