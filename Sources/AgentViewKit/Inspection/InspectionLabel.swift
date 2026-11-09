@@ -70,10 +70,23 @@ extension Inspection {
     let first = FieldGroup(label) { return built }
     let rest = more()
     let title = label.text
-    let objectName = name.map { name in { @MainActor (object: Object) -> String in name(object) ?? title } }
-    return Inspection(id: id, title: title, name: objectName) {
+    return Inspection(id: id, title: title, name: objectName(name, title: title)) {
       first
       for group in rest { group }
     }
+  }
+
+  /// The name of one object for an inspection, with the title in the place
+  /// of a name of `nil`.
+  ///
+  /// - Parameters:
+  ///   - name: The name of one object, or `nil` to name it by the title.
+  ///   - title: The title of the inspection.
+  /// - Returns: The name that EditorKit shows in the name row of a block,
+  ///   or `nil` when `name` is `nil`.
+  static func objectName(
+    _ name: (@MainActor (Object) -> String?)?, title: String
+  ) -> (@MainActor (Object) -> String)? {
+    name.map { name in { @MainActor (object: Object) -> String in name(object) ?? title } }
   }
 }

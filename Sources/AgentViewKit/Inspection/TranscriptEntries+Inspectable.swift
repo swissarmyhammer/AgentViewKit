@@ -8,9 +8,10 @@ import FoundationModelsACPClient
 // a host shows any entry in an EditorKit `InspectorView`
 // (`InspectorView(entry)`, or `InspectorView([any Inspectable])` with
 // `InspectedClientModel(entry)` for a selection of several entries, which
-// shows one block for each entry). The host
-// applies `.inspectorFieldLabels(.visible)` to the inspector of a tool call
-// and of a terminal, and keeps the default (`.placeholder`) for the other
+// shows one block for each entry). The name row of each block tells its
+// entry (``InspectionName``), so two blocks of one type have two names. The
+// host applies `.inspectorFieldLabels(.visible)` to the inspector of a tool
+// call and of a terminal, and keeps the default (`.placeholder`) for the other
 // entries. Each entry is an ``InspectableClientModel``: the inspector shows
 // it through an ``InspectedClientModel``, whose id is the readable object id
 // of the entry, such as `tool-call-call_1`
@@ -125,22 +126,35 @@ enum MessageInspection {
   /// The inspection of a message entry: its text and its id, the fields
   /// `extra` gives after them, and its times.
   ///
+  /// The name of the block of an entry is its author and its start time,
+  /// or the first words of its text (``InspectionName/message(author:startedAt:text:locale:timeZone:)``),
+  /// so two blocks of one type have two names.
+  ///
   /// - Parameters:
   ///   - id: The id of the inspection: the view part of the scheme id of each
   ///     row, such as `user-message`. It never follows the locale.
   ///   - title: The title of a block of the entry type.
   ///   - content: The content blocks of an entry.
+  ///   - author: The author of an entry, or `nil` for an entry with no
+  ///     author.
   ///   - messageID: The id of the message of an entry, or `nil` while no
   ///     agent gave one.
   ///   - extra: The fields that follow the text, before the id.
   /// - Returns: The inspection.
   static func inspection<Entry: ObservableTranscriptEntry & InspectableClientModel>(
     id: String, title: String, content: @escaping @MainActor (Entry) -> [FoundationModelsACP.ContentBlock],
+    author: @escaping @MainActor (Entry) -> String? = { _ in nil },
     messageID: @escaping @MainActor (Entry) -> String?,
     @FieldBuilder<InspectedClientModel<Entry>> extra: () -> [AnyField<InspectedClientModel<Entry>>] = { [] }
   ) -> Inspection<InspectedClientModel<Entry>> {
     let fields = textField(content) + extra() + idField(messageID)
-    return Inspection(id: id, title: title) {
+    let name = Inspection<InspectedClientModel<Entry>>.objectName(
+      { entry in
+        InspectionName.message(
+          author: author(entry.model), startedAt: entry.model.timing.startedAt,
+          text: InspectionText.text(of: content(entry.model)))
+      }, title: title)
+    return Inspection(id: id, title: title, name: name) {
       // A closure with a `return` takes no builder: the fields are built.
       FieldGroup(InspectionLabel.message) { return fields }
       Entry.timeGroup
@@ -210,6 +224,7 @@ extension SessionMessageEntry: InspectableClientModel {
     MessageInspection.inspection(
       id: ClientInspectionID.sessionMessage, title: String(localized: "Session Message", bundle: .module),
       content: { $0.content },
+      author: { $0.senderSessionId?.rawValue },
       messageID: { $0.messageId.rawValue }
     ) {
       Field(FieldLabel(localized: "From Session", bundle: .module)) { $0.model.senderSessionId?.rawValue }
@@ -220,8 +235,14 @@ extension SessionMessageEntry: InspectableClientModel {
 
 extension PlanTranscriptEntry: InspectableClientModel {
   /// The steps of the plan, each with its status, and its times.
+  ///
+  /// The name of the block of a plan is the first words of its current
+  /// step (``InspectionName/plan(_:)``).
   public static var inspection: Inspection<InspectedClientModel<PlanTranscriptEntry>> {
-    .named(FieldLabel(localized: "Plan", bundle: .module), id: ClientInspectionID.plan) {
+    .named(
+      FieldLabel(localized: "Plan", bundle: .module), id: ClientInspectionID.plan,
+      name: { InspectionName.plan($0.model.entries) }
+    ) {
       Field(FieldLabel(localized: "Steps", bundle: .module)) { entry in InspectionText.steps(of: entry.model.entries) }
       .multiline()
     } more: {
@@ -232,8 +253,17 @@ extension PlanTranscriptEntry: InspectableClientModel {
 
 extension CompactionEntry: InspectableClientModel {
   /// The status, the summary and the error of the compaction, and its times.
+  ///
+  /// The name of the block of a compaction is the first words of its
+  /// summary, or its status while it has no summary.
   public static var inspection: Inspection<InspectedClientModel<CompactionEntry>> {
-    .named(FieldLabel(localized: "Compaction", bundle: .module), id: ClientInspectionID.compaction) {
+    .named(
+      FieldLabel(localized: "Compaction", bundle: .module), id: ClientInspectionID.compaction,
+      name: { entry in
+        InspectionName.firstWords(of: InspectionText.text(of: entry.model.summary))
+          ?? EditorStatus(entry.model.status).summary
+      }
+    ) {
       Field(InspectionLabel.status) { EditorStatus($0.model.status) }
       Field(FieldLabel(localized: "Summary", bundle: .module)) { InspectionText.text(of: $0.model.summary) }
         .multiline()
@@ -246,8 +276,14 @@ extension CompactionEntry: InspectableClientModel {
 
 extension ErrorEntry: InspectableClientModel {
   /// The code and the message of the error, and its times.
+  ///
+  /// The name of the block of an error is the first words of its message,
+  /// or its code while it has no message.
   public static var inspection: Inspection<InspectedClientModel<ErrorEntry>> {
-    .named(FieldLabel(localized: "Error", bundle: .module), id: ClientInspectionID.error) {
+    .named(
+      FieldLabel(localized: "Error", bundle: .module), id: ClientInspectionID.error,
+      name: { InspectionName.firstWords(of: $0.model.message) ?? String($0.model.code.wireValue) }
+    ) {
       Field(FieldLabel(localized: "Code", bundle: .module)) { $0.model.code.wireValue }
       Field(InspectionLabel.message) { $0.model.message }
         .multiline()
@@ -259,8 +295,14 @@ extension ErrorEntry: InspectableClientModel {
 
 extension UnknownEntry: InspectableClientModel {
   /// The type of the update that the client does not know, and its times.
+  ///
+  /// The name of the block of an update is its type, such as
+  /// `x_board_update`.
   public static var inspection: Inspection<InspectedClientModel<UnknownEntry>> {
-    Inspection(id: ClientInspectionID.unknownUpdate, title: String(localized: "Unknown Update", bundle: .module)) {
+    let title = String(localized: "Unknown Update", bundle: .module)
+    let name = Inspection<InspectedClientModel<UnknownEntry>>.objectName(
+      { $0.model.type.isEmpty ? nil : $0.model.type }, title: title)
+    return Inspection(id: ClientInspectionID.unknownUpdate, title: title, name: name) {
       FieldGroup(FieldLabel(localized: "Update", bundle: .module)) {
         Field(FieldLabel(localized: "Type", bundle: .module)) { $0.model.type }
       }

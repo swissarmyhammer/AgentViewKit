@@ -77,8 +77,14 @@ extension SessionModel: InspectableClientModel {
 
 extension ConnectionModel: @retroactive Inspectable {
   /// The state of the connection, the agent, and its sessions.
+  ///
+  /// The name of the block of a connection is the name of its agent, or its
+  /// state while the agent did not tell its name.
   public static var inspection: Inspection<ConnectionModel> {
-    .named(FieldLabel(localized: "Connection", bundle: .module), id: ClientInspectionID.connection) {
+    .named(
+      FieldLabel(localized: "Connection", bundle: .module), id: ClientInspectionID.connection,
+      name: { $0.initializeResponse?.info.name ?? EditorStatus($0.state).summary }
+    ) {
       Field(FieldLabel(localized: "State", bundle: .module)) { EditorStatus($0.state) }
       Field(FieldLabel(localized: "Agent", bundle: .module)) { $0.initializeResponse?.info.name }
       Field(FieldLabel(localized: "Open Sessions", bundle: .module)) { $0.openSessions.count }

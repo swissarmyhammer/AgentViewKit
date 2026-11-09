@@ -3710,6 +3710,28 @@
         }
       }
     },
+    "inspection.author-and-time" : {
+      "comment" : "The name of a message in the inspector: its author, then its start time, such as 6:15 AM.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "inspection.first-words" : {
+      "comment" : "The name of an object in the inspector: the first words of its text, cut before the next word.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@…"
+          }
+        }
+      }
+    },
     "inspection.plan-step" : {
       "comment" : "A step of a plan in the inspector: its status, then its text.",
       "localizations" : {
