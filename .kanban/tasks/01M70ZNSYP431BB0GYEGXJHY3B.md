@@ -47,8 +47,15 @@ comments:
     - evidence: 6 files — Sources/AgentViewKit/Inspection/InspectionName.swift, Sources/AgentViewKit/Inspection/InspectionLabel.swift, Sources/AgentViewKit/Inspection/ClientModels+Inspectable.swift, Sources/AgentViewKit/Inspection/TranscriptEntries+Inspectable.swift, README.md, Tests/AgentViewKitTests/Inspection/InspectionNameTests.swift (34 tests, 10 new). Root `swift test`: 1108 tests in 125 suites pass, and 50 tests in 10 suites pass. `swift build --package-path IntegrationTests --build-tests` and `swift build --package-path ScreenshotTests --build-tests` pass. No windowed test or gallery was run. The finding and acceptance item 1 are checked.
     - next: /review.
   timestamp: 2026-11-09T20:44:35.961853+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m710zgba6et42mtgksp2wzvd
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (0f5a4c39). 0 findings, 0 confirmed, 0 refuted (7 attempted, 0 failed). The prior finding at Sources/AgentViewKit/Inspection/ClientModels+Inspectable.swift:86 is checked. All 4 acceptance items are checked. Root `swift test` passed (1108 tests in 125 suites, 50 tests in 10 suites). Both nested `--build-tests` builds passed. No windowed test was run.
+    - next: none. The card is in done. The peer tells when to regenerate the gallery images inspector-*-two.
+  timestamp: 2026-11-09T20:46:14.890482+00:00
+position_column: done
+position_ordinal: ffffffcf80
 title: Each inspection of an item has a name that tells the item
 ---
 ## Problem
