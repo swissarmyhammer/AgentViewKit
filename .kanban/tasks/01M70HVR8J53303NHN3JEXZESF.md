@@ -24,7 +24,31 @@ comments:
     - grep "Mixed" over Sources Tests IntegrationTests/Tests ScreenshotTests/Tests README.md Examples: no match.
     - next: CI runs the hosted suites and the screenshot suite; then /review.
   timestamp: 2026-11-09T16:54:55.525555+00:00
-position_column: doing
+- actor: claude-code
+  id: 01m70kx0r38tf7hvgs2hsc1z63
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (dff1e581): 0 findings, 0 confirmed, 0 refuted; 14 validator runs attempted, 0 failed. 19 files reviewed. Not reviewed: 4 .kanban files (ignore rule), README.md and Sources/AgentViewKit/Resources/Localizable.xcstrings (no validator matches).
+    - next: The card stays in `review`, not `done`. It waits for CI: the acceptance items "The new test passes, and it fails before the change" and "Unit, integration and screenshot suites pass" are open. The hosted suites run only in CI.
+
+    ```
+    step: review
+    outcome: clean
+    evidence: 0 findings (confirmed 0, refuted 0; 14 attempted, 0 failed)
+    task: ^jexzesf
+    ```
+  timestamp: 2026-11-09T16:57:41.891324+00:00
+- actor: claude-code
+  id: 01m70kxhb646d0exghpjnn41fe
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 23 files; EditorKit 41259d1d
+    - test: green for the headless root suite only — swift test 1074+50 pass; IntegrationTests and ScreenshotTests built, not run (windowed tests run only in CI)
+    - commit: dff1e581 (pushed)
+    - review: clean — 0 findings
+    - next: CI run 42659616911 must pass, then close the two open acceptance items and move the card to done
+  timestamp: 2026-11-09T16:57:58.886036+00:00
+position_column: review
 position_ordinal: '80'
 title: 'Attachment inspector: one block for each selected file, no Mixed'
 ---

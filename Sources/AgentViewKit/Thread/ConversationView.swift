@@ -140,6 +140,15 @@ extension View {
 /// The default slot is a ``ConversationEmptyState``. Set its Markdown content
 /// with ``SwiftUI/View/conversationEmptyState(title:systemImage:markdown:)``.
 ///
+/// The leading and the trailing edges of the content of the list line up
+/// with the edges of the bars. The list pads its content on the leading and
+/// the trailing edge by the bar inset that the host gives where it mounts the
+/// view (`.barInsets()`), and on the top and the bottom edge by the row
+/// padding of the style. Thus the leading edge of each row surface, such as a
+/// message row or a tool call card, stands under the leading edge of the
+/// bars. With no `.barInsets()`, the rows touch the leading and the trailing
+/// edges of the view (^0er2xf6).
+///
 /// In the bottom bar of the view (`.safeAreaBar(edge: .bottom)`),
 /// ``StateBanner/init(session:onShowError:)`` shows the `agentState` of the
 /// model. The list scrolls under the bar (EditorKit `style.md`,
@@ -199,6 +208,8 @@ public struct ConversationView<EmptyState: View>: View {
 
   /// The inset of the bottom bar from the edges of the list, which the host
   /// gives where it mounts the view (`.barInsets()`). The default is zero.
+  /// The leading and the trailing values are also the horizontal margin of
+  /// the content of the list (``listContentInsets``).
   @Environment(\.barInsets) private var barInsets
 
   /// Whether the list shows its own scroll-to-bottom pill
@@ -287,7 +298,7 @@ public struct ConversationView<EmptyState: View>: View {
         // content margin (^rgsq3k4): SwiftUI gives a content margin to the
         // AppKit scroll view as `contentInsets`, and the content insets of
         // the list are the heights of the bars above and below it.
-        .padding(editorStyle.rowPadding)
+        .padding(listContentInsets)
         // The target of a scroll to the bottom near the end of the content
         // (`scrollToBottom()`).
         Color.clear
@@ -342,6 +353,19 @@ public struct ConversationView<EmptyState: View>: View {
       anchors.noteLastItemChanged(to: lastRowKey)
     }
     .accessibilityReadingScope()
+  }
+
+  /// The inset of the content of the list from the edges of the scroll view.
+  ///
+  /// The top and the bottom inset are the row padding of the style. The
+  /// leading and the trailing inset are the leading and the trailing value of
+  /// ``barInsets``, so the leading edge of each row surface (a message row, a
+  /// tool call card) stands under the leading edge of the bars (^0er2xf6).
+  /// With no `.barInsets()`, the content has no horizontal inset.
+  private var listContentInsets: EdgeInsets {
+    let rowPadding = editorStyle.rowPadding
+    return EdgeInsets(
+      top: rowPadding, leading: barInsets.leading, bottom: rowPadding, trailing: barInsets.trailing)
   }
 
   /// The rows of the last `shownCount` entries.

@@ -25,7 +25,11 @@ import SwiftUI
 /// The view puts no padding around its bars (EditorKit `style.md`, rule
 /// 10). The host pads them where it mounts the view, with `.barInsets()`,
 /// which gives each bar the inset of the style (`EditorStyle.bar`). With no
-/// `.barInsets()`, the bars have no inset (^e0wdpmg).
+/// `.barInsets()`, the bars have no inset (^e0wdpmg). The
+/// ``ConversationView`` pads the content of its list on the leading and the
+/// trailing edge by the same inset. Thus the leading edge of each row
+/// surface, such as a message row or a tool call card, stands under the
+/// leading edge of the header glass and of the composer glass (^0er2xf6).
 ///
 /// The conversation scrolls under the top bar, and thus under the toolbar of
 /// the window, with the scroll edge effect (D113 answer 7). The rows under
