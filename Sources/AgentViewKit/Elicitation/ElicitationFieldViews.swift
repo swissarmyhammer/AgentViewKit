@@ -713,7 +713,7 @@ public struct ElicitationSingleChoiceField: View {
         } label: {
           Label(
             choice.title,
-            systemImage: isSelected ? AgentSymbol.selected : AgentSymbol.notChosen
+            columnSymbol: isSelected ? AgentSymbol.selected : AgentSymbol.notChosen
           )
         }
         // A choice is a row whose content is the button (EditorKit

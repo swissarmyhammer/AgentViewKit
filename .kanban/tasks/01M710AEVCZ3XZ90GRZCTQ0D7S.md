@@ -1,7 +1,31 @@
 ---
 assignees:
 - claude-code
-position_column: todo
+comments:
+- actor: claude-code
+  id: 01m711af3fk1399t82jbpse732
+  text: |-
+    Research done. EK pin updated to main 8639885 in the root, ScreenshotTests and IntegrationTests (`swift package --package-path <p> update EditorKit`; the flag goes before the subcommand). `.symbolColumn()` is `.frame(width: editorStyle.symbolColumnWidth)` (EditorStyle/SymbolColumn.swift).
+
+    Rows with a leading SF Symbol: PlanEntryRow (TaskListView, private width 16), ToolCallView row, TerminalView header, ActivityEntryRow, StatusTitleLayout (StatusBar banners, ErrorView, CompactionEntryView), EntryTimingView line, SourcesView label and SourceLink, ElicitationTabChip, AgentInfoHeader agent segment, ConversationEmptyHeader, and the Labels with `systemImage:` in content (PermissionView, ElicitationView, ElicitationURLConsentView, radio group, ToolCallTerminalLabel, ToolCallWaitingStatus, ImageView, AudioPlayerView, ArtifactView, AgentAuthView).
+
+    Not changed, with the reason: AttachmentChip shows the file type icon of NSWorkspace (an NSImage, not an SF Symbol) at 28 pt x font scale, wider than the 22 pt column; the not-accepted mark of AttachmentChips is an icon-only label after the chip, not before text; SessionBreadcrumb choices are menu items, which the system menu draws; buttons are EK components; StatusCaption is EK `EditorStatusLabel`; trailing status and disclosure symbols stand after the text.
+
+    Test plan: a headless unit test hosts each row in an NSHostingView with no window (as EK SymbolColumnTests does) and reads `fittingSize.width` at two values of `symbolColumnWidth`. The width must grow by the growth of the token.
+  timestamp: 2026-11-09T20:52:14.063941+00:00
+- actor: claude-code
+  id: 01m711pjfaevvp5hp91jbdnkx2
+  text: |-
+    ### implement — changed
+    - Each leading SF Symbol before text now uses `.symbolColumn()`: PlanEntryRow (private `statusSymbolWidth = 16` removed), ToolCallView row, TerminalView header, ActivityEntryRow, StatusTitleLayout (StatusBar, ErrorView, CompactionEntryView), EntryTimingView, SourcesView label and SourceLink, ElicitationTabChip, DecorativeSymbolImage (AgentInfoHeader, ConversationEmptyHeader).
+    - New `SymbolColumnImage` and `Label(_:columnSymbol:)` (Sources/AgentViewKit/Items/SymbolColumnImage.swift). The content Labels use it: PermissionView (5), ElicitationView, ElicitationURLConsentView (2), radio group, ToolCallTerminalLabel, ToolCallWaitingStatus, ImageView, AudioPlayerView, ArtifactView, AgentAuthView.
+    - Not changed (see the research comment for the reasons): AttachmentChip file icon (NSImage, 28 pt), icon-only not-accepted mark, SessionBreadcrumb menu items, UsageRingView (a drawn ring, not an SF Symbol), EK buttons and EK `EditorStatusLabel`, ThemedEmptyState.
+    - Test: Tests/AgentViewKitTests/Theme/SymbolColumnRowTests.swift. It hosts 7 rows in an NSHostingView with no window and checks that the fitting width grows by the growth of `symbolColumnWidth`. RED 7/7 before the change, GREEN 7/7 after.
+    - ViewValueLayoutTests lists the new EK field `symbolColumnWidth` (the EK bump made `theStyleHasNoPaddingByte` fail with 8 bytes not covered).
+    - evidence: root `swift test` 1109 tests / 126 suites + 50 tests / 10 suites pass. `swift build --package-path IntegrationTests --build-tests` and `--package-path ScreenshotTests --build-tests` complete. No nested suite, gallery or UI test was run. The one warning is the SwiftPM notice "missing creator for mutated node" for the mlx-swift_Cmlx bundle of a dependency; it also shows before this change.
+    - next: /review
+  timestamp: 2026-11-09T20:58:50.730164+00:00
+position_column: doing
 position_ordinal: '80'
 title: The leading symbol of each row uses the symbol column of the style
 ---

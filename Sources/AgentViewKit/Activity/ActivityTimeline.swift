@@ -216,6 +216,7 @@ private struct ActivityEntryRow: View {
       Button(action: onToggle) {
         HStack(spacing: editorStyle.spacing.s) {
           EditorSymbolImage(systemName: appearance.symbolName, tone: appearance.tone)
+            .symbolColumn()
           Text(appearance.title)
             .lineLimit(1)
             .truncationMode(.middle)

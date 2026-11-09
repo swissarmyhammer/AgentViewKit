@@ -125,6 +125,7 @@ public struct SourcesView: View {
         Text("Sources (\(payload.sources.count))", bundle: .module)
       } icon: {
         Image(systemName: AgentSymbol.sources)
+          .symbolColumn()
       }
       .font(editorTheme.font(for: .ui, style: .subheadline))
       .foregroundStyle(themeSecondary)
@@ -209,6 +210,7 @@ private struct SourceLink: View {
   var body: some View {
     HStack(spacing: editorStyle.spacing.xs) {
       EditorSymbolImage(.action(.link))
+        .symbolColumn()
         .accessibilityLabel(Text("Link", bundle: .module))
         .accessibilityIdentifier(SourcesView.linkMarkIdentifier(index: index))
       LinkView(link: link)

@@ -311,6 +311,7 @@ struct EntryTimingLine: View {
     HStack(spacing: editorStyle.spacing.xs) {
       Image(systemName: EntryTimingView.symbolName)
         .fontWeight(editorStyle.symbolWeight)
+        .symbolColumn()
         .accessibilityHidden(true)
       Text(text)
         .font(editorTheme.font(for: .ui, style: .body))

@@ -34,6 +34,7 @@ struct ElicitationTabChip: View {
       HStack(spacing: editorStyle.spacing.xs) {
         Image(systemName: answered ? ElicitationLayout.answeredSymbol : ElicitationLayout.notAnsweredSymbol)
           .foregroundStyle(answered ? AnyShapeStyle(editorTheme.statusSucceeded) : placedSecondary)
+          .symbolColumn()
         Text(schema.title)
         if schema.required {
           Text(verbatim: "*")

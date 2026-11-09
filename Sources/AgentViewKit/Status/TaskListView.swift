@@ -169,10 +169,6 @@ public struct TaskListView: View {
 
 /// One entry in ``TaskListView``.
 private struct PlanEntryRow: View {
-  /// The width of the column of the status symbol, in points. Each status
-  /// symbol stands in one column, so the text of the entries lines up.
-  private static let statusSymbolWidth: CGFloat = 16
-
   /// The ACP entry to show.
   let entry: FoundationModelsACP.PlanEntry
 
@@ -182,8 +178,10 @@ private struct PlanEntryRow: View {
 
   var body: some View {
     HStack(spacing: editorStyle.spacing.s) {
+      // Each status symbol stands in the symbol column of the style, so the
+      // text of the entries lines up.
       statusSymbol
-        .frame(width: Self.statusSymbolWidth)
+        .symbolColumn()
         .help(EditorStatus(entry.status).summary)
       Text(entry.content)
         .strikethrough(entry.status == .cancelled)

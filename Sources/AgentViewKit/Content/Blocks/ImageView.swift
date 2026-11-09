@@ -91,7 +91,7 @@ public struct ImageView: View {
         .agentAttachmentScope(file, focusLook: .contentSurface, select: select)
         .task(id: file.url) { await Self.writeFile(of: data, named: file.name) }
     } else {
-      Label(name, systemImage: AgentSymbol.imageFailure)
+      Label(name, columnSymbol: AgentSymbol.imageFailure)
         .foregroundStyle(themeSecondary)
         .accessibilityIdentifier(Self.placeholderIdentifier)
     }

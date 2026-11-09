@@ -449,6 +449,7 @@ private struct ToolCallHeader: View {
   private var rowContent: some View {
     HStack(spacing: editorStyle.spacing.s) {
       EditorSymbolImage(.tool(.init(entry.shownKind)))
+        .symbolColumn()
       Text(ToolCallView.displayTitle(entry.shownTitle))
         .lineLimit(1)
         .truncationMode(.middle)
@@ -678,7 +679,7 @@ private struct ToolCallTerminalLabel: View {
   var body: some View {
     Label(
       String(localized: "Terminal \(terminalID)", bundle: .module),
-      systemImage: EditorSymbol.tool(.execute).systemImage
+      columnSymbol: EditorSymbol.tool(.execute).systemImage
     )
     .foregroundStyle(themeSecondary)
   }
@@ -724,7 +725,7 @@ private struct ToolCallWaitingStatus: View {
         answerButton(session: session)
       } else if let host = Self.waitingHost(of: entry, in: session) {
         let text = String(localized: "Waiting for \(host)", bundle: .module)
-        Label(text, systemImage: ToolCallView.urlWaitingSymbol)
+        Label(text, columnSymbol: ToolCallView.urlWaitingSymbol)
           .font(editorTheme.font(for: .ui, style: .callout))
           .foregroundStyle(themeSecondary)
           .accessibilityElement(children: .ignore)

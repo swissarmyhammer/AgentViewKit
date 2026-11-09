@@ -11,6 +11,8 @@ import SwiftUI
 /// line with its leading edge under the title, and it wraps at the full width
 /// of the layout, below the action too. So its length moves neither the symbol
 /// nor the action, and with no explanation the layout is only the title line.
+/// The symbol stands in the symbol column of the style (EditorStyle
+/// `.symbolColumn()`), so the title of each status text starts at one x.
 ///
 /// A ``StatusBar`` shows its message with this layout, and so does each view
 /// with a symbol, a title and an explanation that a bar cannot hold, such as a
@@ -68,8 +70,10 @@ public struct StatusTitleLayout<Symbol: View, Action: View>: View {
 
   public var body: some View {
     TitleLineStack(symbolGap: editorStyle.spacing.m, lineGap: editorStyle.spacing.xs) {
-      // One subview, whatever the builder of the symbol holds.
+      // One subview, whatever the builder of the symbol holds, in the symbol
+      // column of the style, so the title starts at one x for each symbol.
       HStack(spacing: .zero) { symbol }
+        .symbolColumn()
       titleLine
       if !explanation.isEmpty {
         explanationText

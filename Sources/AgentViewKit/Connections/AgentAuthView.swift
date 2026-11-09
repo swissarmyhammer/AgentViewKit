@@ -254,7 +254,7 @@ public struct AgentAuthView: View {
 
   public var body: some View {
     ContentTileStack {
-      Label(String(localized: "Sign in to the agent", bundle: .module), systemImage: Self.symbol)
+      Label(String(localized: "Sign in to the agent", bundle: .module), columnSymbol: Self.symbol)
         .font(editorTheme.font(for: .ui, style: .headline))
         .accessibilityAddTraits(.isHeader)
         .accessibilityIdentifier(Self.titleIdentifier)

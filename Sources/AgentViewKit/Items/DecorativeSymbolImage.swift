@@ -1,7 +1,10 @@
+import EditorStyle
 import EditorSwiftUI
 import SwiftUI
 
-/// A decorative symbol of a header: the symbol before its title.
+/// A decorative symbol of a header: the symbol before its title, in the
+/// symbol column of the style (EditorStyle `.symbolColumn()`), so the title
+/// starts at one x for each symbol.
 ///
 /// The view draws the symbol with EditorKit's `EditorSymbolImage` in the
 /// neutral tone, which is `\.placedSecondary` and the symbol weight of the
@@ -21,6 +24,7 @@ struct DecorativeSymbolImage: View {
 
   var body: some View {
     EditorSymbolImage(systemName: name, tone: .neutral)
+      .symbolColumn()
       .accessibilityHidden(true)
   }
 }

@@ -200,6 +200,7 @@ public struct TerminalView: View {
   private var header: some View {
     HStack(spacing: editorStyle.spacing.s) {
       EditorSymbolImage(.tool(.execute))
+        .symbolColumn()
         .accessibilityHidden(true)
       Text(entry.command ?? String(localized: "Terminal", bundle: .module))
         .font(editorTheme.codeFont)

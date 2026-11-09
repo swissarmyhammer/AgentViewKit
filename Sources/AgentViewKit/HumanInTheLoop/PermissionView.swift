@@ -209,7 +209,7 @@ public struct PermissionView: View {
   /// The title and the description.
   private var header: some View {
     VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
-      Label(request.request.title, systemImage: Self.symbol)
+      Label(request.request.title, columnSymbol: Self.symbol)
         .font(editorTheme.font(for: .ui, style: .headline))
         .fontWeight(editorStyle.symbolWeight)
         .accessibilityElement(children: .ignore)
@@ -254,7 +254,7 @@ public struct PermissionView: View {
   private func toolCallSummary(id: ToolCallId) -> some View {
     if let entry = session.transcript.entry(withID: .wire(.toolCall(id)))?.toolCall {
       HStack(spacing: editorStyle.spacing.s) {
-        Label(entry.title ?? id.rawValue, systemImage: Self.toolCallSymbol)
+        Label(entry.title ?? id.rawValue, columnSymbol: Self.toolCallSymbol)
         if let kind = entry.kind {
             Text(kind.wireValue)
             .font(editorTheme.font(for: .ui, style: .caption))
@@ -264,7 +264,7 @@ public struct PermissionView: View {
     } else {
       Label(
         String(localized: "Tool call \(id.rawValue)", bundle: .module),
-        systemImage: Self.toolCallSymbol)
+        columnSymbol: Self.toolCallSymbol)
     }
   }
 
@@ -276,9 +276,9 @@ public struct PermissionView: View {
   private func commandSummary(of command: CommandPermissionSubject) -> some View {
     VStack(alignment: .leading, spacing: editorStyle.spacing.s) {
       VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
-        Label(command.command, systemImage: Self.commandSymbol)
+        Label(command.command, columnSymbol: Self.commandSymbol)
           .textSelection(.enabled)
-        Label(command.cwd.rawValue, systemImage: Self.directorySymbol)
+        Label(command.cwd.rawValue, columnSymbol: Self.directorySymbol)
           .foregroundStyle(placedSecondary)
       }
       .font(editorTheme.codeFont)

@@ -485,7 +485,7 @@ public struct ElicitationHeader: View {
 
   public var body: some View {
     VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
-      Label(Self.title(server: Self.agentServer), systemImage: Self.symbol)
+      Label(Self.title(server: Self.agentServer), columnSymbol: Self.symbol)
         .font(editorTheme.font(for: .ui, style: .headline))
       ElicitationWhoAsksLine(agentPath: request.agentPath, source: request.source)
       Text(request.request.message)

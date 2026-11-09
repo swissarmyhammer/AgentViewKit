@@ -228,7 +228,7 @@ public struct ElicitationURLConsentView: View {
         .textSelection(.enabled)
         .accessibilityIdentifier(Self.urlIdentifier)
       if let warning = URLDisplay.warning(for: url) {
-        Label(warning, systemImage: Self.warningSymbol)
+        Label(warning, columnSymbol: Self.warningSymbol)
           .font(editorTheme.font(for: .ui, style: .callout))
           .foregroundStyle(editorTheme.severityWarning)
           .accessibilityElement(children: .ignore)
@@ -252,7 +252,7 @@ public struct ElicitationURLConsentView: View {
       .accessibilityLabel(waitingMessage)
       .accessibilityIdentifier(Self.waitingIdentifier)
       if browserDidFail {
-        Label(Self.browserFailureMessage, systemImage: Self.warningSymbol)
+        Label(Self.browserFailureMessage, columnSymbol: Self.warningSymbol)
           .font(editorTheme.font(for: .ui, style: .callout))
           .foregroundStyle(editorTheme.severityWarning)
           .accessibilityElement(children: .ignore)
