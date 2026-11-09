@@ -76,8 +76,23 @@ comments:
     - review: clean — 0 findings; 1/1 prior finding checked
     - next: CI run 42662660375 must pass, then close the two open acceptance items and move the card to done
   timestamp: 2026-11-09T17:15:46.318789+00:00
-position_column: review
-position_ordinal: '8180'
+- actor: claude-code
+  id: 01m714n7g48a2frzznbhpjc0xq
+  text: |-
+    ### review — clean
+    - evidence: `review sha 340be6e0~1..f8282fa1`: 0 findings, 0 confirmed, 0 refuted; 7 validator runs, 0 failed; 5 files reviewed. CI run 42662660375 on f8282fa1 passed all jobs (Integration includes ThreadRowAlignmentHostedTests and ThreadBarInsetsHostedTests). ScreenshotTests: 33 tests in 4 suites passed locally.
+    - The item "The new test fails before the change" is checked. Proof by reading the diff: old 8 pt (`.padding(editorStyle.rowPadding)`, density `.balanced` gives `spacing.s` = 8), test expects 12 pt (`bar.horizontal` = `spacing.m` = 12). The difference is 4 pt and the tolerance is 0.5 pt. With no inset: old 8 pt, test expects 0 pt.
+    - All 4 acceptance items and 1/1 prior finding are checked. The card moved to done.
+
+    ```
+    step: review
+    outcome: clean
+    evidence: 0 findings (0 confirmed, 0 refuted) — review sha 340be6e0~1..f8282fa1; CI 42662660375 green
+    task: ^0er2xf6
+    ```
+  timestamp: 2026-11-09T21:50:32.452058+00:00
+position_column: done
+position_ordinal: ffffffd280
 title: The transcript rows line up with the bars
 ---
 Design decision of editorkit-9f (2026-11-09; the user asked for bars that are aligned and look good): in each view, the leading and trailing edges of the list content line up with the edges of the bars.
@@ -92,7 +107,7 @@ Design decision of editorkit-9f (2026-11-09; the user asked for bars that are al
 
 ## Acceptance
 - [x] The new test passes. (CI run 42662660375 for f8282fa1: ThreadRowAlignmentHostedTests and ThreadBarInsetsHostedTests pass.)
-- [ ] The new test fails before the change. (Proved by reasoning only: the old rowPadding put the rows at 8 pt, not 12 pt. No run on the old code, because windowed tests run only in CI.)
+- [x] The new test fails before the change. (Proved by reading the diff: old 8 pt, test expects 12 pt. In `git show 340be6e0`, the old list content had `.padding(editorStyle.rowPadding)`. In EditorKit, `rowPadding` is `spacing.s` for the default density `.balanced`, and `spacing.s` = 8 pt. Thus the rows stood at 8 pt. The test expects the header glass x, and the header glass stands at `EditorStyle.default.bar.horizontal` = `spacing.m` = 12 pt. The difference is 4 pt, and the tolerance is 0.5 pt. With no `.barInsets()`, the old rows stood at 8 pt, and the test expects 0 pt: the difference is 8 pt. No run on the old code, because windowed tests run only in CI.)
 - [x] The unit and integration suites pass. (CI run 42662660375 for f8282fa1: unit 1074 + 50 pass; integration 1047 pass with 5 known issues.)
 - [x] The screenshot suite passes. (Batch gallery run on 2026-11-09 with EK main 0a8b20a: `swift test --package-path ScreenshotTests`, 33 tests in 4 suites passed.)
 

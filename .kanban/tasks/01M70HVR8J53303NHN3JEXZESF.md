@@ -48,8 +48,15 @@ comments:
     - review: clean — 0 findings
     - next: CI run 42659616911 must pass, then close the two open acceptance items and move the card to done
   timestamp: 2026-11-09T16:57:58.886036+00:00
-position_column: review
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m714hncbhdkmh43478kd4njx
+  text: |-
+    ### review — clean
+    - evidence: review sha dff1e581~1..dff1e581: 0 findings, 0 confirmed, 1 refuted; 14 validator runs attempted, 0 failed. 19 files reviewed. Not reviewed: 4 .kanban files (ignore rule), README.md and Sources/AgentViewKit/Resources/Localizable.xcstrings (no validator matches). All 4 acceptance items are checked. No prior Review Findings section. CI run 42662660375 on f8282fa1 passed all jobs (unit, Integration incl. AttachmentInspectorFilesHostedTests). ScreenshotTests passed locally (33 tests in 4 suites) on 2026-11-09 and on da6d1e0b. No windowed tests were run in this step.
+    - next: none. The card moved to done.
+  timestamp: 2026-11-09T21:48:35.595111+00:00
+position_column: done
+position_ordinal: ffffffd180
 title: 'Attachment inspector: one block for each selected file, no Mixed'
 ---
 The user decision (2026-11-09, from editorkit-9f): an inspector never folds several selected items into one block and never shows "Mixed". EditorKit removes the fold: `InspectorView` with several objects shows one full block per object, and `InspectorMultipleSelection`, `.inspectorMultipleSelection(_:)` and the Mixed strings are removed. Wait for the EditorKit sha of that change, then update to it.
