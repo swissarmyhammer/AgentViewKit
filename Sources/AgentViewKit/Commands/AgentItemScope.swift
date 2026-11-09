@@ -38,6 +38,13 @@ import SwiftUI
 /// applies the same modifiers for each value of `isTargetable`, so a change
 /// of the value keeps the identity and the state of the item.
 ///
+/// An item is no single control, so the scope asks for no leaf landing
+/// (`.targetable(_:asksForLeafLanding:)` with `false`). A landing on the item
+/// gives the focus to the beacon of the scope, and not to a focusable view of
+/// its content, such as the text of a message. The ring of the scope is then
+/// the thin band of an item, and not the band of a control (EditorKit
+/// `ScopeFocusRingWeight`).
+///
 /// With no enclosing agent command scope, the modifier does not change the
 /// view.
 struct AgentItemScope<Subject: Sendable>: ViewModifier {
@@ -61,7 +68,7 @@ struct AgentItemScope<Subject: Sendable>: ViewModifier {
         .modifier(AgentItemFocusFill(look: focusLook))
         .commandContextMenu(system, unavailable: .agentItem)
         .commandScope(segment: segment, subject: subject)
-        .targetable(isTargetable)
+        .targetable(isTargetable ? .targetable : .untargetable, asksForLeafLanding: false)
         .modifier(AgentItemFocusRing(look: focusLook))
     } else {
       content
