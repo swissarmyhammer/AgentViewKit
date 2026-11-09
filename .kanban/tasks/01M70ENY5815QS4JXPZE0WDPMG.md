@@ -10,8 +10,24 @@ comments:
     - note: during the run, the new card file .kanban/tasks/01M70HVR8J53303NHN3JEXZESF.* appeared. This step did not make it.
     - next: /review
   timestamp: 2026-11-09T16:26:27.883441+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m70j70q8a815xvj4f6v66a58
+  text: |-
+    ### review — clean
+    - evidence: review sha 12a49a18~1..12a49a18. Counts: findings 0, confirmed 0, refuted 0, attempted 7, failed 0. 8 files were reviewed. The .kanban files (ignore rule) and README.md (no validator) were not reviewed.
+    - next: none. The task is in done.
+  timestamp: 2026-11-09T16:28:12.392835+00:00
+- actor: claude-code
+  id: 01m70j7g2bdehtf81e391entqe
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: no-change — commit 12a49a18 meets each card item
+    - test: green — swift test 1076+50 pass; IntegrationTests 1048 pass (5 known issues); ScreenshotTests 33 pass
+    - commit: e78f4ac2 (card only)
+    - review: clean — review sha 12a49a18~1..12a49a18, 0 findings
+  timestamp: 2026-11-09T16:28:28.107173+00:00
+position_column: done
+position_ordinal: ffffffce80
 title: 'The host pads the bars: AVK bars read \.barInsets'
 ---
 The user rule (request from editorkit-9f, 2026-11-09): the kanban and the chat are not padded. The host pads them where it mounts them. The bar inset is a theme setting (EditorKit `EditorStyle.bar`, `\.barInsets`, `.barInsets()`).
