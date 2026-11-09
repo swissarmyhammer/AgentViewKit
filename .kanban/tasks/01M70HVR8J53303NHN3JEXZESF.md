@@ -68,4 +68,4 @@ The user decision (2026-11-09, from editorkit-9f): an inspector never folds seve
 - [x] The new test passes, and it fails before the change. (It failed on the old code with 3 tests and 7 issues. It passes in CI run 42662660375 for f8282fa1.)
 - [x] No code, doc or test of AVK says "Mixed" for an inspector.
 - [x] The unit and integration suites pass. (CI run 42662660375 for f8282fa1: unit 1074 + 50 pass; integration 1047 pass with 5 known issues.)
-- [ ] The screenshot suite passes. (CI does not run ScreenshotTests. The user lets windowed tests run only in CI, so this waits for the batch gallery run.)
+- [x] The screenshot suite passes. (Batch gallery run on 2026-11-09 with EK main 0a8b20a: `swift test --package-path ScreenshotTests`, 33 tests in 4 suites passed.)
