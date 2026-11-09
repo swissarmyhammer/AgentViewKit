@@ -43,8 +43,16 @@ comments:
     - files: Sources/AgentViewKitTestSupport/StyleViewHost.swift (new), Tests/AgentViewKitTests/Theme/SymbolColumnRowTests.swift, IntegrationTests/Tests/IntegrationTests/Style/StyleRecord.swift (was StyleViewHost.swift), Status/UsageRingViewHostedTests.swift, Status/StatusTitleLineHostedTests.swift, Style/StatusBarTests.swift, Style/SurfaceAndTileTests.swift, Style/ChangeHighlightEdgeHostTests.swift
     - next: review
   timestamp: 2026-11-09T21:05:55.535597+00:00
-position_column: review
-position_ordinal: '8280'
+- actor: claude-code
+  id: 01m712730c1gwsysfacks6w6z1
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (commit b109b4c6). 0 findings, 0 confirmed, 0 refuted (7 validators run). The prior finding `reuse/reuse` at Tests/AgentViewKitTests/Theme/SymbolColumnRowTests.swift:85 is checked. The engine noted that 5 code-hygiene tool rules found no file at the old path IntegrationTests/Tests/IntegrationTests/Style/StyleViewHost.swift. The commit moved that file to Sources/AgentViewKitTestSupport/StyleViewHost.swift, so this note is not a finding.
+    - acceptance: item 1, `statusSymbolWidth` is not in Sources, Tests, IntegrationTests or ScreenshotTests. The AttachmentChip icon is a file-type NSImage, not an SF Symbol (the prior review agrees). Item 2, `swift test --filter SymbolColumnRowTests` passes 7/7 with no window. Item 3, the implement record gives root `swift test` 1109 tests in 126 suites and 50 tests in 10 suites passed, and both `--build-tests` builds complete. Item 4, no windowed test or gallery was run.
+    - next: none. The card moves to done.
+  timestamp: 2026-11-09T21:07:51.948132+00:00
+position_column: done
+position_ordinal: ffffffd080
 title: The leading symbol of each row uses the symbol column of the style
 ---
 ## Problem
@@ -57,10 +65,10 @@ EditorKit main has `EditorStyle.symbolColumnWidth` (22 pt default) and `.symbolC
 - Update the tests that read the old widths.
 
 ## Acceptance
-- [ ] No AVK row gives its leading symbol a private width.
-- [ ] A headless unit test or a layout test proves that the rows use the width of the style.
-- [ ] The root `swift test` passes. `swift build --package-path IntegrationTests --build-tests` and `swift build --package-path ScreenshotTests --build-tests` pass.
-- [ ] Do NOT run windowed tests or the gallery.
+- [x] No AVK row gives its leading symbol a private width.
+- [x] A headless unit test or a layout test proves that the rows use the width of the style.
+- [x] The root `swift test` passes. `swift build --package-path IntegrationTests --build-tests` and `swift build --package-path ScreenshotTests --build-tests` pass.
+- [x] Do NOT run windowed tests or the gallery.
 
 ## Review Findings (2026-11-09 14:59)
 
