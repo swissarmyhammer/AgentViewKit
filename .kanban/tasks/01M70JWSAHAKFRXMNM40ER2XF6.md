@@ -52,8 +52,32 @@ comments:
     - evidence: 3 files — IntegrationTests/Tests/IntegrationTests/Helpers/BarInsetThreadMount.swift (new), IntegrationTests/Tests/IntegrationTests/Thread/ThreadBarInsetsHostedTests.swift, IntegrationTests/Tests/IntegrationTests/Thread/ThreadRowAlignmentHostedTests.swift; root `swift test` 1074 tests in 124 suites passed and 50 tests in 10 suites passed; `swift build --package-path IntegrationTests --build-tests` and `swift build --package-path ScreenshotTests --build-tests` complete, no error, no new warning (only the mlx-swift_Cmlx.bundle dependency warning). Hosted suites not run on this Mac (CI only).
     - next: /review
   timestamp: 2026-11-09T17:13:33.977568+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m70mxphjq8vybv246bxyt92f
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (f8282fa1): 0 findings, 0 confirmed, 0 refuted; 7 validator runs, 0 failed. The prior finding at ThreadRowAlignmentHostedTests.swift:57 is checked.
+    - next: The card stays in `review`. The card waits for CI. Two acceptance items stay open until the hosted suites (integration and screenshot) run in CI.
+
+    ```
+    step: review
+    outcome: clean
+    evidence: 0 findings (0 confirmed, 0 refuted) — review sha HEAD~1..HEAD
+    task: ^0er2xf6
+    ```
+  timestamp: 2026-11-09T17:15:32.786035+00:00
+- actor: claude-code
+  id: 01m70my3rexywvvf8jq48rrdjt
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — BarInsetThreadMount.swift (new), ThreadBarInsetsHostedTests.swift, ThreadRowAlignmentHostedTests.swift
+    - test: green for the headless root suite only — swift test 1074+50 pass; IntegrationTests and ScreenshotTests built, not run
+    - commit: f8282fa1 (pushed)
+    - review: clean — 0 findings; 1/1 prior finding checked
+    - next: CI run 42662660375 must pass, then close the two open acceptance items and move the card to done
+  timestamp: 2026-11-09T17:15:46.318789+00:00
+position_column: review
+position_ordinal: '8180'
 title: The transcript rows line up with the bars
 ---
 Design decision of editorkit-9f (2026-11-09; the user asked for bars that are aligned and look good): in each view, the leading and trailing edges of the list content line up with the edges of the bars.
@@ -67,8 +91,10 @@ Design decision of editorkit-9f (2026-11-09; the user asked for bars that are al
 - Report the measured x of the three edges.
 
 ## Acceptance
-- [ ] The new test passes, and it fails before the change.
-- [ ] Unit, integration and screenshot suites pass.
+- [x] The new test passes. (CI run 42662660375 for f8282fa1: ThreadRowAlignmentHostedTests and ThreadBarInsetsHostedTests pass.)
+- [ ] The new test fails before the change. (Proved by reasoning only: the old rowPadding put the rows at 8 pt, not 12 pt. No run on the old code, because windowed tests run only in CI.)
+- [x] The unit and integration suites pass. (CI run 42662660375 for f8282fa1: unit 1074 + 50 pass; integration 1047 pass with 5 known issues.)
+- [ ] The screenshot suite passes. (CI does not run ScreenshotTests; this waits for the batch gallery run.)
 
 ## Review Findings (2026-11-09 11:06)
 

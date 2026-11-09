@@ -65,6 +65,7 @@ The user decision (2026-11-09, from editorkit-9f): an inspector never folds seve
 - Add a test that fails before the change: an inspector of two files shows two blocks, and the action row of each block acts on its own file.
 
 ## Acceptance
-- [ ] The new test passes, and it fails before the change.
+- [x] The new test passes, and it fails before the change. (It failed on the old code with 3 tests and 7 issues. It passes in CI run 42662660375 for f8282fa1.)
 - [x] No code, doc or test of AVK says "Mixed" for an inspector.
-- [ ] Unit, integration and screenshot suites pass.
+- [x] The unit and integration suites pass. (CI run 42662660375 for f8282fa1: unit 1074 + 50 pass; integration 1047 pass with 5 known issues.)
+- [ ] The screenshot suite passes. (CI does not run ScreenshotTests. The user lets windowed tests run only in CI, so this waits for the batch gallery run.)
