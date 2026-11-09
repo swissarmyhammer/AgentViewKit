@@ -1,4 +1,4 @@
-import AppKit
+import AgentViewKitTestSupport
 import EditorStyle
 import EditorSwiftUI
 import FoundationModelsACP
@@ -67,16 +67,17 @@ enum LeadingSymbolRow: String, CaseIterable, Sendable {
 /// column of the style (EditorStyle `.symbolColumn()`), so the text of rows
 /// with symbols of different widths starts at one x.
 ///
-/// Each test hosts the view in an `NSHostingView` with no window and reads its
-/// fitting width at two widths of the column. No test opens a window or
-/// waits.
+/// Each test hosts the view with `StyleViewHost`, in an `NSHostingView` with
+/// no window, and reads its fitting width at two widths of the column. No
+/// test opens a window or waits.
 @Suite struct SymbolColumnRowTests {
   /// The amount by which the tests make the column wider than the default.
   /// The amount is large, so that the row with the symbol is the widest part
   /// of each view at the wider column.
   static let columnGrowth: CGFloat = 400
 
-  /// The fitting width of a view at one width of the symbol column.
+  /// The fitting width of a view at one width of the symbol column. The
+  /// shared `StyleViewHost` of `AgentViewKitTestSupport` measures the view.
   ///
   /// - Parameters:
   ///   - view: The view to measure.
@@ -85,7 +86,7 @@ enum LeadingSymbolRow: String, CaseIterable, Sendable {
   static func fittingWidth(of view: AnyView, columnWidth: CGFloat) -> CGFloat {
     var style = EditorStyle.default
     style.symbolColumnWidth = columnWidth
-    return NSHostingView(rootView: view.editorStyle(style)).fittingSize.width
+    return StyleViewHost.fittingSize(of: view.editorStyle(style)).width
   }
 
   /// A production change that fails this test: a row gives its leading

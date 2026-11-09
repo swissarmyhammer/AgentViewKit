@@ -1,5 +1,4 @@
 import AgentViewKitTestSupport
-import AppKit
 import EditorTestSupport
 import SwiftUI
 import Testing
@@ -31,14 +30,6 @@ import Testing
     UsageRingView(numerator: numerator, denominator: denominator, caption: caption)
   }
 
-  /// The width that `view` asks for.
-  ///
-  /// - Parameter view: The view to measure.
-  /// - Returns: The fitting width of the view, in points.
-  static func fittingWidth(of view: some View) -> CGFloat {
-    NSHostingView(rootView: view).fittingSize.width
-  }
-
   /// The width of the gauge of the ring at a font: the width of the ring
   /// view less the width of its text. The space between the gauge and the
   /// text does not change with the font.
@@ -47,7 +38,8 @@ import Testing
   /// - Returns: The width, in points.
   static func gaugeWidth(font: Font) -> CGFloat {
     let text = UsageRingView.percentText(numerator: numerator, denominator: denominator)
-    return fittingWidth(of: ring.font(font)) - fittingWidth(of: Text(text).monospacedDigit().font(font))
+    return StyleViewHost.fittingSize(of: ring.font(font)).width
+      - StyleViewHost.fittingSize(of: Text(text).monospacedDigit().font(font)).width
   }
 
   @Test func theGaugeGrowsWithTheFont() {

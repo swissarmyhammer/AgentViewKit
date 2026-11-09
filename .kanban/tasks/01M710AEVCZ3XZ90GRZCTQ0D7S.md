@@ -25,8 +25,26 @@ comments:
     - evidence: root `swift test` 1109 tests / 126 suites + 50 tests / 10 suites pass. `swift build --package-path IntegrationTests --build-tests` and `--package-path ScreenshotTests --build-tests` complete. No nested suite, gallery or UI test was run. The one warning is the SwiftPM notice "missing creator for mutated node" for the mlx-swift_Cmlx bundle of a dependency; it also shows before this change.
     - next: /review
   timestamp: 2026-11-09T20:58:50.730164+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m711ty7bvd2at1ffhz63zcxe
+  text: |-
+    ### review — findings
+    - evidence: `review sha HEAD~1..HEAD` (commit fc341dcd). 1 finding confirmed, 1 refuted. Open: Tests/AgentViewKitTests/Theme/SymbolColumnRowTests.swift:85 `reuse/reuse` (the `fittingWidth(of:columnWidth:)` helper repeats the NSHostingView fitting-size helper of the integration tests).
+    - AttachmentChip: the 28 pt icon is the file-type NSImage of NSWorkspace, not an SF Symbol glyph. The Problem and the Work limit the change to the leading SF Symbol. Thus `AttachmentChip.iconSide` is not a private width of a leading symbol, and the first acceptance item is satisfied. The acceptance items stay open because a finding is open.
+    - next: /implement the finding, then /review again.
+  timestamp: 2026-11-09T21:01:13.835518+00:00
+- actor: claude-code
+  id: 01m7123haf2reqmajnydjvwf0j
+  text: |-
+    Finding `reuse/reuse` (SymbolColumnRowTests fittingWidth) is closed. The existing helper was `StyleViewHost` in IntegrationTests/Tests/IntegrationTests/Style/StyleViewHost.swift. A second copy was `UsageRingViewHostedTests.fittingWidth(of:)`. EditorTestSupport has no windowless fitting-size helper. Both test targets link `AgentViewKitTestSupport`, so `StyleViewHost` moved there as a public type (Sources/AgentViewKitTestSupport/StyleViewHost.swift). `StyleRecord` stays in IntegrationTests (file renamed to Style/StyleRecord.swift). SymbolColumnRowTests and UsageRingViewHostedTests now call `StyleViewHost.fittingSize(of:)`. Four IntegrationTests files got `import AgentViewKitTestSupport`.
+
+    ### implement — changed
+    - evidence: root `swift test` 1109 tests in 126 suites passed, and 50 tests in 10 suites passed; `swift build --package-path IntegrationTests --build-tests` and `swift build --package-path ScreenshotTests --build-tests` complete. The only warning is the SwiftPM "missing creator for mutated node" note on the mlx-swift_Cmlx bundle of a dependency, no source warning.
+    - files: Sources/AgentViewKitTestSupport/StyleViewHost.swift (new), Tests/AgentViewKitTests/Theme/SymbolColumnRowTests.swift, IntegrationTests/Tests/IntegrationTests/Style/StyleRecord.swift (was StyleViewHost.swift), Status/UsageRingViewHostedTests.swift, Status/StatusTitleLineHostedTests.swift, Style/StatusBarTests.swift, Style/SurfaceAndTileTests.swift, Style/ChangeHighlightEdgeHostTests.swift
+    - next: review
+  timestamp: 2026-11-09T21:05:55.535597+00:00
+position_column: review
+position_ordinal: '8280'
 title: The leading symbol of each row uses the symbol column of the style
 ---
 ## Problem
@@ -43,3 +61,12 @@ EditorKit main has `EditorStyle.symbolColumnWidth` (22 pt default) and `.symbolC
 - [ ] A headless unit test or a layout test proves that the rows use the width of the style.
 - [ ] The root `swift test` passes. `swift build --package-path IntegrationTests --build-tests` and `swift build --package-path ScreenshotTests --build-tests` pass.
 - [ ] Do NOT run windowed tests or the gallery.
+
+## Review Findings (2026-11-09 14:59)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 20 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Tests/AgentViewKitTests/Theme/SymbolColumnRowTests.swift:85` `reuse/reuse` — The new `fittingWidth(of:columnWidth:)` helper repeats a fitting-size helper that already exists in the integration tests. It wraps a view in an NSHostingView and reads its fitting width, which is the same capability the existing helper provides. Two copies can drift apart. Move the shared sizing code (NSHostingView fitting size) into the existing test support module, or into a helper both test targets can import, and call it from SymbolColumnRowTests and the integration tests. If the test targets cannot share code, state that reason in a comment on the new helper.

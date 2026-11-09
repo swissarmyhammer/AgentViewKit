@@ -1,4 +1,5 @@
 import AgentViewKitStyle
+import AgentViewKitTestSupport
 import EditorStyle
 import SwiftUI
 import Testing
