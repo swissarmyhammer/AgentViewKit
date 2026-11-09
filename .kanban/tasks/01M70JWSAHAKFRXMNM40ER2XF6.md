@@ -26,6 +26,32 @@ comments:
     - CI must prove: the two new hosted tests pass; the integration and screenshot suites stay green; new snapshot PNGs of the thread show the rows at the bar inset.
     - next: /review
   timestamp: 2026-11-09T17:05:11.560310+00:00
+- actor: claude-code
+  id: 01m70mez5xvde6w9hfqtgtacfk
+  text: |-
+    ### review — findings
+    - evidence: `review sha HEAD~1..HEAD`: 1 finding (1 confirmed, 1 refuted, 7 attempted, 0 failed). IntegrationTests/Tests/IntegrationTests/Thread/ThreadRowAlignmentHostedTests.swift:57 (`reuse/reuse`).
+    - The card also waits for CI. The acceptance items stay open until the hosted suites run in CI.
+    - next: /implement the finding, then /review again.
+  timestamp: 2026-11-09T17:07:30.109110+00:00
+- actor: claude-code
+  id: 01m70mfg9kdxtzafaq4dv9c7sb
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — ConversationView.swift, AgentThreadView.swift, ThreadRowAlignmentHostedTests.swift (new)
+    - test: green for the headless root suite only — swift test 1074+50 pass; IntegrationTests and ScreenshotTests built, not run (windowed tests run only in CI)
+    - commit: 340be6e0 (pushed; CI run 42661237110)
+    - review: findings — IntegrationTests/Tests/IntegrationTests/Thread/ThreadRowAlignmentHostedTests.swift:57 (reuse/reuse)
+  timestamp: 2026-11-09T17:07:47.635664+00:00
+- actor: claude-code
+  id: 01m70mt2gsj00e0fmgk4znjg7k
+  text: |-
+    Reuse finding fixed. The new helper IntegrationTests/Tests/IntegrationTests/Helpers/BarInsetThreadMount.swift holds the shared mount: the first open session of ConnectionModel.previewSample in AgentThreadView with a composer from the caller, no animations, optional `.barInsets(_:)`, one render. It reads the shared frames (screen frame of the hosting view, header glass) and gives `frame(identifier:)` (a required frame) and `leading(of:)`. ThreadBarInsetsHostedTests.barEdges and ThreadRowAlignmentHostedTests.leadingEdges call it, and keep only their own reads. The composer and the window size stay parameters, because the two suites differ there: the bar suite measures a plain composer with an identifier in a 480x480 window, and the row suite measures the PromptFieldSurface glass in a 480x800 window so that each row is in view. The name MountedThread is used in ComposerHarness.swift, thus the new types are BarInsetThreadMount and BarInsetThreadFrames. Assertions did not change.
+
+    ### implement — changed
+    - evidence: 3 files — IntegrationTests/Tests/IntegrationTests/Helpers/BarInsetThreadMount.swift (new), IntegrationTests/Tests/IntegrationTests/Thread/ThreadBarInsetsHostedTests.swift, IntegrationTests/Tests/IntegrationTests/Thread/ThreadRowAlignmentHostedTests.swift; root `swift test` 1074 tests in 124 suites passed and 50 tests in 10 suites passed; `swift build --package-path IntegrationTests --build-tests` and `swift build --package-path ScreenshotTests --build-tests` complete, no error, no new warning (only the mlx-swift_Cmlx.bundle dependency warning). Hosted suites not run on this Mac (CI only).
+    - next: /review
+  timestamp: 2026-11-09T17:13:33.977568+00:00
 position_column: doing
 position_ordinal: '80'
 title: The transcript rows line up with the bars
@@ -43,3 +69,14 @@ Design decision of editorkit-9f (2026-11-09; the user asked for bars that are al
 ## Acceptance
 - [ ] The new test passes, and it fails before the change.
 - [ ] Unit, integration and screenshot suites pass.
+
+## Review Findings (2026-11-09 11:06)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 3 file(s) reviewed, 4 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+- [x] `IntegrationTests/Tests/IntegrationTests/Thread/ThreadRowAlignmentHostedTests.swift:57` `reuse/reuse` — The new static function leadingEdges(insets:) mounts a thread, renders it, and reads the leading frames of the same kind of surfaces that ThreadBarInsetsHostedTests.barEdges already reads. The same harness setup and the same frame reads are written twice. A change to the mount or to the frame lookups must now be made in two places. Read barEdges in ThreadBarInsetsHostedTests.swift:53 first. If its mount and frame reads match, extend that helper with a parameter for the row surfaces, or move the shared mount into one helper that both suites call. Keep only the row-specific reads in leadingEdges. If the two helpers really differ in contract, state why in a comment.
+
+> Note: The card also waits for CI. The acceptance items stay open until the hosted suites (integration and screenshot) run in CI.

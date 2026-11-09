@@ -52,34 +52,22 @@
     /// - Returns: The spaces, in points.
     /// - Throws: An issue when the header or the composer is not there.
     static func barEdges(insets: EdgeInsets?) throws -> BarEdges {
-      let connection = ConnectionModel.previewSample
-      let session = try #require(connection.openSessions.first)
-      let harness = HostedViewHarness(size: ThreadFloatingControlsHostedTests.windowSize) {
-        let thread = AgentThreadView(session: session, connection: connection) {
-          Color.clear
-            .frame(maxWidth: .infinity)
-            .frame(height: composerHeight)
-            .accessibilityElement()
-            .accessibilityIdentifier(composerIdentifier)
-        }
-        .transaction { $0.disablesAnimations = true }
-        if let insets {
-          thread.barInsets(insets)
-        } else {
-          thread
-        }
+      try BarInsetThreadMount.measure(insets: insets, size: ThreadFloatingControlsHostedTests.windowSize) {
+        Color.clear
+          .frame(maxWidth: .infinity)
+          .frame(height: composerHeight)
+          .accessibilityElement()
+          .accessibilityIdentifier(composerIdentifier)
+      } read: { frames in
+        let view = frames.view
+        let header = frames.header
+        let composer = try frames.frame(identifier: composerIdentifier)
+        // Screen points have y up: the top edge is the largest y.
+        return BarEdges(
+          headerLeading: frames.leading(of: header), headerTop: view.maxY - header.maxY,
+          composerLeading: frames.leading(of: composer), composerTrailing: view.maxX - composer.maxX,
+          composerBottom: composer.minY - view.minY)
       }
-      defer { harness.close() }
-      harness.render()
-
-      let view = harness.screenFrame(of: harness.hostingView)
-      let header = try #require(harness.frame(identifier: AgentInfoHeader.identifier))
-      let composer = try #require(harness.frame(identifier: composerIdentifier))
-      // Screen points have y up: the top edge is the largest y.
-      return BarEdges(
-        headerLeading: header.minX - view.minX, headerTop: view.maxY - header.maxY,
-        composerLeading: composer.minX - view.minX, composerTrailing: view.maxX - composer.maxX,
-        composerBottom: composer.minY - view.minY)
     }
 
     /// Requires that `actual` is `expected`, within ``tolerance``.

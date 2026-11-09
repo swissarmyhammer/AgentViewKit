@@ -55,36 +55,23 @@
     /// - Returns: The spaces, in points.
     /// - Throws: An issue when a surface is not there.
     static func leadingEdges(insets: EdgeInsets?) throws -> LeadingEdges {
-      let connection = ConnectionModel.previewSample
-      let session = try #require(connection.openSessions.first)
-      let firstKey = try #require(session.transcript.first?.rowKey)
-      let toolCallKey = try #require(session.transcript.last?.rowKey)
-      let harness = HostedViewHarness(size: windowSize) {
-        let thread = AgentThreadView(session: session, connection: connection) {
-          PromptInputView(text: .constant(AttributedString()), onSubmit: {}) { _ in
-            Color.clear
-              .frame(maxWidth: .infinity)
-              .frame(height: editorHeight)
-          }
+      try BarInsetThreadMount.measure(insets: insets, size: windowSize) {
+        PromptInputView(text: .constant(AttributedString()), onSubmit: {}) { _ in
+          Color.clear
+            .frame(maxWidth: .infinity)
+            .frame(height: editorHeight)
         }
-        .transaction { $0.disablesAnimations = true }
-        if let insets {
-          thread.barInsets(insets)
-        } else {
-          thread
-        }
+      } read: { frames in
+        let transcript = frames.session.transcript
+        let firstKey = try #require(transcript.first?.rowKey)
+        let toolCallKey = try #require(transcript.last?.rowKey)
+        let composer = try frames.frame(identifier: PromptFieldSurface.identifier)
+        let firstRow = try frames.frame(identifier: ItemRow.identifier(for: firstKey))
+        let toolCall = try frames.frame(identifier: ToolCallView.identifier(for: toolCallKey))
+        return LeadingEdges(
+          header: frames.leading(of: frames.header), composer: frames.leading(of: composer),
+          firstRow: frames.leading(of: firstRow), toolCall: frames.leading(of: toolCall))
       }
-      defer { harness.close() }
-      harness.render()
-
-      let view = harness.screenFrame(of: harness.hostingView)
-      let header = try #require(harness.frame(identifier: AgentInfoHeader.identifier))
-      let composer = try #require(harness.frame(identifier: PromptFieldSurface.identifier))
-      let firstRow = try #require(harness.frame(identifier: ItemRow.identifier(for: firstKey)))
-      let toolCall = try #require(harness.frame(identifier: ToolCallView.identifier(for: toolCallKey)))
-      return LeadingEdges(
-        header: header.minX - view.minX, composer: composer.minX - view.minX,
-        firstRow: firstRow.minX - view.minX, toolCall: toolCall.minX - view.minX)
     }
 
     /// With `.barInsets()`, the first row and the tool call card stand at
