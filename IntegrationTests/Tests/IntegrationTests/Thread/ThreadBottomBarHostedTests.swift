@@ -3,6 +3,7 @@
   import AgentViewKitTestSupport
   import AppKit
   import EditorCommandsUI
+  import EditorStyle
   import EditorTestSupport
   import FoundationModelsACP
   import FoundationModelsACPClient
@@ -122,9 +123,11 @@
       #expect(prompt < composer)
     }
 
+    /// The thread is mounted as a host mounts it, with the bar inset of the
+    /// style (`.barInsets()`, ^e0wdpmg).
     @Test func theListOfTheThreadReachesTheBottomEdgeUnderTheBanner() throws {
       let harness = HostedViewHarness(size: ThreadFloatingControlsHostedTests.windowSize) {
-        AgentThreadView(session: Self.runningSession())
+        AgentThreadView(session: Self.runningSession()).barInsets()
       }
       defer { harness.close() }
       harness.render()
@@ -132,9 +135,11 @@
       try Self.expectListUnderTheBanner(in: harness)
     }
 
+    /// The conversation is mounted as a host mounts it, with the bar inset of
+    /// the style (`.barInsets()`, ^e0wdpmg).
     @Test func theListOfAConversationAloneReachesTheBottomEdgeUnderTheBanner() throws {
       let harness = HostedViewHarness(size: ThreadFloatingControlsHostedTests.windowSize) {
-        ConversationView(session: Self.runningSession())
+        ConversationView(session: Self.runningSession()).barInsets()
       }
       defer { harness.close() }
       harness.render()

@@ -40,7 +40,9 @@ import Testing
         try await settle()
         mount.hideViews(of: hiddenTypes)
       },
-      content: { _ in view })
+      // The test mounts the view as a host does, with the bar inset of the
+      // style (`.barInsets()`, ^e0wdpmg).
+      content: { _ in view.barInsets() })
   }
 
   @Test func theThread() async throws {

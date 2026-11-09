@@ -197,6 +197,10 @@ public struct ConversationView<EmptyState: View>: View {
   @Environment(\.conversationPageSize) private var pageSize
   @Environment(\.editorStyle) private var editorStyle
 
+  /// The inset of the bottom bar from the edges of the list, which the host
+  /// gives where it mounts the view (`.barInsets()`). The default is zero.
+  @Environment(\.barInsets) private var barInsets
+
   /// Whether the list shows its own scroll-to-bottom pill
   /// (``SwiftUI/EnvironmentValues/conversationShowsPill``).
   @Environment(\.conversationShowsPill) private var showsPill
@@ -247,7 +251,7 @@ public struct ConversationView<EmptyState: View>: View {
       // state evaluates only the banner and not the list.
       if showsStateBanner {
         StateBanner(session: session) { showItem($0.rowKey) }
-          .padding(editorStyle.tile.margin)
+          .padding(barInsets)
       }
     }
     .environment(\.sessionModel, session)
@@ -628,8 +632,10 @@ private struct ConversationFollowAnchor: ViewModifier {
 
 #Preview("Conversation") {
   ConversationView(session: .previewSample)
+    .barInsets()
 }
 
 #Preview("Empty conversation") {
   ConversationView(session: .preview())
+    .barInsets()
 }

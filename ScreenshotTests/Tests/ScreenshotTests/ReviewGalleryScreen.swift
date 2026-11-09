@@ -93,7 +93,9 @@
     ) throws -> ReviewScreen {
       ReviewScreen(
         id: rawValue, title: title, note: try ReviewGalleryNotes.note(of: self), size: size,
-        settle: settle, content: content)
+        // The gallery mounts each screen as a host does, with the bar inset
+        // of the style (`.barInsets()`, ^e0wdpmg).
+        settle: settle, content: { content($0).barInsets() })
     }
 
     /// Runs `body` with the key screen of this screen, and frees what the

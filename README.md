@@ -75,6 +75,7 @@ For an agent program, the transport is the `transport` of an `AgentProcess`.
 
 ```swift
 import AgentViewKit
+import EditorStyle
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
@@ -128,6 +129,9 @@ struct ACPThread: View {
       RequestDeck(session: session)
       PromptInputView(text: $draft) {}
     }
+    // The thread puts no padding around its bars. The host pads them where
+    // it mounts the thread, with the bar inset of the style.
+    .barInsets()
   }
 }
 ```
@@ -399,6 +403,7 @@ inspector.
 
 ```swift
 import AgentViewKit
+import EditorStyle
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -415,6 +420,7 @@ struct InspectorWindow: View {
       Text("Threads")
     } detail: {
       AgentThreadView(session: session, connection: connection)
+        .barInsets()
     }
     .inspector(isPresented: isInspectorPresented) {
       if !selection.isEmpty {

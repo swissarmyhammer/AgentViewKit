@@ -22,8 +22,12 @@ import Testing
   @Test func theStyleHasNoPaddingByte() {
     StoredLayout<EditorStyle>(
       \.spacing, \.radii, \.tile, \.chip, \.previewHeight, \.gutterGap, \.breadcrumbs, \.symbolWeight, \.buttons,
-      \.density, \.invalidChipTint
+      \.density, \.invalidChipTint, \.bar
     ).expectNoPaddingByte()
+  }
+
+  @Test func theBarTokensHaveNoPaddingByte() {
+    StoredLayout<EditorStyle.Bar>(\.horizontal, \.vertical).expectNoPaddingByte()
   }
 
   @Test func theButtonTokensHaveNoPaddingByte() {

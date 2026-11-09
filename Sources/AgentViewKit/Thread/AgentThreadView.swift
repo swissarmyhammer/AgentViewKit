@@ -22,6 +22,11 @@ import SwiftUI
 /// shows the agent state. Each banner view, and not this view, reads its part
 /// of the model.
 ///
+/// The view puts no padding around its bars (EditorKit `style.md`, rule
+/// 10). The host pads them where it mounts the view, with `.barInsets()`,
+/// which gives each bar the inset of the style (`EditorStyle.bar`). With no
+/// `.barInsets()`, the bars have no inset (^e0wdpmg).
+///
 /// The conversation scrolls under the top bar, and thus under the toolbar of
 /// the window, with the scroll edge effect (D113 answer 7). The rows under
 /// the top bar and the toolbar do not stay readable: AppKit sizes the one top
@@ -191,6 +196,11 @@ public struct AgentThreadView<Composer: View>: View {
   @Environment(\.connectionModel) private var hostConnection
   @Environment(\.editorStyle) private var editorStyle
 
+  /// The inset of each bar from the edges of the thread, which the host
+  /// gives where it mounts the view (`.barInsets()`). The default is zero:
+  /// the view pads nothing of its own.
+  @Environment(\.barInsets) private var barInsets
+
   /// The report that gets the close decision of the view when it goes away,
   /// or `nil`.
   @Environment(\.threadCloseReport) private var reportClose
@@ -341,31 +351,15 @@ public struct AgentThreadView<Composer: View>: View {
         .environment(\.conversationShowsStateBanner, false)
     }
     .safeAreaBar(edge: .top) {
-      VStack(spacing: 0) {
-        if let connection {
-          // The header floats on glass in its own container. The banners are
-          // out of the container, so their buttons keep the place of content.
-          // The padding is in the container, so a header that shows nothing
-          // takes no space. The header has no padding of its own (^rgsq3k4):
-          // the bar insets it in its glass with the steps of the style.
-          FloatingGlassContainer(spacing: editorStyle.spacing.s) {
-            AgentInfoHeader(connection: connection, session: session, sessionTitle: sessionTitle, select: show)
-              .padding(headerInset).floatingGlass()
-              .hostPathContextMenu(headerContextMenuPath)
-              .padding(.horizontal, barEdgeInset)
-              .padding(.vertical, editorStyle.spacing.s)
-          }
-        }
-        // The bar spaces the banners, which have no margin of their own
-        // (^rgsq3k4): the stack stands them one tile margin apart. With no
-        // subview there is no stack, so banners that show nothing take no
-        // space.
-        Group(subviews: banners) { subviews in
-          if !subviews.isEmpty {
-            VStack(spacing: editorStyle.tile.margin) { subviews }
-              .padding(.horizontal, barEdgeInset)
-              .padding(.vertical, editorStyle.tile.margin)
-          }
+      // The bar stands the header and the banners one tile margin apart. The
+      // parts have no margin of their own (^rgsq3k4), and the bar has no
+      // inset of its own: the host gives the inset of the bar where it mounts
+      // the view (`\.barInsets`, ^e0wdpmg). With no part there is no stack,
+      // so a bar that shows nothing takes no space.
+      Group(subviews: topBarParts) { subviews in
+        if !subviews.isEmpty {
+          VStack(spacing: editorStyle.tile.margin) { subviews }
+            .padding(barInsets)
         }
       }
     }
@@ -389,6 +383,24 @@ public struct AgentThreadView<Composer: View>: View {
     .onDisappear(perform: closeWhenSupported)
   }
 
+  /// The parts of the top bar, from the top: the header when the host gave
+  /// the connection model, then the ``banners``.
+  ///
+  /// The header floats on glass in its own container. The banners are out of
+  /// the container, so their buttons keep the place of content. The header
+  /// has no padding of its own (^rgsq3k4): the bar insets it in its glass
+  /// with the steps of the style (``headerInset``).
+  @ViewBuilder private var topBarParts: some View {
+    if let connection {
+      FloatingGlassContainer(spacing: editorStyle.spacing.s) {
+        AgentInfoHeader(connection: connection, session: session, sessionTitle: sessionTitle, select: show)
+          .padding(headerInset).floatingGlass()
+          .hostPathContextMenu(headerContextMenuPath)
+      }
+    }
+    banners
+  }
+
   /// The banners of the top bar, from the top: the connection banner when the
   /// host gave the connection model, the notice banner and the stream banner.
   @ViewBuilder private var banners: some View {
@@ -399,13 +411,6 @@ public struct AgentThreadView<Composer: View>: View {
     UnconfirmedSessionBanner(session: session)
     WaitingDescendantBanner(session: session, jump: show)
     SessionStreamBanner(session: session, connection: connection)
-  }
-
-  /// The inset of the content of the two bars from the side edges of the
-  /// thread: the medium spacing step. The header, the banners and the floating
-  /// controls all take it, so their side edges line up.
-  private var barEdgeInset: CGFloat {
-    editorStyle.spacing.m
   }
 
   /// The inset of the ``AgentInfoHeader`` in its glass: the medium spacing
@@ -464,7 +469,7 @@ public struct AgentThreadView<Composer: View>: View {
           .alignmentGuide(.top) { $0[.bottom] + spacing }
       }
     }
-    .padding(barEdgeInset)
+    .padding(barInsets)
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier(AgentThreadLayout.floatingControlsIdentifier)
   }
@@ -579,5 +584,6 @@ extension EnvironmentValues {
   let connection = ConnectionModel.previewSample
   if let session = connection.openSessions.first {
     AgentThreadView(session: session, connection: connection)
+      .barInsets()
   }
 }

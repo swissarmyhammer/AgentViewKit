@@ -1,4 +1,5 @@
 import AgentViewKit
+import EditorStyle
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -33,6 +34,8 @@ struct SessionThreadColumn<Composer: View>: View {
       composer
     }
     .messageFooter { entry in MessageActions(entry: entry) }
+    // The host pads the bars of the thread where it mounts it.
+    .barInsets()
     .id(ObjectIdentifier(session))
   }
 }
