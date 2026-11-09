@@ -167,15 +167,13 @@ import Testing
       ChipRowsGalleryFixtures.gallery, named: "chip-rows-narrow", size: ChipRowsGalleryFixtures.size)
   }
 
-  /// The selection and the focus of the items of the kit (^r3sm8nh,
-  /// EditorKit `style.md`, "Selection and focus"): the rows of an
-  /// ``AgentRowList``, an ``AttachmentChip``, the chip of an
-  /// ``AttachmentView``, a message and the permission card of a
-  /// ``RequestDeck``, with the focus on one item of each
-  /// image, and the inactive grey of a window that is not key
-  /// (``SelectionGalleryFixtures``).
-  @Test func theSelectionAndTheFocusOfTheItems() async throws {
-    try await SelectionGalleryFixtures.record(in: ReviewGalleryScreenTests.gallery)
+  /// The normal, the selected and the focused state of each view of the
+  /// kit that has a selection look or a focus look (^crz4q29, EditorKit
+  /// `style.md`, "Selection and focus"): one image for each view, with the
+  /// three states side by side, in a key window and in a window that is not
+  /// key (``StateGalleryFixtures``).
+  @Test func theNormalTheSelectedAndTheFocusedStateOfEachView() async throws {
+    try await StateGalleryFixtures.record(in: ReviewGalleryScreenTests.gallery)
   }
 
   /// The button families of the kit in a narrow column: each button with too

@@ -100,7 +100,7 @@
 
       let ring = ScopeFocusRing(isEnabled: true, corners: corners, style: .default)
 
-      #expect(band.layer.path == ring.band(in: band.view.bounds.size)?.cgPath, "corners \(corners)")
+      #expect(band.layer.path == ring.band(in: band.view.bounds.size, weight: .control)?.cgPath, "corners \(corners)")
     }
 
     /// A production change that fails this test: a floating glass action

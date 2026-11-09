@@ -47,7 +47,7 @@
       try await hosted.theTitleLinesOfTheBars()
       try await hosted.theConfigAndToolControls()
       try await hosted.theChipRowsInANarrowColumn()
-      try await hosted.theSelectionAndTheFocusOfTheItems()
+      try await hosted.theNormalTheSelectedAndTheFocusedStateOfEachView()
       try await hosted.theButtonsInANarrowColumn()
       try await hosted.theButtonsInAWideColumn()
       try await hosted.theCodeBlock()
