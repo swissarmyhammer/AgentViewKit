@@ -297,11 +297,11 @@ extension UnknownEntry: InspectableClientModel {
   /// The type of the update that the client does not know, and its times.
   ///
   /// The name of the block of an update is its type, such as
-  /// `x_board_update`.
+  /// `x_board_update`, or the title for an update with an empty type.
   public static var inspection: Inspection<InspectedClientModel<UnknownEntry>> {
     let title = String(localized: "Unknown Update", bundle: .module)
     let name = Inspection<InspectedClientModel<UnknownEntry>>.objectName(
-      { $0.model.type.isEmpty ? nil : $0.model.type }, title: title)
+      { $0.model.type }, title: title)
     return Inspection(id: ClientInspectionID.unknownUpdate, title: title, name: name) {
       FieldGroup(FieldLabel(localized: "Update", bundle: .module)) {
         Field(FieldLabel(localized: "Type", bundle: .module)) { $0.model.type }

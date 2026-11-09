@@ -5,11 +5,26 @@ import FoundationModelsACP
 /// of their objects, so two blocks of one type have two different names.
 ///
 /// EditorKit shows the name of each block in its name row. An inspection
-/// that gives no name, or a name of `nil`, names each block by the title of
-/// its type.
+/// that gives no name, a name of `nil`, or a name that is not
+/// ``present(_:)``, names each block by the title of its type.
 enum InspectionName {
   /// The largest number of words in a name made from a text.
   static let firstWordCount = 6
+
+  /// A text that can be a name: a text with a character that is not a space
+  /// or a line break.
+  ///
+  /// An agent can send an empty text, such as an empty agent name or tool
+  /// call title. An empty name row tells the user nothing, so each name
+  /// treats such a text as absent and goes to the next choice.
+  ///
+  /// - Parameter text: The text, or `nil`.
+  /// - Returns: `text` with no change, or `nil` when `text` is `nil`, empty,
+  ///   or only spaces and line breaks.
+  static func present(_ text: String?) -> String? {
+    guard let text, text.contains(where: { !$0.isWhitespace }) else { return nil }
+    return text
+  }
 
   /// The first words of a text, as the name of the object of the text.
   ///
@@ -37,7 +52,8 @@ enum InspectionName {
   ///
   /// - Parameters:
   ///   - author: The author of the message, such as the id of the session
-  ///     that sent it, or `nil` when the entry has none.
+  ///     that sent it, or `nil` when the entry has none. An author that is
+  ///     not ``present(_:)`` is absent.
   ///   - startedAt: The start time of the message, or `nil` when the client
   ///     did not see it start.
   ///   - text: The text of the message.
@@ -50,7 +66,7 @@ enum InspectionName {
     author: String?, startedAt: Date?, text: String, locale: Locale = .autoupdatingCurrent,
     timeZone: TimeZone = .autoupdatingCurrent
   ) -> String? {
-    guard let author, let startedAt else { return firstWords(of: text) }
+    guard let author = present(author), let startedAt else { return firstWords(of: text) }
     let time = EntryTimingView.startStyle(locale: locale, timeZone: timeZone)
     return String(
       localized: "inspection.author-and-time", defaultValue: "\(author) · \(startedAt, format: time)",

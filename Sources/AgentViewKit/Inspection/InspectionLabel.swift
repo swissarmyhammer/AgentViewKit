@@ -56,7 +56,8 @@ extension Inspection {
   ///   - id: The id of the inspection: the view part of the scheme id of each
   ///     row, such as `tool-call`. It never follows the locale.
   ///   - name: The name of one object, or `nil` to name it by the title. A
-  ///     block whose name gives `nil` takes the title too.
+  ///     block whose name gives `nil`, or a name that is not
+  ///     ``InspectionName/present(_:)``, takes the title too.
   ///   - fields: The fields of the first group.
   ///   - more: The groups after the first one.
   /// - Returns: The inspection.
@@ -77,7 +78,11 @@ extension Inspection {
   }
 
   /// The name of one object for an inspection, with the title in the place
-  /// of a name of `nil`.
+  /// of a name of `nil` or a name that is not present.
+  ///
+  /// A name that is empty or only spaces and line breaks
+  /// (``InspectionName/present(_:)``) gives the title, so a name row is
+  /// never empty.
   ///
   /// - Parameters:
   ///   - name: The name of one object, or `nil` to name it by the title.
@@ -87,6 +92,6 @@ extension Inspection {
   static func objectName(
     _ name: (@MainActor (Object) -> String?)?, title: String
   ) -> (@MainActor (Object) -> String)? {
-    name.map { name in { @MainActor (object: Object) -> String in name(object) ?? title } }
+    name.map { name in { @MainActor (object: Object) -> String in InspectionName.present(name(object)) ?? title } }
   }
 }

@@ -21,6 +21,32 @@ comments:
     - evidence: 7 files — Sources/AgentViewKit/Inspection/InspectionName.swift (new), Sources/AgentViewKit/Inspection/InspectionLabel.swift, Sources/AgentViewKit/Inspection/TranscriptEntries+Inspectable.swift, Sources/AgentViewKit/Inspection/ClientModels+Inspectable.swift, Sources/AgentViewKit/Resources/Localizable.xcstrings, README.md, Tests/AgentViewKitTests/Inspection/InspectionNameTests.swift (new, 24 tests). Root `swift test`: 1098 tests in 125 suites pass, and 50 tests in 10 suites pass. `swift build --package-path IntegrationTests --build-tests` and `swift build --package-path ScreenshotTests --build-tests` pass. No windowed test or gallery was run.
     - next: /review. The peer regenerates the gallery images inspector-*-two.
   timestamp: 2026-11-09T20:35:12.023280+00:00
+- actor: claude-code
+  id: 01m710gaby8wzeevnped50g2jh
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (2cc5a8a8). 1 finding, 1 confirmed, 0 refuted. Sources/AgentViewKit/Inspection/ClientModels+Inspectable.swift:86 (completeness/invariant-propagation).
+    - acceptance: items 2, 3 and 4 are checked. Tests/AgentViewKitTests/Inspection/InspectionNameTests.swift has a "two items have two names" test for each inspection type. Root `swift test` passed (1098 tests in 125 suites, 50 tests in 10 suites). Both nested `--build-tests` builds passed. No windowed test was run. Item 1 stays open until the finding is fixed: an empty agent name gives an empty connection name.
+    - next: fix the finding (treat an empty agent name as absent, add a test), then /review again.
+  timestamp: 2026-11-09T20:37:57.246887+00:00
+- actor: claude-code
+  id: 01m710wcp4aa7w58kgkp2j54h6
+  text: |-
+    Fix of the review finding (empty agent name).
+    - New helper InspectionName.present(_:): it gives nil for a text that is nil, empty, or only spaces and line breaks.
+    - Inspection.objectName now applies present(_:) before it uses the title. Thus each `.named` inspection (tool call, terminal, attachment, session, connection) and each objectName site (message, unknown update) can never show an empty name row.
+    - The MCP server inspection now goes through objectName. The unknown-update closure is now `{ $0.model.type }`; objectName does the empty check. The session name is present(title) ?? session id. The connection name is present(agent name) ?? state. A message author that is not present is absent, so the name is the first words.
+    - Not possible headless: a session with an empty title. SessionModel.title is internal(set), and only a subagent_update through a live connection sets it. The unit tests of present(_:) cover the rule, and the session site is one line.
+    - Tests (InspectionNameTests): empty and blank agent name give the state name; empty MCP server name, empty tool call title, blank terminal command and blank attachment name give the title of the type; empty and blank sender give the first words; three tests of present(_:).
+    - README: one sentence tells that an empty value is not a name.
+  timestamp: 2026-11-09T20:44:32.836027+00:00
+- actor: claude-code
+  id: 01m710wfqsh186160kqrtc6138
+  text: |-
+    ### implement — changed
+    - evidence: 6 files — Sources/AgentViewKit/Inspection/InspectionName.swift, Sources/AgentViewKit/Inspection/InspectionLabel.swift, Sources/AgentViewKit/Inspection/ClientModels+Inspectable.swift, Sources/AgentViewKit/Inspection/TranscriptEntries+Inspectable.swift, README.md, Tests/AgentViewKitTests/Inspection/InspectionNameTests.swift (34 tests, 10 new). Root `swift test`: 1108 tests in 125 suites pass, and 50 tests in 10 suites pass. `swift build --package-path IntegrationTests --build-tests` and `swift build --package-path ScreenshotTests --build-tests` pass. No windowed test or gallery was run. The finding and acceptance item 1 are checked.
+    - next: /review.
+  timestamp: 2026-11-09T20:44:35.961853+00:00
 position_column: doing
 position_ordinal: '80'
 title: Each inspection of an item has a name that tells the item
@@ -36,7 +62,20 @@ The gallery images inspector-agent-message-{wide,narrow}-two show two blocks. Bo
 - Update the docs (DocC and README) where they tell the block titles.
 
 ## Acceptance
-- [ ] Each inspection of an item gives a name that comes from the item.
-- [ ] A headless unit test: two items of one type (for example two agent messages) give two blocks with different names. Add this for each inspection type that can have two items.
-- [ ] The root `swift test` passes. `swift build --package-path IntegrationTests --build-tests` and `swift build --package-path ScreenshotTests --build-tests` pass.
-- [ ] Do NOT run windowed tests or the gallery. The peer tells when to regenerate the gallery.
+- [x] Each inspection of an item gives a name that comes from the item.
+- [x] A headless unit test: two items of one type (for example two agent messages) give two blocks with different names. Add this for each inspection type that can have two items.
+- [x] The root `swift test` passes. `swift build --package-path IntegrationTests --build-tests` and `swift build --package-path ScreenshotTests --build-tests` pass.
+- [x] Do NOT run windowed tests or the gallery. The peer tells when to regenerate the gallery.
+
+## Review Findings (2026-11-09 14:35)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 5 file(s) reviewed, 6 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+> 2 file(s) not reviewed — no validator matched:
+> - `README.md` — no validator matches this file
+> - `Sources/AgentViewKit/Resources/Localizable.xcstrings` — no validator matches this file
+
+- [x] `Sources/AgentViewKit/Inspection/ClientModels+Inspectable.swift:86` `completeness/invariant-propagation` — The connection name uses `initializeResponse?.info.name` with `??` only for nil. An agent that sends an empty name gives an empty name row. The unknown-update site handles the same case: it treats an empty type as nil so the title is used (TranscriptEntries+Inspectable.swift:304). The empty-value rule is applied at one site and not at the other. Treat an empty agent name as absent, the same way the unknown-update site does. For example, `name: { connection in connection.initializeResponse?.info.name.isEmpty == false ? connection.initializeResponse?.info.name : nil }` followed by the state summary. Add one test that gives an empty agent name and asserts the state summary is the name.

@@ -246,4 +246,75 @@ import Testing
 
     #expect(names == PreviewFixtures.attachments.map(\.name))
   }
+
+
+  // MARK: - An empty name
+
+  /// The name of the block of a connection whose agent sends `agentName`.
+  ///
+  /// - Parameter agentName: The name of the agent in its `initialize` answer.
+  /// - Returns: The name of the block.
+  private func connectionName(agentName: String) -> String {
+    let response = InitializeResponse(
+      info: Implementation(name: agentName, version: "1.0.0"), protocolVersion: ACPClient.supportedProtocolVersion)
+    return name(of: ConnectionModel.preview(initializeResponse: response), in: ConnectionModel.inspection)
+  }
+
+  @Test func aConnectionWithAnEmptyAgentNameIsNamedByItsState() {
+    #expect(connectionName(agentName: "") == name(of: ConnectionModel.preview(), in: ConnectionModel.inspection))
+  }
+
+  @Test func aConnectionWithABlankAgentNameIsNamedByItsState() {
+    #expect(connectionName(agentName: " \n ") == name(of: ConnectionModel.preview(), in: ConnectionModel.inspection))
+  }
+
+  @Test func anEmptyTextIsNotAName() {
+    #expect(InspectionName.present("") == nil)
+  }
+
+  @Test func aTextOfSpacesAndLineBreaksIsNotAName() {
+    #expect(InspectionName.present(" \n\t ") == nil)
+  }
+
+  @Test func aTextWithAWordIsItsOwnName() {
+    #expect(InspectionName.present(" sess_1 ") == " sess_1 ")
+  }
+
+  @Test func anMCPServerWithAnEmptyNameIsNamedByTheTitle() throws {
+    let server = MCPServer.stdio(MCPServerStdio(command: AbsolutePath(rawValue: "/usr/local/bin/files-mcp"), name: ""))
+    let item = try #require(SessionModel.preview(mcpServers: [server]).mcpServers.first)
+
+    #expect(name(of: item, in: MCPServerItem.inspection) == MCPServerItem.inspection.title)
+  }
+
+  @Test func aToolCallWithAnEmptyTitleIsNamedByTheTitleOfItsType() throws {
+    let entry = try #require(
+      PreviewFixtures.entry(.toolCall(title: "", kind: .read, status: .completed), as: ToolCallEntry.self))
+
+    #expect(name(of: InspectedClientModel(entry), in: ToolCallEntry.inspection) == ToolCallEntry.inspection.title)
+  }
+
+  @Test func aTerminalWithAnEmptyCommandIsNamedByTheTitleOfItsType() throws {
+    let entry = try #require(
+      PreviewFixtures.entry(.terminal(command: " ", output: "", exitCode: 0), as: TerminalEntry.self))
+
+    #expect(name(of: InspectedClientModel(entry), in: TerminalEntry.inspection) == TerminalEntry.inspection.title)
+  }
+
+  @Test func aSessionMessageWithAnEmptySenderIsNamedByItsFirstWords() throws {
+    let names = try names(
+      sessionMessage(id: "mail-1", from: "", text: "The tests pass."),
+      sessionMessage(id: "mail-2", from: " ", text: "The lexer change is ready."), as: SessionMessageEntry.self)
+
+    #expect(names == ["The tests pass.", "The lexer change is ready."])
+  }
+
+  @Test func anAttachmentWithAnEmptyNameIsNamedByTheTitleOfItsType() {
+    let file = PreviewFixtures.sourceFileAttachment
+    let attachment = Attachment(id: file.id, url: file.url, type: file.type, name: " ", size: file.size)
+
+    #expect(
+      name(of: InspectedAttachment(attachment), in: AttachmentInspector.inspection)
+        == AttachmentInspector.inspection.title)
+  }
 }

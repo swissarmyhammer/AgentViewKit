@@ -52,7 +52,7 @@ extension SessionModel: InspectableClientModel {
   public static var inspection: Inspection<InspectedClientModel<SessionModel>> {
     .named(
       FieldLabel(localized: "Session", bundle: .module), id: ClientInspectionID.session,
-      name: { $0.model.title ?? $0.model.sessionId.rawValue }
+      name: { InspectionName.present($0.model.title) ?? $0.model.sessionId.rawValue }
     ) {
       Field(InspectionLabel.title) { $0.model.title }
       Field(InspectionLabel.status) { $0.model.status.text }
@@ -79,11 +79,11 @@ extension ConnectionModel: @retroactive Inspectable {
   /// The state of the connection, the agent, and its sessions.
   ///
   /// The name of the block of a connection is the name of its agent, or its
-  /// state while the agent did not tell its name.
+  /// state while the agent did not tell its name or told an empty name.
   public static var inspection: Inspection<ConnectionModel> {
     .named(
       FieldLabel(localized: "Connection", bundle: .module), id: ClientInspectionID.connection,
-      name: { $0.initializeResponse?.info.name ?? EditorStatus($0.state).summary }
+      name: { InspectionName.present($0.initializeResponse?.info.name) ?? EditorStatus($0.state).summary }
     ) {
       Field(FieldLabel(localized: "State", bundle: .module)) { EditorStatus($0.state) }
       Field(FieldLabel(localized: "Agent", bundle: .module)) { $0.initializeResponse?.info.name }
@@ -95,10 +95,13 @@ extension ConnectionModel: @retroactive Inspectable {
 
 extension MCPServerItem: @retroactive Inspectable {
   /// The name, the transport and the status of the server.
+  ///
+  /// The name of the block of a server is its name, or the title while the
+  /// server has an empty name.
   public static var inspection: Inspection<MCPServerItem> {
-    Inspection(
-      id: ClientInspectionID.mcpServer, title: String(localized: "MCP Server", bundle: .module), name: { $0.name }
-    ) {
+    let title = String(localized: "MCP Server", bundle: .module)
+    let name = Inspection<MCPServerItem>.objectName({ $0.name }, title: title)
+    return Inspection(id: ClientInspectionID.mcpServer, title: title, name: name) {
       FieldGroup(FieldLabel(localized: "Server", bundle: .module)) {
         Field(InspectionLabel.name) { $0.name }
         Field(FieldLabel(localized: "Transport", bundle: .module)) { $0.transport.map(ConnectionRow.label(for:)) }
