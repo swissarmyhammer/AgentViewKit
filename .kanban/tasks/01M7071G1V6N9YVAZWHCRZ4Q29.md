@@ -47,8 +47,31 @@ comments:
     - evidence: 1 source file, ScreenshotTests/Tests/ScreenshotTests/StateGalleryFixtures.swift (7 named, documented constants; the values do not change). The 12 magic-numbers-swift findings are `- [x]`. swiftlint no_magic_numbers: 0 findings on the file. `swift test`: 1075 tests in 124 suites and 50 tests in 10 suites pass. `swift test --package-path IntegrationTests`: 1046 tests in 147 suites pass, with the 5 deliberate known issues of FontRoleExpectationsTests. `swift test --package-path ScreenshotTests`: 33 tests in 4 suites pass, and the run writes 40 states-* images. The only warning is the SwiftPM build-graph warning for mlx-swift_Cmlx.bundle.
     - next: /review
   timestamp: 2026-11-09T14:56:18.684971+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m70d1b2b8daykj3j49fkc38c
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (e7bb863f); 0 findings, 0 confirmed, 0 refuted; 7 attempted, 0 failed. 1 file reviewed: ScreenshotTests/Tests/ScreenshotTests/StateGalleryFixtures.swift. All 12 prior magic-numbers-swift findings are `- [x]`.
+    - next: none. The task is in done.
+
+    ```
+    step: review
+    outcome: clean
+    evidence: review sha HEAD~1..HEAD — 0 findings, 0 confirmed, 0 refuted; 12/12 prior findings checked
+    task: ^crz4q29
+    ```
+  timestamp: 2026-11-09T14:57:43.499236+00:00
+- actor: claude-code
+  id: 01m70d1vr2bggwqd5k7r9zhqaj
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — ScreenshotTests/Tests/ScreenshotTests/StateGalleryFixtures.swift (12 magic numbers named)
+    - test: green — swift test 1075+50 pass; IntegrationTests 1046 pass (5 known issues); ScreenshotTests 33 pass
+    - commit: e7bb863f
+    - review: clean — 0 findings; 12/12 prior findings checked
+  timestamp: 2026-11-09T14:58:00.578801+00:00
+position_column: done
+position_ordinal: ffffffcd80
 title: 'Gallery: normal, selected and focused states of each selectable view'
 ---
 The user asks for normal, selected and focused images of each AVK view that has a selection look or a focus look (request from editorkit-9f, 2026-11-09).
