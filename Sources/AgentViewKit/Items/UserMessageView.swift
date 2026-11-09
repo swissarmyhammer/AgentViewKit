@@ -5,9 +5,10 @@ import SwiftUI
 
 /// The default view of a user message entry (plan.md §9 A2).
 ///
-/// The view shows a ``MessageHeader``, the content blocks of the message, and
+/// The view shows a ``MessageHeader``, the content blocks of the message,
 /// the ``SwiftUI/EnvironmentValues/messageFooter`` slot with the entry
-/// object.
+/// object, and the send state of the message. The send state is in the item
+/// scope of the message, so the focus ring of the message goes around it.
 ///
 /// The view shows a `UserMessageEntry` of a `SessionModel` (plan.md §3.2).
 /// The view reads the content of the entry, so a change to the entry
@@ -41,11 +42,8 @@ public struct UserMessageView: View, PrefixedAccessibilityIdentifier {
     identifier(for: id) + sendStateSuffix
   }
 
-  @Environment(\.editorStyle) private var editorStyle
-
   public var body: some View {
-    VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
-      TranscriptMessageView(entry: .user(entry))
+    TranscriptMessageView(entry: .user(entry)) {
       sendStateLabel
     }
   }

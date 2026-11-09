@@ -1,3 +1,4 @@
+import EditorStyle
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -20,31 +21,75 @@ import SwiftUI
 /// ``SwiftUI/EnvironmentValues/messageFooter`` slot with the entry object,
 /// when the environment has a footer.
 ///
+/// Below the message, the view shows its accessory, such as the send state
+/// of a user message.
+///
 /// In an agent command scope, the view is in the item scope
 /// `agentMessage:<rowKey>`, with the context menu of that scope (AVK-1). The
-/// scope gives the `TranscriptEntry` of the message as its live subject.
+/// scope gives the `TranscriptEntry` of the message as its live subject. The
+/// scope holds the whole row: the header, the content, the footer and the
+/// accessory, so the focus ring of the scope goes around all of them. The
+/// row has an inner padding of ``ringInset`` in each state, so the ring
+/// stands off the text, and the text of a focused row stands where the text
+/// of a row with no focus stands. The padding is part of the frame of the
+/// row, so the frame of the row holds its ring, and a move that puts the row
+/// below a bar also puts its ring below the bar.
 ///
 /// The view notes ``ItemRow/contentCounterKey(for:)`` of its entry in the
 /// ``BodyEvaluationCounter``, because it is the view that the content of the
 /// entry evaluates again.
-struct TranscriptMessageView: View {
+struct TranscriptMessageView<Accessory: View>: View {
+  /// The step of the spacing scale between the row and the area of its item
+  /// scope, where the focus ring stands. It is less than the space between
+  /// two rows of a thread (`tile.margin`), so the ring of a focused row does
+  /// not touch the next row.
+  static var ringInset: KeyPath<EditorStyle.Spacing, CGFloat> { \.xs }
+
   /// The message entry to show.
   let entry: MessageEntry
 
+  /// The view below the message, in the item scope.
+  @ViewBuilder let accessory: Accessory
+
   @Environment(\.messageFooter) private var footer
+  @Environment(\.editorStyle) private var editorStyle
+
+  /// Makes the view of a message entry, with an accessory below it.
+  ///
+  /// - Parameters:
+  ///   - entry: The message entry to show.
+  ///   - accessory: The view below the message.
+  init(entry: MessageEntry, @ViewBuilder accessory: () -> Accessory) {
+    self.entry = entry
+    self.accessory = accessory()
+  }
 
   var body: some View {
     let key = entry.id.rowKey
     #if DEBUG
       BodyEvaluationCounter.note(ItemRow.contentCounterKey(for: key))
     #endif
-    return MessageLayout(id: key, role: entry.role) {
-      EntryContentView(content: entry.content, id: key)
-      if let footer {
-        footer(entry)
+    let inset = editorStyle.spacing[keyPath: Self.ringInset]
+    return VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
+      MessageLayout(id: key, role: entry.role) {
+        EntryContentView(content: entry.content, id: key)
+        if let footer {
+          footer(entry)
+        }
       }
+      accessory
     }
+    .padding(inset)
     .agentItemScope(AgentScopeKind.message(rowKey: key), subject: entry.transcriptEntry)
+  }
+}
+
+extension TranscriptMessageView where Accessory == EmptyView {
+  /// Makes the view of a message entry with no accessory.
+  ///
+  /// - Parameter entry: The message entry to show.
+  init(entry: MessageEntry) {
+    self.init(entry: entry) {}
   }
 }
 

@@ -94,7 +94,8 @@ enum StateGalleryFixtures {
     /// The title of the image: the name of the view.
     let title: String
 
-    /// The height of a column, in points.
+    /// The height of a column, in points: room for the view at its ideal
+    /// height, which the column does not limit.
     let height: CGFloat
 
     /// The columns of the image, one for each ``State``, in that order.
@@ -122,7 +123,7 @@ enum StateGalleryFixtures {
 
   /// The views of the gallery.
   static let subjects: [Subject] = [
-    Subject(name: "states-message", title: "Message row (UserMessageView)", height: 90) { items in
+    Subject(name: "states-message", title: "Message row (UserMessageView)", height: 130) { items in
       [
         .view(.normal, items.message()),
         .none(.selected, noSelection),
@@ -246,7 +247,7 @@ enum StateGalleryFixtures {
         mount.render()
       },
       content: { _ in
-        StateGallery(title: title, columns: Array(zip(columns, systems)), height: subject.height)
+        StateGallery(title: title, columns: Array(zip(columns, systems)))
           .environment(\.appearsActive, appearsActive)
       })
   }
@@ -450,9 +451,6 @@ private struct StateGallery: View {
   /// The columns, each with its command system.
   let columns: [(StateGalleryFixtures.Column, CommandSystem)]
 
-  /// The height of a column, in points.
-  let height: CGFloat
-
   @Environment(\.editorStyle) private var editorStyle
 
   var body: some View {
@@ -476,18 +474,17 @@ private struct StateGallery: View {
   ///   - system: The command system of the column.
   /// - Returns: The column view.
   private func column(_ column: StateGalleryFixtures.Column, system: CommandSystem) -> some View {
-    VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
+    VStack(alignment: .leading, spacing: editorStyle.spacing.m) {
       Text(verbatim: column.state.caption).font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
       Group {
         if let content = column.content {
-          content.commandSystem(system)
+          content.commandSystem(system).fixedSize(horizontal: false, vertical: true)
         } else if let note = column.note {
           Text(verbatim: note).font(.callout).foregroundStyle(.secondary)
         }
       }
       .frame(maxWidth: .infinity, alignment: .topLeading)
     }
-    .frame(width: StateGalleryFixtures.columnWidth, height: height + StateGalleryFixtures.headerHeight / 2,
-      alignment: .topLeading)
+    .frame(width: StateGalleryFixtures.columnWidth, alignment: .topLeading)
   }
 }

@@ -170,6 +170,37 @@ import Testing
     }
   }
 
+  /// The scope of a user message holds the whole row: the message, with its
+  /// header and its text, and the send state below it. The focus ring of the
+  /// scope stands on the frame of the scope, so it goes around all of them.
+  ///
+  /// The frames are screen frames: the frame of the beacon of the scope,
+  /// which has the frame of the scope, and the accessibility frames of the
+  /// message and of its send state.
+  ///
+  /// A production change that fails this test: the send state of a user
+  /// message is outside the item scope of the message, so the ring of a
+  /// focused message cuts it off.
+  @Test func theScopeOfAUserMessageHoldsItsTextAndItsSendState() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let system = CommandSystem()
+    let harness = AgentCommandScopeHostedTests.mount(session: session, system: system, outerScope: true)
+    defer { harness.close() }
+    let item = AgentCommandScopeHostedTests.path(of: session.model)
+      .appending(try await Self.sendItem(.message, to: session, rendering: harness))
+    try #require(waitForLiveBeacons([item], in: system))
+    let key = try #require(session.model.transcript.first).rowKey
+
+    let probe = try #require(system.geometry.newestProbe(at: item) as? GeometryProbeView)
+    let scope = harness.window.convertToScreen(probe.convert(probe.bounds, to: nil))
+    let message = try #require(harness.frame(identifier: MessageRole.user.messageIdentifier(for: key)))
+    let sendState = try #require(harness.frame(identifier: UserMessageView.sendStateIdentifier(for: key)))
+
+    #expect(scope.contains(message), "scope \(scope), message \(message)")
+    #expect(scope.contains(sendState), "scope \(scope), send state \(sendState)")
+  }
+
   /// `.focusEffectDisabled()` above the thread leaves the focus on the item.
   @Test(arguments: ItemKind.allCases)
   func theFocusLandsOnAnItemUnderFocusEffectDisabled(kind: ItemKind) async throws {
