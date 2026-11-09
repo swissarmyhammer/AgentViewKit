@@ -115,6 +115,26 @@ enum StateGalleryFixtures {
   /// points.
   static let headerHeight: CGFloat = 64
 
+  /// The number of margins in the height of an image: one above the title,
+  /// and one below the columns.
+  static let verticalMarginCount: CGFloat = 2
+
+  /// The height of a column of the message row, in points.
+  static let messageHeight: CGFloat = 130
+
+  /// The height of a column of the tool call card, in points.
+  static let toolCallHeight: CGFloat = 90
+
+  /// The height of a column of the permission request card, in points.
+  static let permissionHeight: CGFloat = 160
+
+  /// The height of a column of a view of one line, such as a chip, a list
+  /// row or a bar control, in points.
+  static let oneLineHeight: CGFloat = 60
+
+  /// The height of a column of the diff of two files, in points.
+  static let diffHeight: CGFloat = 340
+
   /// The suffix of the name of the image of a window that is not key.
   static let notKeySuffix = "-not-key"
 
@@ -123,70 +143,70 @@ enum StateGalleryFixtures {
 
   /// The views of the gallery.
   static let subjects: [Subject] = [
-    Subject(name: "states-message", title: "Message row (UserMessageView)", height: 130) { items in
+    Subject(name: "states-message", title: "Message row (UserMessageView)", height: messageHeight) { items in
       [
         .view(.normal, items.message()),
         .none(.selected, noSelection),
         .view(.focused, focus: items.messagePath, items.message()),
       ]
     },
-    Subject(name: "states-tool-call", title: "Tool call card (ToolCallView)", height: 90) { items in
+    Subject(name: "states-tool-call", title: "Tool call card (ToolCallView)", height: toolCallHeight) { items in
       [
         .view(.normal, items.toolCall()),
         .none(.selected, noSelection),
         .view(.focused, focus: items.toolCallPath, items.toolCall()),
       ]
     },
-    Subject(name: "states-permission", title: "Permission request card (RequestDeck)", height: 160) { items in
+    Subject(name: "states-permission", title: "Permission request card (RequestDeck)", height: permissionHeight) { items in
       [
         .view(.normal, items.permission()),
         .none(.selected, noSelection),
         .view(.focused, focus: items.permissionPath, items.permission()),
       ]
     },
-    Subject(name: "states-attachment-chip", title: "Attachment chip (AttachmentChip)", height: 60) { items in
+    Subject(name: "states-attachment-chip", title: "Attachment chip (AttachmentChip)", height: oneLineHeight) { items in
       [
         .view(.normal, AttachmentChip(items.chipFile)),
         .none(.selected, noSelection),
         .view(.focused, focus: items.path(of: items.chipFile), AttachmentChip(items.chipFile)),
       ]
     },
-    Subject(name: "states-attachment", title: "Attachment (AttachmentView)", height: 60) { items in
+    Subject(name: "states-attachment", title: "Attachment (AttachmentView)", height: oneLineHeight) { items in
       [
         .view(.normal, AttachmentView(items.viewFile)),
         .view(.selected, AttachmentView(items.viewFile).inspectorShows(items.viewFile)),
         .view(.focused, focus: items.path(of: items.viewFile), AttachmentView(items.viewFile)),
       ]
     },
-    Subject(name: "states-path-chip", title: "Path chip of a tool call (ToolCallLocationChips)", height: 60) { items in
+    Subject(name: "states-path-chip", title: "Path chip of a tool call (ToolCallLocationChips)", height: oneLineHeight) { items in
       [
         .view(.normal, items.locationChips()),
         .view(.selected, items.locationChips().inspectorShows(items.locationFile)),
         .view(.focused, focus: items.path(of: items.locationFile), items.locationChips()),
       ]
     },
-    Subject(name: "states-elicitation-tab", title: "Elicitation tab chip (ElicitationTabChip)", height: 60) { items in
+    Subject(name: "states-elicitation-tab", title: "Elicitation tab chip (ElicitationTabChip)", height: oneLineHeight) { items in
       [
         .view(.normal, items.tabChip(isSelected: false)),
         .view(.selected, items.tabChip(isSelected: true)),
         .none(.focused, noScope),
       ]
     },
-    Subject(name: "states-diff-chip", title: "Diff file chips (DiffView)", height: 340) { items in
+    Subject(name: "states-diff-chip", title: "Diff file chips (DiffView)", height: diffHeight) { items in
       [
         .none(.normal, "The second chip of the Selected column is a normal chip."),
         .view(.selected, DiffView(patch: StateGalleryItems.twoFilePatch)),
         .none(.focused, noScope),
       ]
     },
-    Subject(name: "states-row", title: "List row (AgentRowList)", height: 60) { items in
+    Subject(name: "states-row", title: "List row (AgentRowList)", height: oneLineHeight) { items in
       [
         .view(.normal, items.rowList(.normal, current: nil)),
         .view(.selected, items.rowList(.selected, current: StateGalleryItems.rowID)),
         .view(.focused, focus: items.rowPath, items.rowList(.focused, current: nil)),
       ]
     },
-    Subject(name: "states-bar-control", title: "Bar control (ScrollToBottomPill)", height: 60) { items in
+    Subject(name: "states-bar-control", title: "Bar control (ScrollToBottomPill)", height: oneLineHeight) { items in
       [
         .view(.normal, items.pill()),
         .none(.selected, noSelection),
@@ -235,7 +255,7 @@ enum StateGalleryFixtures {
     let title = subject.title + (appearsActive ? "" : " — window not key")
     let size = CGSize(
       width: columnWidth * CGFloat(columns.count) + EditorStyle.default.tile.margin * CGFloat(columns.count + 1),
-      height: subject.height + headerHeight + EditorStyle.default.tile.margin * 2)
+      height: subject.height + headerHeight + EditorStyle.default.tile.margin * verticalMarginCount)
     try await gallery.record(
       suite: suite, named: name, size: size, appearances: [appearance],
       settle: { mount in
@@ -284,6 +304,9 @@ struct StateGalleryItems {
     +  let terms: [String]
      }
     """
+
+  /// The number of new items that the scroll-to-bottom pill shows.
+  static let newItemCount = 3
 
   /// The line of the location of the path chip.
   static let locationLine = 12
@@ -388,7 +411,7 @@ struct StateGalleryItems {
 
   /// The scroll-to-bottom pill, a bar control, in the scope of its session.
   func pill() -> some View {
-    ScrollToBottomPill(newItemCount: 3) {}.agentCommandScope(session: barSession)
+    ScrollToBottomPill(newItemCount: Self.newItemCount) {}.agentCommandScope(session: barSession)
   }
 
   // MARK: - Paths
