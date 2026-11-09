@@ -47,7 +47,7 @@ public enum AttachmentInspectorMode {
   /// replaces the files of each thread view, and a Command-click or a
   /// Shift-click keeps the files of the other thread views. The host shows
   /// the files in its own inspector, for example with
-  /// ``AttachmentInspector``, which folds several files into one form. The
+  /// ``AttachmentInspector``, which shows one block for each file. The
   /// host closes its inspector with a write of an empty list.
   case host(Binding<[AgentAttachmentSelection]>)
 }
@@ -214,12 +214,11 @@ extension View {
   /// in the window share the binding, a list in selection order, and each
   /// selection holds the session id of the thread view that the user
   /// pressed. The host shows the files, for example with
-  /// ``AttachmentInspector``, which folds several files into one form that
-  /// lists them, and whose actions Open, Reveal in Finder, Share, Save and
-  /// Quick Look work in each mode on every file that it shows (card
-  /// ^xbhtytm). The context menu and the keys of a selected
-  /// file in a thread view run each action on every selected file of that
-  /// thread view (card ^zsr2pbf). The host closes its inspector with a write of
+  /// ``AttachmentInspector``, which shows one block for each file. The
+  /// actions Open, Reveal in Finder, Share, Save and Quick Look of a block
+  /// work in each mode on the file of that block only. The context menu and
+  /// the keys of a selected file in a thread view run each action on every
+  /// selected file of that thread view (card ^zsr2pbf). The host closes its inspector with a write of
   /// an empty list to the binding.
   ///
   /// For an example window, see `InspectorWindow` in the README.

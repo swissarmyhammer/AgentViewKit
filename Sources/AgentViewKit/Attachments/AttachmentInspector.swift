@@ -12,8 +12,8 @@ import SwiftUI
 /// (``toggle(_:)``), and a Shift-click adds each attachment from the anchor
 /// to it, in transcript order (``extend(to:in:)``). The anchor is the
 /// attachment of the last select or toggle. The inspector is open while the
-/// selection holds an attachment, and it folds several into one form
-/// (``AttachmentInspector``).
+/// selection holds an attachment, and it shows one block for each selected
+/// attachment (``AttachmentInspector``).
 @MainActor @Observable
 public final class InspectorSelection {
   /// The selection, with its anchor.
@@ -81,8 +81,8 @@ extension EnvironmentValues {
 }
 
 extension View {
-  /// Shows the selected attachments in a trailing inspector, folded into one
-  /// form when there are several.
+  /// Shows the selected attachments in a trailing inspector, one block for
+  /// each attachment.
   ///
   /// The modifier gives `selection` to the environment of this view, so that
   /// a press on an ``AttachmentView`` in this view opens the inspector. It
@@ -208,65 +208,61 @@ private nonisolated struct VerticalInsets: Equatable, Sendable {
 
 /// The inspector content for one file or several (plan.md §3.6, §9 F).
 ///
-/// The view is an EditorKit `InspectorView` of its files, built from
-/// EditorKit's field kinds only (^e4857xj). For one file it shows the file
-/// name in the name row, the actions Open, Reveal in Finder, Share, Save,
-/// and pop-out Quick Look in an EditorKit `InspectorActionRow` under the
-/// name, and EditorKit's one-value preview of the file, a live QuickLook
-/// preview at the preview height of the style, in its `.preview` row.
-/// Several files fold into one form (card ^xbhtytm): the header names the
-/// title and the count, a Files row of EditorKit's paths kind shows a path
-/// chip for each file, in selection order, the same action row acts on
-/// every file, and the preview row reads "Mixed" when the files differ. A
-/// press on a chip opens its file, as the Open command does. Each action
-/// runs on every file of the inspector, in selection order, and is
-/// available only when it can run on each file. The context menu and the
-/// keys of a selected file in a thread view also run each action on every
-/// selected file (card ^zsr2pbf).
+/// The view shows one full block for each of its files, in selection order.
+/// Each block is an EditorKit `InspectorView` of one file, built from
+/// EditorKit's field kinds only (^e4857xj): the file name in the name row,
+/// the actions Open, Reveal in Finder, Share, Save, and pop-out Quick Look in
+/// an EditorKit `InspectorActionRow` under the name, and EditorKit's
+/// one-value preview of the file, a live QuickLook preview at the preview
+/// height of the style, in its `.preview` row. The view never folds several
+/// files into one block. The context menu and the keys of the selected
+/// files in a thread view run each action on every selected file (card
+/// ^zsr2pbf); that is the selection of the thread, not this view.
 ///
-/// The rows take EditorKit's scheme ids, which ``nameIdentifier(of:)``,
-/// ``filesIdentifier(of:)`` and ``previewIdentifier(of:)`` give:
-/// `inspection:attachment/object:<object id>/name`,
-/// `inspection:attachment/object:<object id>/field:attachment.files` and
+/// The rows take EditorKit's scheme ids, which ``nameIdentifier(of:)`` and
+/// ``previewIdentifier(of:)`` give for the block of each file:
+/// `inspection:attachment/object:<object id>/name` and
 /// `inspection:attachment/object:<object id>/field:attachment.preview`.
 /// `attachment` is the explicit id of the inspection, ``viewIdentifier``.
-/// The object id is the raw id of each attachment (``Identifier/rawValue``),
-/// with each `%`, `/`, `.` and `+` escaped as `%XX` by EditorKit's
-/// `InspectorScheme`; several files join their ids with `+`. For the
-/// attachment with the id `draft/notes.md`, the name row is
-/// `inspection:attachment/object:draft%2Fnotes%2Emd/name`. The form takes
-/// the ``formIdentifier``. It has the system margins and row insets, no
-/// padding of its own and no background, and it scrolls by itself unless
-/// the host owns the scrolling (`.inspectorScrolling(.host)`).
+/// The object id is the raw id of the file of the block
+/// (``Identifier/rawValue``), with each `%`, `/`, `.` and `+` escaped as
+/// `%XX` by EditorKit's `InspectorScheme`. For the attachment with the id
+/// `draft/notes.md`, the name row is
+/// `inspection:attachment/object:draft%2Fnotes%2Emd/name`.
 ///
-/// The view is the scope of its first file (`agentAttachment:<id>`,
-/// AVK-11), which gives every file of the view to the context of its
-/// commands as their selection. Each action button runs the
-/// ``AgentAttachmentVerb`` command of that scope on those files, so the
-/// buttons, the context menu and the command palette run the same commands
-/// on the same files. This is true
-/// in the built-in inspector of an ``AgentThreadView`` and in the inspector
-/// of a host (``AttachmentInspectorMode/host(_:)``).
+/// Each block is a grouped form with the ``formIdentifier``. It has the
+/// system margins and row insets, no padding of its own and no background.
+/// The blocks of several files stack as EditorKit stacks the blocks of an
+/// `InspectorView`: each block takes the height of its rows, and the stack
+/// scrolls in a scroll view of its own, or in the scroll view of the host
+/// when the host owns the scrolling (`.inspectorScrolling(.host)`), and each
+/// block shows its name row. The block of one file scrolls by itself unless
+/// the host owns the scrolling.
+///
+/// Each block is the scope of its file (`agentAttachment:<id>`, AVK-11).
+/// Each action button of a block runs the ``AgentAttachmentVerb`` command
+/// of that scope on the file of the block only, so the buttons, the context
+/// menu and the command palette of a block run the same commands on the
+/// same file. This is true in the built-in inspector of an
+/// ``AgentThreadView`` and in the inspector of a host
+/// (``AttachmentInspectorMode/host(_:)``).
 public struct AttachmentInspector: View {
-  /// The start of the accessibility identifier of each action.
+  /// The start of the accessibility identifier of each action. Each block
+  /// has one button with each identifier.
   public static let identifierPrefix = "inspector"
 
-  /// The accessibility identifier of the grouped form that holds the name,
-  /// the actions, the Files row of several files and the preview.
+  /// The accessibility identifier of the grouped form of each block, which
+  /// holds the name, the actions and the preview of its file.
   public static let formIdentifier = "inspector-form"
 
-  /// The id of the `InspectorView` and of its inspection, `attachment`: the
-  /// view part of the scheme id of each row. It is explicit, so it does not
-  /// follow the name of a type.
+  /// The id of the `InspectorView` of each block and of its inspection,
+  /// `attachment`: the view part of the scheme id of each row. It is
+  /// explicit, so it does not follow the name of a type.
   public static let viewIdentifier = "attachment"
 
-  /// The group part of the scheme id of the Files row and of the preview
-  /// row: the key that EditorKit gives the one group of the inspection,
-  /// named "Attachment".
+  /// The group part of the scheme id of the preview row: the key that
+  /// EditorKit gives the one group of the inspection, named "Attachment".
   static let groupIdentifier = "attachment"
-
-  /// The field part of the scheme id of the Files row.
-  static let filesFieldIdentifier = "files"
 
   /// The field part of the scheme id of the preview row.
   static let previewFieldIdentifier = "preview"
@@ -279,23 +275,12 @@ public struct AttachmentInspector: View {
     AttachmentActions.identifiers(prefix: identifierPrefix)
   }
 
-  /// The inspection of the files: one group, named as the inspection, with
-  /// the Files row of several files and the preview of the file. Its id is
-  /// ``viewIdentifier``.
-  ///
-  /// The Files row is EditorKit's paths kind: a path chip for each file of
-  /// the inspector, in selection order. Each object of one inspector holds
-  /// the same files (``InspectedAttachment/files``), so the row folds to
-  /// that list, and it shows only for several files. A press on a chip
-  /// opens its file (``InspectedAttachment/open(_:)``).
+  /// The inspection of one file: one group, named as the inspection, with
+  /// the preview of the file. Its id is ``viewIdentifier``.
   static var inspection: Inspection<InspectedAttachment> {
     .named(
       FieldLabel(localized: "Attachment", bundle: .module), id: viewIdentifier, name: { $0.attachment.name }
     ) {
-      Field(FieldLabel(localized: "Files", bundle: .module)) { $0.files.map(\.url) }
-        .identifier(filesFieldIdentifier)
-        .visible { $0.files.count > 1 }
-        .opening { $0.open($1) }
       Field(FieldLabel(localized: "Preview", bundle: .module)) { PreviewValue.file($0.attachment.url) }
         .identifier(previewFieldIdentifier)
     }
@@ -304,12 +289,12 @@ public struct AttachmentInspector: View {
   /// The files to show, in selection order.
   let attachments: [Attachment]
 
-  /// The objects of the `InspectorView`, which follow ``attachments``.
+  /// The object of the `InspectorView` of each block, which follow
+  /// ``attachments``.
   @State private var files: [InspectedAttachment]
 
-  /// The service of the environment, which opens a chip of the Files row,
-  /// or `nil` for the system default.
-  @Environment(\.attachmentFileService) private var fileService
+  /// Who scrolls the blocks.
+  @Environment(\.inspectorScrolling) private var scrolling
 
   /// Makes the inspector content for a file.
   ///
@@ -318,88 +303,106 @@ public struct AttachmentInspector: View {
     self.init([attachment])
   }
 
-  /// Makes the inspector content for several files, folded into one form.
+  /// Makes the inspector content for several files: one block for each
+  /// file.
   ///
   /// - Parameter attachments: The files to show, in selection order.
   public init(_ attachments: [Attachment]) {
     self.attachments = attachments
-    _files = State(initialValue: InspectedAttachment.objects(of: attachments, fileService: nil))
+    _files = State(initialValue: attachments.map(InspectedAttachment.init))
   }
 
-  /// The scheme id of the name row of the inspector of `attachments`.
+  /// The scheme id of the name row of the block of `attachment`.
   ///
-  /// The object id is the escaped raw id of each file, joined with `+`. For
-  /// the attachment with the id `draft/notes.md` the id is
+  /// The object id is the escaped raw id of the file. For the attachment
+  /// with the id `draft/notes.md` the id is
   /// `inspection:attachment/object:draft%2Fnotes%2Emd/name`.
   ///
-  /// - Parameter attachments: The files of the inspector, in selection order.
+  /// - Parameter attachment: The file of the block.
   /// - Returns: `inspection:attachment/object:<object id>/name`.
-  public static func nameIdentifier(of attachments: [Attachment]) -> String {
-    let block = InspectorScheme.blockIdentifier(view: viewIdentifier, object: objectIdentifier(of: attachments))
+  public static func nameIdentifier(of attachment: Attachment) -> String {
+    let block = InspectorScheme.blockIdentifier(view: viewIdentifier, object: objectIdentifier(of: attachment))
     return InspectorScheme.identifier(of: namePart, inRow: block)
   }
 
-  /// The scheme id of the Files row of the inspector of `attachments`, which
-  /// shows for several files.
+  /// The scheme id of the preview row of the block of `attachment`.
   ///
-  /// The object id is the escaped raw id of each file, joined with `+`. For
-  /// the attachments with the ids `draft/notes.md` and `plan` the id is
-  /// `inspection:attachment/object:draft%2Fnotes%2Emd+plan/field:attachment.files`.
-  ///
-  /// - Parameter attachments: The files of the inspector, in selection order.
-  /// - Returns:
-  ///   `inspection:attachment/object:<object id>/field:attachment.files`.
-  public static func filesIdentifier(of attachments: [Attachment]) -> String {
-    InspectorScheme.rowIdentifier(
-      view: viewIdentifier, object: objectIdentifier(of: attachments), group: groupIdentifier,
-      field: filesFieldIdentifier)
-  }
-
-  /// The scheme id of the preview row of the inspector of `attachments`.
-  ///
-  /// The object id is the escaped raw id of each file, joined with `+`. For
-  /// the attachment with the id `draft/notes.md` the id is
+  /// The object id is the escaped raw id of the file. For the attachment
+  /// with the id `draft/notes.md` the id is
   /// `inspection:attachment/object:draft%2Fnotes%2Emd/field:attachment.preview`.
   ///
-  /// - Parameter attachments: The files of the inspector, in selection order.
+  /// - Parameter attachment: The file of the block.
   /// - Returns:
   ///   `inspection:attachment/object:<object id>/field:attachment.preview`.
-  public static func previewIdentifier(of attachments: [Attachment]) -> String {
+  public static func previewIdentifier(of attachment: Attachment) -> String {
     InspectorScheme.rowIdentifier(
-      view: viewIdentifier, object: objectIdentifier(of: attachments), group: groupIdentifier,
+      view: viewIdentifier, object: objectIdentifier(of: attachment), group: groupIdentifier,
       field: previewFieldIdentifier)
   }
 
-  /// The object part of the scheme id of each row of the inspector of
-  /// `attachments`: the raw id of each file, escaped by EditorKit's
-  /// `InspectorScheme` and joined with `+`.
+  /// The object part of the scheme id of each row of the block of
+  /// `attachment`: the raw id of the file, escaped by EditorKit's
+  /// `InspectorScheme`.
   ///
-  /// - Parameter attachments: The files of the inspector, in selection order.
+  /// - Parameter attachment: The file of the block.
   /// - Returns: The object id.
-  private static func objectIdentifier(of attachments: [Attachment]) -> String {
-    InspectorScheme.objectID(of: attachments.map(InspectedAttachment.init), key: viewIdentifier)
+  private static func objectIdentifier(of attachment: Attachment) -> String {
+    InspectorScheme.objectID(of: InspectedAttachment(attachment), key: viewIdentifier)
   }
 
   public var body: some View {
-    InspectorView(files, Self.inspection, id: Self.viewIdentifier)
+    content
+      .onChange(of: attachments) {
+        files = attachments.map(InspectedAttachment.init)
+      }
+  }
+
+  /// The block of the one file, or the blocks of several files stacked.
+  @ViewBuilder private var content: some View {
+    if let file = files.first, files.count == 1 {
+      block(of: file)
+    } else {
+      stacked
+    }
+  }
+
+  /// The blocks of several files, stacked as EditorKit stacks the blocks of
+  /// an `InspectorView`, each taking the height of its rows: in a scroll
+  /// view of the view's own, or in the scroll view of the host. Each block
+  /// shows its name row, also when the host hides the block headers
+  /// (`.inspectorBlockHeader(.hidden)`), so each file is named.
+  @ViewBuilder private var stacked: some View {
+    let stack = VStack(spacing: 0) {
+      ForEach(files) { file in
+        block(of: file)
+      }
+    }
+    .inspectorScrolling(.host)
+    .inspectorBlockHeader(.automatic)
+    switch scrolling {
+    case .form: ScrollView { stack }
+    case .host: stack
+    }
+  }
+
+  /// The block of one file: the EditorKit `InspectorView` of the file with
+  /// the action row, in the scope of the file, so each action acts on that
+  /// file only.
+  ///
+  /// - Parameter file: The object of the file.
+  /// - Returns: The block.
+  private func block(of file: InspectedAttachment) -> some View {
+    InspectorView(file, Self.inspection, id: Self.viewIdentifier)
       .actions {
         AttachmentActions(identifierPrefix: Self.identifierPrefix)
       }
       .accessibilityIdentifier(Self.formIdentifier)
-      .agentAttachmentScope(files: attachments)
-      .onChange(of: attachments) {
-        files = InspectedAttachment.objects(of: attachments, fileService: fileService)
-      }
-      .onChange(of: fileService.map(ObjectIdentifier.init), initial: true) {
-        for file in files {
-          file.fileService = fileService
-        }
-      }
+      .agentAttachmentScope(file.attachment)
   }
 }
 
-/// One file of an ``AttachmentInspector``, as an object of its EditorKit
-/// `InspectorView`.
+/// One file of an ``AttachmentInspector``, as the object of the EditorKit
+/// `InspectorView` of its block.
 ///
 /// Its id is the raw id of its attachment, a `String`, so the object part
 /// of the scheme id of each row is that text, escaped, and names the file
@@ -410,67 +413,14 @@ final class InspectedAttachment: Identifiable {
   /// The file.
   let attachment: Attachment
 
-  /// The files of the inspector that shows the file, in selection order.
-  /// Each object of one inspector holds the same files, so the Files row,
-  /// which reads them, folds to one list.
-  let files: [Attachment]
-
-  /// The service that opens the file of a chip of the Files row: the
-  /// ``SwiftUI/EnvironmentValues/attachmentFileService`` of the inspector,
-  /// or `nil` for the system default, a new ``AttachmentPresenter``.
-  ///
-  /// The inspection is static, so its rows cannot read the environment of
-  /// the view. The ``AttachmentInspector`` writes the service of its
-  /// environment here, as `InspectedClientModel` takes a service for its
-  /// path rows.
-  @ObservationIgnored var fileService: (any AttachmentFileService)?
-
   /// The raw id of the attachment.
   var id: String { attachment.id.rawValue }
 
-  /// Makes the object of a file in an inspector of `files`.
-  ///
-  /// - Parameters:
-  ///   - attachment: The file.
-  ///   - files: The files of the inspector, in selection order.
-  ///   - fileService: The service that opens a chip of the Files row, or
-  ///     `nil` for the system default.
-  init(_ attachment: Attachment, files: [Attachment], fileService: (any AttachmentFileService)?) {
-    self.attachment = attachment
-    self.files = files
-    self.fileService = fileService
-  }
-
-  /// Makes the object of a file in an inspector of that file alone, which
-  /// opens a chip with the system default.
+  /// Makes the object of a file.
   ///
   /// - Parameter attachment: The file.
-  convenience init(_ attachment: Attachment) {
-    self.init(attachment, files: [attachment], fileService: nil)
-  }
-
-  /// The objects of an inspector of `attachments`, one for each file.
-  ///
-  /// - Parameters:
-  ///   - attachments: The files of the inspector, in selection order.
-  ///   - fileService: The service that opens a chip of the Files row, or
-  ///     `nil` for the system default.
-  /// - Returns: The objects, in selection order.
-  static func objects(
-    of attachments: [Attachment], fileService: (any AttachmentFileService)?
-  ) -> [InspectedAttachment] {
-    attachments.map { InspectedAttachment($0, files: attachments, fileService: fileService) }
-  }
-
-  /// Opens the file of a chip of the Files row, as the Open command of an
-  /// attachment does: runs ``AgentAttachmentVerb/openAttachment`` on the
-  /// file of ``files`` at `url` with ``fileService``, or with the system
-  /// default. A service that cannot open the file logs the failure.
-  ///
-  /// - Parameter url: The URL of the chip.
-  func open(_ url: URL) {
-    let file = files.first { $0.url == url } ?? Attachment(url: url)
-    _ = (fileService ?? AttachmentPresenter()).run(.openAttachment, on: file)
+  init(_ attachment: Attachment) {
+    self.attachment = attachment
   }
 }
 

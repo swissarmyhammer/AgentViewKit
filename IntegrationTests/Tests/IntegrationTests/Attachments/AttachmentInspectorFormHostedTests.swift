@@ -29,7 +29,7 @@ import Testing
     let roles = harness.elements(under: AttachmentInspector.formIdentifier).compactMap(\.role)
     #expect(roles.contains(NSAccessibility.Role.scrollArea.rawValue))
     let inForm = Set(harness.elements(under: AttachmentInspector.formIdentifier).compactMap(\.identifier))
-    #expect(inForm.contains(AttachmentInspector.nameIdentifier(of: [attachment])))
+    #expect(inForm.contains(AttachmentInspector.nameIdentifier(of: attachment)))
     for identifier in AttachmentInspector.actionIdentifiers {
       #expect(inForm.contains(identifier), "No action \(identifier) in the form.")
     }
@@ -46,7 +46,7 @@ import Testing
     defer { harness.close() }
 
     let form = try #require(harness.frame(identifier: AttachmentInspector.formIdentifier))
-    let name = try #require(harness.frame(identifier: AttachmentInspector.nameIdentifier(of: [attachment])))
+    let name = try #require(harness.frame(identifier: AttachmentInspector.nameIdentifier(of: attachment)))
     let previewView = try #require(views(ofType: QLPreviewView.self, in: harness.hostingView).first)
     let preview = harness.screenFrame(of: previewView)
 

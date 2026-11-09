@@ -169,8 +169,8 @@ extension InspectorView {
     self.init(model.map(InspectedClientModel.init), id: id)
   }
 
-  /// Makes the view of several client models of one type, folded into one
-  /// form, through their ``InspectedClientModel``s.
+  /// Makes the view of several client models of one type, one block for
+  /// each model, through their ``InspectedClientModel``s.
   ///
   /// - Parameters:
   ///   - models: The models, in selection order.

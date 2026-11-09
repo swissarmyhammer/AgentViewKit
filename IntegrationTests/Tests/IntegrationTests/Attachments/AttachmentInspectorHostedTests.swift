@@ -475,7 +475,7 @@ import UniformTypeIdentifiers
   static func shownName<Content: View>(
     of attachment: AgentViewKit.Attachment, in harness: HostedViewHarness<Content>
   ) -> String? {
-    harness.rowValue(AttachmentInspector.nameIdentifier(of: [attachment]))
+    harness.rowValue(AttachmentInspector.nameIdentifier(of: attachment))
   }
 
   /// Presses the button of each attachment verb, in order, through EditorKit's

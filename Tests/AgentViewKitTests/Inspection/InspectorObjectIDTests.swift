@@ -53,6 +53,6 @@ import Testing
   @Test func theSchemeEscapesTheObjectIDOfASession() {
     let session = SessionModel.preview(sessionId: SessionId(rawValue: "sess.1/a"))
 
-    #expect(InspectorScheme.objectID(of: [InspectedClientModel(session)], key: "session") == "sess%2E1%2Fa")
+    #expect(InspectorScheme.objectID(of: InspectedClientModel(session), key: "session") == "sess%2E1%2Fa")
   }
 }

@@ -1,20 +1,31 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
+import AppKit
 import EditorInspectorTestSupport
 import EditorTestSupport
 import SwiftUI
 import Testing
 
-/// Hosted tests of an ``AttachmentInspector`` of several files (card
-/// ^xbhtytm): its Files row lists the files, and each action of its action
-/// row acts on every file.
+/// Hosted tests of an ``AttachmentInspector`` of several files: it shows one
+/// full block for each file, in selection order, and the action row of each
+/// block acts on the file of that block only.
 ///
 /// The inspector gets a ``RecordingAttachmentFileService`` through the
 /// environment, so a press opens no system UI. Each test drives the
 /// inspector through accessibility with EditorKit's `InspectorDriver`: it
-/// reads the chips of the Files row, opens a chip as VoiceOver's press does,
-/// and presses an action by its title. No test clicks.
+/// reads the name row of each block by its scheme id, and presses the button
+/// of an action in one block as VoiceOver's press does. No test clicks.
 @Suite(.serialized, .hostedSerially) @MainActor struct AttachmentInspectorFilesHostedTests {
+  /// The names of the two files of the tests, each of another type.
+  static let names = ["first.bin", "second.txt"]
+
+  /// The height of a window that shows each row of the two blocks, in
+  /// points: each block holds a preview at the preview height of the style.
+  static let windowHeight: CGFloat = 1_000
+
+  /// The size of the window of the tests.
+  static let windowSize = CGSize(width: AttachmentInspectorHostedTests.hostSize.width, height: windowHeight)
+
   /// The temporary files of the tests.
   let fileSet: AttachmentFileSet
 
@@ -22,79 +33,95 @@ import Testing
   let service = RecordingAttachmentFileService()
 
   init() throws {
-    fileSet = try AttachmentFileSet()
+    fileSet = try AttachmentFileSet(named: Self.names)
   }
 
   /// The files of the inspector, in a selection order that is not the order
-  /// of their names, so a row in name order fails.
+  /// of their names, so blocks in name order fail.
   var selection: [AgentViewKit.Attachment] {
-    let files = fileSet.files
-    return [files[2], files[0], files[1]]
+    fileSet.files.reversed()
   }
 
-  /// Mounts the inspector of `files` with the recording service, and makes
-  /// one render pass.
+  /// Mounts the inspector of ``selection`` with the recording service, and
+  /// makes one render pass.
   ///
-  /// - Parameter files: The files of the inspector, in selection order.
   /// - Returns: The harness. The caller closes it.
-  func mount(_ files: [AgentViewKit.Attachment]) -> HostedViewHarness<some View> {
-    AttachmentInspectorRowsHostedTests.mount(AttachmentInspector(files).environment(\.attachmentFileService, service))
+  func mount() -> HostedViewHarness<some View> {
+    AttachmentInspectorRowsHostedTests.mount(
+      AttachmentInspector(selection).environment(\.attachmentFileService, service), size: Self.windowSize)
   }
 
-  @Test func theFilesRowShowsAChipForEachFileInSelectionOrder() {
-    defer { fileSet.remove() }
-    let harness = mount(selection)
-    defer { harness.close() }
-
-    let chips = harness.inspectorDriver.pathChips(in: AttachmentInspector.filesIdentifier(of: selection))
-
-    #expect(chips.compactMap(accessibilityValue(of:)) == selection.map { $0.url.path(percentEncoded: false) })
+  /// The button of `verb` in each block of the inspector in `harness`, in
+  /// the order of the blocks.
+  ///
+  /// - Parameters:
+  ///   - verb: The verb of the buttons.
+  ///   - harness: The harness that shows the inspector.
+  /// - Returns: The live accessibility element of each button.
+  static func buttons<Content: View>(of verb: AgentAttachmentVerb, in harness: HostedViewHarness<Content>)
+    -> [NSObject]
+  {
+    harness.inspectorDriver.elements(verb.identifier(prefix: AttachmentInspector.identifierPrefix))
   }
 
-  @Test func oneFileShowsNoFilesRow() throws {
-    defer { fileSet.remove() }
-    let file = try #require(selection.first)
-    let harness = mount([file])
-    defer { harness.close() }
-
-    #expect(!harness.showsRow(AttachmentInspector.filesIdentifier(of: [file])))
+  /// Presses the button of `verb` in the block at `index`, as VoiceOver's
+  /// press does, then makes one render pass.
+  ///
+  /// - Parameters:
+  ///   - verb: The verb of the button.
+  ///   - index: The position of the block.
+  ///   - harness: The harness that shows the inspector.
+  /// - Throws: An issue when the inspector has no block at `index`, or the
+  ///   error of a press that does not take.
+  static func press<Content: View>(_ verb: AgentAttachmentVerb, inBlock index: Int, of harness: HostedViewHarness<Content>)
+    throws
+  {
+    let buttons = buttons(of: verb, in: harness)
+    try #require(buttons.indices.contains(index), "The inspector has \(buttons.count) buttons of \(verb).")
+    try AccessibilityAction.press.perform(
+      on: buttons[index], identifiedAs: verb.identifier(prefix: AttachmentInspector.identifierPrefix))
+    harness.render()
   }
 
-  @Test func openingAChipOpensItsFile() throws {
+  @Test func eachBlockHasTheNameRowOfItsFile() {
     defer { fileSet.remove() }
-    let harness = mount(selection)
+    let harness = mount()
     defer { harness.close() }
-    let index = selection.count - 1
 
-    try harness.inspectorDriver.openPath(at: index, in: AttachmentInspector.filesIdentifier(of: selection))
+    let names = selection.map { harness.rowValue(AttachmentInspector.nameIdentifier(of: $0)) }
 
-    #expect(service.calls == AttachmentFixtures.calls(of: .openAttachment, on: [selection[index]]))
+    #expect(names == selection.map(\.name))
   }
 
   @Test(arguments: AgentAttachmentVerb.allCases)
-  func eachActionRunsOnEveryFileInInspectorOrder(_ verb: AgentAttachmentVerb) throws {
+  func theActionOfEachBlockRunsOnTheFileOfThatBlockOnly(_ verb: AgentAttachmentVerb) throws {
     defer { fileSet.remove() }
-    let harness = mount(selection)
+    let harness = mount()
     defer { harness.close() }
 
-    try harness.inspectorDriver.pressAction(verb.buttonTitle ?? verb.title)
+    for index in selection.indices {
+      try Self.press(verb, inBlock: index, of: harness)
+    }
 
-    #expect(service.calls == AttachmentFixtures.calls(of: verb, on: selection))
+    #expect(service.calls == selection.flatMap { AttachmentFixtures.calls(of: verb, on: [$0]) })
   }
 
-  /// The availability of an action reads every file: with the last file of
-  /// the inspector gone, the Open button is disabled, so its press does not
-  /// take, and Open runs on no file, not on the files that are still there.
-  @Test func anActionThatOneFileCannotRunIsDisabled() throws {
+  /// The availability of an action reads the file of its block only: with
+  /// the file of the last block gone, the Open button of that block is
+  /// disabled, so its press does not take, and the Open button of the first
+  /// block still opens its file.
+  @Test func anActionThatTheFileOfABlockCannotRunIsDisabledInThatBlockOnly() throws {
     defer { fileSet.remove() }
     let missing = try #require(selection.last)
     try FileManager.default.removeItem(at: missing.url)
-    let harness = mount(selection)
+    let harness = mount()
     defer { harness.close() }
 
+    try Self.press(.openAttachment, inBlock: 0, of: harness)
     #expect(throws: (any Error).self) {
-      try harness.inspectorDriver.pressAction(AgentAttachmentVerb.openAttachment.title)
+      try Self.press(.openAttachment, inBlock: selection.count - 1, of: harness)
     }
-    #expect(service.calls.isEmpty)
+
+    #expect(service.calls == AttachmentFixtures.calls(of: .openAttachment, on: [selection[0]]))
   }
 }

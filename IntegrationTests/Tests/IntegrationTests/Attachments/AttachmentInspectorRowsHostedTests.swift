@@ -10,9 +10,9 @@ import Testing
 /// files, read with EditorKit's `InspectorDriver` by their scheme ids.
 ///
 /// One file shows its name, its actions and the EditorKit preview of the
-/// file. Several files fold into one form: the header counts them and the
-/// preview reads "Mixed". ``AttachmentInspectorFilesHostedTests`` checks the
-/// Files row and the actions of several files.
+/// file. Several files show one block for each file, and the block of each
+/// file shows the preview of that file. ``AttachmentInspectorFilesHostedTests``
+/// checks the name rows and the actions of the blocks of several files.
 @Suite(.serialized, .hostedSerially) @MainActor struct AttachmentInspectorRowsHostedTests {
   /// The width of a narrow docked panel, in points.
   static let narrowWidth: CGFloat = 240
@@ -56,7 +56,7 @@ import Testing
     let harness = Self.mount(AttachmentInspector(attachment))
     defer { harness.close() }
 
-    #expect(harness.rowValue(AttachmentInspector.previewIdentifier(of: [attachment])) == "blob.bin")
+    #expect(harness.rowValue(AttachmentInspector.previewIdentifier(of: attachment)) == "blob.bin")
   }
 
   @Test func theNameRowOfOneFileIsTheNameOfTheFile() throws {
@@ -66,29 +66,19 @@ import Testing
     let harness = Self.mount(AttachmentInspector(attachment))
     defer { harness.close() }
 
-    #expect(harness.rowValue(AttachmentInspector.nameIdentifier(of: [attachment])) == "blob.bin")
+    #expect(harness.rowValue(AttachmentInspector.nameIdentifier(of: attachment)) == "blob.bin")
   }
 
-  @Test func thePreviewRowOfSeveralFilesIsMixed() throws {
+  @Test func theBlockOfEachOfSeveralFilesShowsThePreviewOfItsFile() throws {
     let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let attachments = try Self.attachments(in: directory)
-    let harness = Self.mount(AttachmentInspector(attachments))
+    let harness = Self.mount(AttachmentInspector(attachments), size: AttachmentInspectorFilesHostedTests.windowSize)
     defer { harness.close() }
 
-    #expect(harness.inspectorDriver.isMixed(AttachmentInspector.previewIdentifier(of: attachments)))
-  }
+    let previews = attachments.map { harness.rowValue(AttachmentInspector.previewIdentifier(of: $0)) }
 
-  @Test func theHeaderOfSeveralFilesCountsThem() throws {
-    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
-    defer { directory.remove() }
-    let attachments = try Self.attachments(in: directory)
-    let harness = Self.mount(AttachmentInspector(attachments))
-    defer { harness.close() }
-
-    let header = EditorInspectorStrings.blockHeader(
-      title: AttachmentInspector.inspection.title, count: attachments.count)
-    #expect(harness.rowValue(AttachmentInspector.nameIdentifier(of: attachments)) == header)
+    #expect(previews == attachments.map(\.name))
   }
 
   /// The inspector as the content of a narrow host panel, which owns the
@@ -104,6 +94,6 @@ import Testing
     let harness = Self.mount(panel, size: Self.narrowPanel)
     defer { harness.close() }
 
-    #expect(harness.showsRow(AttachmentInspector.previewIdentifier(of: [attachment])))
+    #expect(harness.showsRow(AttachmentInspector.previewIdentifier(of: attachment)))
   }
 }

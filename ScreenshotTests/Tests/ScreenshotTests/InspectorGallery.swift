@@ -12,10 +12,10 @@ import SwiftUI
 ///
 /// Each subject shows as the content of a host's inspector panel, which owns
 /// the one scroll view (`.inspectorScrolling(.host)`), at the width of a
-/// narrow docked panel and of a wide one. A subject whose type folds several
-/// objects shows two objects with different values too, so its rows read
-/// "Mixed". `ReviewGallery` records each image in Light and in Dark. The
-/// images are for a person to look at; no test reads their pixels.
+/// narrow docked panel and of a wide one. A subject of a type shows two
+/// objects with different values too, one block for each object.
+/// `ReviewGallery` records each image in Light and in Dark. The images are
+/// for a person to look at; no test reads their pixels.
 ///
 /// The subjects: the attachment inspector in each ``AttachmentInspectorMode``,
 /// the form style of ``ConfigOptionsView``, the list style of
@@ -44,12 +44,19 @@ enum InspectorGallery {
   /// The size of the window of the built-in attachment inspector.
   private static let builtInSize = CGSize(width: builtInWidth, height: height)
 
+  /// The name of the count in the name of an image of one object.
+  private static let oneName = "one"
+
+  /// The name of the count in the name of an image of two objects, one
+  /// block for each.
+  private static let twoName = "two"
+
   /// The panel widths of each subject, with the name of each in the image
   /// name.
   private static let widths: [(name: String, width: CGFloat)] = [("narrow", narrowWidth), ("wide", wideWidth)]
 
   /// One subject of the gallery: its name, its view of one object, and its
-  /// view of several objects when its type folds them.
+  /// view of two objects, one block for each, when it has one.
   struct Subject {
     /// The name of the subject in the image name, such as `tool-call`.
     let name: String
@@ -57,8 +64,8 @@ enum InspectorGallery {
     /// The view of one object.
     let one: AnyView
 
-    /// The view of two objects with different values, or `nil` when the
-    /// subject shows one object only.
+    /// The view of two objects with different values, one block for each,
+    /// or `nil` when the subject shows one object only.
     let several: AnyView?
 
     /// Makes the subject of an `Inspectable` type.
@@ -66,8 +73,8 @@ enum InspectorGallery {
     /// - Parameters:
     ///   - name: The name of the subject.
     ///   - first: The object of the single image, and the first of the
-    ///     Mixed image.
-    ///   - second: The second object of the Mixed image.
+    ///     image of two objects.
+    ///   - second: The second object of the image of two objects.
     ///   - fieldLabels: How each row shows the name of its field, as the
     ///     host of the inspector sets it.
     init<Object: Inspectable>(
@@ -85,8 +92,8 @@ enum InspectorGallery {
     /// - Parameters:
     ///   - name: The name of the subject.
     ///   - first: The model of the single image, and the first of the
-    ///     Mixed image.
-    ///   - second: The second model of the Mixed image.
+    ///     image of two models.
+    ///   - second: The second model of the image of two models.
     ///   - fieldLabels: How each row shows the name of its field, as the
     ///     host of the inspector sets it.
     init<Model: InspectableClientModel>(
@@ -111,7 +118,8 @@ enum InspectorGallery {
     /// - Parameters:
     ///   - name: The name of the subject.
     ///   - one: The view of one object.
-    ///   - several: The view of several objects with different values.
+    ///   - several: The view of two objects with different values, one
+    ///     block for each.
     init(_ name: String, one: some View, several: some View) {
       self.name = name
       self.one = AnyView(one)
@@ -133,22 +141,22 @@ enum InspectorGallery {
     let host = Subject(
       "attachment-host", one: AttachmentInspector(attachment), several: AttachmentInspector([attachment, second]))
 
-    try await recordBuiltInAttachmentInspector([attachment], named: "one", in: gallery)
-    try await recordBuiltInAttachmentInspector([attachment, second], named: "mixed", in: gallery)
+    try await recordBuiltInAttachmentInspector([attachment], named: Self.oneName, in: gallery)
+    try await recordBuiltInAttachmentInspector([attachment, second], named: Self.twoName, in: gallery)
     for subject in [host] + (try fixtures.subjects) {
       try await record(subject, in: gallery)
     }
   }
 
-  /// Records the panel images of `subject`: one object, and several when
-  /// the subject has them, at each width.
+  /// Records the panel images of `subject`: one object, and two when the
+  /// subject has them, at each width.
   ///
   /// - Parameters:
   ///   - subject: The subject.
   ///   - gallery: The review gallery.
   /// - Throws: The error of a capture or of a write.
   private static func record(_ subject: Subject, in gallery: ReviewGallery) async throws {
-    let views = [("one", subject.one)] + (subject.several.map { [("mixed", $0)] } ?? [])
+    let views = [(Self.oneName, subject.one)] + (subject.several.map { [(Self.twoName, $0)] } ?? [])
     for (count, view) in views {
       for (widthName, width) in widths {
         try await gallery.record(
@@ -164,12 +172,12 @@ enum InspectorGallery {
   /// Records the built-in attachment inspector
   /// (``AttachmentInspectorMode/builtIn``): the trailing inspector column of
   /// `.attachmentInspector(selection:)` beside a transcript, with one
-  /// selected file or several, which the column folds into one form
-  /// (card ^4138tmp).
+  /// selected file or two, one block for each file (card ^4138tmp).
   ///
   /// - Parameters:
   ///   - attachments: The selected files, in selection order.
-  ///   - count: The name of the count in the image name: `one` or `mixed`.
+  ///   - count: The name of the count in the image name: ``oneName`` or
+  ///     ``twoName``.
   ///   - gallery: The review gallery.
   /// - Throws: The error of a capture or of a write.
   private static func recordBuiltInAttachmentInspector(

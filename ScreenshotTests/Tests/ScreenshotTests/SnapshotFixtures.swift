@@ -120,8 +120,8 @@ enum SnapshotFixtures {
   /// The name of the file that the attachment inspector shows.
   static let inspectorFileName = "answer.swift"
 
-  /// The name of the second file of the inspector of several files: a file
-  /// of another type, so its preview differs and the row reads "Mixed".
+  /// The name of the second file of the inspector of two files: a file of
+  /// another type, so the preview of its block differs from the first.
   static let secondInspectorFileName = "notes.md"
 
   /// A session with a user message, an agent message with a code block, a

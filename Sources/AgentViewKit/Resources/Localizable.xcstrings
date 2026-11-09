@@ -831,16 +831,6 @@
         }
       }
     },
-    "Files" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Files"
-          }
-        }
-      }
-    },
     "Focus Composer" : {
       "localizations" : {
         "en" : {

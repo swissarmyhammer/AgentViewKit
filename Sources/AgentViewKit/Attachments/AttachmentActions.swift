@@ -13,10 +13,9 @@ import UniformTypeIdentifiers
 /// its enabled state and its tooltip come from the registry at the path of
 /// the scope, and a press runs the command there. Thus a button, the context
 /// menu of the attachment and the command palette run the same command on
-/// the same files (``AgentAttachmentCommand/attachments``), such as each
-/// file of a scope of several files
-/// (``SwiftUI/View/agentAttachmentScope(files:)``). A button is disabled
-/// when its verb cannot run on each file of the command. With the
+/// the same files (``AgentAttachmentCommand/attachments``). In a block of
+/// an ``AttachmentInspector``, that is the file of the block alone. A button
+/// is disabled when its verb cannot run on each file of the command. With the
 /// group ``AgentCommandGroup/attachment`` off, the view shows no button.
 struct AttachmentActions: View {
   /// The accessibility identifiers of each action, in display order.

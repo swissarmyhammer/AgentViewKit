@@ -393,12 +393,13 @@ Shift-click changes only the files of its thread. Show the files in your
 inspector, for example with
 `AttachmentInspector`, an EditorKit `InspectorView` of the file with its
 preview, whose actions Open, Reveal in Finder, Share, Save and Quick Look work
-in each mode. `AttachmentInspector([files])` folds several files into one
-form: a Files row shows a path chip for each file, in selection order, and a
-press on a chip opens its file; each action runs on every file, and is
-available only when it can run on each one; the preview reads "Mixed". Each
-action is an EditorKit command of the scope of the attachment, so the context
-menu and the command palette run it too. A write of an empty list closes the
+in each mode. `AttachmentInspector([files])` shows one full block for each
+file, in selection order: each block has the name, the actions and the preview
+of its file, as the inspector of one file has, and each action of a block runs
+on the file of that block only. Each action is an EditorKit command of the
+scope of the attachment, so the context menu and the command palette run it
+too. The context menu and the keys of the selected files in a thread view run
+each action on every selected file. A write of an empty list closes the
 inspector.
 
 ```swift

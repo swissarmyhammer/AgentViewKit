@@ -30,7 +30,7 @@ import Testing
     defer { harness.close() }
 
     #expect(harness.showsRow(Self.nameRowID))
-    #expect(AttachmentInspector.nameIdentifier(of: [attachment]) == Self.nameRowID)
+    #expect(AttachmentInspector.nameIdentifier(of: attachment) == Self.nameRowID)
   }
 
   @Test func thePreviewRowShowsThePreviewIdentifier() throws {
@@ -41,7 +41,7 @@ import Testing
     defer { harness.close() }
 
     #expect(harness.showsRow(Self.previewRowID))
-    #expect(AttachmentInspector.previewIdentifier(of: [attachment]) == Self.previewRowID)
+    #expect(AttachmentInspector.previewIdentifier(of: attachment) == Self.previewRowID)
   }
 
   /// Writes the file of the tests to `directory`, and makes its attachment

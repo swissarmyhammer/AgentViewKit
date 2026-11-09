@@ -7,7 +7,8 @@ import FoundationModelsACPClient
 // The inspections of the transcript entries of FoundationModelsACPClient, so
 // a host shows any entry in an EditorKit `InspectorView`
 // (`InspectorView(entry)`, or `InspectorView([any Inspectable])` with
-// `InspectedClientModel(entry)` for a selection of several kinds). The host
+// `InspectedClientModel(entry)` for a selection of several entries, which
+// shows one block for each entry). The host
 // applies `.inspectorFieldLabels(.visible)` to the inspector of a tool call
 // and of a terminal, and keeps the default (`.placeholder`) for the other
 // entries. Each entry is an ``InspectableClientModel``: the inspector shows

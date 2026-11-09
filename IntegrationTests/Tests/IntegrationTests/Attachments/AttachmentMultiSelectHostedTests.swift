@@ -7,9 +7,10 @@ import Testing
 
 @testable import AgentViewKit
 
-/// The inspector of a test host that folds the selected files of its binding
-/// into one ``AttachmentInspector``, as TestudoApp's inspector does.
-struct FoldingHostInspector: View {
+/// The inspector of a test host that shows the selected files of its
+/// binding in one ``AttachmentInspector``, one block for each file, as
+/// TestudoApp's inspector does.
+struct SelectionHostInspector: View {
   /// The state of the host.
   let state: HostAttachmentState
 
@@ -62,7 +63,7 @@ struct FoldingHostInspector: View {
   }
 
   /// Mounts the thread view in the host mode, with the chips in its composer
-  /// slot and ``FoldingHostInspector`` as the inspector of the host, and
+  /// slot and ``SelectionHostInspector`` as the inspector of the host, and
   /// makes one render pass.
   ///
   /// - Returns: The harness. The caller closes it.
@@ -76,7 +77,7 @@ struct FoldingHostInspector: View {
       AgentThreadView(session: session.model, connection: session.connection) {
         ToolCallLocationChips(locations: locations)
       }
-      .inspector(isPresented: .constant(true)) { FoldingHostInspector(state: state) }
+      .inspector(isPresented: .constant(true)) { SelectionHostInspector(state: state) }
       .agentAttachmentInspector(.host(Bindable(state).selection)),
       size: Self.hostSize)
     harness.render()
@@ -154,9 +155,9 @@ struct FoldingHostInspector: View {
     #expect(state.selection == selections(1))
   }
 
-  /// The inspector of the host folds the selected files into one form: the
-  /// preview row of the files reads "Mixed".
-  @Test func theHostInspectorFoldsTheSelectedFilesWithMixedRows() throws {
+  /// The inspector of the host shows one block for each selected file: the
+  /// name row of the block of each file shows the name of that file.
+  @Test func theHostInspectorShowsABlockForEachSelectedFile() throws {
     defer { close() }
     let harness = mount()
     defer { harness.close() }
@@ -165,6 +166,7 @@ struct FoldingHostInspector: View {
 
     harness.render()
 
-    #expect(harness.inspectorDriver.isMixed(AttachmentInspector.previewIdentifier(of: [files[0], files[2]])))
+    let selected = [files[0], files[2]]
+    #expect(selected.map { harness.rowValue(AttachmentInspector.nameIdentifier(of: $0)) } == selected.map(\.name))
   }
 }

@@ -37,7 +37,7 @@ enum InspectorRowID {
   ///   - view: The view id, which is the id of the inspection.
   /// - Returns: The escaped object id.
   static func object(_ object: some AnyObject, view: String) -> String {
-    InspectorScheme.objectID(of: [object], key: view)
+    InspectorScheme.objectID(of: object, key: view)
   }
 
   /// The scheme id of the row `group`.`field` of `object` in the

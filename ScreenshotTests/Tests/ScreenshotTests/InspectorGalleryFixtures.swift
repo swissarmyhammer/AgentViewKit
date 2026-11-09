@@ -65,8 +65,8 @@ struct InspectorGalleryFixtures {
   /// row.
   private static let lexerFile = "/Users/preview/Developer/Parser/Sources/Parser/Lexer.swift"
 
-  /// The file of the second location of the second tool call: the Mixed
-  /// image shows the Locations row of the two calls as Mixed.
+  /// The file of the second location of the second tool call: the image of
+  /// two calls shows a Locations row of another length in each block.
   private static let lexerTestsFile = "/Users/preview/Developer/Parser/Tests/ParserTests/LexerTests.swift"
 
   /// The additional directories of the first session: two folders beside
@@ -75,16 +75,17 @@ struct InspectorGalleryFixtures {
   private static let additionalFolders = ["/Users/preview/Developer/Lexer", "/Users/preview/Developer/Grammar"]
 
   /// The working directory of the second session and the second terminal: a
-  /// folder other than the working directory of the first one, so the Mixed
-  /// images show the row as Mixed.
+  /// folder other than the working directory of the first one, so the two
+  /// blocks of the images of two objects show other folders.
   private static let testsFolder = "/Users/preview/Developer/Parser/Tests"
 
   /// The number of entries of one kind that a subject shows: one, and a
-  /// second beside it for the Mixed image.
+  /// second beside it for the image of two objects.
   private static let pairCount = 2
 
-  /// The second session of the Mixed images: the configured session of the
-  /// previews, in ``testsFolder``, with no additional directory.
+  /// The second session of the images of two sessions: the configured
+  /// session of the previews, in ``testsFolder``, with no additional
+  /// directory.
   private static var secondSession: SessionModel {
     .preview(cwd: AbsolutePath(rawValue: testsFolder), configOptions: PreviewFixtures.configOptions)
   }
