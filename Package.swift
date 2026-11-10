@@ -259,3 +259,10 @@ let package = Package(
   ],
   swiftLanguageModes: [.v6]
 )
+
+// FoundationModelsACPAgent reaches the Router, whose llama.cpp C++ modules
+// declare `requires cplusplus`. Each target that imports it, directly or
+// through another module, needs C++ interoperability.
+for target in package.targets where target.type != .plugin {
+    target.swiftSettings = (target.swiftSettings ?? []) + [.interoperabilityMode(.Cxx)]
+}

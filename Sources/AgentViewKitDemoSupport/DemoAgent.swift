@@ -241,6 +241,8 @@ public final class DemoAgent {
       name: try DotfolderName(agentDotfolderName),
       workingDirectory: URL(filePath: workingDirectory.rawValue),
       home: try makeHome(environment: environment),
+      // The demo runs outside the App Sandbox, so it has all the tools.
+      mode: .open,
       environment: environment,
       modelSource: modelSource,
       transcriptLocation: transcriptLocation
