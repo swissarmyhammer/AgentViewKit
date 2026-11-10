@@ -262,7 +262,14 @@ let package = Package(
 
 // FoundationModelsACPAgent reaches the Router, whose llama.cpp C++ modules
 // declare `requires cplusplus`. Each target that imports it, directly or
-// through another module, needs C++ interoperability.
-for target in package.targets where target.type != .plugin {
+// through another module, needs C++ interoperability: the demo support
+// target and the targets that depend on it. The kit targets (AgentViewKit,
+// AgentViewKitStyle) do not get it, because a module built with C++
+// interoperability forces it on each package that imports the module, for
+// example KanbanViewKit and SnapshotViewKit.
+let cxxInteropTargets: Set<String> = [
+    "AgentViewKitDemoSupport", "AgentViewKitTestSupport", "AgentViewKitTests",
+]
+for target in package.targets where cxxInteropTargets.contains(target.name) {
     target.swiftSettings = (target.swiftSettings ?? []) + [.interoperabilityMode(.Cxx)]
 }
