@@ -75,6 +75,7 @@ profile:
   standard: mlx-community/Qwen3.8-27B-mxfp4
   flash: mlx-community/Qwen3-4B-4bit
   embedding: mlx-community/Qwen3-Embedding-0.6B-4bit-DWQ
+  decision: mlx-community/Qwen3-4B-4bit
   context: 262144
 configuration:
   instructions: "# Instructions\n\nYou are a software engineer. You work in the user's

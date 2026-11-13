@@ -27,6 +27,7 @@ profile:
   standard: mlx-community/Qwen3.8-27B-mxfp4
   flash: mlx-community/Qwen3-4B-4bit
   embedding: erjigit17/embeddinggemma-300m-ane-coreml
+  decision: mlx-community/Qwen3-4B-4bit
   context: 32768
 configuration:
   instructions: '
