@@ -97,7 +97,10 @@ let package = Package(
       dependencies: rootProducts + editorKitProducts + acpProducts + [
         .product(name: "Textual", package: "textual")
       ],
-      swiftSettings: mainActorIsolated
+      // AgentViewKitDemoSupport and AgentViewKitTestSupport reach the Router of
+      // FoundationModelsACPAgent, whose llama.cpp C++ modules declare `requires
+      // cplusplus`. Thus this target needs C++ interoperability too.
+      swiftSettings: mainActorIsolated + [.interoperabilityMode(.Cxx)]
     ),
   ],
   // The same language mode as the root manifest.

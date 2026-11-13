@@ -40,11 +40,17 @@ REMOTE_PACKAGES = {
 # sessions of FoundationModelsACPAgent that the Gallery tab shows.
 RESOURCES = %w[RecordedSessions].freeze
 
+# FoundationModelsACPAgent reaches the Router, whose llama.cpp C++ modules declare
+# `requires cplusplus`. Thus the app target needs C++ interoperability, as the demo support
+# target of `Package.swift` does.
+CXX_INTEROP = true
+
 ExampleXcodeproj.generate(
   root: File.expand_path('..', __dir__),
   app_name: 'AgentViewKitDemo',
   package_products: PACKAGE_PRODUCTS,
   shared_sources: SHARED_SOURCES,
   remote_packages: REMOTE_PACKAGES,
-  resources: RESOURCES
+  resources: RESOURCES,
+  cxx_interop: CXX_INTEROP
 )

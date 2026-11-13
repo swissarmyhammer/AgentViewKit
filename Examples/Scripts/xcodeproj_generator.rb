@@ -83,7 +83,11 @@ module ExampleXcodeproj
   #   app links. Each package follows its `main` branch, as `Package.swift` does.
   # - resources: the directories, relative to `root`, that the app bundle holds as they are.
   #   Each directory is a folder reference, so the bundle gets each file below it.
-  def self.generate(root:, app_name:, package_products:, shared_sources: [], remote_packages: {}, resources: [])
+  # - cxx_interop: true when the app imports a module that requires C++ (for example the
+  #   llama.cpp modules that FoundationModelsACPAgent reaches). Then the app target compiles
+  #   Swift with C++ interoperability (`SWIFT_OBJC_INTEROP_MODE = objcxx`).
+  def self.generate(root:, app_name:, package_products:, shared_sources: [], remote_packages: {}, resources: [],
+                    cxx_interop: false)
     project_path = File.join(root, "#{app_name}.xcodeproj")
     FileUtils.rm_rf(project_path)
     project = Xcodeproj::Project.new(project_path)
@@ -91,7 +95,7 @@ module ExampleXcodeproj
     app_files = [app_name, "#{app_name}#{FEATURE_SUFFIX}", *shared_sources].flat_map do |directory|
       add_source_group(project, root, directory).files
     end
-    app_target = add_app_target(project, app_name, app_files)
+    app_target = add_app_target(project, app_name, app_files, cxx_interop: cxx_interop)
     add_resource_folders(project, app_target, resources)
     add_package_products(project, app_target, add_local_package(project), package_products)
     remote_packages.each do |url, products|
@@ -199,7 +203,7 @@ module ExampleXcodeproj
   end
 
   # The application target.
-  def self.add_app_target(project, app_name, files)
+  def self.add_app_target(project, app_name, files, cxx_interop: false)
     target = project.new_target(:application, app_name, MACOS_PLATFORM, DEPLOYMENT_TARGET, nil, :swift)
     apply_common_settings(target, app_name)
     target.build_configuration_list.build_configurations.each do |config|
@@ -208,6 +212,7 @@ module ExampleXcodeproj
       settings['INFOPLIST_KEY_NSHumanReadableCopyright'] = ''
       settings['ENABLE_HARDENED_RUNTIME'] = 'YES'
       settings['ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS'] = 'YES'
+      settings['SWIFT_OBJC_INTEROP_MODE'] = 'objcxx' if cxx_interop
     end
     target.add_file_references(files)
     target
