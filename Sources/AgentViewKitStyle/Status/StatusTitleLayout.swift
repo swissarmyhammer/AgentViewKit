@@ -96,10 +96,9 @@ public struct StatusTitleLayout<Symbol: View, Action: View>: View {
 
   /// The explanation. The element of the title reads it.
   private var explanationText: some View {
-    Text(explanation)
+    StyledSelectableText(text: explanation)
       .font(editorTheme.font(for: .ui, style: .callout))
       .foregroundStyle(placedSecondary)
-      .textSelection(.enabled)
       .accessibilityHidden(true)
   }
 }

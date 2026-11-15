@@ -1,5 +1,6 @@
 import EditorStyle
 import EditorSwiftUI
+import EditorText
 import EditorTheme
 import FoundationModelsACP
 import SwiftUI
@@ -64,9 +65,9 @@ struct JSONDisclosure: View {
         }
       )
     ) {
-      Text(json)
-        .font(editorTheme.codeFont)
-        .textSelection(.enabled)
+      // A read-only EditorKit view, so that the JSON is part of the one
+      // selection of the thread (Docs/decisions/text-selection.md).
+      PreviewField(.code(json, language: LanguageID("json")))
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.top, editorStyle.tile.gap)
     } label: {

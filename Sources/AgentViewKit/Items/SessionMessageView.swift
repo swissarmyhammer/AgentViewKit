@@ -46,7 +46,7 @@ public struct SessionMessageView: View {
     let participants = Self.participantsText(
       sender: entry.senderSessionId, recipient: entry.recipientSessionId)
     VStack(alignment: .leading, spacing: Self.spacing) {
-      Text(participants)
+      SelectableText(participants)
         .font(.caption)
         .foregroundStyle(.secondary)
       EntryContentView(content: entry.content, id: "\(Self.identifierPrefix)\(entry.messageId.rawValue)")

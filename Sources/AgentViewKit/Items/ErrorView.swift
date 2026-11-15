@@ -1,5 +1,6 @@
 import EditorStyle
 import EditorSwiftUI
+import EditorText
 import EditorTheme
 import FoundationModelsACP
 import FoundationModelsACPClient
@@ -78,10 +79,9 @@ public struct ErrorView: View {
       }
     } body: {
       if let data = entry.data?.prettyPrinted {
-        Text(data)
-          .font(editorTheme.codeFont)
-          .foregroundStyle(themeSecondary)
-          .textSelection(.enabled)
+        // A read-only EditorKit view, so that the data is part of the one
+        // selection of the thread (Docs/decisions/text-selection.md).
+        PreviewField(.code(data, language: LanguageID("json")))
           .accessibilityIdentifier(Self.dataIdentifier)
       }
     }

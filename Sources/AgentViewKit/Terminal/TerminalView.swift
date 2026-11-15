@@ -202,21 +202,16 @@ public struct TerminalView: View {
       EditorSymbolImage(.tool(.execute))
         .symbolColumn()
         .accessibilityHidden(true)
-      Text(entry.command ?? String(localized: "Terminal", bundle: .module))
+      SelectableText(entry.command ?? String(localized: "Terminal", bundle: .module))
         .font(editorTheme.codeFont)
         .foregroundStyle(entry.command == nil ? themeSecondary : themeForeground)
-        .lineLimit(1)
-        .truncationMode(.middle)
         .accessibilityIdentifier(Self.commandIdentifier)
       Spacer(minLength: editorStyle.spacing.s)
       if let cwd = entry.cwd?.rawValue {
-        Text(cwd)
+        SelectableText(cwd, label: String(localized: "Working directory \(cwd)", bundle: .module))
           .font(editorTheme.font(for: .ui, style: .caption))
           .foregroundStyle(themeSecondary)
-          .lineLimit(1)
-          .truncationMode(.head)
           .help(cwd)
-          .accessibilityLabel(String(localized: "Working directory \(cwd)", bundle: .module))
           .accessibilityIdentifier(Self.cwdIdentifier)
       }
     }

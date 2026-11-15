@@ -55,6 +55,9 @@ struct MarkdownProse: View {
         marked.text,
         parser: CitationMarkdownParser(
           base: parser, digitFace: editorTheme.face(for: .ui), padding: InlineCitationPadding(style: editorStyle)))
+        // The text is selectable, as one area of the one selection of the
+        // thread (Docs/decisions/text-selection.md).
+        .selectableTextualRegion()
         .modifier(SpokenMathText(spoken: spans.isEmpty ? nil : parser.spokenText(for: text)))
         .overlay(alignment: .topLeading) {
           MathSpanAccessibility(spans: spans)

@@ -223,9 +223,8 @@ public struct ElicitationURLConsentView: View {
   /// - Returns: The section.
   private func urlSection(_ url: URL) -> some View {
     VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
-      Text(URLDisplay.highlighted(url))
+      SelectableText(URLDisplay.highlighted(url))
         .font(editorTheme.codeFont)
-        .textSelection(.enabled)
         .accessibilityIdentifier(Self.urlIdentifier)
       if let warning = URLDisplay.warning(for: url) {
         Label(warning, columnSymbol: Self.warningSymbol)

@@ -2,7 +2,6 @@ import EditorStyle
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
-import Textual
 
 /// A message entry of a session transcript: the observable entry object of a
 /// user message or of an agent message (plan.md §3.2).
@@ -89,8 +88,9 @@ extension View {
 /// ``TranscriptMessageView`` puts the ACP content and the footer of a
 /// transcript entry in it.
 ///
-/// The text of the message is selectable, one message at a time, and each
-/// paragraph of the message is in one linked reading group.
+/// Each paragraph of the message is in one linked reading group. The text of
+/// the message is selectable through its content views, as part of the one
+/// selection of the thread (Docs/decisions/text-selection.md).
 struct MessageLayout<Content: View>: View {
   /// The id of the message, such as the row key of a transcript entry.
   let id: String
@@ -112,9 +112,6 @@ struct MessageLayout<Content: View>: View {
     // when the paragraphs are in more than one text block (plan.md §6).
     .environment(\.accessibilityMessageGroupID, id)
     .accessibilityReadingScope()
-    // The text of one message is selectable. A selection does not go into
-    // the next message (Docs/decisions/text-selection.md).
-    .textual.textSelection(.enabled)
     .contentContainer(identifier: role.messageIdentifier(for: id))
     .accessibilityLabel(role.accessibilityLabel)
     // The row is a container with this view as its one child. The second

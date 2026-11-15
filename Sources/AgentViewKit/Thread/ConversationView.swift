@@ -266,6 +266,9 @@ public struct ConversationView<EmptyState: View>: View {
       }
     }
     .environment(\.sessionModel, session)
+    // The text areas of the conversation have one selection. In a thread
+    // view, the conversation uses the selection of the thread view.
+    .threadTextSelection()
     .onChange(of: lastRowKey) {
       noteLastItem()
     }

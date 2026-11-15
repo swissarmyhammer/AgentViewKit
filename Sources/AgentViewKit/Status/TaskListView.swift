@@ -183,7 +183,7 @@ private struct PlanEntryRow: View {
       statusSymbol
         .symbolColumn()
         .help(EditorStatus(entry.status).summary)
-      Text(entry.content)
+      SelectableText(entry.content)
         .strikethrough(entry.status == .cancelled)
         .foregroundStyle(entry.status == .cancelled ? themeSecondary : themeForeground)
       Spacer(minLength: editorStyle.spacing.s)

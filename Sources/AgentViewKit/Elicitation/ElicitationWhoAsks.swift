@@ -126,14 +126,9 @@ struct ElicitationWhoAsksLine: View {
       let label = ElicitationHeader.whoAsksAccessibilityLabel(
         agentPath: agentPath, source: source, rootLabel: rootLabel, locale: locale)
     {
-      Text(text)
+      SelectableText(text, label: label)
         .font(editorTheme.font(for: .ui, style: .callout))
         .foregroundStyle(placedSecondary)
-        .lineLimit(1)
-        .truncationMode(.middle)
-        .textSelection(.enabled)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(label)
         .accessibilityIdentifier(ElicitationView.whoAsksIdentifier)
     }
   }

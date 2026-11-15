@@ -311,6 +311,9 @@ public struct AgentThreadView<Composer: View>: View {
           mode: inspectorMode, sessionId: session.sessionId,
           selection: Self.inspectorSelection(
             host: hostInspectorSelection, own: ownInspectorSelection)))
+      // The thread has one text selection: the transcript, the prompts, the
+      // bars and the inspector (Docs/decisions/text-selection.md).
+      .threadTextSelection()
   }
 
   /// The selection that the view gives to its inspector.

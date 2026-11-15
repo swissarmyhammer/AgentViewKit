@@ -276,8 +276,11 @@ public struct PermissionView: View {
   private func commandSummary(of command: CommandPermissionSubject) -> some View {
     VStack(alignment: .leading, spacing: editorStyle.spacing.s) {
       VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
-        Label(command.command, columnSymbol: Self.commandSymbol)
-          .textSelection(.enabled)
+        Label {
+          SelectableText(command.command)
+        } icon: {
+          SymbolColumnImage(name: Self.commandSymbol)
+        }
         Label(command.cwd.rawValue, columnSymbol: Self.directorySymbol)
           .foregroundStyle(placedSecondary)
       }

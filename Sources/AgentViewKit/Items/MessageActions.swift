@@ -43,8 +43,8 @@ import UniformTypeIdentifiers
 ///   .messageFooter { entry in MessageActions(entry: entry) }
 /// ```
 ///
-/// The text of a message is selectable, one message at a time
-/// (``selectionMode``).
+/// The text of a message is selectable. The thread has one selection, and a
+/// selection does not go across messages (``selectionMode``).
 public struct MessageActions: View {
   /// One button of the row.
   public enum Action: String, CaseIterable, Sendable {

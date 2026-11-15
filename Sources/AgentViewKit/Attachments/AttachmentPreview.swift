@@ -245,21 +245,11 @@ struct AttachmentTextContent: View {
       CodeBlockView(code: text, language: type.preferredFilenameExtension, filename: filename)
     } else if type.conforms(to: Self.markdown) {
       StructuredText(markdown: text)
+        .selectableTextualRegion()
         .textual.codeBlockStyle(EditorKitCodeBlockStyle())
     } else {
-      StructuredText(text, parser: PlainTextParser())
+      SelectableText(text)
     }
-  }
-}
-
-/// A Textual parser that keeps the text as it is.
-private struct PlainTextParser: MarkupParser {
-  /// Gives the text with no attributes.
-  ///
-  /// - Parameter input: The text.
-  /// - Returns: The text as an attributed string.
-  func attributedString(for input: String) throws -> AttributedString {
-    AttributedString(input)
   }
 }
 

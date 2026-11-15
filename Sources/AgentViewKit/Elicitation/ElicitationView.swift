@@ -488,9 +488,8 @@ public struct ElicitationHeader: View {
       Label(Self.title(server: Self.agentServer), columnSymbol: Self.symbol)
         .font(editorTheme.font(for: .ui, style: .headline))
       ElicitationWhoAsksLine(agentPath: request.agentPath, source: request.source)
-      Text(request.request.message)
+      SelectableText(request.request.message)
         .foregroundStyle(placedSecondary)
-        .textSelection(.enabled)
     }
     .frame(maxWidth: .infinity, alignment: .leading)
     .accessibilityElement(children: .contain)
