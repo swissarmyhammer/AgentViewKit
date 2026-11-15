@@ -1736,6 +1736,17 @@
         }
       }
     },
+    "Running in the background" : {
+      "comment" : "The caption of a tool call whose work goes on in the background after the tool returned.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Running in the background"
+          }
+        }
+      }
+    },
     "Save" : {
       "localizations" : {
         "en" : {

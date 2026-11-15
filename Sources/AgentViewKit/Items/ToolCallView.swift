@@ -400,7 +400,7 @@ private struct ToolCallLabel: ViewModifier {
   // type of FoundationModelsACP.
   func body(content: Self.Content) -> some View {
     content.accessibilityLabel(
-      ToolCallView.accessibilityLabel(title: entry.shownTitle, status: entry.shownStatus))
+      ToolCallView.accessibilityLabel(title: entry.shownTitle, status: ToolCallBackground.shownStatus(of: entry)))
   }
 }
 
@@ -427,14 +427,16 @@ private struct ToolCallHeader: View {
     #if DEBUG
       BodyEvaluationCounter.note(ToolCallView.rowCounterKey(for: id))
     #endif
+    // A stale live call shows the lost status (`ToolCallBackground`).
+    let status = ToolCallBackground.shownStatus(of: entry)
     return HStack(spacing: editorStyle.spacing.s) {
       Button {
         store.toggle(entry: .toolCall(entry))
       } label: {
-        rowContent
+        rowContent(status: status)
       }
       .buttonStyle(.plain)
-      .accessibilityLabel(ToolCallView.accessibilityLabel(title: entry.shownTitle, status: entry.shownStatus))
+      .accessibilityLabel(ToolCallView.accessibilityLabel(title: entry.shownTitle, status: status))
       .accessibilityValue(
         expanded ? Text("Expanded", bundle: .module) : Text("Collapsed", bundle: .module)
       )
@@ -442,11 +444,17 @@ private struct ToolCallHeader: View {
       if let status = connectionState?(entry) {
         StatusCaption(status: EditorStatus(status), identifier: ConnectionRow.statusIdentifier(for: status))
       }
+      if ToolCallBackground.showsBackgroundCaption(entry, shownStatus: status) {
+        BackgroundRunCaption()
+      }
     }
   }
 
   /// The symbols and the text inside the row button.
-  private var rowContent: some View {
+  ///
+  /// - Parameter status: The status that the row shows.
+  /// - Returns: The content of the row button.
+  private func rowContent(status: FoundationModelsACP.ToolCallStatus) -> some View {
     HStack(spacing: editorStyle.spacing.s) {
       EditorSymbolImage(.tool(.init(entry.shownKind)))
         .symbolColumn()
@@ -454,7 +462,7 @@ private struct ToolCallHeader: View {
         .lineLimit(1)
         .truncationMode(.middle)
       Spacer(minLength: editorStyle.spacing.s)
-      statusGlyph
+      statusGlyph(status: status)
       EditorSymbolImage(.action(.disclosure))
         .rotationEffect(expanded ? ReasoningView.expandedChevronAngle : .zero)
     }
@@ -465,9 +473,11 @@ private struct ToolCallHeader: View {
   /// effect of a pending or running call shows that the call is live, so the
   /// row shows no separate spinner. EditorKit's `liveSymbolEffect(isActive:)`
   /// comes last, so under Reduce Motion it also removes the bounce.
-  private var statusGlyph: some View {
-    let status = entry.shownStatus
-    return ToolStatusImage(status: status)
+  ///
+  /// - Parameter status: The status that the row shows.
+  /// - Returns: The status symbol.
+  private func statusGlyph(status: FoundationModelsACP.ToolCallStatus) -> some View {
+    ToolStatusImage(status: status)
       .contentTransition(.symbolEffect(.replace))
       .symbolEffect(.bounce, value: status == .completed)
       .liveSymbolEffect(isActive: EditorStatus(status).isLive)
@@ -847,5 +857,23 @@ struct ToolCallChildLink: View {
         .foregroundStyle(.secondary)
         .accessibilityIdentifier(Self.finishedIdentifier(for: entry.id.rowKey))
     }
+  }
+}
+
+/// The caption of a tool call whose work goes on in the background after the
+/// tool returned (``ToolCallBackground``).
+struct BackgroundRunCaption: View {
+  /// The accessibility identifier of the caption.
+  static let identifier = "tool-call-background"
+
+  @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.themeSecondary) private var themeSecondary
+
+  var body: some View {
+    Text("Running in the background", bundle: .module)
+      .font(editorTheme.font(for: .ui, style: .caption))
+      .foregroundStyle(themeSecondary)
+      .lineLimit(1)
+      .accessibilityIdentifier(Self.identifier)
   }
 }

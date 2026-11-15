@@ -76,6 +76,49 @@ public enum BackgroundRunScript {
 
   /// One step for each chunk of the streamed answer. After each chunk, the
   /// answer has the text of all the chunks up to it.
+  /// The title of the background tool call of ``detachedRunSteps(endStatus:)``.
+  /// The title is also its `toolCallId`.
+  public static let detachedTitle = "Deploy"
+
+  /// The completion token of the background tool call of
+  /// ``detachedRunSteps(endStatus:)``.
+  public static let detachedCompletionToken = "01M7GBDPDZWDQ2WNB76FH80VA5"
+
+  /// The `_meta` of a tool call whose work goes on in the background:
+  /// `{"sah": {"backgroundRun": {"completionToken": <token>}}}`.
+  public static let detachedRunMeta: JSONValue = .object([
+    "sah": .object(["backgroundRun": .object(["completionToken": .string(detachedCompletionToken)])])
+  ])
+
+  /// The updates of a tool call whose work goes on in the background after
+  /// the tool returns.
+  ///
+  /// The agent runs, the call starts, and the tool returns: the call stays
+  /// `in_progress` with ``detachedRunMeta``. The agent goes idle and lists
+  /// the call in its `background` list. Later the work ends: the call gets
+  /// `endStatus` on the same `toolCallId`, and the agent is idle with no
+  /// background work.
+  ///
+  /// - Parameter endStatus: The final status of the call, such as
+  ///   `completed` or `failed`.
+  /// - Returns: The steps, in send order.
+  public static func detachedRunSteps(endStatus: ToolCallStatus) -> [Step] {
+    let detached = ToolCallUpdate(
+      toolCallId: ToolCallId(rawValue: detachedTitle),
+      status: .value(.inProgress),
+      meta: .value(detachedRunMeta))
+    let listed = IdleStateUpdate(
+      background: [.toolCall(BackgroundToolCall(toolCallId: ToolCallId(rawValue: detachedTitle)))])
+    return [
+      makeStateStep(isRunning: true),
+      makeToolCallStep(title: detachedTitle, status: .pending, isFirst: true),
+      Step(update: .toolCallUpdate(detached), change: .toolCallStatus(title: detachedTitle, status: .inProgress)),
+      Step(update: .stateUpdate(.idle(listed)), change: .agentRunning(false)),
+      makeToolCallStep(title: detachedTitle, status: endStatus, isFirst: false),
+      makeStateStep(isRunning: false),
+    ]
+  }
+
   private static var streamedSteps: [Step] {
     streamedChunks.indices.map { index in
       Step(
