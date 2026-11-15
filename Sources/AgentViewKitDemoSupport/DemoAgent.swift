@@ -49,6 +49,51 @@ public final class DemoAgent {
   /// `acp-agent` program of the user.
   static let agentDotfolderName = "agentviewkit-demo"
 
+  /// The model of the `standard` and the `flash` slot of the default profile
+  /// of the ACP tab: a small model, so that the profile fits in the memory
+  /// of each Mac of the team and of the CI runners. The `flash` slot shares
+  /// the model of the `standard` slot. The `decision` and the `embedding`
+  /// slot keep the defaults of FoundationModelsACPAgent.
+  public static let defaultProfileModel = "mlx-community/Qwen3-4B-4bit"
+
+  /// The text of the `config.yaml` of the defaults layer of the ACP tab.
+  static var defaultProfileText: String {
+    "profile:\n  standard:\n    - \(defaultProfileModel)\n  flash:\n    - \(defaultProfileModel)\n"
+  }
+
+  /// The environment variable that names the defaults layer of the agent:
+  /// the dotfolder name in upper case, then `_DEFAULTS_DIR`. The defaults
+  /// layer has the lowest precedence, so a `config.yaml` of the user layer
+  /// or of the project layer still sets the profile.
+  static var defaultsDirectoryKey: String {
+    agentDotfolderName.uppercased() + "_DEFAULTS_DIR"
+  }
+
+  /// The environment of the agent of the ACP tab: `environment` with
+  /// ``defaultsDirectoryKey``, which names a folder with the
+  /// ``defaultProfileText``. When `environment` already has the key, the
+  /// function returns `environment` and writes nothing.
+  ///
+  /// - Parameters:
+  ///   - environment: The environment of the agent.
+  ///   - parent: The folder that gets the defaults folder. The default is
+  ///     the temporary directory.
+  /// - Returns: The environment with the defaults layer.
+  /// - Throws: The error of the file manager.
+  static func environmentWithDefaultProfile(
+    _ environment: [String: String],
+    below parent: URL = FileManager.default.temporaryDirectory
+  ) throws -> [String: String] {
+    guard environment[defaultsDirectoryKey] == nil else { return environment }
+    let directory = parent.appending(path: "AgentViewKitDemo-defaults", directoryHint: .isDirectory)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    try Data(defaultProfileText.utf8).write(
+      to: directory.appending(path: "config.yaml", directoryHint: .notDirectory), options: .atomic)
+    var result = environment
+    result[defaultsDirectoryKey] = directory.path(percentEncoded: false)
+    return result
+  }
+
   /// The connection model of the client side. The views read its state
   /// directly.
   public let connection: ConnectionModel
@@ -134,7 +179,8 @@ public final class DemoAgent {
       return try await makeInProcess(workingDirectory: workingDirectory)
     case .foundationModels(let modelSource):
       return try await makeInProcess(
-        foundationModelsIn: workingDirectory, modelSource: modelSource, environment: environment)
+        foundationModelsIn: workingDirectory, modelSource: modelSource,
+        environment: try environmentWithDefaultProfile(environment))
     }
   }
 

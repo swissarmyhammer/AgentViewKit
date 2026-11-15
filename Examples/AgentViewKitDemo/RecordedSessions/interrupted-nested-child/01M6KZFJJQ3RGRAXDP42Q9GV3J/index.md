@@ -111,6 +111,7 @@ profile:
   flash: mlx-community/Qwen3-4B-4bit
   embedding: erjigit17/embeddinggemma-300m-ane-coreml
   decision: mlx-community/Qwen3-4B-4bit
+  decisionContext: 16384
   context: 32768
 configuration:
   instructions: "# Instructions\n\nYou lead the work in the user's project. You plan

@@ -90,6 +90,44 @@ import Testing
     #expect(home.synced.standardizedFileURL.path == expectedSynced.standardizedFileURL.path)
   }
 
+  @Test func aSessionOfTheACPTabAgentRunsOnTheSmallModelOfTheDefaultProfile() async throws {
+    let started = try await Self.makeACPTabAgent()
+    try await Self.openAndResumeASession(of: started.agent)
+    await started.agent.stop()
+    defer { started.directory.remove() }
+
+    let indexFiles = try #require(FileManager.default.enumerator(at: started.directory.url, includingPropertiesForKeys: nil))
+      .compactMap { $0 as? URL }
+      .filter { $0.lastPathComponent == "index.md" }
+    let index = try String(contentsOf: try #require(indexFiles.first), encoding: .utf8)
+
+    #expect(index.contains("\nmodel: \(DemoAgent.defaultProfileModel)\n"))
+  }
+
+  @Test func theDefaultProfileFileSetsTheSmallModelForTheStandardAndTheFlashSlot() throws {
+    let parent = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
+    defer { parent.remove() }
+
+    let environment = try DemoAgent.environmentWithDefaultProfile(["KEY": "value"], below: parent.url)
+
+    let directory = URL(filePath: try #require(environment[DemoAgent.defaultsDirectoryKey]), directoryHint: .isDirectory)
+    let text = try String(contentsOf: directory.appending(path: "config.yaml"), encoding: .utf8)
+    #expect(DemoAgent.defaultsDirectoryKey == "AGENTVIEWKIT-DEMO_DEFAULTS_DIR")
+    #expect(environment["KEY"] == "value")
+    #expect(text == "profile:\n  standard:\n    - mlx-community/Qwen3-4B-4bit\n  flash:\n    - mlx-community/Qwen3-4B-4bit\n")
+  }
+
+  @Test func aDefaultsDirectoryOfTheEnvironmentWinsOverTheDefaultProfile() throws {
+    let parent = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
+    defer { parent.remove() }
+    let given = [DemoAgent.defaultsDirectoryKey: "/given/defaults"]
+
+    let environment = try DemoAgent.environmentWithDefaultProfile(given, below: parent.url)
+
+    #expect(environment == given)
+    #expect(try FileManager.default.contentsOfDirectory(atPath: parent.url.path(percentEncoded: false)).isEmpty)
+  }
+
   /// The agents that the demo starts in this process. Each of them must pass
   /// the tests over this type.
   enum InProcessAgentFactory: CaseIterable {
