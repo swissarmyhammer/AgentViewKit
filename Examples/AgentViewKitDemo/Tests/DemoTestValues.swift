@@ -60,16 +60,64 @@ enum DemoTestValues {
   /// window, and the app opens none. `-ApplePersistenceIgnoreState YES` stops
   /// the restore, so each test starts from the window that the app makes.
   static let appKitArguments = ["-NSTreatUnknownArgumentsAsOpen", "NO", "-ApplePersistenceIgnoreState", "YES"]
+
+  /// The directory variables that the app gets from each test: `HOME` and
+  /// the XDG Base Directory variables.
+  ///
+  /// Each variable names a directory in a new temporary root, so the app
+  /// and the agents in its process read and write no file in the home
+  /// directory. When a variable is not set, code in the app process uses a
+  /// file below the home directory: for example `~/.config`, the
+  /// `~/.gitconfig` that libgit2 reads through `HOME`, or the `~/.zshrc` of
+  /// a shell. On a Mac where such a file is in iCloud Drive, the access
+  /// shows a system permission prompt. No test can answer that prompt, and
+  /// the prompt stops `terminate()` until the time limit of the gate. The
+  /// tests need no file of the home directory.
+  ///
+  /// `XDG_CONFIG_HOME` is the first variable, because
+  /// ``XCUIApplication/terminateAndRemoveTheTemporaryRoot()`` finds the
+  /// root through it.
+  static let xdgDirectoryVariables = ["XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME", "XDG_STATE_HOME", "HOME"]
+
+  /// The start of the name of the temporary root of each launch.
+  static let temporaryRootPrefix = "AgentViewKitDemoUITests-"
 }
 
 extension XCUIApplication {
   /// Starts the app with `DemoTestValues.appKitArguments`, then
   /// `DemoTestValues.primaryScreenArgument`, and then `arguments`.
   ///
+  /// The function also makes a new temporary root, and gives the app each
+  /// variable of `DemoTestValues.xdgDirectoryVariables` as a directory in
+  /// that root. ``terminateAndRemoveTheTemporaryRoot()`` removes the root.
+  ///
   /// - Parameter arguments: The launch arguments of the test.
-  func launch(arguments: [String]) {
+  /// - Throws: The error of the creation of the temporary root.
+  func launch(arguments: [String]) throws {
+    let root = FileManager.default.temporaryDirectory.appending(
+      path: DemoTestValues.temporaryRootPrefix + UUID().uuidString, directoryHint: .isDirectory)
+    var environment: [String: String] = [:]
+    for variable in DemoTestValues.xdgDirectoryVariables {
+      let directory = root.appending(path: variable, directoryHint: .isDirectory)
+      try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+      environment[variable] = directory.path(percentEncoded: false)
+    }
+    launchEnvironment = environment
     launchArguments = DemoTestValues.appKitArguments + [DemoTestValues.primaryScreenArgument] + arguments
     launch()
+  }
+
+  /// Stops the app, and removes the temporary root that
+  /// ``launch(arguments:)`` made. When the test did not start the app, the
+  /// function removes nothing.
+  ///
+  /// - Throws: The error of the removal of the temporary root.
+  func terminateAndRemoveTheTemporaryRoot() throws {
+    terminate()
+    guard let configHome = launchEnvironment[DemoTestValues.xdgDirectoryVariables[0]] else { return }
+    let root = URL(filePath: configHome, directoryHint: .isDirectory).deletingLastPathComponent()
+    guard root.lastPathComponent.hasPrefix(DemoTestValues.temporaryRootPrefix) else { return }
+    try FileManager.default.removeItem(at: root)
   }
 
   /// Opens the scripted permission session of the Gallery tab with a double

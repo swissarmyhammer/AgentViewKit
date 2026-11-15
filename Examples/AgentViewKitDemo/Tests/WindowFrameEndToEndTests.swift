@@ -25,12 +25,12 @@ final class WindowFrameEndToEndTests: XCTestCase {
   }
 
   override func tearDown() async throws {
-    app.terminate()
+    try app.terminateAndRemoveTheTemporaryRoot()
     try await super.tearDown()
   }
 
   func testTheWindowOfTheGalleryTabFitsTheVisibleFrameOfItsScreen() throws {
-    app.launch(arguments: DemoTestValues.galleryLaunchArguments)
+    try app.launch(arguments: DemoTestValues.galleryLaunchArguments)
     XCTAssertTrue(
       app.element(DemoTestValues.permissionSessionRow).appears(),
       "The Gallery lists no permission session.")
@@ -39,7 +39,7 @@ final class WindowFrameEndToEndTests: XCTestCase {
   }
 
   func testTheWindowOfTheACPTabFitsTheVisibleFrameOfItsScreen() throws {
-    app.launch(arguments: [DemoTestValues.inMemoryAgentArgument])
+    try app.launch(arguments: [DemoTestValues.inMemoryAgentArgument])
     XCTAssertTrue(
       app.element(DemoTestValues.promptEditor).appears(),
       "The composer has no editor.")
@@ -48,7 +48,7 @@ final class WindowFrameEndToEndTests: XCTestCase {
   }
 
   func testTheWindowFitsTheVisibleFrameOfItsScreenWhileAPermissionRequestWaits() throws {
-    app.launch(arguments: DemoTestValues.galleryLaunchArguments)
+    try app.launch(arguments: DemoTestValues.galleryLaunchArguments)
     app.openThePermissionSession()
 
     try assertTheWindowFitsTheVisibleFrameOfItsScreen()

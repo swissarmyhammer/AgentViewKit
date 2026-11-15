@@ -53,11 +53,11 @@ final class MainMenuEndToEndTests: XCTestCase {
   override func setUp() async throws {
     try await super.setUp()
     continueAfterFailure = false
-    app.launch(arguments: DemoTestValues.galleryLaunchArguments)
+    try app.launch(arguments: DemoTestValues.galleryLaunchArguments)
   }
 
   override func tearDown() async throws {
-    app.terminate()
+    try app.terminateAndRemoveTheTemporaryRoot()
     try await super.tearDown()
   }
 

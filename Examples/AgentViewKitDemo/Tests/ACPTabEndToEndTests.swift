@@ -58,11 +58,11 @@ final class ACPTabEndToEndTests: XCTestCase {
   override func setUp() async throws {
     try await super.setUp()
     continueAfterFailure = false
-    app.launch(arguments: [DemoTestValues.inMemoryAgentArgument])
+    try app.launch(arguments: [DemoTestValues.inMemoryAgentArgument])
   }
 
   override func tearDown() async throws {
-    app.terminate()
+    try app.terminateAndRemoveTheTemporaryRoot()
     try await super.tearDown()
   }
 
