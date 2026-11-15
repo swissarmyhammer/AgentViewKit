@@ -1,8 +1,8 @@
 ---
 assignees:
 - claude-code
-position_column: doing
-position_ordinal: '8180'
+position_column: done
+position_ordinal: ffffffd480
 title: Selectable text in each transcript component
 ---
 Defect from the user (OpenTestudo): the user cannot select the text of thoughts and tool results. Only MessageLayout turns on Textual selection.

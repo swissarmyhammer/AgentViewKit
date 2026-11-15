@@ -1,8 +1,8 @@
 ---
 assignees:
 - claude-code
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffffffd380
 title: One text selection in the thread
 ---
 Defect from the user (OpenTestudo): with two responses, an I-beam selection in one text area does not clear the selection in a different text area. Each Textual StructuredText (one for each paragraph) and each EditorKit EditorView keeps its own selection.
