@@ -1,3 +1,4 @@
+import EditorCore
 import EditorSwiftUI
 
 /// The model that a view keeps in its state when the host gives no model.
@@ -28,14 +29,36 @@ final class OwnModelSlot {
   /// an editable model when the slot is editable, and a read-only model
   /// otherwise.
   ///
-  /// - Parameter text: The text of a new model.
+  /// - Parameters:
+  ///   - text: The text of a new model.
+  ///   - recordsUndo: `false` to make an editable model that keeps no undo
+  ///     history, such as the input of a sensitive answer
+  ///     (``EditorModel/makeWithNoUndo(_:)``).
   /// - Returns: The model.
-  func model(text: String) -> EditorModel {
+  func model(text: String, recordsUndo: Bool = true) -> EditorModel {
     if let model {
       return model
     }
-    let model = isEditable ? EditorModel(text) : EditorModel.makeReadOnly(text)
+    let model =
+      if !isEditable {
+        EditorModel.makeReadOnly(text)
+      } else if recordsUndo {
+        EditorModel(text)
+      } else {
+        EditorModel.makeWithNoUndo(text)
+      }
     self.model = model
     return model
+  }
+}
+
+extension EditorModel {
+  /// Makes an editable model that keeps no undo history: its engine has an
+  /// undo depth of zero, so an edit leaves no undo step with the text.
+  ///
+  /// - Parameter text: The text of the model.
+  /// - Returns: The model.
+  static func makeWithNoUndo(_ text: String) -> EditorModel {
+    EditorModel(engine: EditorEngine(text, maxUndoDepth: 0))
   }
 }

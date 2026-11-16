@@ -262,7 +262,8 @@ public struct ElicitationView: View {
       get: { values[name] },
       set: { edit(schema, to: $0) }
     )
-    return ElicitationFieldContext(schema: schema, value: binding, validation: shownValidation(of: schema))
+    return ElicitationFieldContext(
+      schema: schema, value: binding, validation: shownValidation(of: schema), isSensitive: request.isSensitive)
   }
 
   /// The validation state that a field shows.
@@ -418,6 +419,10 @@ public struct ElicitationView: View {
       return
     }
     owner.acceptElicitation(request.id, content: content)
+    if request.isSensitive {
+      // A sensitive answer stays in no state of the view after the send.
+      values = [:]
+    }
   }
 
   /// Presses Submit for Return in a one-line text field or a number input,

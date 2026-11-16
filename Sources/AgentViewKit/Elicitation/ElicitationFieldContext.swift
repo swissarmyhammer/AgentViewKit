@@ -23,20 +23,34 @@ public struct ElicitationFieldContext {
   /// answer.
   public let validation: FieldValidationState
 
+  /// `true` when the answer is sensitive, such as a secret: the agent marks
+  /// the request with `"sensitive": true` in its `_meta`
+  /// (``FoundationModelsACPClient/PendingElicitation/isSensitive``).
+  ///
+  /// The field stays a plain text field (the user decided against a masked
+  /// field). A field view must not log the answer, keep it after the form
+  /// closes, put it in undo history, or put it on the pasteboard by an
+  /// automatic action. ``ElicitationTextField`` edits a model that keeps no
+  /// undo history for a sensitive answer.
+  public let isSensitive: Bool
+
   /// Makes a context.
   ///
   /// - Parameters:
   ///   - schema: The field schema.
   ///   - value: The binding to the answer of the field.
   ///   - validation: The validation state of the answer.
+  ///   - isSensitive: `true` when the answer is sensitive.
   public init(
     schema: ElicitationFieldSchema,
     value: Binding<JSONValue?>,
-    validation: FieldValidationState
+    validation: FieldValidationState,
+    isSensitive: Bool = false
   ) {
     self.schema = schema
     self.value = value
     self.validation = validation
+    self.isSensitive = isSensitive
   }
 
   /// Makes a context that validates the current answer with

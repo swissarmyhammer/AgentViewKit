@@ -227,7 +227,8 @@ public struct ElicitationTextField: View {
 
   public var body: some View {
     let answer = context.value.wrappedValue?.stringValue ?? ""
-    let model = suppliedModel ?? ownModel.model(text: answer)
+    // A sensitive answer keeps no undo history (`ElicitationFieldContext`).
+    let model = suppliedModel ?? ownModel.model(text: answer, recordsUndo: !context.isSensitive)
     ElicitationFieldChrome(context: context) {
       input(model: model)
         .agentTextInputEdge()
