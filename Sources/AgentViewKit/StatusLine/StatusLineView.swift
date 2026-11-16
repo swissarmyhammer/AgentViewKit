@@ -81,8 +81,8 @@ public struct StatusLineView: View {
     StatusLineContent(
       input: input, definition: definition, path: showsCrumbs ? path : [], rootTitle: sessionTitle, select: select
     )
-    .task(id: StatusLineFollow(folder: session.cwd?.rawValue, ignoreSubmodules: definition.gitStatus.ignoreSubmodules)) {
-      await model.follow(session.cwd?.rawValue, ignoreSubmodules: definition.gitStatus.ignoreSubmodules)
+    .task(id: StatusLineFollow(folder: Self.folder(of: session), ignoreSubmodules: definition.gitStatus.ignoreSubmodules)) {
+      await model.follow(Self.folder(of: session), ignoreSubmodules: definition.gitStatus.ignoreSubmodules)
     }
     .onChange(of: session.isRunning) { _, isRunning in
       // The end of each turn reads the folder again (D194 (j)).
@@ -99,9 +99,18 @@ public struct StatusLineView: View {
     let usage = session.usage
     let title = session.parent == nil ? (sessionTitle ?? session.displayTitle) : session.displayTitle
     return StatusLineInput(
-      cwd: session.cwd?.rawValue, git: model.git, files: model.files, sessionTitle: title,
+      cwd: folder(of: session), git: model.git, files: model.files, sessionTitle: title,
       agentName: info.map { $0.title ?? $0.name }, agentVersion: info?.version,
       modelName: modelName(of: session.configOptions), contextUsed: usage?.used, contextSize: usage?.size)
+  }
+
+  /// The working folder of a session: its own `cwd`, or for a child session
+  /// with no `cwd` the folder of the nearest session above it that has one.
+  ///
+  /// - Parameter session: The session.
+  /// - Returns: The path, or `nil` when no session of the path has a `cwd`.
+  static func folder(of session: SessionModel) -> String? {
+    session.path.reversed().lazy.compactMap(\.cwd).first?.rawValue
   }
 
   /// The name of the current value of the model config option.
@@ -201,8 +210,8 @@ struct StatusLineText: View {
     case .sfSymbol(let name):
       text = Text(Image(systemName: name))
     case .icon(let name):
-      if let image = StatusLineIcons.image(named: name) {
-        text = Text(Image(nsImage: image).renderingMode(.template))
+      if let image = StatusLineIcons.image(named: name, side: StatusLineIcons.side(forPointSize: Self.pointSize)) {
+        text = Text(Image(nsImage: image).renderingMode(.template)).baselineOffset(Self.iconBaselineOffset)
       } else {
         text = Text(verbatim: name)
       }
@@ -213,6 +222,14 @@ struct StatusLineText: View {
     let color = color(of: style.color)
     return text.foregroundStyle(style.modifiers.contains(.dimmed) ? color.opacity(Self.dimmedOpacity) : color)
   }
+
+  /// The point size of the text of the line: the callout size of the
+  /// system, as the UI font of the theme in the callout style.
+  static var pointSize: CGFloat { NSFont.preferredFont(forTextStyle: .callout).pointSize }
+
+  /// The move of an icon below the baseline, so that it centers on the
+  /// letters as an SF Symbol does.
+  static let iconBaselineOffset: CGFloat = -2
 
   /// The opacity of a dimmed run.
   static let dimmedOpacity = 0.6

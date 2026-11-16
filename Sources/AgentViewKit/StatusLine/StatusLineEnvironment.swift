@@ -74,18 +74,33 @@ extension View {
     return urls.map { $0.deletingPathExtension().lastPathComponent }.sorted()
   }
 
-  /// The bundled icon with a name, as a template image that takes the
-  /// color of the text.
+  /// The side of an icon in a line of text, in points: the size of the
+  /// text, so that an icon is as tall as a capital letter and a little more.
   ///
-  /// - Parameter name: The name, such as `swift`.
+  /// - Parameter pointSize: The point size of the font of the line.
+  /// - Returns: The side of the icon.
+  public static func side(forPointSize pointSize: CGFloat) -> CGFloat {
+    (pointSize * 1.1).rounded()
+  }
+
+  /// The bundled icon with a name, as a template image that takes the
+  /// color of the text, at a size for a line of text.
+  ///
+  /// - Parameters:
+  ///   - name: The name, such as `swift`.
+  ///   - side: The width and the height of the image, in points.
   /// - Returns: The image, or `nil` when the kit has no icon with the name.
-  public static func image(named name: String) -> NSImage? {
-    if let image = cache[name] { return image }
+  public static func image(named name: String, side: CGFloat = 14) -> NSImage? {
+    let key = "\(name)@\(side)"
+    if let image = cache[key] { return image }
     guard let url = Bundle.module.url(forResource: name, withExtension: "svg", subdirectory: folderName),
       let image = NSImage(contentsOf: url)
     else { return nil }
+    // An SVG has the size of its view box; the line draws the icon at the
+    // size of its text.
+    image.size = NSSize(width: side, height: side)
     image.isTemplate = true
-    cache[name] = image
+    cache[key] = image
     return image
   }
 }

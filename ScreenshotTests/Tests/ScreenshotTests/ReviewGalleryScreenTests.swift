@@ -44,6 +44,7 @@
       try await hosted.theSessionNotice()
       try await hosted.theStatusBanner()
       try await hosted.theStatusOfEachKind()
+      try await hosted.theStatusLine()
       try await hosted.theTitleLinesOfTheBars()
       try await hosted.theConfigAndToolControls()
       try await hosted.theChipRowsInANarrowColumn()
