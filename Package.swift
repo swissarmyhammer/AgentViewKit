@@ -140,6 +140,13 @@ let templateEngineProducts: [Target.Dependency] = [
   .product(name: "Stencil", package: "Stencil")
 ]
 
+/// libgit2 in the process, for the git modules and the language probe of the
+/// status line (D194: never a `git` program). The pin is the pin of
+/// EditorKit, because SwiftPM resolves one copy of the `libgit2` target.
+let gitProducts: [Target.Dependency] = [
+  .product(name: "libgit2", package: "swift-libgit2")
+]
+
 let package = Package(
   name: "AgentViewKit",
   // The language of the source strings of the string catalog of the kit.
@@ -173,6 +180,8 @@ let package = Package(
     // same package and version as the template engine of
     // FoundationModelsExtras, which the skills use.
     .package(url: "https://github.com/stencilproject/Stencil.git", exact: "0.15.1"),
+    // libgit2, with the exact pin of EditorKit.
+    .package(url: "https://github.com/danielctull-forks/swift-libgit2.git", exact: "1.9.7"),
   ],
   targets: [
     // The shared look of the view kits. It links only EditorKit: no ACP
@@ -191,7 +200,7 @@ let package = Package(
     .target(
       name: "AgentViewKit",
       dependencies: ["AgentViewKitStyle"] + editorKitProducts + acpProducts + textualProducts + mathEngineProducts
-        + templateEngineProducts,
+        + templateEngineProducts + gitProducts,
       // The TextMate grammars of GrammarBundle, and their licenses. The string
       // catalog holds the English source text of each localized string of
       // the kit. Each `String(localized:)` call and each SwiftUI text key of
@@ -244,7 +253,7 @@ let package = Package(
         // tests.
         "AgentViewKitDemoSupport",
       ]
-        + acpProducts + editorKitTestSupportProducts,
+        + acpProducts + editorKitTestSupportProducts + gitProducts,
       swiftSettings: mainActorIsolated
     ),
     // The unit tests of the public API of the style library. No file imports
