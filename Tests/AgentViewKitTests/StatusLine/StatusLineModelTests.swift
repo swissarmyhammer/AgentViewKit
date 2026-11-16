@@ -119,6 +119,12 @@ import Testing
     #expect(StatusLineText.paletteEntry(.cyan) == .cyan)
   }
 
+  @Test func crumbsOfTheLineHaveTheTextStyleOfTheLine() {
+    let style = StatusLineContent.lineCrumbStyle(.default)
+    #expect(style.buttons.crumbCaptionStyle == StatusLineContent.textStyle)
+    #expect(StatusLineContent.textStyle == .callout)
+  }
+
   @Test func moduleIdentifierHasTheModuleName() {
     #expect(StatusLineView.identifier == "agent-status-line")
     #expect(StatusLineView.identifier(for: .gitBranch) == "agent-status-line-git_branch")

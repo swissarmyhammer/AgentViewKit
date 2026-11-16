@@ -130,7 +130,7 @@ private struct StatusLineFollow: Equatable {
 }
 
 /// The rendered line.
-private struct StatusLineContent: View {
+struct StatusLineContent: View {
   let input: StatusLineInput
   let definition: StatusLineDefinition
   /// The path of crumbs, or empty for no crumbs.
@@ -162,7 +162,7 @@ private struct StatusLineContent: View {
         pieceView(piece)
       }
     }
-    .font(editorTheme.font(for: .ui, style: .callout))
+    .font(editorTheme.font(for: .ui, style: Self.textStyle))
     .lineLimit(1)
     .frame(maxWidth: .infinity, alignment: .leading)
     .accessibilityElement(children: path.isEmpty ? .ignore : .contain)
@@ -171,10 +171,27 @@ private struct StatusLineContent: View {
     .accessibilityIdentifier(StatusLineView.identifier)
   }
 
+  /// The text style of the line: the style of each run and of the crumbs.
+  static let textStyle = Font.TextStyle.callout
+
+  /// The style of the crumbs in the line: the crumb text in the text style
+  /// of the line.
+  ///
+  /// - Parameter style: The style of the environment.
+  /// - Returns: The style with ``textStyle`` for the crumbs.
+  static func lineCrumbStyle(_ style: EditorStyle) -> EditorStyle {
+    var style = style
+    style.buttons.crumbCaptionStyle = textStyle
+    return style
+  }
+
   @ViewBuilder
   private func pieceView(_ piece: StatusLinePiece) -> some View {
     if piece.module == .session, !path.isEmpty {
       SessionBreadcrumb(path: path, rootTitle: rootTitle, select: select)
+        // The crumbs take the text style of the line, not the bold headline
+        // style of a crumb of EditorKit.
+        .environment(\.editorStyle, Self.lineCrumbStyle(editorStyle))
         .accessibilityIdentifier(StatusLineView.identifier(for: .session))
     } else if let module = piece.module {
       StatusLineText(spans: piece.spans)
