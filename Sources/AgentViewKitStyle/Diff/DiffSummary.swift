@@ -201,8 +201,23 @@ public nonisolated enum DiffSummary {
   /// - Parameter text: The path text after the `---` or `+++` marker.
   /// - Returns: The path, or `nil` for `/dev/null`.
   static func cleanPath(_ text: String) -> String? {
-    let path = text.split(separator: "\t", maxSplits: 1).first.map(String.init) ?? text
-    guard path != devNull else { return nil }
+    let raw: String
+    if text.hasPrefix(GitPathQuoting.quote) {
+      raw = GitPathQuoting.unquotedToken(in: Substring(text))?.path ?? text
+    } else {
+      raw = text.split(separator: "\t", maxSplits: 1).first.map(String.init) ?? text
+    }
+    guard raw != devNull else { return nil }
+    return strippingGitPrefix(raw)
+  }
+
+  /// A path with no git `a/` or `b/` prefix. An ACP `git_patch` has absolute
+  /// paths with no prefix (ACP `DiffPatchFormat.gitPatch`), so such a path
+  /// stays as it is.
+  ///
+  /// - Parameter path: The path of a patch line.
+  /// - Returns: The path with no prefix.
+  static func strippingGitPrefix(_ path: String) -> String {
     for prefix in pathPrefixes where path.hasPrefix(prefix) {
       return String(path.dropFirst(prefix.count))
     }
@@ -373,18 +388,129 @@ public nonisolated enum DiffSummary {
       return files
     }
 
-    /// The new path on a `diff --git a/<old> b/<new>` line.
+    /// The new path on a `diff --git` line.
+    ///
+    /// The line has two forms:
+    ///
+    /// - git: `diff --git a/<old> b/<new>`, with paths relative to the
+    ///   repository root.
+    /// - ACP (`DiffPatchFormat.gitPatch`): `diff --git <old> <new>`, with
+    ///   absolute paths and no prefix.
+    ///
+    /// A path with unusual characters is quoted as git quotes it
+    /// (`"a/x\ty"`). A path with a space is not quoted: when the two paths
+    /// are the same, the line splits in its middle; else it splits before
+    /// ` b/`, or before ` /` in the ACP form. A `+++` line later in the
+    /// section gives the path again, and wins.
     ///
     /// - Parameter line: The line.
-    /// - Returns: The new path, or the text after the header when the line
-    ///   has no ` b/` part.
+    /// - Returns: The new path, with no git prefix, or the old path when the
+    ///   new path is `/dev/null`.
     static func gitNewPath(_ line: String) -> String {
       let paths = line.dropFirst(DiffSummary.gitHeader.count)
-      guard let range = paths.range(of: DiffSummary.gitNewPathSeparator, options: .backwards)
-      else {
-        return String(paths)
-      }
-      return String(paths[range.upperBound...])
+      guard let pair = DiffSummary.gitHeaderPaths(paths) else { return String(paths) }
+      let new = pair.new == DiffSummary.devNull ? pair.old : pair.new
+      return DiffSummary.strippingGitPrefix(new)
     }
   }
 }
+
+// MARK: - The paths of a git header
+
+nonisolated extension DiffSummary {
+  /// The two paths of the text after `diff --git `, in the git form or in the
+  /// ACP form, with their prefixes.
+  ///
+  /// - Parameter text: The text after the header.
+  /// - Returns: The old and the new path, or `nil` when the text has not two
+  ///   paths.
+  static func gitHeaderPaths(_ text: Substring) -> (old: String, new: String)? {
+    if text.hasPrefix(GitPathQuoting.quote) {
+      guard let first = GitPathQuoting.unquotedToken(in: text) else { return nil }
+      let rest = text[first.end...].drop { $0 == " " }
+      guard let second = rest.hasPrefix(GitPathQuoting.quote) ? GitPathQuoting.unquotedToken(in: rest)?.path : String(rest),
+        !second.isEmpty
+      else { return nil }
+      return (first.path, second)
+    }
+    if let quoteStart = text.range(of: " \(GitPathQuoting.quote)", options: .backwards),
+      let second = GitPathQuoting.unquotedToken(in: text[text.index(after: quoteStart.lowerBound)...])
+    {
+      return (String(text[..<quoteStart.lowerBound]), second.path)
+    }
+    let characters = Array(text)
+    if characters.count.isMultiple(of: 2) == false {
+      let middle = characters.count / 2
+      let old = String(characters[..<middle])
+      let new = String(characters[(middle + 1)...])
+      if characters[middle] == " ", DiffSummary.strippingGitPrefix(old) == DiffSummary.strippingGitPrefix(new) {
+        return (old, new)
+      }
+    }
+    for separator in [gitNewPathSeparator, " /"] {
+      if let range = text.range(of: separator) {
+        return (String(text[..<range.lowerBound]), String(text[text.index(after: range.lowerBound)...]))
+      }
+    }
+    return nil
+  }
+}
+
+/// The quoting of a path in a git patch: a path with unusual characters is in
+/// `"…"`, with C escapes (`\"`, `\\`, `\t`, `\n`) and octal escapes of
+/// UTF-8 bytes (`\303\251`).
+nonisolated enum GitPathQuoting {
+  /// The quote mark.
+  static let quote = "\""
+
+  /// The path of a quoted token at the start of `text`, and the index after
+  /// its end quote.
+  ///
+  /// - Parameter text: Text that starts with a quote mark.
+  /// - Returns: The path and the end, or `nil` when the token has no end
+  ///   quote.
+  static func unquotedToken(in text: Substring) -> (path: String, end: Substring.Index)? {
+    guard text.hasPrefix(quote) else { return nil }
+    var bytes: [UInt8] = []
+    var index = text.index(after: text.startIndex)
+    while index < text.endIndex {
+      let character = text[index]
+      if character == "\"" {
+        return (String(decoding: bytes, as: UTF8.self), text.index(after: index))
+      }
+      if character == "\\" {
+        index = text.index(after: index)
+        guard index < text.endIndex else { return nil }
+        let escaped = text[index]
+        if let digit = escaped.wholeNumberValue, digit < 8 {
+          var value = 0
+          var count = 0
+          while index < text.endIndex, count < 3, let next = text[index].wholeNumberValue, next < 8 {
+            value = value * 8 + next
+            index = text.index(after: index)
+            count += 1
+          }
+          bytes.append(UInt8(truncatingIfNeeded: value))
+          continue
+        }
+        let mapped: String =
+          switch escaped {
+          case "t": "\t"
+          case "n": "\n"
+          case "r": "\r"
+          case "a": "\u{07}"
+          case "b": "\u{08}"
+          case "f": "\u{0C}"
+          case "v": "\u{0B}"
+          default: String(escaped)
+          }
+        bytes.append(contentsOf: Array(mapped.utf8))
+      } else {
+        bytes.append(contentsOf: Array(String(character).utf8))
+      }
+      index = text.index(after: index)
+    }
+    return nil
+  }
+}
+
