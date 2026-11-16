@@ -1,4 +1,4 @@
-import AgentViewKit
+@testable import AgentViewKit
 import AgentViewKitStyle
 import Testing
 
@@ -115,5 +115,21 @@ import Testing
 
       """
     #expect(DiffSummary.parse(gitPatch: patch).map(\.path) == ["Sources/App.swift"])
+  }
+}
+
+/// The EditorKit preview of an ACP `git_patch` (EditorKit c31d8069 reads the
+/// unprefixed absolute paths).
+@MainActor @Suite struct DiffPreviewACPPatchTests {
+  @Test func acpPatchParsesAndFindsItsFile() throws {
+    let diff = try DiffView.diff(of: DiffSummaryACPPathTests.acpModify, file: DiffSummaryACPPathTests.path).get()
+    #expect(diff.files.count == 1)
+    #expect(diff.files.first?.newPath == DiffSummaryACPPathTests.path)
+  }
+
+  @Test func pathOfTheSummaryIsThePathOfThePreview() throws {
+    let summary = try #require(DiffSummary.parse(gitPatch: DiffSummaryACPPathTests.acpModify).first)
+    let diff = try DiffView.diff(of: DiffSummaryACPPathTests.acpModify, file: summary.path).get()
+    #expect(diff.files.first.map { $0.newPath ?? $0.oldPath } == summary.path)
   }
 }
