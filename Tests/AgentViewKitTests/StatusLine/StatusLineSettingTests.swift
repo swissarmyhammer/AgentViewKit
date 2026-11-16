@@ -21,13 +21,13 @@ import Testing
     #expect(StatusLines.named("minimal")?.format.text == "$directory $git_branch $session")
   }
 
-  /// No preset shows the model (the user, 2026-11-16); the module stays for
-  /// a custom format.
-  @Test func fullPresetAddsContextAndTimeAndNoPresetShowsTheModel() throws {
+  /// No preset shows the model or the time (the user, 2026-11-16: the Mac
+  /// has a clock in the menu bar); the modules stay for a custom format.
+  @Test func fullPresetAddsContextAndNoPresetShowsTheModelOrTheTime() throws {
     let full = try #require(StatusLines.named("full"))
     let base = StatusLines.defaultDefinition.format.references
-    #expect(full.format.references == base.union(["context", "time"]))
-    #expect(StatusLines.builtin.allSatisfy { !$0.format.references.contains("model") })
+    #expect(full.format.references == base.union(["context"]))
+    #expect(StatusLines.builtin.allSatisfy { $0.format.references.isDisjoint(with: ["model", "time"]) })
   }
 
   @Test(arguments: StatusLines.builtin.map(\.name))

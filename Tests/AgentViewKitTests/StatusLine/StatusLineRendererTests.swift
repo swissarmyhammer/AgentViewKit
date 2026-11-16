@@ -50,17 +50,17 @@ import Testing
     #expect(line.modules == [.directory, .gitBranch, .session])
   }
 
-  @Test func fullLineAddsContextAndTime() throws {
+  @Test func fullLineAddsContext() throws {
     let input = Self.input {
       $0.modelName = "Qwen3"
       $0.contextUsed = 30
       $0.contextSize = 100
     }
     let line = StatusLineRenderer.render(try #require(StatusLines.named("full")), input: input)
-    #expect(line.modules.suffix(2) == [.context, .time])
+    #expect(line.modules.last == .context)
     #expect(!line.modules.contains(.model))
+    #expect(!line.modules.contains(.time))
     #expect(line.text(of: .context) == " 30%")
-    #expect(line.text(of: .time) == "00:00")
   }
 
   @Test func modelModuleShowsInACustomFormat() {
