@@ -115,7 +115,7 @@
 
       let host = harness.screenFrame(of: harness.hostingView)
       let list = try ThreadBottomBarHostedTests.listFrame(in: harness)
-      let header = try #require(harness.frame(identifier: AgentInfoHeader.identifier))
+      let header = try #require(harness.frame(identifier: StatusLineView.identifier))
       let notice = try #require(harness.frame(identifier: Self.noticeIdentifier(of: session)))
 
       // The y axis of the screen goes up, so the top edge is `maxY`.
@@ -133,7 +133,7 @@
       defer { harness.close() }
       harness.render()
 
-      try Self.expectReadingOrder([AgentInfoHeader.identifier, Self.noticeIdentifier(of: session)], in: harness)
+      try Self.expectReadingOrder([StatusLineView.identifier, Self.noticeIdentifier(of: session)], in: harness)
     }
 
     /// VoiceOver reads a closed thread in order: the header, the connection
@@ -153,7 +153,7 @@
 
       try Self.expectReadingOrder(
         [
-          AgentInfoHeader.identifier, AgentConnectionBanner.disconnectedIdentifier,
+          StatusLineView.identifier, AgentConnectionBanner.disconnectedIdentifier,
           SessionStreamBanner.closedIdentifier,
         ], in: harness)
     }

@@ -118,19 +118,11 @@ import Testing
   /// The size of the image of the thread header, in points.
   static let headerSize = CGSize(width: 480, height: 140)
 
-  /// The session title that the thread header shows in its image.
-  static let headerSessionTitle = "AgentViewKit"
-
-  /// The header of a thread with the "Agent › Session" breadcrumb, on the
-  /// floating glass of the kit in one `FloatingGlassContainer`, as in the
-  /// top bar of ``AgentThreadView``.
+  /// The header of a thread: the status line in a repository (D194), on
+  /// the floating glass of the kit in one `FloatingGlassContainer`, as in
+  /// the top bar of ``AgentThreadView``.
   static var threadHeader: some View {
-    FloatingGlassContainer(spacing: spacing) {
-      AgentInfoHeader(connection: FailedTurnFixtures.signInConnection, sessionTitle: headerSessionTitle)
-        .padding(.horizontal, EditorStyle.default.spacing.m)
-        .padding(.vertical, EditorStyle.default.spacing.s)
-        .floatingGlass()
-    }
+    StatusLineGalleryFixtures.repositoryHeader
   }
 
   @Test func theHeaderOfTheThread() async throws {

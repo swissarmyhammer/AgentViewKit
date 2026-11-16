@@ -16,7 +16,7 @@ import Testing
   /// The screen frame of the hosting view.
   let view: CGRect
 
-  /// The accessibility frame of the header glass (``AgentInfoHeader``).
+  /// The accessibility frame of the header glass (``StatusLineView``).
   let header: CGRect
 
   /// Gives the accessibility frame of the element with an identifier, or
@@ -87,7 +87,7 @@ import Testing
 
     let frames = BarInsetThreadFrames(
       session: session, view: harness.screenFrame(of: harness.hostingView),
-      header: try #require(harness.frame(identifier: AgentInfoHeader.identifier)),
+      header: try #require(harness.frame(identifier: StatusLineView.identifier)),
       frameOfIdentifier: { harness.frame(identifier: $0) })
     return try read(frames)
   }

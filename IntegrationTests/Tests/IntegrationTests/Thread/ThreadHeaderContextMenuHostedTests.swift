@@ -106,7 +106,7 @@ import Testing
     let harness = Self.mountThread(path: Self.hostPath, system: Self.makeSystem(log: CommandRunLog()))
     defer { harness.close() }
 
-    let menu = try #require(try harness.contextMenu(identifier: AgentInfoHeader.identifier))
+    let menu = try #require(try harness.contextMenu(identifier: StatusLineView.identifier))
 
     #expect(menu.items.map(\.title) == [Self.showInFinder.title, "", Self.openTasks.title])
   }
@@ -115,7 +115,7 @@ import Testing
     let harness = Self.mountThread(path: Self.hostPath, system: Self.makeSystem(log: CommandRunLog()))
     defer { harness.close() }
 
-    let menu = try #require(try harness.contextMenu(identifier: AgentInfoHeader.identifier))
+    let menu = try #require(try harness.contextMenu(identifier: StatusLineView.identifier))
 
     #expect(!menu.items.map(\.title).contains(Self.stop.title))
   }
@@ -124,7 +124,7 @@ import Testing
     let log = CommandRunLog()
     let harness = Self.mountThread(path: Self.hostPath, system: Self.makeSystem(log: log))
     defer { harness.close() }
-    let menu = try #require(try harness.contextMenu(identifier: AgentInfoHeader.identifier))
+    let menu = try #require(try harness.contextMenu(identifier: StatusLineView.identifier))
     let index = try #require(menu.items.firstIndex { $0.title == Self.openTasks.title })
 
     menu.performActionForItem(at: index)
@@ -136,6 +136,6 @@ import Testing
     let harness = Self.mountThread(path: nil, system: Self.makeSystem(log: CommandRunLog()))
     defer { harness.close() }
 
-    #expect(try harness.contextMenu(identifier: AgentInfoHeader.identifier) == nil)
+    #expect(try harness.contextMenu(identifier: StatusLineView.identifier) == nil)
   }
 }

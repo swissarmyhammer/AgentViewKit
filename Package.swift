@@ -212,6 +212,8 @@ let package = Package(
         .copy("Resources/Grammars"),
         // The Stencil templates of the text that the kit builds in loops.
         .copy("Resources/Templates"),
+        // The language icons of the status line (Simple Icons, CC0).
+        .copy("Resources/LanguageIcons"),
         .process("Resources/Localizable.xcstrings"),
       ],
       swiftSettings: mainActorIsolated

@@ -8,7 +8,7 @@
 
   /// Tests that the accessibility frame of each bar container of a thread
   /// holds the elements in it after the thread widens (^ydh96hy): the
-  /// ``AgentInfoHeader`` in the top bar, and the floating controls of the
+  /// ``StatusLineView`` in the top bar, and the floating controls of the
   /// bottom bar (``AgentThreadLayout/floatingControlsIdentifier``).
   ///
   /// XCUI and VoiceOver place an element of another process by its frame, so
@@ -110,7 +110,7 @@
       let harness = Self.mountWidenedThread(session)
       defer { harness.close() }
 
-      let outside = try Self.elementsOutside(containerIdentifiedAs: AgentInfoHeader.identifier, in: harness)
+      let outside = try Self.elementsOutside(containerIdentifiedAs: StatusLineView.identifier, in: harness)
 
       #expect(outside.isEmpty, "\(outside)")
     }

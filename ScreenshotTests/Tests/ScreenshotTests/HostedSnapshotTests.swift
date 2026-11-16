@@ -3,6 +3,7 @@ import AgentViewKitTestSupport
 import EditorStyle
 import EditorSwiftUI
 import EditorTestSupport
+import FoundationModelsACP
 import FoundationModelsACPClient
 import Quartz
 import SwiftUI
@@ -153,6 +154,19 @@ import Testing
       .padding(EditorStyle.default.tile.margin)
 
     try await Self.generate(banner, named: "session-notice", size: SnapshotFixtures.cardSize)
+  }
+
+  /// The status line of the header of a thread (AVK-10, D194): in a
+  /// repository, outside a repository, with the `full` preset, and for a
+  /// child session (``StatusLineGalleryFixtures``).
+  @Test func theStatusLine() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let reviewer = SessionId(rawValue: "reviewer")
+    try await session.announceChild(reviewer, title: "Reviewer")
+    let child = try #require(session.session(reviewer))
+    try await Self.generate(
+      StatusLineGalleryFixtures.gallery(child: child), named: "status-line", size: StatusLineGalleryFixtures.size)
   }
 
   /// Each view of the kit that shows a status, in each status, drawn with

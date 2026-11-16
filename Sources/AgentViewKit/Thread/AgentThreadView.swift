@@ -37,7 +37,7 @@ import SwiftUI
 /// edge effect of the list to the whole top inset, so the effect washes out
 /// the rows under the full stack of bars, and fades only near the top of the
 /// list. The user accepted this system look on 2026-10-23 (^22wbz12). The
-/// top bar has no background. The ``AgentInfoHeader`` in it floats on
+/// top bar has no background. The ``StatusLineView`` in it floats on
 /// `.regular` glass, the same as the conversation header in Messages
 /// (`.floatingGlass()`). The banners in it are content
 /// with no glass. VoiceOver reads the top bar, the conversation, and then
@@ -82,8 +82,10 @@ import SwiftUI
 /// ``SwiftUI/View/accessibilityFocusScope()`` with the thread view. The
 /// ``RequestDeck`` documentation shows the full example.
 ///
-/// When the host gives the connection model, an ``AgentInfoHeader`` names the
-/// agent from its `initialize` answer and an ``AgentConnectionBanner`` shows
+/// When the host gives the connection model, a ``StatusLineView`` shows the
+/// status line of the session (D194: the folder, git, the languages of the
+/// code and the session, in the ``StatusLineDefinition`` of
+/// ``SwiftUI/View/statusLine(_:)``) and an ``AgentConnectionBanner`` shows
 /// the connection state, at the top of the top bar, and an
 /// ``AgentAuthView`` shows in the bottom bar while `ConnectionModel.authState`
 /// asks for a sign-in, for example after an answer with the code `-32000`
@@ -400,7 +402,7 @@ public struct AgentThreadView<Composer: View>: View {
   @ViewBuilder private var topBarParts: some View {
     if let connection {
       FloatingGlassContainer(spacing: editorStyle.spacing.s) {
-        AgentInfoHeader(connection: connection, session: session, sessionTitle: sessionTitle, select: show)
+        StatusLineView(session: session, connection: connection, sessionTitle: sessionTitle, select: show)
           .padding(headerInset).floatingGlass()
           .hostPathContextMenu(headerContextMenuPath)
       }
@@ -420,7 +422,7 @@ public struct AgentThreadView<Composer: View>: View {
     SessionStreamBanner(session: session, connection: connection)
   }
 
-  /// The inset of the ``AgentInfoHeader`` in its glass: the medium spacing
+  /// The inset of the ``StatusLineView`` in its glass: the medium spacing
   /// step on the leading and the trailing edge, and the small step on the
   /// top and the bottom edge. The header has no padding of its own
   /// (^rgsq3k4).

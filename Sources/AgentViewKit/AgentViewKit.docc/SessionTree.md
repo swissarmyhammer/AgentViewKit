@@ -18,8 +18,9 @@ root again after a resume.
 
 ### The path in the header
 
-``AgentInfoHeader`` shows the agent, and then one crumb for each session from
-the root to the shown session. Each crumb is a dropdown with the siblings at its
+The session module of the ``StatusLineView`` in the header of a child session
+shows one crumb for each session from the root to the shown session.
+``AgentInfoHeader`` shows the agent, and then the same crumbs. Each crumb is a dropdown with the siblings at its
 level, each with its state and its count of open questions. A crumb has a mark
 when the session, or a session below it, needs the user. A last dropdown lists
 the children of the shown session, with a limit and a count of the others.
@@ -61,6 +62,6 @@ removes, the view shows its parent.
 The header reads the session model, so it names the path itself. A host that
 titles the session, such as with the title of a tab, gives `sessionTitle` to
 `AgentThreadView.init(session:connection:sessionTitle:headerContextMenuPath:composer:)`
-or to `AgentInfoHeader`. The first crumb shows that title in place of the title
+or to ``StatusLineView`` or `AgentInfoHeader`. The first crumb shows that title in place of the title
 of its session, and follows each change of it. The other crumbs show the
 titles of their sessions.

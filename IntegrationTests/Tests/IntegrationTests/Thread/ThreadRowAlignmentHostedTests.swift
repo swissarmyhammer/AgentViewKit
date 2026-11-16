@@ -21,7 +21,7 @@
   ///
   /// The tests read the frames that the views report to AppKit after one
   /// layout pass of the window: the screen frame of the hosting view, the
-  /// accessibility frame of the header glass (``AgentInfoHeader``), of the
+  /// accessibility frame of the header glass (``StatusLineView``), of the
   /// composer glass (``PromptFieldSurface``), of the first row and of the tool
   /// call card.
   @Suite(.serialized, .hostedSerially) @MainActor struct ThreadRowAlignmentHostedTests {

@@ -19,7 +19,7 @@
   ///
   /// Each test reads the accessibility frames of the row and of the bar after
   /// the layout passes of the window. The frame of the floating controls is
-  /// the bottom bar, and the frame of the ``AgentInfoHeader`` is the top bar.
+  /// the bottom bar, and the frame of the ``StatusLineView`` is the top bar.
   @Suite(.serialized, .hostedSerially) @MainActor struct ThreadBarBannerOverlapHostedTests {
     /// The number of the agent messages of the failed turn of each test.
     /// Together they are taller than ``FailedTurnFixtures/threadSize``, so the
@@ -124,7 +124,7 @@
       anchors.onScroll(.item(firstKey))
       harness.render()
 
-      try Self.expectRow(firstKey, clearOf: AgentInfoHeader.identifier, in: harness)
+      try Self.expectRow(firstKey, clearOf: StatusLineView.identifier, in: harness)
     }
   }
 #endif
