@@ -42,6 +42,7 @@ public struct StatusLineView: View {
   let select: (SessionId) -> Void
 
   @Environment(\.statusLineDefinition) private var definition
+  @Environment(\.statusLineHomeFolder) private var homeFolder
   @State private var model: StatusLineModel
 
   /// Makes the status line of a session.
@@ -77,7 +78,7 @@ public struct StatusLineView: View {
     let path = session.path
     let showsCrumbs = path.count > 1 && definition.session.showsPath
     let input = StatusLineView.input(
-      session: session, connection: connection, sessionTitle: sessionTitle, model: model)
+      session: session, connection: connection, sessionTitle: sessionTitle, model: model, homeFolder: homeFolder)
     StatusLineContent(
       input: input, definition: definition, path: showsCrumbs ? path : [], rootTitle: sessionTitle, select: select
     )
@@ -93,15 +94,20 @@ public struct StatusLineView: View {
 
   /// The data of the line.
   static func input(
-    session: SessionModel, connection: ConnectionModel?, sessionTitle: String?, model: StatusLineModel
+    session: SessionModel, connection: ConnectionModel?, sessionTitle: String?, model: StatusLineModel,
+    homeFolder: URL? = nil
   ) -> StatusLineInput {
     let info = connection?.initializeResponse?.info
     let usage = session.usage
     let title = session.parent == nil ? (sessionTitle ?? session.displayTitle) : session.displayTitle
-    return StatusLineInput(
+    var input = StatusLineInput(
       cwd: folder(of: session), git: model.git, files: model.files, sessionTitle: title,
       agentName: info.map { $0.title ?? $0.name }, agentVersion: info?.version,
       modelName: modelName(of: session.configOptions), contextUsed: usage?.used, contextSize: usage?.size)
+    if let homeFolder {
+      input.homeFolder = homeFolder.path(percentEncoded: false)
+    }
+    return input
   }
 
   /// The working folder of a session: its own `cwd`, or for a child session

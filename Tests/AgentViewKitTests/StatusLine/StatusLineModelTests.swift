@@ -1,5 +1,6 @@
 @testable import AgentViewKit
 import AppKit
+import FoundationModelsACPClient
 import FoundationModelsACP
 import Synchronization
 import Testing
@@ -123,6 +124,26 @@ import Testing
     let style = StatusLineContent.lineCrumbStyle(.default)
     #expect(style.buttons.crumbCaptionStyle == StatusLineContent.textStyle)
     #expect(StatusLineContent.textStyle == .callout)
+  }
+
+  @Test func hostHomeFolderIsTheHomeOfThePath() {
+    let home = URL(filePath: "/var/folders/T/TestHome", directoryHint: .isDirectory)
+    let session = SessionModel.preview(cwd: AbsolutePath(rawValue: "/var/folders/T/TestHome/Agents"))
+    let model = StatusLineModel(fixedFolder: "/var/folders/T/TestHome/Agents", git: nil, files: [])
+
+    let input = StatusLineView.input(
+      session: session, connection: nil, sessionTitle: nil, model: model, homeFolder: home)
+    let line = StatusLineRenderer.render(StatusLines.defaultDefinition, input: input)
+
+    #expect(input.homeFolder == "/var/folders/T/TestHome/")
+    #expect(line.text(of: .directory) == "~/Agents")
+  }
+
+  @Test func withNoHostHomeFolderTheHomeIsTheHomeOfTheUser() {
+    let session = SessionModel.preview(cwd: AbsolutePath(rawValue: "/tmp/x"))
+    let model = StatusLineModel(fixedFolder: "/tmp/x", git: nil, files: [])
+    let input = StatusLineView.input(session: session, connection: nil, sessionTitle: nil, model: model)
+    #expect(input.homeFolder == NSHomeDirectory())
   }
 
   @Test func moduleIdentifierHasTheModuleName() {

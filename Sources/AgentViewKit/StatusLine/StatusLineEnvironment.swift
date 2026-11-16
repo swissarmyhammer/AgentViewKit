@@ -34,6 +34,10 @@ extension EnvironmentValues {
   /// The host command of a click on a module of the status line, or `nil`
   /// when a click does nothing.
   @Entry public var statusLineActions: StatusLineActions? = nil
+
+  /// The home folder that the `directory` module shows as `~`, or `nil` for
+  /// the home folder of the user (`NSHomeDirectory()`).
+  @Entry public var statusLineHomeFolder: URL? = nil
 }
 
 extension View {
@@ -46,6 +50,17 @@ extension View {
   /// - Returns: A view whose thread views show `definition`.
   public func statusLine(_ definition: StatusLineDefinition) -> some View {
     environment(\.statusLineDefinition, definition)
+  }
+
+  /// Sets the home folder that the `directory` module of the status line
+  /// shows as `~`, for example the folder of a test that stands in for the
+  /// home folder. With no value, the line uses the home folder of the user.
+  ///
+  /// - Parameter folder: The home folder, or `nil` for the home folder of
+  ///   the user.
+  /// - Returns: A view whose status lines use `folder` as the home folder.
+  public func statusLineHomeFolder(_ folder: URL?) -> some View {
+    environment(\.statusLineHomeFolder, folder)
   }
 
   /// Sets the host command of a click on a module of the status line.
