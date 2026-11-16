@@ -131,8 +131,8 @@ nonisolated public enum StatusLines {
       format: "$directory $git_branch $session"),
     StatusLineDefinition(
       name: "full",
-      description: "The default line with the model, the use of the context window and the time.",
-      format: "$directory $git_branch$git_status$git_state $languages $session $model $context $time"),
+      description: "The default line with the use of the context window and the time.",
+      format: "$directory $git_branch$git_status$git_state $languages $session $context $time"),
   ]
 
   /// The default preset.

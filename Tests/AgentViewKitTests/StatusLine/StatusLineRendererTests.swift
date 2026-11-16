@@ -50,17 +50,22 @@ import Testing
     #expect(line.modules == [.directory, .gitBranch, .session])
   }
 
-  @Test func fullLineAddsModelContextAndTime() throws {
+  @Test func fullLineAddsContextAndTime() throws {
     let input = Self.input {
       $0.modelName = "Qwen3"
       $0.contextUsed = 30
       $0.contextSize = 100
     }
     let line = StatusLineRenderer.render(try #require(StatusLines.named("full")), input: input)
-    #expect(line.modules.suffix(3) == [.model, .context, .time])
-    #expect(line.text(of: .model) == " Qwen3")
+    #expect(line.modules.suffix(2) == [.context, .time])
+    #expect(!line.modules.contains(.model))
     #expect(line.text(of: .context) == " 30%")
     #expect(line.text(of: .time) == "00:00")
+  }
+
+  @Test func modelModuleShowsInACustomFormat() {
+    let input = Self.input { $0.modelName = "Qwen3" }
+    #expect(Self.text(.model, input) == " Qwen3")
   }
 
   @Test func repositoryRootHasTheRootStyle() throws {

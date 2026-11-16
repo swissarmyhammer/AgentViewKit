@@ -113,7 +113,9 @@ nonisolated public struct DirectoryModule: StatusLineModuleOptions {
   }
 
   public var format: StatusLineFormat = "$path"
-  public var style: StatusLineStyle = "cyan"
+  /// The path is bold text in the primary color of the theme, as a
+  /// headline (the user, 2026-11-16).
+  public var style: StatusLineStyle = "bold"
   public var disabled = false
   /// The most parts of the path that show.
   public var truncationLength = 3
@@ -128,7 +130,7 @@ nonisolated public struct DirectoryModule: StatusLineModuleOptions {
   /// The substitutions of the path, in order.
   public var substitutions: [Substitution] = []
   /// The style of the repository root.
-  public var repoRootStyle: StatusLineStyle = "bold cyan"
+  public var repoRootStyle: StatusLineStyle = "bold"
 
   public init() {}
 

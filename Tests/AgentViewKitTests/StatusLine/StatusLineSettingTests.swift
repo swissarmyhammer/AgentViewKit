@@ -21,10 +21,13 @@ import Testing
     #expect(StatusLines.named("minimal")?.format.text == "$directory $git_branch $session")
   }
 
-  @Test func fullPresetAddsModelContextAndTime() throws {
+  /// No preset shows the model (the user, 2026-11-16); the module stays for
+  /// a custom format.
+  @Test func fullPresetAddsContextAndTimeAndNoPresetShowsTheModel() throws {
     let full = try #require(StatusLines.named("full"))
     let base = StatusLines.defaultDefinition.format.references
-    #expect(full.format.references == base.union(["model", "context", "time"]))
+    #expect(full.format.references == base.union(["context", "time"]))
+    #expect(StatusLines.builtin.allSatisfy { !$0.format.references.contains("model") })
   }
 
   @Test(arguments: StatusLines.builtin.map(\.name))
@@ -41,6 +44,8 @@ import Testing
     #expect(directory.fishStylePwdDirLength == 1)
     #expect(directory.homeSymbol == "~")
     #expect(directory.repoRootStyle.modifiers.contains(.bold))
+    #expect(directory.style == "bold")
+    #expect(directory.style.color == nil)
   }
 
   @Test func defaultLanguagesShowAtMostFour() {
