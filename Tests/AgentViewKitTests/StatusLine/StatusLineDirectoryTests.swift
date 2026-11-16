@@ -24,29 +24,50 @@ import Testing
     #expect(Self.shown("/Users/me/code/project").text == "~/c/project")
   }
 
-  @Test func pathKeepsAtMostThreeParts() {
-    #expect(Self.shown("/Users/me/code/swift/project").text == "c/s/project")
+  @Test func defaultPathIsTheWholePathFromHome() {
+    #expect(Self.shown("/Users/me/code/swift/project").text == "~/c/s/project")
+  }
+
+  @Test func defaultPathInARepositoryReadsAsAPathWithTheRootWhole() {
+    let shown = Self.shown("/Users/me/github/swissarmyhammer/TestudoApp", root: "/Users/me/github/swissarmyhammer/TestudoApp")
+    #expect(shown.text == "~/g/s/TestudoApp")
+    #expect(shown.root == "TestudoApp")
+    let below = Self.shown(
+      "/Users/me/github/swissarmyhammer/TestudoApp/Sources/App", root: "/Users/me/github/swissarmyhammer/TestudoApp")
+    #expect(below.text == "~/g/s/TestudoApp/S/App")
+    #expect(below.root == "TestudoApp")
+  }
+
+  @Test func defaultPathOutsideHomeStartsAtTheRoot() {
+    let shown = Self.shown("/opt/work/repo/src", root: "/opt/work/repo")
+    #expect(shown.text == "/o/w/repo/src")
+    #expect(shown.root == "repo")
+  }
+
+  @Test func truncationLengthKeepsTheLastParts() {
+    #expect(Self.shown("/Users/me/code/swift/project") { $0.truncationLength = 3 }.text == "c/s/project")
   }
 
   @Test func truncationSymbolMarksALostPart() {
-    #expect(Self.shown("/Users/me/code/swift/project") { $0.truncationSymbol = "…/" }.text == "…/c/s/project")
+    let shown = Self.shown("/Users/me/code/swift/project") {
+      $0.truncationLength = 3
+      $0.truncationSymbol = "…/"
+    }
+    #expect(shown.text == "…/c/s/project")
   }
 
-  @Test func repositoryRootIsTheFirstPartAndStaysWhole() {
-    let shown = Self.shown("/Users/me/code/Kit/Sources", root: "/Users/me/code/Kit")
+  @Test func truncateToRepoStartsAtTheRootFolder() {
+    let shown = Self.shown("/Users/me/code/Kit/Sources", root: "/Users/me/code/Kit") { $0.truncateToRepo = true }
     #expect(shown.text == "Kit/Sources")
     #expect(shown.root == "Kit")
   }
 
   @Test func repositoryRootThatTruncationRemovesIsNotMarked() {
-    let shown = Self.shown("/Users/me/code/Kit/Sources/App/Views", root: "/Users/me/code/Kit")
+    let shown = Self.shown("/Users/me/code/Kit/Sources/App/Views", root: "/Users/me/code/Kit") {
+      $0.truncateToRepo = true
+      $0.truncationLength = 3
+    }
     #expect(shown.text == "S/A/Views")
-    #expect(shown.root == nil)
-  }
-
-  @Test func withNoTruncateToRepoTheHomeSymbolStarts() {
-    let shown = Self.shown("/Users/me/code/Kit", root: "/Users/me/code/Kit") { $0.truncateToRepo = false }
-    #expect(shown.text == "~/c/Kit")
     #expect(shown.root == nil)
   }
 

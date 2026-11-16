@@ -30,7 +30,7 @@ import Testing
   @Test func defaultLineInARepository() {
     let line = StatusLineRenderer.render(StatusLines.defaultDefinition, input: Self.input())
     #expect(line.modules == [.directory, .gitBranch, .gitStatus, .languages, .session])
-    #expect(line.plainText == "Kit main+3!2?1⇡1 swift python Fix the parser")
+    #expect(line.plainText == "~/c/Kit main+3!2?1⇡1 swift python Fix the parser")
   }
 
   @Test func defaultLineOutsideARepositoryHasNoGitAndNoDoubleSpace() {
@@ -73,8 +73,10 @@ import Testing
       StatusLineRenderer.moduleSpans(.directory, definition: StatusLines.defaultDefinition, input: Self.input {
         $0.cwd = "/Users/me/code/Kit/Sources"
       }))
-    #expect(spans.first == .text("Kit", StatusLines.defaultDefinition.directory.repoRootStyle))
-    #expect(spans.last == .text("Sources", StatusLines.defaultDefinition.directory.style))
+    let directory = StatusLines.defaultDefinition.directory
+    #expect(spans.map(\.plainText).joined() == "~/c/Kit/Sources")
+    #expect(spans.contains(.text("Kit", directory.repoRootStyle)))
+    #expect(spans.last == .text("Sources", directory.style))
   }
 
   // MARK: - git_branch
@@ -148,6 +150,22 @@ import Testing
 
   @Test func languagesShowNothingBeforeTheFilesAreRead() {
     #expect(Self.text(.languages, Self.input { $0.files = nil }) == nil)
+  }
+
+  /// A title that only repeats the folder shows no session text, and leaves
+  /// no space (the user, 2026-11-16).
+  @Test func sessionTitledLikeItsFolderShowsNothing() {
+    let input = Self.input { $0.sessionTitle = "Kit" }
+    #expect(Self.text(.session, input) == nil)
+    #expect(Self.text(.session, Self.input { $0.sessionTitle = "kit" }) == nil)
+    #expect(Self.text(.session, Self.input { $0.sessionTitle = "  " }) == nil)
+    let line = StatusLineRenderer.render(StatusLines.defaultDefinition, input: input)
+    #expect(!line.modules.contains(.session))
+    #expect(line.plainText == "~/c/Kit main+3!2?1⇡1 swift python")
+  }
+
+  @Test func sessionTitleThatSaysSomethingNewShows() {
+    #expect(Self.text(.session, Self.input { $0.sessionTitle = "Kit release" }) == "Kit release")
   }
 
   @Test func sessionTitleTruncates() {

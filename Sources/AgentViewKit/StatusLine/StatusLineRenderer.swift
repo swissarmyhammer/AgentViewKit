@@ -174,7 +174,7 @@ nonisolated public enum StatusLineRenderer {
     case .gitStatus: gitStatus(definition.gitStatus, git: input.git)
     case .gitState: gitState(definition.gitState, git: input.git)
     case .languages: languages(definition.languages, files: input.files)
-    case .session: session(definition.session, title: input.sessionTitle)
+    case .session: session(definition.session, title: input.sessionTitle, cwd: input.cwd)
     case .agent: agent(definition.agent, input: input)
     case .model: model(definition.model, name: input.modelName)
     case .context: context(definition.context, used: input.contextUsed, size: input.contextSize)
@@ -310,8 +310,8 @@ nonisolated public enum StatusLineRenderer {
     return render(module.format, style: module.style, references: ["symbols": symbols])
   }
 
-  private static func session(_ module: SessionModule, title: String?) -> [StatusLineSpan]? {
-    guard !module.disabled, let title, !title.isEmpty else { return nil }
+  private static func session(_ module: SessionModule, title: String?, cwd: String?) -> [StatusLineSpan]? {
+    guard !module.disabled, let title, !repeatsFolder(title: title, cwd: cwd) else { return nil }
     let text = truncated(title, length: module.truncationLength, symbol: "…")
     return render(module.format, style: module.style, references: ["title": [.text(text, module.style)]])
   }
@@ -333,6 +333,21 @@ nonisolated public enum StatusLineRenderer {
         "symbol": module.symbol.isEmpty ? [] : [.symbol(module.symbol, module.style)],
         "name": [.text(name, module.style)],
       ])
+  }
+
+  /// Tells if a session title says nothing new: it is empty, or it is the
+  /// name of the last folder of the working folder, as the title that a host
+  /// makes from the folder (the user, 2026-11-16: no session name twice).
+  ///
+  /// - Parameters:
+  ///   - title: The title of the session.
+  ///   - cwd: The working folder, or `nil`.
+  /// - Returns: `true` when the line shows no session text.
+  static func repeatsFolder(title: String, cwd: String?) -> Bool {
+    let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty else { return true }
+    guard let name = cwd?.split(separator: "/").last else { return false }
+    return trimmed.compare(String(name), options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame
   }
 
   /// The percentage of a context window, rounded.
@@ -416,9 +431,11 @@ nonisolated public enum StatusLineDirectory {
       repositoryIndex = 0
     } else if let rest = relative(folder, to: home), !home.isEmpty, home != "/" {
       components = [module.homeSymbol] + rest
+      repositoryIndex = rootIndex(repositoryRoot.map(trimmed), folder: folder, components: components.count)
     } else {
       components = folder.split(separator: "/").map(String.init)
       isAbsolute = true
+      repositoryIndex = rootIndex(repositoryRoot.map(trimmed), folder: folder, components: components.count)
     }
     if !module.substitutions.isEmpty {
       let first = components.first
@@ -455,6 +472,21 @@ nonisolated public enum StatusLineDirectory {
       parts.append(Part(text, isRepositoryRoot: isRoot))
     }
     return parts
+  }
+
+  /// The index of the folder of the repository root among the parts of a
+  /// path that starts at `~` or `/`: the root folder stays whole and in the
+  /// root style.
+  ///
+  /// - Parameters:
+  ///   - root: The repository root, or `nil`.
+  ///   - folder: The folder of the path.
+  ///   - components: The count of the parts of the path.
+  /// - Returns: The index, or `nil` when no repository holds the folder.
+  private static func rootIndex(_ root: String?, folder: String, components: Int) -> Int? {
+    guard let root, let below = relative(folder, to: root) else { return nil }
+    let index = components - 1 - below.count
+    return index >= 0 ? index : nil
   }
 
   /// A part cut to `length` characters, and the leading `.` of a hidden

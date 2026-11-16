@@ -12,7 +12,7 @@ import SwiftUI
 @MainActor
 enum StatusLineGalleryFixtures {
   /// The size of the image, in points.
-  static let size = CGSize(width: 640, height: 420)
+  static let size = CGSize(width: 640, height: 500)
 
   /// The folder of the repository lines: a folder below the home folder, so
   /// that the line shows `~` rules and the repository root.
@@ -83,6 +83,12 @@ private struct StatusLineGallery: View {
     let fixtures = StatusLineGalleryFixtures.self
     VStack(alignment: .leading, spacing: editorStyle.spacing.m) {
       section("In a repository (default)") { fixtures.repositoryHeader }
+      section("A session titled like its folder: no session text") {
+        fixtures.header(
+          StatusLineView(
+            session: .preview(cwd: AbsolutePath(rawValue: fixtures.repositoryFolder)), sessionTitle: "AgentViewKit",
+            model: StatusLineModel(fixedFolder: fixtures.repositoryFolder, git: fixtures.git, files: fixtures.files)))
+      }
       section("Outside a repository (default)") {
         fixtures.header(
           StatusLineView(

@@ -39,8 +39,8 @@ import Testing
 
   @Test func defaultDirectoryHasTheOptionsOfTheDecision() {
     let directory = StatusLines.defaultDefinition.directory
-    #expect(directory.truncationLength == 3)
-    #expect(directory.truncateToRepo)
+    #expect(directory.truncationLength == 0)
+    #expect(!directory.truncateToRepo)
     #expect(directory.fishStylePwdDirLength == 1)
     #expect(directory.homeSymbol == "~")
     #expect(directory.repoRootStyle.modifiers.contains(.bold))
@@ -74,6 +74,7 @@ import Testing
       "preset": .string("minimal"),
       "directory": .object(["truncation_length": .number(2)]),
     ])
+    // The default is 0 (no limit), so 2 is a change.
     let resolution = StatusLineSetting.resolve(value)
     var expected = try #require(StatusLines.named("minimal"))
     expected.directory.truncationLength = 2

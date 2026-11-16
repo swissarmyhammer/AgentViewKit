@@ -117,10 +117,13 @@ nonisolated public struct DirectoryModule: StatusLineModuleOptions {
   /// headline (the user, 2026-11-16).
   public var style: StatusLineStyle = "bold"
   public var disabled = false
-  /// The most parts of the path that show.
-  public var truncationLength = 3
-  /// `true` to start the path at the folder of the git repository root.
-  public var truncateToRepo = true
+  /// The most parts of the path that show, or 0 for no limit. The default
+  /// shows the whole path: the fish-style parents keep it short.
+  public var truncationLength = 0
+  /// `true` to start the path at the folder of the git repository root. The
+  /// default shows the path from `~` or `/`, so that it reads as a path
+  /// (the user, 2026-11-16).
+  public var truncateToRepo = false
   /// The text in front of a truncated path.
   public var truncationSymbol = ""
   /// The text for the home folder.
