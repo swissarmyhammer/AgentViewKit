@@ -104,7 +104,7 @@ import Testing
     #expect(index.contains("\nmodel: \(DemoAgent.defaultProfileModel)\n"))
   }
 
-  @Test func theDefaultProfileFileSetsTheSmallModelForTheStandardAndTheFlashSlot() throws {
+  @Test func theDefaultProfileFileSelectsTheTinyProfile() throws {
     let parent = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { parent.remove() }
 
@@ -114,7 +114,7 @@ import Testing
     let text = try String(contentsOf: directory.appending(path: "config.yaml"), encoding: .utf8)
     #expect(DemoAgent.defaultsDirectoryKey == "AGENTVIEWKIT-DEMO_DEFAULTS_DIR")
     #expect(environment["KEY"] == "value")
-    #expect(text == "profile:\n  standard:\n    - mlx-community/Qwen3-4B-4bit\n  flash:\n    - mlx-community/Qwen3-4B-4bit\n")
+    #expect(text == "profile:\n  preset: tiny\n")
   }
 
   @Test func aDefaultsDirectoryOfTheEnvironmentWinsOverTheDefaultProfile() throws {

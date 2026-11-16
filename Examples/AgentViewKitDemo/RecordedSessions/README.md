@@ -89,11 +89,12 @@ The process quit while the child and the grandchild ran, so no session has an
 
 The agent restores the children only when two things are true:
 
-- The recorded working directory exists. It is `/tmp/AgentViewKitDemo-nested-work`
-  (`RecordedSessionsStage.nestedWorkingDirectory`), and the resume must send
-  that exact string.
+- The working directory of the resume exists, and it is the `cwd` of each
+  session of the tree, as the same string. The stage changes the recorded
+  `cwd` of each copied session to its working directory.
 - The agent definitions `parent` and `leaf` exist. The stage writes them into
-  `.agents/agents/` of that directory, with the text that `make.py` writes.
+  `.agents/agents/` of its working directory, with the text that `make.py`
+  writes.
 
 `RecordedSessionsStage.make` does both. `RecordedNestedResumeTests` checks that a
 resume shows a child that has a child. Replace the sessions with the steps in
@@ -118,17 +119,16 @@ They are not in this directory.
 5. Build the demo app again. The Xcode project holds this directory as a
    folder reference, so you do not make the project again.
 
-At each start, the Gallery tab copies all the directories into one
-transcript location in a temporary directory. Each session directory holds
-its own record, so the copy writes no file of its own. Then it runs
-FoundationModelsACPAgent in the process of
-the app, through the package, with that copy as its transcript location, so
-that a restore never changes the files in this directory. The tab starts no
-`acp-agent` program, and sets no
-`XDG_CONFIG_HOME`. The agent uses its stub model, so no model loads. The
-copy holds a user-layer `config.yaml` that names `Qwen3.8-27B-mxfp4` as the
-`standard` model, because the agent restores a session only when the model
-that it recorded is the resident model of its slot, and all the recordings
-here ran with that model. When the
-recorded `cwd` of a session is missing on the computer, the agent replays the
-session with no tools and writes nothing for it.
+At each start, the Gallery tab makes a stage in a temporary directory. The
+agent keeps the transcripts of a project in the project, at
+`<cwd>/.agentviewkit-demo/transcripts/` (FoundationModelsACPAgent D187), so
+the stage copies all the directories into that folder of its working
+directory. In each copied `index.md`, the stage changes the recorded `cwd` to
+its working directory, and the recorded model `Qwen3.8-27B-mxfp4` to
+`Qwen3-4B-4bit`. Then it runs FoundationModelsACPAgent in the process of the
+app, through the package, so that a restore never changes the files in this
+directory. The tab starts no `acp-agent` program. The agent uses its stub
+model, so no model loads. The stage holds a user-layer `config.yaml` that
+selects the builtin profile `tiny` (D189), whose `standard` model is
+`Qwen3-4B-4bit`, because the agent restores a session only when the model
+that it recorded is the resident model of its slot.

@@ -49,16 +49,19 @@ public final class DemoAgent {
   /// `acp-agent` program of the user.
   static let agentDotfolderName = "agentviewkit-demo"
 
-  /// The model of the `standard` and the `flash` slot of the default profile
-  /// of the ACP tab: a small model, so that the profile fits in the memory
-  /// of each Mac of the team and of the CI runners. The `flash` slot shares
-  /// the model of the `standard` slot. The `decision` and the `embedding`
-  /// slot keep the defaults of FoundationModelsACPAgent.
-  public static let defaultProfileModel = "mlx-community/Qwen3-4B-4bit"
+  /// The builtin profile of the ACP tab and of the recorded sessions: the
+  /// smallest profile of Router, so that it fits in the memory of each Mac
+  /// of the team and of the CI runners. The user selects a builtin profile,
+  /// not a model for each slot (FoundationModelsACPAgent ACPA-21, D189).
+  nonisolated public static let defaultProfileName = "tiny"
+
+  /// The model of the `standard` and the `flash` slot of
+  /// ``defaultProfileName``, with no drafter.
+  nonisolated public static let defaultProfileModel = "mlx-community/Qwen3-4B-4bit"
 
   /// The text of the `config.yaml` of the defaults layer of the ACP tab.
   static var defaultProfileText: String {
-    "profile:\n  standard:\n    - \(defaultProfileModel)\n  flash:\n    - \(defaultProfileModel)\n"
+    "profile:\n  preset: \(defaultProfileName)\n"
   }
 
   /// The environment variable that names the defaults layer of the agent:
@@ -188,8 +191,10 @@ public final class DemoAgent {
   /// recorded sessions, through ``InProcessAgent``, and sends `initialize`.
   ///
   /// The agent uses the stub model of the package, so it loads no model and
-  /// downloads nothing. Its transcript location is the copy in the stage,
-  /// set in code: the agent needs no configuration file for it. Its
+  /// downloads nothing. The agent keeps the transcripts of a project in the
+  /// project (FoundationModelsACPAgent D187), so the stage puts the copy of
+  /// the recordings in the dotfolder of its working directory
+  /// (``RecordedSessionsStage/transcriptsDirectory``). Its
   /// environment is ``RecordedSessionsStage/agentEnvironment``, also set in
   /// code: the configuration root of the agent is the configuration
   /// directory of the stage, so the agent writes its project store into
@@ -209,8 +214,7 @@ public final class DemoAgent {
     try await makeInProcess(
       foundationModelsIn: AbsolutePath(rawValue: stage.workingDirectory.path(percentEncoded: false)),
       modelSource: .stub,
-      environment: stage.agentEnvironment,
-      transcriptLocation: .path(stage.transcriptsDirectory)
+      environment: stage.agentEnvironment
     )
   }
 
@@ -271,17 +275,13 @@ public final class DemoAgent {
   ///   - modelSource: The model path of the agent.
   ///   - environment: The environment that the agent reads in place of the
   ///     process environment, for example its configuration root.
-  ///   - transcriptLocation: The transcript location that wins over each
-  ///     configuration layer, or `nil` for the location of the agent
-  ///     configuration.
   /// - Returns: The agent, with a connected and initialized model.
   /// - Throws: The error of the composition of the agent, or the error of
   ///   `initialize`.
   private static func makeInProcess(
     foundationModelsIn workingDirectory: AbsolutePath,
     modelSource: ComposedAgent.ModelSource,
-    environment: [String: String],
-    transcriptLocation: TranscriptLocation? = nil
+    environment: [String: String]
   ) async throws -> DemoAgent {
     let composed = try await ComposedAgent.compose(
       name: try DotfolderName(agentDotfolderName),
@@ -290,8 +290,7 @@ public final class DemoAgent {
       // The demo runs outside the App Sandbox, so it has all the tools.
       mode: .open,
       environment: environment,
-      modelSource: modelSource,
-      transcriptLocation: transcriptLocation
+      modelSource: modelSource
     )
     return try await makeInProcess(
       serving: { composed.agent(boundTo: $0) },

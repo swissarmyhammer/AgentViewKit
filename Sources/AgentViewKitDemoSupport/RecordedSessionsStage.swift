@@ -63,27 +63,27 @@ public struct RecordedSessionsStage: Equatable, Sendable {
   static let configurationHomeKey = "XDG_CONFIG_HOME"
 
   /// The `standard` model that the recorded sessions of the demo app ran
-  /// with, without a drafter. The agent restores a session only when this
-  /// model is the resident model of its slot.
+  /// with, without a drafter. No builtin profile has this model now, so the
+  /// stage changes it to ``DemoAgent/defaultProfileModel`` in each copied
+  /// index file: the agent restores a session only when its recorded model
+  /// is the resident model of its slot.
   nonisolated public static let recordedStandardModel = "mlx-community/Qwen3.8-27B-mxfp4"
 
   /// The name of the configuration file in the user layer of the agent.
   nonisolated public static let profileFileName = "config.yaml"
 
-  /// The text of the configuration file: the profile with the
-  /// ``recordedStandardModel`` in the `standard` slot.
+  /// The text of the configuration file: the builtin profile
+  /// ``DemoAgent/defaultProfileName``.
   nonisolated static var profileText: String {
-    "profile:\n  standard:\n    - \(recordedStandardModel)\n"
+    "profile:\n  preset: \(DemoAgent.defaultProfileName)\n"
   }
 
-  /// The recorded working directory of the nested recording
-  /// (`interrupted-nested-child`), as the string that the agent recorded.
-  ///
-  /// The agent restores the child sessions of a recording only when the
-  /// directory exists and the resume sends this exact string. On macOS `/tmp`
-  /// is a link to `/private/tmp`, but the agent compares the strings, so the
-  /// path is not resolved.
-  nonisolated public static let nestedWorkingDirectory = "/tmp/AgentViewKitDemo-nested-work"
+  /// The name of the index file of a recorded session, whose frontmatter
+  /// has the `cwd` of the session.
+  static let indexFileName = "index.md"
+
+  /// The start of the `cwd` line of the frontmatter of an index file.
+  static let cwdLinePrefix = "cwd: "
 
   /// The agent definitions that the nested recording needs, as the recording
   /// made them: the name of each agent, and the text of its `AGENT.md`.
@@ -104,9 +104,14 @@ public struct RecordedSessionsStage: Equatable, Sendable {
   /// The directory that holds the stage.
   public let root: URL
 
-  /// The transcript location of the agent: the copy of the recordings.
+  /// The transcript root of the agent: the copy of the recordings. The
+  /// agent keeps the transcripts of a project in the project, at
+  /// `<cwd>/.<name>/transcripts/` (FoundationModelsACPAgent D187), so the
+  /// copy is in the dotfolder of the demo in ``workingDirectory``.
   public var transcriptsDirectory: URL {
-    directory(named: Self.transcriptsDirectoryName)
+    workingDirectory
+      .appending(path: "." + DemoAgent.agentDotfolderName, directoryHint: .isDirectory)
+      .appending(path: Self.transcriptsDirectoryName, directoryHint: .isDirectory)
   }
 
   /// The empty working directory of the start of the agent and of
@@ -179,7 +184,7 @@ public struct RecordedSessionsStage: Equatable, Sendable {
     let stage = RecordedSessionsStage(
       root: parent.appending(path: stageNamePrefix + UUID().uuidString, directoryHint: .isDirectory))
     try stage.makeDirectories()
-    try makeNestedWorkingDirectory()
+    try stage.makeAgentDefinitions()
     for recording in try directories(in: recordings) {
       try stage.copy(recording)
     }
@@ -197,18 +202,13 @@ public struct RecordedSessionsStage: Equatable, Sendable {
     try Data(Self.profileText.utf8).write(to: profileFile)
   }
 
-  /// Makes ``nestedWorkingDirectory`` with the agent definitions of the nested
-  /// recording in its project layer (`.agents/agents/<name>/AGENT.md`).
-  ///
-  /// The directory has a fixed place outside the stage, because the recording
-  /// holds this path. Each stage writes the same files, so a stage that exists
-  /// at the same time does not change them.
+  /// Writes the agent definitions of the nested recording in the project
+  /// layer of ``workingDirectory`` (`.agents/agents/<name>/AGENT.md`).
   ///
   /// - Throws: The error of the file manager.
-  private static func makeNestedWorkingDirectory() throws {
-    let agents = URL(filePath: nestedWorkingDirectory, directoryHint: .isDirectory)
-      .appending(path: ".agents/agents", directoryHint: .isDirectory)
-    for definition in nestedAgentDefinitions {
+  private func makeAgentDefinitions() throws {
+    let agents = workingDirectory.appending(path: ".agents/agents", directoryHint: .isDirectory)
+    for definition in Self.nestedAgentDefinitions {
       let directory = agents.appending(path: definition.name, directoryHint: .isDirectory)
       try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
       try Data(definition.text.utf8).write(to: directory.appending(path: "AGENT.md", directoryHint: .notDirectory))
@@ -231,7 +231,37 @@ public struct RecordedSessionsStage: Equatable, Sendable {
         !Self.isDirectory(item) && FileManager.default.fileExists(atPath: destination.path(percentEncoded: false))
       guard !isKeptFile else { continue }
       try FileManager.default.copyItem(at: item, to: destination)
+      if Self.isDirectory(destination) {
+        try moveIntoWorkingDirectory(session: destination)
+      }
     }
+  }
+
+  /// Changes the recorded `cwd` of a copied session to ``workingDirectory``,
+  /// and its recorded model to the model of the profile of the stage.
+  ///
+  /// The agent keeps the transcripts of a project in the project
+  /// (FoundationModelsACPAgent D187), so it finds a session only below the
+  /// `cwd` of the resume. The function replaces each copy of the recorded
+  /// path in the index file, so that the `cwd` of the list, the resume and
+  /// the child sessions is the same string.
+  ///
+  /// - Parameter session: The copied session directory.
+  /// - Throws: The error of the read or the write of the index file.
+  private func moveIntoWorkingDirectory(session: URL) throws {
+    let index = session.appending(path: Self.indexFileName, directoryHint: .notDirectory)
+    guard FileManager.default.fileExists(atPath: index.path(percentEncoded: false)) else { return }
+    let text = try String(contentsOf: index, encoding: .utf8)
+    guard
+      let line = text.split(separator: "\n").first(where: { $0.hasPrefix(Self.cwdLinePrefix) }),
+      case let recorded = String(line.dropFirst(Self.cwdLinePrefix.count)), !recorded.isEmpty
+    else { return }
+    let stagePath = workingDirectory.path(percentEncoded: false)
+    let replacement = recorded.hasSuffix("/") ? stagePath : String(stagePath.dropLast())
+    let moved = text.replacingOccurrences(of: recorded, with: replacement)
+      .replacingOccurrences(
+        of: "\nmodel: \(Self.recordedStandardModel)\n", with: "\nmodel: \(DemoAgent.defaultProfileModel)\n")
+    try Data(moved.utf8).write(to: index)
   }
 
   /// The directories in `directory`, in name order.

@@ -186,25 +186,31 @@ import Testing
     #expect(try recordings.data(at: "\(Self.firstRecording)/\(historyPath)") == recorded)
   }
 
-  @Test func theStageHoldsOnlyTheTranscriptLocationTheWorkingDirectoryAndTheConfigurationDirectory() throws {
+  @Test func theStageHoldsOnlyTheWorkingDirectoryAndTheConfigurationDirectory() throws {
     let recordings = try Recordings()
     defer { recordings.directory.remove() }
 
     let stage = try recordings.makeStage()
 
     let names = try FileManager.default.contentsOfDirectory(atPath: stage.root.path(percentEncoded: false))
-    let expected = [stage.transcriptsDirectory, stage.workingDirectory, stage.configurationDirectory]
+    let expected = [stage.workingDirectory, stage.configurationDirectory]
       .map(\.lastPathComponent)
     #expect(names.sorted() == expected.sorted())
   }
 
-  @Test func theWorkingDirectoryIsAnEmptyDirectoryOfTheStage() throws {
+  /// The agent keeps the transcripts of a project in the project
+  /// (FoundationModelsACPAgent D187): the working directory holds only the
+  /// dotfolder of the demo with the transcripts, and the agent definitions
+  /// of the nested recording.
+  @Test func theWorkingDirectoryHoldsTheTranscriptsAndTheAgentDefinitions() throws {
     let recordings = try Recordings()
     defer { recordings.directory.remove() }
 
     let stage = try recordings.makeStage()
 
-    try Self.expectEmptyDirectory(stage.workingDirectory, of: stage)
+    let names = try FileManager.default.contentsOfDirectory(atPath: stage.workingDirectory.path(percentEncoded: false))
+    #expect(names.sorted() == [".agents", ".agentviewkit-demo"])
+    #expect(stage.transcriptsDirectory.path(percentEncoded: false).hasPrefix(stage.workingDirectory.path(percentEncoded: false)))
   }
 
   @Test func theConfigurationDirectoryHoldsOnlyTheUserLayerOfTheAgent() throws {
@@ -229,14 +235,14 @@ import Testing
     #expect(names == [Self.profileFileName])
   }
 
-  @Test func theProfileFileNamesTheStandardModelOfTheRecordings() throws {
+  @Test func theProfileFileSelectsTheTinyProfile() throws {
     let recordings = try Recordings()
     defer { recordings.directory.remove() }
 
     let stage = try recordings.makeStage()
 
     let text = try String(contentsOf: stage.profileFile, encoding: .utf8)
-    #expect(text == "profile:\n  standard:\n    - mlx-community/Qwen3.8-27B-mxfp4\n")
+    #expect(text == "profile:\n  preset: tiny\n")
   }
 
   @Test func theAgentEnvironmentPutsTheConfigurationRootInTheStage() throws {
