@@ -1,5 +1,6 @@
 import AgentViewKitTestSupport
 import EditorSwiftUI
+import Foundation
 import FoundationModelsACP
 import Testing
 
@@ -24,6 +25,18 @@ import Testing
 
   @Test func theHeaderCountsTheCompletedEntries() {
     #expect(TaskListView.headerText(for: Self.fourEntries) == "1 of 4 done")
+  }
+
+  @Test func theTextOfACancelledEntryHasAStrikethrough() {
+    let text = TaskListView.entryText(Self.fourEntries[3])
+
+    #expect(text.runs.allSatisfy { $0.inlinePresentationIntent == .strikethrough })
+  }
+
+  @Test func theTextOfAnEntryInProgressHasNoStrikethrough() {
+    let text = TaskListView.entryText(Self.fourEntries[1])
+
+    #expect(text == AttributedString("Change the parser"))
   }
 
   @Test func eachStatusAndPriorityHasADistinctLabel() {

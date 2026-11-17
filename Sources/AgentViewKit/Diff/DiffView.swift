@@ -368,9 +368,9 @@ public struct DiffView: View {
   ) -> some View {
     if actions.onAccept != nil || actions.onReject != nil {
       HStack(spacing: editorStyle.spacing.s) {
-        SelectableText(hunk.header)
+        EditorLabel(verbatim: hunk.header)
+          .editorTextColor(.secondary)
           .font(editorTheme.codeFont)
-          .foregroundStyle(themeSecondary)
         Spacer(minLength: editorStyle.spacing.s)
         if let onAccept = actions.onAccept {
           EditorButton(String(localized: "Accept", bundle: .module), systemImage: Self.acceptSymbol) {

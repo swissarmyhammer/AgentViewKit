@@ -1,3 +1,4 @@
+import EditorSwiftUI
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
@@ -98,7 +99,7 @@ public struct SessionMessageView: View {
       sender: entry.senderSessionId, recipient: entry.recipientSessionId, message: Self.sender(in: entry.meta),
       titles: titles)
     VStack(alignment: .leading, spacing: Self.spacing) {
-      SelectableText(participants)
+      EditorLabel(verbatim: participants).editorTextColor(.secondary)
         .font(.caption)
         .foregroundStyle(.secondary)
       EntryContentView(content: entry.content, id: "\(Self.identifierPrefix)\(entry.messageId.rawValue)")

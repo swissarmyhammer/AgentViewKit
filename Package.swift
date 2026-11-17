@@ -120,12 +120,6 @@ let styleTestSupportProducts: [Target.Dependency] = [
   .product(name: "EditorTestSupport", package: "EditorKit")
 ]
 
-/// The Markdown renderer (plan.md §4.2). Docs/decisions/dependencies.md
-/// records the product name and the version.
-let textualProducts: [Target.Dependency] = [
-  .product(name: "Textual", package: "textual")
-]
-
 /// The template engine of the text that the kit builds in loops: the Markdown
 /// export, the copy text and the plan steps of the inspector
 /// (`Sources/AgentViewKit/Text/TextTemplates.swift`).
@@ -165,8 +159,6 @@ let package = Package(
     // `AgentViewKitDemoSupport` links it, so a host of the kit does not build
     // it.
     .package(url: "git@github.com:swissarmyhammer/FoundationModelsACPAgent.git", branch: "main"),
-    // Textual is a 0.x package, so the pin is exact.
-    .package(url: "https://github.com/gonzalezreal/textual", exact: "0.5.0"),
     // The template engine is a 0.x package, so the pin is exact. It is the
     // same package and version as the template engine of
     // FoundationModelsExtras, which the skills use.
@@ -175,9 +167,8 @@ let package = Package(
     .package(url: "https://github.com/danielctull-forks/swift-libgit2.git", exact: "1.9.7"),
   ],
   targets: [
-    // The shared look of the view kits. It links only EditorKit: no ACP
-    // product, no Textual and no math engine. The string catalog holds its
-    // own English text.
+    // The shared look of the view kits. It links only EditorKit and no ACP
+    // product. The string catalog holds its own English text.
     .target(
       name: "AgentViewKitStyle",
       dependencies: styleEditorKitProducts,
@@ -190,8 +181,8 @@ let package = Package(
     // FoundationModels, FoundationModelsRouter or FoundationModelsExtras.
     .target(
       name: "AgentViewKit",
-      dependencies: ["AgentViewKitStyle"] + editorKitProducts + acpProducts + textualProducts
-        + templateEngineProducts + gitProducts,
+      dependencies: ["AgentViewKitStyle"] + editorKitProducts + acpProducts + templateEngineProducts
+        + gitProducts,
       // The TextMate grammars of GrammarBundle, and their licenses. The string
       // catalog holds the English source text of each localized string of
       // the kit. Each `String(localized:)` call and each SwiftUI text key of

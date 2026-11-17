@@ -26,9 +26,10 @@ The direct dependencies are:
 - FoundationModelsACP: the ACP v2 schema types, `ClientSideConnection` and
   `InMemoryTransport`.
 - EditorKit: the Markdown of an answer with its code blocks, math and
-  citation chips, diffs, the composer editor, the commands, and the theme of
-  the kit.
-- Textual: the plain text of the other views.
+  citation chips, the plain text that the user can select, diffs, the
+  composer editor, the commands, and the theme of the kit.
+- Stencil: the text that the kit builds in loops, such as the Markdown
+  export of a thread.
 
 [`Docs/decisions/dependencies.md`](Docs/decisions/dependencies.md) gives the
 versions and the products.

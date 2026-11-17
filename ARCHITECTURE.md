@@ -20,8 +20,8 @@ The package has two library products:
 
 | Product | Target | Links | For |
 | --- | --- | --- | --- |
-| `AgentViewKitStyle` | `Sources/AgentViewKitStyle` | EditorKit only: `EditorStyle`, `EditorTheme`, `EditorSwiftUI`, `EditorDiff`, `EditorCommands`, `EditorCommandsUI` | Each view kit. Its dependency closure holds no ACP package, no Textual and no math engine. |
-| `AgentViewKit` | `Sources/AgentViewKit` | `AgentViewKitStyle`, EditorKit, FoundationModelsACP, FoundationModelsACPClient, Textual, Stencil | An ACP client app: the agent thread views and the ACP helpers. |
+| `AgentViewKitStyle` | `Sources/AgentViewKitStyle` | EditorKit only: `EditorStyle`, `EditorTheme`, `EditorSwiftUI`, `EditorDiff`, `EditorCommands`, `EditorCommandsUI` | Each view kit. Its dependency closure holds no ACP package. |
+| `AgentViewKit` | `Sources/AgentViewKit` | `AgentViewKitStyle`, EditorKit, FoundationModelsACP, FoundationModelsACPClient, Stencil | An ACP client app: the agent thread views and the ACP helpers. |
 
 Two more library products, `AgentViewKitTestSupport` and `AgentViewKitDemoSupport`, are test support for the nested `IntegrationTests/` and `ScreenshotTests/` packages (see "Tests of this kit"). No host of the kit links them.
 
@@ -56,7 +56,7 @@ What needs an ACP type stays in AgentViewKit: the map from each ACP tool kind, s
 
 ## One text selection in a thread
 
-A thread has one text selection (`Docs/decisions/text-selection.md`). `ThreadTextSelection` (`Sources/AgentViewKit/Selection/`) conforms to EditorKit's `TextSelectionRegion`, and `.threadTextSelection()` puts it in the environment of `AgentThreadView` and `ConversationView`. Each text area claims the selection when the user starts a selection in it, and the claim clears the previous area. An EditorKit `EditorView` (code block, command output, `PreviewField`) claims for itself. A Textual text claims through `.selectableTextualRegion()`: a probe view observes the first responder of its window, and a clear gives the `StructuredText` a new identity. A plain text that the user can select is a `SelectableText`, never a SwiftUI `Text` with `.textSelection(.enabled)`, because the kit cannot clear a SwiftUI selection. `AgentViewKitStyle` shows its selectable text in the `SelectableTextStyle` of the environment, which the thread sets. A drag selection stays in one text area.
+A thread has one text selection (`Docs/decisions/text-selection.md`). `ThreadTextSelection` (`Sources/AgentViewKit/Selection/`) conforms to EditorKit's `TextSelectionRegion`, and `.threadTextSelection()` puts it in the environment of `AgentThreadView` and `ConversationView`. Each text area claims the selection when the user starts a selection in it, and the claim clears the previous area. An EditorKit `EditorView` (Markdown text, code block, command output, `PreviewField`) claims for itself. A plain text that the user can select is an EditorKit `EditorLabel`, which claims for itself too, never a SwiftUI `Text` with `.textSelection(.enabled)`, because the kit cannot clear a SwiftUI selection. A selectable text of a view that shows on glass and in content, such as a request card or the explanation of a `StatusTitleLayout`, is a `PlacedLabel` (`AgentViewKitStyle`): an `EditorLabel` in the text color of its place. A right click on a label shows the menu of the item around it. A drag selection stays in one text area.
 
 ## The status line
 

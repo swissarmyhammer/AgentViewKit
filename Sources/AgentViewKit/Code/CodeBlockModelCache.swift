@@ -127,27 +127,7 @@ extension EditorModel {
 }
 
 extension EnvironmentValues {
-  /// The cache that ``ResponseView`` and ``EditorKitCodeBlockStyle`` get
-  /// their models from, or `nil` when each view keeps its own model.
+  /// The cache that ``ResponseView`` gets its model from, or `nil` when each
+  /// view keeps its own model.
   @Entry public var codeBlockModelCache: CodeBlockModelCache? = nil
-
-  /// The identity of the code block in this subtree, or `nil` when the
-  /// subtree has no identity.
-  @Entry public var codeBlockID: CodeBlockID? = nil
-}
-
-extension View {
-  /// Gives each code block in this subtree the cached model of `blockID`.
-  ///
-  /// Apply this modifier to the view of one paragraph that holds one fenced
-  /// code block.
-  ///
-  /// - Parameters:
-  ///   - cache: The cache of the models.
-  ///   - blockID: The identity of the code block in this subtree.
-  /// - Returns: A view that gives the cache and the identity to its subtree.
-  public func codeBlockModelCache(_ cache: CodeBlockModelCache, blockID: CodeBlockID) -> some View {
-    environment(\.codeBlockModelCache, cache)
-      .environment(\.codeBlockID, blockID)
-  }
 }

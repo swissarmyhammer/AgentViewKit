@@ -19,9 +19,9 @@ import SwiftUI
 ///   tap selects the file in the inspector, as a message attachment does.
 ///   For each other URL, a ``LinkView`` card that opens the link in the
 ///   browser.
-/// - resource: the text through Textual, or a ``BlobResourceView`` for binary
-///   contents: an ``AttachmentView`` of the bytes, whose tap selects them in
-///   the inspector.
+/// - resource: the text through ``AttachmentTextContent``, or a
+///   ``BlobResourceView`` for binary contents: an ``AttachmentView`` of the
+///   bytes, whose tap selects them in the inspector.
 /// - unknown: an ``UnknownItemView``.
 ///
 /// Each default view is an accessibility container with the identifier

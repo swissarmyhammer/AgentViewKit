@@ -124,3 +124,50 @@ The user saw two defects in a thread with two responses:
   Textual is exact, so a new pin must check the name
   (`TextualSelectionProbeView.interactionTypeName`).
 
+
+## Revision: EditorKit labels (2026-11-17)
+
+Task AVK-9.5 (^01M7NEPD). Decision D185: EditorKit renders the text of a
+thread, in place of Textual.
+
+### Decision
+
+- Each Markdown text (an answer, a thought, a tool result, a session
+  message) is a read-only EditorKit `EditorView` (`RenderedMarkdownView`).
+  It claims the selection of the thread for itself.
+- Each plain text that the user can select is an EditorKit `EditorLabel`
+  (EditorSwiftUI): the plan entry, the hunk header, the terminal command and
+  working directory, the sender line of a session message, the compaction
+  error, the text of an attachment, and the text of a permission or
+  elicitation prompt. The label is light: it has no `EditorModel`. It joins
+  the `TextSelectionRegion` of the environment, so a selection in one label
+  clears the selection of the area that had it.
+- A selectable text of a view that shows on glass and in content (a request
+  card, the explanation of a `StatusTitleLayout`) is a `PlacedLabel`
+  (`AgentViewKitStyle`): an `EditorLabel` in the text color of its place
+  (EditorKit `style.md`, rule 6).
+- A right click on a label shows the item menu of the kit (D193 (f)). The
+  label adds no menu of its own: its `menu(for:)` gives the menu of the
+  nearest view above it that has one.
+- The kit removed `SelectableText`, `.selectableTextualRegion()`, the probe
+  view of the first responder, the context menu monitor of Textual
+  (`TextualContextMenu`), and the `SelectableTextStyle` of
+  `AgentViewKitStyle`. The style library shows its selectable text in a
+  `PlacedLabel` directly.
+- The unit test `SelectableTranscriptTextTests` makes sure that the kit uses
+  no SwiftUI `.textSelection(.enabled)`, and that the plain text and the
+  Markdown text of an attachment are EditorKit views.
+
+### Limits
+
+- A drag selection stays in one text area: one Markdown text, one code
+  block or one label. `MessageActions.selectionMode` stays `perMessage`.
+- The label has no line limit and no truncation: its text wraps at the
+  proposed width.
+- On glass and chrome, the text of a `PlacedLabel` draws in the system label
+  colors (`NSColor.labelColor`, `NSColor.secondaryLabelColor`). The label is
+  an AppKit view, so it does not use the SwiftUI hierarchical styles
+  (`.primary`, `.secondary`) of the other text on glass.
+- The Textual limits of the 2026-11-15 revision (the probe of the first
+  responder, the new identity that clears a selection, and the type name of
+  the Textual interaction view) do not apply any more.

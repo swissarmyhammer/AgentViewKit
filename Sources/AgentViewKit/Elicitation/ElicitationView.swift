@@ -471,7 +471,6 @@ public struct ElicitationHeader: View {
 
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
-  @Environment(\.placedSecondary) private var placedSecondary
 
   /// Makes the default header.
   ///
@@ -493,8 +492,7 @@ public struct ElicitationHeader: View {
       Label(Self.title(server: Self.agentServer), columnSymbol: Self.symbol)
         .font(editorTheme.font(for: .ui, style: .headline))
       ElicitationWhoAsksLine(agentPath: request.agentPath, source: request.source)
-      SelectableText(request.request.message)
-        .foregroundStyle(placedSecondary)
+      PlacedLabel(verbatim: request.request.message, textColor: .secondary)
     }
     .frame(maxWidth: .infinity, alignment: .leading)
     .accessibilityElement(children: .contain)

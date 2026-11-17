@@ -2,6 +2,16 @@
 
 Status: decided. Source: plan.md §4.1, §4.2, §8. Task ^3m70z7f.
 
+Revision of 2026-11-17 (AVK-9.8, D185): the kit does not use Textual any
+more. A fenced code block of an answer shows in the rendered form of
+EditorKit (`RenderedMarkdownView`), in the same text layout as the prose.
+The kit removed `EditorKitCodeBlockStyle`, the `Mirror` read of the raw
+code, the `\.codeBlockID` environment value and the
+`codeBlockModelCache(_:blockID:)` modifier. "The raw code" and the parts of
+"The model cache" about Textual are history. `CodeBlockView` stays: a tool
+call, a resource and a source attachment show their code in it, and
+`CodeBlockModelCache` keeps the model of each `ResponseView`.
+
 This file records how `EditorKitCodeBlockStyle` gets the code of a fenced
 block from Textual, and the related decisions of `CodeBlockView`.
 

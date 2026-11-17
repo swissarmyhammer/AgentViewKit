@@ -8,8 +8,6 @@ and the products that AgentViewKit uses.
 
 | Package | URL | Requirement | Products |
 |---|---|---|---|
-| textual | https://github.com/gonzalezreal/textual | exact 0.5.0 | `Textual` |
-| swiftui-math | https://github.com/gonzalezreal/swiftui-math | exact 0.1.0 | `SwiftUIMath` |
 | Stencil | https://github.com/stencilproject/Stencil.git | exact 0.15.1 | `Stencil` |
 | EditorKit | git@github.com:swissarmyhammer/EditorKit.git | branch main | `EditorSwiftUI`, `EditorCore`, `EditorText`, `EditorTheme`, `EditorCommands`, `EditorCommandsUI`, `EditorCommandsTestSupport`, `EditorTestSupport`, `EditorComplete`, `EditorDecorations`, `EditorExtensions`, `EditorDiff` |
 | FoundationModelsACP | git@github.com:swissarmyhammer/FoundationModelsACP.git | branch main | `FoundationModelsACP` |
@@ -57,21 +55,14 @@ not a dependency of the kit. Thus the table above does not list it.
 - The kit target does not import `FoundationModelsACPAgent`. A host of the
   kit links only the `AgentViewKit` product, so it does not build the agent.
 
-## Textual
+## Textual and swiftui-math (removed)
 
-- The product name comes from the `Package.swift` of Textual at tag 0.5.0:
-  `.library(name: "Textual", targets: ["Textual"])`.
-- The package identity is `textual`, from the last part of the URL. The manifest
-  refers to the product as `.product(name: "Textual", package: "textual")`.
-- Textual is a 0.x package. A 0.x minor release can break the API, so the pin is
-  `exact`.
-
-## swiftui-math
-
-- `Docs/decisions/math-engine.md` records the choice of the math engine.
-- Textual 0.5.0 depends on the same package with `from: "0.1.0"`. The kit
-  pins it `exact`, because it is a 0.x package and the kit uses its
-  `Textual` SPI.
+- Decision D185 (AVK-9.8, 2026-11-17): EditorKit renders the text of the
+  kit. Each Markdown text is a read-only EditorKit `EditorView` in the
+  rendered form, with its code blocks and its math (EditorKit typesets the
+  math with iosMath). Each plain text is an EditorKit `EditorLabel`.
+- The kit does not depend on Textual or on swiftui-math any more. The
+  package graph holds neither one.
 
 ## Stencil
 
@@ -96,7 +87,7 @@ not a dependency of the kit. Thus the table above does not list it.
 
 | Target | Can import |
 |---|---|
-| `AgentViewKit` | EditorKit products, `Textual`, `SwiftUIMath`, `Stencil`, `FoundationModelsACP`, `FoundationModelsACPClient` |
+| `AgentViewKit` | EditorKit products, `Stencil`, `FoundationModelsACP`, `FoundationModelsACPClient` |
 | `AgentViewKitStyle` | EditorKit products `EditorStyle`, `EditorTheme`, `EditorSwiftUI`, `EditorDiff`, `EditorCommands` |
 
 The package has two library targets and two library products,
@@ -104,7 +95,7 @@ The package has two library targets and two library products,
 decision of 2026-10-28). `AgentViewKitStyle` holds the shared look of the
 view kits. It links only the EditorKit products `EditorStyle`,
 `EditorTheme`, `EditorSwiftUI`, `EditorDiff` and `EditorCommands`. It links
-no ACP package, no Textual and no swiftui-math. `AgentViewKit` holds the
+no ACP package. `AgentViewKit` holds the
 views and the ACP helpers. It depends on `AgentViewKitStyle`, re-exports it
 and keeps no copy of it. SnapshotViewKit and KanbanViewKit link only
 `AgentViewKitStyle`.

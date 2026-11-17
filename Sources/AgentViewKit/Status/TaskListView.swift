@@ -111,6 +111,21 @@ public struct TaskListView: View {
     }
   }
 
+  /// The text of an ACP plan entry, as its row shows it. A cancelled entry
+  /// has a line through its text.
+  ///
+  /// - Parameter entry: The entry, as the plan entry of a `SessionModel`
+  ///   holds it.
+  /// - Returns: The content of the entry, with a strikethrough when the
+  ///   entry is cancelled.
+  static func entryText(_ entry: FoundationModelsACP.PlanEntry) -> AttributedString {
+    var text = AttributedString(entry.content)
+    if entry.status == .cancelled {
+      text.inlinePresentationIntent = .strikethrough
+    }
+    return text
+  }
+
   /// The accessibility label of an ACP plan entry.
   ///
   /// - Parameter entry: The entry, as the plan entry of a `SessionModel`
@@ -173,8 +188,6 @@ private struct PlanEntryRow: View {
   let entry: FoundationModelsACP.PlanEntry
 
   @Environment(\.editorStyle) private var editorStyle
-  @Environment(\.themeForeground) private var themeForeground
-  @Environment(\.themeSecondary) private var themeSecondary
 
   var body: some View {
     HStack(spacing: editorStyle.spacing.s) {
@@ -183,9 +196,8 @@ private struct PlanEntryRow: View {
       statusSymbol
         .symbolColumn()
         .help(EditorStatus(entry.status).summary)
-      SelectableText(entry.content)
-        .strikethrough(entry.status == .cancelled)
-        .foregroundStyle(entry.status == .cancelled ? themeSecondary : themeForeground)
+      EditorLabel(TaskListView.entryText(entry))
+        .editorTextColor(entry.status == .cancelled ? .secondary : .primary)
       Spacer(minLength: editorStyle.spacing.s)
       EditorSymbolImage(systemName: TaskListView.prioritySymbol(entry.priority), tone: .init(entry.priority))
         .help(TaskListView.priorityLabel(entry.priority))

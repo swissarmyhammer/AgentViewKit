@@ -122,7 +122,6 @@ public struct TerminalView: View {
 
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
-  @Environment(\.themeForeground) private var themeForeground
   @Environment(\.themeSecondary) private var themeSecondary
 
   /// Makes the view of a terminal entry of a `SessionModel` (plan.md §3.8
@@ -202,15 +201,17 @@ public struct TerminalView: View {
       EditorSymbolImage(.tool(.execute))
         .symbolColumn()
         .accessibilityHidden(true)
-      SelectableText(entry.command ?? String(localized: "Terminal", bundle: .module))
+      EditorLabel(verbatim: entry.command ?? String(localized: "Terminal", bundle: .module))
+        .editorTextColor(entry.command == nil ? .secondary : .primary)
         .font(editorTheme.codeFont)
-        .foregroundStyle(entry.command == nil ? themeSecondary : themeForeground)
         .accessibilityIdentifier(Self.commandIdentifier)
       Spacer(minLength: editorStyle.spacing.s)
       if let cwd = entry.cwd?.rawValue {
-        SelectableText(cwd, label: String(localized: "Working directory \(cwd)", bundle: .module))
-          .font(editorTheme.font(for: .ui, style: .caption))
-          .foregroundStyle(themeSecondary)
+        EditorLabel(
+          verbatim: cwd, accessibilityLabel: String(localized: "Working directory \(cwd)", bundle: .module)
+        )
+        .editorTextColor(.secondary)
+        .font(editorTheme.font(for: .ui, style: .caption))
           .help(cwd)
           .accessibilityIdentifier(Self.cwdIdentifier)
       }
