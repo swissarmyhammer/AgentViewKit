@@ -3,8 +3,8 @@ assignees:
 - claude-code
 depends_on:
 - 01M7NQMD8YCFC8F7TC11Y5EC6G
-position_column: todo
-position_ordinal: 8b80
+position_column: done
+position_ordinal: ffffffe880
 title: 'AVK-15.4: Composer mention marks (resolved, unresolved, ambiguous)'
 ---
 D199 (h). Brief item 4.

@@ -1,8 +1,8 @@
 ---
 assignees:
 - claude-code
-position_column: todo
-position_ordinal: 8c80
+position_column: done
+position_ordinal: ffffffe980
 title: 'AVK-15.5: Session messages show the sender kind and the session titles'
 ---
 D199 (f). Brief item 5.

@@ -3,8 +3,8 @@ assignees:
 - claude-code
 depends_on:
 - 01M7NQMD8YCFC8F7TC11Y5EC6G
-position_column: todo
-position_ordinal: 8d80
+position_column: done
+position_ordinal: ffffffea80
 title: 'AVK-15.6: Insert @ at the caret opens the mention popup'
 ---
 D199. Brief item 6. The Send to Session command is in TestudoApp. AVK only needs a way to insert `@` at the caret and open the popup.
