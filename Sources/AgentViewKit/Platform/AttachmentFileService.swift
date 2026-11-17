@@ -9,8 +9,8 @@ import SwiftUI
 /// scope or every selected file (card ^zsr2pbf), and gives them to the
 /// service of the scope with the run on several files. By default each
 /// attachment scope uses its own ``AttachmentPresenter``, which calls the
-/// workspace, the share picker, the save panel and Quick Look of the
-/// system. A test gives a recording service with
+/// workspace, the share picker and the save panel of the system. The verb
+/// Inspect does not come to the service: it runs at the scope (D191). A test gives a recording service with
 /// ``SwiftUI/EnvironmentValues/attachmentFileService``, so that no system UI
 /// opens.
 protocol AttachmentFileService: AnyObject {
@@ -47,26 +47,18 @@ extension EnvironmentValues {
 /// The system service of one attachment scope.
 ///
 /// Open and Reveal in Finder call `NSWorkspace`. Share shows the share
-/// picker of the system at ``anchor``, the view of the scope. Save and Quick
-/// Look write the state that the scope gives to `fileExporter` and to
-/// `quickLookPreview`, as the buttons of the inspector did before AVK-11.
+/// picker of the system at ``anchor``, the view of the scope. Save writes the
+/// state that the scope gives to `fileExporter`, as the buttons of the
+/// inspector did before AVK-11.
 ///
 /// A run on several files (card ^zsr2pbf) opens each file, reveals all of
-/// them in one Finder window, shares all of them with one picker, saves
-/// each one in a save panel of its own, one after the other, and shows them
-/// in one Quick Look panel, from the first file.
+/// them in one Finder window, shares all of them with one picker, and saves
+/// each one in a save panel of its own, one after the other.
 @MainActor @Observable
 final class AttachmentPresenter: AttachmentFileService {
   /// The attachment that the file exporter saves, or `nil` when the exporter
   /// is closed.
   var exportedAttachment: Attachment?
-
-  /// The file that the Quick Look panel shows, or `nil` when the panel is
-  /// closed.
-  var quickLookURL: URL?
-
-  /// The files that the Quick Look panel browses, in order.
-  var quickLookURLs: [URL] = []
 
   /// The files of a save that the file exporter saves after
   /// ``exportedAttachment``, in order.
@@ -100,10 +92,10 @@ final class AttachmentPresenter: AttachmentFileService {
       exportedAttachment = first
       pendingExports = Array(attachments.dropFirst())
       return true
-    case .quickLookAttachment:
-      quickLookURLs = attachments.map(\.url)
-      quickLookURL = first.url
-      return true
+    case .inspectAttachment:
+      // Inspect runs at the scope, on the inspector selection, not on the
+      // service (D191).
+      return false
     }
   }
 

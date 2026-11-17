@@ -189,9 +189,9 @@ import Testing
     try harness.performSelection(.select, on: Self.chip(0))
     try harness.performSelection(.toggle, on: Self.chip(2))
 
-    try runKey(.quickLookAttachment, on: 1)
+    try runKey(.saveAttachment, on: 1)
 
-    #expect(service.calls == AttachmentFixtures.calls(of: .quickLookAttachment, on: [files[1]]))
+    #expect(service.calls == AttachmentFixtures.calls(of: .saveAttachment, on: [files[1]]))
   }
 
   /// The context menu of an item leaves out a command that is not available

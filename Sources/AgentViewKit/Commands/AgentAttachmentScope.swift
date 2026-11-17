@@ -2,7 +2,6 @@ import AppKit
 import EditorCommands
 import EditorCommandsUI
 import OSLog
-import QuickLook
 import SwiftUI
 
 /// The focus scope of one attachment, with its commands (AVK-11, D108).
@@ -22,7 +21,9 @@ import SwiftUI
 /// The commands run on the service of
 /// ``SwiftUI/EnvironmentValues/attachmentFileService``, or on the
 /// ``AttachmentPresenter`` of the scope when the environment has none. The
-/// scope applies the file exporter and the Quick Look panel of its presenter.
+/// scope applies the file exporter of its presenter. The command Inspect
+/// writes the files to the inspector selection of the environment (D191),
+/// for a view that selects its file.
 ///
 /// A scope inside a scope for the same attachment, for example the chip of
 /// an ``AttachmentView``, does not make a second scope.
@@ -75,7 +76,8 @@ struct AgentAttachmentScope: ViewModifier {
       let system = ambientSystem ?? standaloneSystem
       let registration = AgentAttachmentMount.Registration(
         system: system, path: parentPath?.appending(segment) ?? .root(segment),
-        service: hostService ?? presenter, groupsOff: groupsOff, select: select, selection: commandFiles)
+        service: hostService ?? presenter, groupsOff: groupsOff, select: select, selection: commandFiles,
+        inspect: inspect)
       content
         .environment(\.agentAttachmentScopeSegment, segment)
         .background(AgentAttachmentMount(target: target, presenter: presenter, registration: registration))
@@ -84,6 +86,14 @@ struct AgentAttachmentScope: ViewModifier {
         .environment(\.agentCommandSystem, system)
         .commandSystem(system)
     }
+  }
+
+  /// Writes files to the inspector selection, for the command Inspect: for
+  /// a view that selects its file, in a view with an inspector. `nil` for a
+  /// view that selects no file, such as a block of an inspector.
+  private var inspect: (([Attachment]) -> Void)? {
+    guard select != nil, fileSelection.hasInspector else { return nil }
+    return { [fileSelection] files in fileSelection.inspect(files) }
   }
 
   /// Reads the files that a command at the scope acts on: the selected
@@ -137,11 +147,9 @@ extension EnvironmentValues {
 
 // MARK: - Presentation
 
-/// Applies the file exporter and the Quick Look panel of an
-/// ``AttachmentPresenter``.
+/// Applies the file exporter of an ``AttachmentPresenter``.
 ///
-/// The Save command writes the attachment to save, and the Quick Look command
-/// writes the file to show, with the files to browse. Each panel clears its
+/// The Save command writes the attachment to save. The panel clears its
 /// value when it closes. A save of several files shows a save panel for each
 /// file in turn: the update after a panel closes gives the exporter the next
 /// file, so the exporter sees its panel close before it shows the next one.
@@ -166,7 +174,6 @@ private struct AttachmentPresentation: ViewModifier {
         onCompletion: { FileExportLog.record($0, of: exported?.name ?? "", to: logger) }
       )
       .onChange(of: exported) { presenter.exportNextFile() }
-      .quickLookPreview($presenter.quickLookURL, in: presenter.quickLookURLs)
   }
 }
 
@@ -205,6 +212,9 @@ struct AgentAttachmentMount: NSViewRepresentable {
     /// `nil` when the view selects no file
     /// (``AgentAttachmentTarget/selection``).
     let selection: (() -> [Attachment])?
+    /// Writes files to the inspector selection, or `nil` when no inspector
+    /// gets the selection of the view (``AgentAttachmentTarget/inspect``).
+    var inspect: (([Attachment]) -> Void)? = nil
   }
 
   /// The target to keep current.
@@ -249,6 +259,7 @@ struct AgentAttachmentMount: NSViewRepresentable {
     target.service = registration.service
     target.select = registration.select
     target.selection = registration.selection
+    target.inspect = registration.inspect
     scopeMount.mount(at: registration.path, in: registration.system) {
       [target, path = registration.path, groupsOff = registration.groupsOff,
         selects = registration.select != nil] registry in

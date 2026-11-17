@@ -211,7 +211,7 @@ private nonisolated struct VerticalInsets: Equatable, Sendable {
 /// The view shows one full block for each of its files, in selection order.
 /// Each block is an EditorKit `InspectorView` of one file, built from
 /// EditorKit's field kinds only (^e4857xj): the file name in the name row,
-/// the actions Open, Reveal in Finder, Share, Save, and pop-out Quick Look in
+/// the actions Open, Reveal in Finder, Share and Save in
 /// an EditorKit `InspectorActionRow` under the name, and EditorKit's
 /// one-value preview of the file, a live QuickLook preview at the preview
 /// height of the style, in its `.preview` row. The view never folds several

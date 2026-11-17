@@ -931,6 +931,16 @@
         }
       }
     },
+    "Inspect" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inspect"
+          }
+        }
+      }
+    },
     "Item %lld of %lld" : {
       "localizations" : {
         "en" : {
@@ -1222,6 +1232,16 @@
         }
       }
     },
+    "No inspector shows the file here." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No inspector shows the file here."
+          }
+        }
+      }
+    },
     "No prompt is above." : {
       "localizations" : {
         "en" : {
@@ -1480,16 +1500,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Previous Request"
-          }
-        }
-      }
-    },
-    "Quick Look" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quick Look"
           }
         }
       }

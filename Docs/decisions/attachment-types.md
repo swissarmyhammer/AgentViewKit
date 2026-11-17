@@ -54,7 +54,8 @@ A file in message content or in tool call content selects into the inspector
 the same way a message attachment does (^fqr901r). Each one uses the selection
 of `AttachmentView` (the `attachmentSelect` action of the environment) and the
 attachment scope, so its context menu shows Open, Reveal, Share, Save and
-Quick Look.
+Inspect. Inspect writes the file to the inspector selection; there is no
+floating Quick Look panel (D191).
 
 - A blob resource: `BlobResourceView` writes the bytes to their block file
   (`ContentBlockFile`), then shows that file in an `AttachmentView` with the

@@ -6,9 +6,8 @@ import Testing
 /// Tests for the panels of the system service of an attachment scope over
 /// several files (``AttachmentPresenter``, card ^zsr2pbf).
 ///
-/// Save and Quick Look write the state that the scope gives to its file
-/// exporter and its Quick Look panel, so a test reads that state and opens
-/// no panel. Open, Reveal in Finder and Share call the system, and no test
+/// Save writes the state that the scope gives to its file exporter, so a
+/// test reads that state and opens no panel. Open, Reveal in Finder and Share call the system, and no test
 /// runs them.
 @Suite @MainActor struct AttachmentPresenterTests {
   /// The attachment of the kit. FoundationModelsACP has a type of the same
@@ -42,14 +41,5 @@ import Testing
     }
 
     #expect(exported == Self.files)
-  }
-
-  @Test func quickLookOfSeveralFilesShowsTheFirstFileWithEachFileToBrowse() {
-    let presenter = AttachmentPresenter()
-
-    _ = presenter.run(.quickLookAttachment, on: Self.files)
-
-    #expect(presenter.quickLookURL == Self.files[0].url)
-    #expect(presenter.quickLookURLs == Self.files.map(\.url))
   }
 }

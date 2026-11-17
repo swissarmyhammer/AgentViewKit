@@ -15,7 +15,7 @@ import SwiftUI
 /// | ``control`` | Stop, Approve Request, Reject Request |
 /// | ``navigate`` | Next Prompt, Previous Prompt, Next Request, Previous Request, Scroll to Bottom, Expand or Collapse All, Go to Parent Session, Open Child Session, Next Sibling Session, Previous Sibling Session, Jump to Session |
 /// | ``clipboard`` | Copy Message, Copy Thread |
-/// | ``attachment`` | Open, Reveal in Finder, Share, Save, Quick Look (``AgentAttachmentVerb``) |
+/// | ``attachment`` | Open, Reveal in Finder, Share, Save, Inspect (``AgentAttachmentVerb``) |
 ///
 /// KanbanViewKit and SnapshotViewKit use the same shape. A group with the same
 /// job in two kits has the same last word in its ``id``, for example

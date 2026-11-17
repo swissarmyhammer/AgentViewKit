@@ -170,7 +170,7 @@ nonisolated enum AgentSymbol {
   static let save = "square.and.arrow.down"
 
   /// The symbol of the Quick Look button.
-  static let quickLook = "eye"
+  static let inspectFile = "sidebar.trailing"
 
   /// The symbol of a button that removes a value: an attachment or a date.
   static let remove = "xmark.circle.fill"

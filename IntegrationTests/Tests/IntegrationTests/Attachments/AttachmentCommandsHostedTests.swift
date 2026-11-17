@@ -66,9 +66,9 @@ struct HostInspectorWithAttachmentActions: View {
   /// buttons.
   ///
   /// - Parameter attachment: The attachment of the buttons.
-  /// - Returns: One call for each verb.
+  /// - Returns: One call for each verb of a button.
   static func callsOfEachVerb(on attachment: AgentViewKit.Attachment) -> [RecordingAttachmentFileService.Call] {
-    AgentAttachmentVerb.allCases.map { .init(verb: $0, attachment: attachment) }
+    AgentAttachmentVerb.buttonVerbs.map { .init(verb: $0, attachment: attachment) }
   }
 
   /// Presses each button whose identifier is in `identifiers`, in order.
@@ -163,7 +163,7 @@ struct HostInspectorWithAttachmentActions: View {
 
     try Self.pressEach(ArtifactView.actionIdentifiers, in: harness)
 
-    #expect(service.calls.map(\.verb) == AgentAttachmentVerb.allCases)
+    #expect(service.calls.map(\.verb) == AgentAttachmentVerb.buttonVerbs)
     #expect(service.calls.allSatisfy { $0.attachment.url == artifact.url })
   }
 

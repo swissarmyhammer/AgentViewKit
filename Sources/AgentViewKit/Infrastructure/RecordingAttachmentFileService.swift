@@ -1,6 +1,6 @@
 /// An ``AttachmentFileService`` that records each run and opens no system
-/// service: no application, no Finder window, no share picker, no save panel
-/// and no Quick Look panel.
+/// service: no application, no Finder window, no share picker and no save
+/// panel.
 ///
 /// The previews give it to their file actions, so that a press in the canvas
 /// opens nothing (``PreviewFixtures/attachmentFileService``). The tests reach

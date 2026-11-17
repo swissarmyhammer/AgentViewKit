@@ -13,7 +13,9 @@ import Testing
 /// the mount of an attachment scope does, in a registry with no window. The
 /// scope node at the path of the attachment gives the attachment as its
 /// subject, as `.commandScope(segment:subject:)` does. A run goes to a
-/// ``RecordingAttachmentFileService``, so no system service opens.
+/// ``RecordingAttachmentFileService``, so no system service opens. A run of
+/// Inspect goes to the inspect action of the target, which the fixture
+/// records.
 @MainActor struct AgentAttachmentCommandsTests {
   /// The raw session id of the thread scope of the tests.
   static let sessionID = "attachment-thread"
@@ -34,6 +36,19 @@ import Testing
     var registry: CommandRegistry
     /// The path of the attachment scope.
     let path: FocusPath
+    /// The files of each run of Inspect, in order.
+    let inspected: InspectLog
+  }
+
+  /// The files of each run of Inspect.
+  final class InspectLog {
+    /// The files of each run, in order.
+    var runs: [[AgentViewKit.Attachment]] = []
+  }
+
+  /// The verbs that run on the service: each verb but Inspect.
+  static var serviceVerbs: [AgentAttachmentVerb] {
+    AgentAttachmentVerb.allCases.filter { $0 != .inspectAttachment }
   }
 
   /// The path of the thread scope that holds the attachment scope.
@@ -54,12 +69,14 @@ import Testing
     let service = RecordingAttachmentFileService()
     let target = AgentAttachmentTarget()
     target.service = service
+    let inspected = InspectLog()
+    target.inspect = { inspected.runs.append($0) }
     let segment = AgentScopeKind.attachment(attachment.id)
     let path = threadPath.appending(AgentScopeKind.message(rowKey: messageRowKey)).appending(segment)
     var registry = CommandRegistry()
     registry.tree = registry.tree.merging({ $0.contributeSubject(segment, attachment) }, by: .scope, at: path)
     AgentAttachmentRegistration.register(target, at: path, into: &registry, groupsOff: groupsOff)
-    return Fixture(target: target, service: service, registry: registry, path: path)
+    return Fixture(target: target, service: service, registry: registry, path: path, inspected: inspected)
   }
 
   /// The text of a static title.
@@ -206,24 +223,52 @@ import Testing
 
   // MARK: - Runs
 
-  @Test func aRunOfEachVerbGivesTheAttachmentOfTheScopeToTheService() throws {
+  @Test func aRunOfEachServiceVerbGivesTheAttachmentOfTheScopeToTheService() throws {
     let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let attachment = try AttachmentFixtures.attachment(named: "blob.bin", in: directory)
     let fixture = Self.makeFixture(for: attachment)
 
-    for verb in AgentAttachmentVerb.allCases {
+    for verb in Self.serviceVerbs {
       #expect(fixture.registry.perform(verb.id, at: fixture.path, clicked: fixture.path), "\(verb)")
     }
 
     #expect(
       fixture.service.calls
-        == AgentAttachmentVerb.allCases.map { RecordingAttachmentFileService.Call(verb: $0, attachment: attachment) })
+        == Self.serviceVerbs.map { RecordingAttachmentFileService.Call(verb: $0, attachment: attachment) })
+    #expect(fixture.inspected.runs.isEmpty)
+  }
+
+  /// Inspect writes the file to the inspector selection (D191): it opens no
+  /// Quick Look panel and calls no service.
+  @Test func aRunOfInspectGivesTheAttachmentOfTheScopeToTheInspector() throws {
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
+    defer { directory.remove() }
+    let attachment = try AttachmentFixtures.attachment(named: "blob.bin", in: directory)
+    let fixture = Self.makeFixture(for: attachment)
+
+    #expect(fixture.registry.perform(AgentAttachmentVerb.inspectAttachment.id, at: fixture.path, clicked: fixture.path))
+
+    #expect(fixture.inspected.runs == [[attachment]])
+    #expect(fixture.service.calls.isEmpty)
+  }
+
+  @Test func inspectIsNotAvailableWithNoInspector() throws {
+    let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
+    defer { directory.remove() }
+    let fixture = Self.makeFixture(for: try AttachmentFixtures.attachment(named: "blob.bin", in: directory))
+    fixture.target.inspect = nil
+
+    let enabled = fixture.registry.contextMenuMirror(at: fixture.path).filter(\.isEnabled).map(\.id)
+
+    #expect(enabled == Self.serviceVerbs.map(\.id))
+    #expect(!fixture.registry.perform(AgentAttachmentVerb.inspectAttachment.id, at: fixture.path))
+    #expect(fixture.inspected.runs.isEmpty)
   }
 
   // MARK: - Availability
 
-  /// Reveal in Finder, Save and Quick Look need a local file. Open and Share
+  /// Reveal in Finder, Save and Inspect need a local file. Open and Share
   /// also work on a web URL.
   @Test func onlyOpenAndShareAreAvailableForAURLThatIsNotAFile() throws {
     let url = try #require(Self.webURL)
@@ -249,12 +294,14 @@ import Testing
     #expect(!items.contains { $0.isEnabled })
   }
 
-  @Test func noVerbIsAvailableWithNoService() throws {
+  @Test func onlyInspectIsAvailableWithNoService() throws {
     let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
     let fixture = Self.makeFixture(for: try AttachmentFixtures.attachment(named: "blob.bin", in: directory))
     fixture.target.service = nil
 
-    #expect(!fixture.registry.contextMenuMirror(at: fixture.path).contains { $0.isEnabled })
+    let enabled = fixture.registry.contextMenuMirror(at: fixture.path).filter(\.isEnabled).map(\.id)
+
+    #expect(enabled == [AgentAttachmentVerb.inspectAttachment.id])
   }
 }

@@ -123,11 +123,11 @@ import UniformTypeIdentifiers
     }
   }
 
-  @Test func theInspectorHasTheFiveActionIdentifiers() {
+  /// The inspector has no Inspect button and no Quick Look button (D191).
+  @Test func theInspectorHasTheFourActionIdentifiers() {
     #expect(
       AttachmentInspector.actionIdentifiers == [
         "inspector-open", "inspector-reveal", "inspector-share", "inspector-save",
-        "inspector-quicklook",
       ])
   }
 
@@ -486,7 +486,7 @@ import UniformTypeIdentifiers
   /// - Throws: The error of a press.
   static func pressEachAction<Content: View>(in harness: HostedViewHarness<Content>) throws {
     let driver = harness.inspectorDriver
-    for verb in AgentAttachmentVerb.allCases {
+    for verb in AgentAttachmentVerb.buttonVerbs {
       try driver.pressAction(verb.buttonTitle ?? verb.title)
     }
   }

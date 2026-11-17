@@ -18,7 +18,13 @@ import Foundation
 /// Each verb is in the group ``AgentCommandGroup/attachment``, in the File
 /// menu and in the context menu of the attachment. A verb is available only
 /// when it can run on each of its files: a file URL must point to a file that
-/// exists, and Reveal in Finder, Save and Quick Look need a local file.
+/// exists, and Reveal in Finder, Save and Inspect need a local file.
+///
+/// Inspect runs at the scope, not on the service: it writes the files to the
+/// inspector selection of the view (D191), so the files show in the
+/// inspector of the host (``AttachmentInspectorMode/host(_:)``) or in the
+/// built-in inspector. It is not available where no inspector gets the
+/// selection, such as in a block of an inspector.
 public nonisolated enum AgentAttachmentVerb: String, CaseIterable, Sendable {
   /// Opens the file in its default application.
   case openAttachment
@@ -32,8 +38,9 @@ public nonisolated enum AgentAttachmentVerb: String, CaseIterable, Sendable {
   /// Saves a copy of the file.
   case saveAttachment
 
-  /// Shows the file in a Quick Look panel.
-  case quickLookAttachment
+  /// Shows the file in the inspector: writes it to the inspector selection
+  /// (D191).
+  case inspectAttachment
 
   /// The group of the File menu that holds the verbs.
   static let menuGroup = "agentAttachment"
@@ -53,7 +60,7 @@ public nonisolated enum AgentAttachmentVerb: String, CaseIterable, Sendable {
     case .revealAttachment: String(localized: "Reveal in Finder", bundle: .module)
     case .shareAttachment: String(localized: "Share", bundle: .module)
     case .saveAttachment: String(localized: "Save", bundle: .module)
-    case .quickLookAttachment: String(localized: "Quick Look", bundle: .module)
+    case .inspectAttachment: String(localized: "Inspect", bundle: .module)
     }
   }
 
@@ -63,7 +70,7 @@ public nonisolated enum AgentAttachmentVerb: String, CaseIterable, Sendable {
   public var buttonTitle: String? {
     switch self {
     case .revealAttachment: String(localized: "Reveal", bundle: .module)
-    case .openAttachment, .shareAttachment, .saveAttachment, .quickLookAttachment: nil
+    case .openAttachment, .shareAttachment, .saveAttachment, .inspectAttachment: nil
     }
   }
 
@@ -74,7 +81,7 @@ public nonisolated enum AgentAttachmentVerb: String, CaseIterable, Sendable {
     case .revealAttachment: AgentSymbol.folder
     case .shareAttachment: AgentSymbol.share
     case .saveAttachment: AgentSymbol.save
-    case .quickLookAttachment: AgentSymbol.quickLook
+    case .inspectAttachment: AgentSymbol.inspectFile
     }
   }
 
@@ -104,7 +111,7 @@ public nonisolated enum AgentAttachmentVerb: String, CaseIterable, Sendable {
   private var needsLocalFile: Bool {
     switch self {
     case .openAttachment, .shareAttachment: false
-    case .revealAttachment, .saveAttachment, .quickLookAttachment: true
+    case .revealAttachment, .saveAttachment, .inspectAttachment: true
     }
   }
 
@@ -240,7 +247,8 @@ nonisolated struct AgentAttachmentCommand: EditorCommands.Command {
 
 extension AgentAttachmentVerb {
   /// The command action of the verb: it runs on the files of the command
-  /// with the service of the target.
+  /// with the service of the target. Inspect runs the inspect action of the
+  /// target (``AgentAttachmentTarget/inspect``).
   ///
   /// The run declines where the command cannot run, the same checks as the
   /// availability: a key then goes on to the next binding of its chord
@@ -249,7 +257,8 @@ extension AgentAttachmentVerb {
   /// failure): the user aimed the key at these files, so the key does not go
   /// on to another command of the chord (^zb5td6w).
   var action: AgentAttachmentCommand.Action {
-    AgentAttachmentCommand.Action(
+    if self == .inspectAttachment { return inspectAction }
+    return AgentAttachmentCommand.Action(
       id: id, title: title, buttonTitle: buttonTitle, icon: icon, menu: menu, contextMenu: contextMenu,
       availability: { [self] target, attachments in
         target.service == nil ? .attachmentNotShown : availability(for: attachments)
@@ -257,6 +266,21 @@ extension AgentAttachmentVerb {
       run: { [self] target, attachments in
         guard let service = target.service, availability(for: attachments).isAvailable else { return false }
         _ = service.run(self, on: attachments)
+        return true
+      })
+  }
+
+  /// The command action of Inspect: it writes the files of the command to
+  /// the inspector selection with the inspect action of the target.
+  private var inspectAction: AgentAttachmentCommand.Action {
+    AgentAttachmentCommand.Action(
+      id: id, title: title, buttonTitle: buttonTitle, icon: icon, menu: menu, contextMenu: contextMenu,
+      availability: { [self] target, attachments in
+        target.inspect == nil ? .noInspector : availability(for: attachments)
+      },
+      run: { [self] target, attachments in
+        guard let inspect = target.inspect, availability(for: attachments).isAvailable else { return false }
+        inspect(attachments)
         return true
       })
   }
@@ -299,6 +323,10 @@ final class AgentAttachmentTarget {
   /// ``AttachmentInspector``.
   var selection: (() -> [Attachment])?
 
+  /// Writes files to the inspector selection of the view, for the command
+  /// Inspect, or `nil` when no inspector gets the selection of the view.
+  var inspect: (([Attachment]) -> Void)?
+
   /// Makes a target with no service, no select action and no selection.
   init() {}
 
@@ -325,6 +353,12 @@ final class AgentAttachmentTarget {
 }
 
 nonisolated extension Availability {
+  /// The availability of Inspect where no inspector gets the selection of
+  /// the view.
+  static var noInspector: Availability {
+    .unavailable(reason: String(localized: "No inspector shows the file here.", bundle: .module))
+  }
+
   /// The availability of an attachment command whose scope shows no
   /// attachment, or whose target is gone.
   static var attachmentNotShown: Availability {

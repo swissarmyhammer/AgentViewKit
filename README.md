@@ -392,7 +392,7 @@ view can share one binding. A click replaces the list; a Command-click or a
 Shift-click changes only the files of its thread. Show the files in your
 inspector, for example with
 `AttachmentInspector`, an EditorKit `InspectorView` of the file with its
-preview, whose actions Open, Reveal in Finder, Share, Save and Quick Look work
+preview, whose actions Open, Reveal in Finder, Share and Save work
 in each mode. `AttachmentInspector([files])` shows one full block for each
 file, in selection order: each block has the name, the actions and the preview
 of its file, as the inspector of one file has, and each action of a block runs
@@ -531,7 +531,7 @@ The list follows the inventory of [`plan.md`](plan.md) §9.
 **Infrastructure**
 
 - `StreamingMarkdownBalancer`, `ScrollAnchorManager`, `ExpandedBlocksStore`: the balancer of open Markdown, the scroll anchors, and the expanded state of the blocks.
-- `AgentCommands`: the kit verbs as EditorKit commands (`AgentCommandVerb`) with the default keymap (`AgentKeymap`). Each attachment chip, image, artifact file and attachment inspector is a scope (`agentAttachment:<id>`) with the attachment verbs Open, Reveal in Finder, Share, Save and Quick Look (`AgentAttachmentVerb`); the buttons of the inspector, the context menu and the palette run the same commands. The verbs are in five groups (`AgentCommandGroup`: `agent.compose`, `agent.control`, `agent.navigate`, `agent.clipboard`, `agent.attachment`). A host turns off a group with `.agentCommandGroups(off:)`, and then its verbs are not in the menus, the context menus or the palette, and their keys do nothing.
+- `AgentCommands`: the kit verbs as EditorKit commands (`AgentCommandVerb`) with the default keymap (`AgentKeymap`). Each attachment chip, image, artifact file and attachment inspector is a scope (`agentAttachment:<id>`) with the attachment verbs Open, Reveal in Finder, Share, Save and Inspect (`AgentAttachmentVerb`; Inspect writes the file to the inspector selection, D191); the buttons of the inspector, the context menu and the palette run the same commands. The verbs are in five groups (`AgentCommandGroup`: `agent.compose`, `agent.control`, `agent.navigate`, `agent.clipboard`, `agent.attachment`). A host turns off a group with `.agentCommandGroups(off:)`, and then its verbs are not in the menus, the context menus or the palette, and their keys do nothing.
 - `GrammarBundle`: the TextMate grammars of the languages that agents write most.
 
 **Input**
@@ -561,7 +561,7 @@ The list follows the inventory of [`plan.md`](plan.md) §9.
 
 **Artifacts and attachments**
 
-- `AttachmentView`, `AttachmentInspector`, `ArtifactView`, `CommandOutputView`, `LinkView`, `ImageView`, `AudioPlayerView`: the attachment chip, the Quick Look inspector, the artifact card, the command output, and the link, image, and audio blocks.
+- `AttachmentView`, `AttachmentInspector`, `ArtifactView`, `CommandOutputView`, `LinkView`, `ImageView`, `AudioPlayerView`: the attachment chip, the attachment inspector, the artifact card, the command output, and the link, image, and audio blocks.
 
 ## The demo app
 

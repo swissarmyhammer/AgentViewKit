@@ -243,4 +243,31 @@ import UniformTypeIdentifiers
 
     #expect(state.selection == Self.selections(1, 2, 0))
   }
+
+  // MARK: - Inspect (D191)
+
+  @Test func inspectShowsTheFilesInTheInspectorSelectionInOrder() {
+    let selection = InspectorSelection(attachments: [AgentViewKit.Attachment(url: AttachmentSelectActionTests.otherURL)])
+    let action = AttachmentSelectAction(hostTarget: nil, selection: selection, order: nil)
+    let files = [AgentViewKit.Attachment(url: AttachmentSelectActionTests.shownURL), AgentViewKit.Attachment(url: URL(filePath: "/tmp/avk-select/third.txt"))]
+
+    action.inspect(files)
+
+    #expect(selection.attachments.map(\.url) == files.map(\.url))
+  }
+
+  @Test func inspectWritesTheFilesOfTheThreadToTheHostBinding() {
+    var value: [AgentAttachmentSelection] = [
+      AgentAttachmentSelection(attachment: AgentViewKit.Attachment(url: AttachmentSelectActionTests.otherURL), sessionId: AttachmentSelectActionTests.otherSessionID)
+    ]
+    let binding = Binding(get: { value }, set: { value = $0 })
+    let target = HostAttachmentTarget(
+      selection: binding, sessionId: AttachmentSelectActionTests.threadSessionID, anchor: AttachmentSelectionAnchor())
+    let action = AttachmentSelectAction(hostTarget: target, selection: nil, order: nil)
+
+    action.inspect([AgentViewKit.Attachment(url: AttachmentSelectActionTests.shownURL)])
+
+    #expect(
+      value == [AgentAttachmentSelection(attachment: AgentViewKit.Attachment(url: AttachmentSelectActionTests.shownURL), sessionId: AttachmentSelectActionTests.threadSessionID)])
+  }
 }

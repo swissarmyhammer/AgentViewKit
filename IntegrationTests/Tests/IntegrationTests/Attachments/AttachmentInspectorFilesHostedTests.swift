@@ -93,7 +93,7 @@ import Testing
     #expect(names == selection.map(\.name))
   }
 
-  @Test(arguments: AgentAttachmentVerb.allCases)
+  @Test(arguments: AgentAttachmentVerb.buttonVerbs)
   func theActionOfEachBlockRunsOnTheFileOfThatBlockOnly(_ verb: AgentAttachmentVerb) throws {
     defer { fileSet.remove() }
     let harness = mount()

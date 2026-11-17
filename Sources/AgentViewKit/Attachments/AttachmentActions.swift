@@ -5,7 +5,11 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 /// The file actions of the inspector and of an artifact (plan.md §3.6):
-/// Open, Reveal in Finder, Share, Save, and pop-out Quick Look.
+/// Open, Reveal in Finder, Share and Save.
+///
+/// The row has no button for Inspect: the row is in the inspector, or on an
+/// artifact, and Inspect is in the context menu, the File menu and the
+/// palette (D191).
 ///
 /// Each button is the EditorKit command button (`EditorToolbarButton`) of an
 /// ``AgentAttachmentVerb`` of the nearest attachment scope
@@ -23,7 +27,7 @@ struct AttachmentActions: View {
   /// - Parameter prefix: The start of each identifier.
   /// - Returns: The identifiers.
   static func identifiers(prefix: String) -> [String] {
-    AgentAttachmentVerb.allCases.map { $0.identifier(prefix: prefix) }
+    AgentAttachmentVerb.buttonVerbs.map { $0.identifier(prefix: prefix) }
   }
 
   /// The start of the accessibility identifier of each action.
@@ -34,7 +38,7 @@ struct AttachmentActions: View {
   var body: some View {
     if !groupsOff.contains(.attachment) {
       InspectorActionRow {
-        ForEach(AgentAttachmentVerb.allCases, id: \.self) { verb in
+        ForEach(AgentAttachmentVerb.buttonVerbs, id: \.self) { verb in
           EditorToolbarButton(command: verb.id)
             .accessibilityIdentifier(verb.identifier(prefix: identifierPrefix))
         }
@@ -44,6 +48,12 @@ struct AttachmentActions: View {
 }
 
 nonisolated extension AgentAttachmentVerb {
+  /// The verbs of the buttons of the action row, in order: each verb but
+  /// Inspect.
+  static var buttonVerbs: [AgentAttachmentVerb] {
+    allCases.filter { $0 != .inspectAttachment }
+  }
+
   /// The accessibility identifier of the button of the verb, such as
   /// `inspector-open`.
   ///
@@ -60,7 +70,7 @@ nonisolated extension AgentAttachmentVerb {
     case .revealAttachment: "reveal"
     case .shareAttachment: "share"
     case .saveAttachment: "save"
-    case .quickLookAttachment: "quicklook"
+    case .inspectAttachment: "inspect"
     }
   }
 }
