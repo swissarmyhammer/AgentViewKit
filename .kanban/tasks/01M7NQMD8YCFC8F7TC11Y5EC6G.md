@@ -1,8 +1,16 @@
 ---
 assignees:
 - claude-code
-position_column: todo
-position_ordinal: '8880'
+comments:
+- actor: claude-code
+  id: 01m7nv9y0xpemzfwmfr78cfse2
+  text: |-
+    ### commit — changed
+    - evidence: f60b266b (pushed after testudoapp-9a approved the API). `swift test` green; IntegrationTests and ScreenshotTests compile.
+    - API: `ComposerMention`, `ComposerMentionSource(_ mentions: (body) async -> [ComposerMention])`, `.composerMentions(_:)`. Kit source `AtReferenceSource`: file rows, then mention rows, ranked.
+  timestamp: 2026-11-17T22:51:08.189518+00:00
+position_column: done
+position_ordinal: ffffffe280
 title: 'AVK-15.1: Host @ mention rows add to the @file rows'
 ---
 D199 (TestudoApp/features/decisions.md, commit 740cd1a). Brief: .briefs/at-sessions/avk-brief-at-sessions.md, item 1.

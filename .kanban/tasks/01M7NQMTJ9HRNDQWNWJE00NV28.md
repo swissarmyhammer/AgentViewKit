@@ -1,10 +1,19 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m7nva1je4rn7qkts4j5em0sc
+  text: |-
+    ### commit — changed
+    - evidence: 265ac6d2 (pushed). `swift test`: 1324 tests in 151 suites pass. Hosted packages compile.
+    - `MentionDetector` draws the chip. `attributedText(_:references:root:mentions:)` and `mentions(in:root:)` round-trip the link. A mention link is not an attachment.
+    - Added `ComposerMention.symbol` (testudoapp-9a request). Note: `EditorCompletionRow` of EditorKit shows no icon for any row, so the symbol does not show yet.
+  timestamp: 2026-11-17T22:51:11.822075+00:00
 depends_on:
 - 01M7NQMD8YCFC8F7TC11Y5EC6G
-position_column: todo
-position_ordinal: '8980'
+position_column: done
+position_ordinal: ffffffe380
 title: 'AVK-15.2: A host mention row makes a chip with its link'
 ---
 D199. Brief item 2.
