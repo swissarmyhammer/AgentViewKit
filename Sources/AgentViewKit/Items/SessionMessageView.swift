@@ -101,7 +101,6 @@ public struct SessionMessageView: View {
     VStack(alignment: .leading, spacing: Self.spacing) {
       EditorLabel(verbatim: participants).editorTextColor(.secondary)
         .font(.caption)
-        .foregroundStyle(.secondary)
       EntryContentView(content: entry.content, id: "\(Self.identifierPrefix)\(entry.messageId.rawValue)")
     }
     .frame(maxWidth: .infinity, alignment: .leading)
