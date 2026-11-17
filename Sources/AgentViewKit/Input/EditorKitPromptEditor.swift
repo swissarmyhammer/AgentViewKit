@@ -95,6 +95,7 @@ public struct EditorKitPromptEditor: View {
   @Environment(\.promptFileRoot) private var fileRoot
   @Environment(\.composerCompletionRoutes) private var routes
   @Environment(\.composerMentionSources) private var mentionSources
+  @Environment(\.composerMentionResolver) private var resolver
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
@@ -113,6 +114,9 @@ public struct EditorKitPromptEditor: View {
   /// The accepted mentions, by their token without the `@`. The value is
   /// the link of the row, or `nil` for a row with no link (D199).
   @State private var mentions: [String: URL?] = [:]
+
+  /// The answers of the mention resolver of the host, by token (D199 (h)).
+  @State private var mentionStates: [String: ComposerMentionState?] = [:]
 
   /// Makes the editor.
   ///
@@ -152,6 +156,7 @@ public struct EditorKitPromptEditor: View {
     .editorInlineDecorations([
       EditorSwiftUI.SmartTag(.token, detect: FileReferenceDetector(paths: references)),
       EditorSwiftUI.SmartTag(.token, detect: MentionDetector(tokens: Set(mentions.keys))),
+      EditorSwiftUI.SmartTag(.mark, detect: MentionMarkDetector(states: mentionStates)),
     ])
     // The identifier and the label go on the text view that takes typing, so
     // that a UI test finds one element to type into, and VoiceOver names it.
@@ -176,6 +181,11 @@ public struct EditorKitPromptEditor: View {
     }
     .onChange(of: context.text.wrappedValue, initial: true) { _, text in
       promptTextDidChange(text, in: model)
+    }
+    .onChange(of: resolver?.revision) {
+      mentionStates = [:]
+      session.resetMentionResolution(revision: resolver?.revision)
+      resolveMentions(in: model)
     }
     .onChange(of: context.insertions?.count) {
       for text in context.insertions?.take() ?? [] {
@@ -202,6 +212,35 @@ public struct EditorKitPromptEditor: View {
       EditorTransaction(
         changes: ChangeSet(fromLength: document.utf8Count, replacements: [(caret..<caret, inserted)]),
         selection: .cursor(end), annotations: annotations))
+  }
+
+  /// Asks the mention resolver of the host about each new `@` token of the
+  /// text (D199 (h)).
+  ///
+  /// The editor asks one time for each token, and not for the token at the
+  /// caret. An answer that comes after a change of the revision is dropped.
+  /// A resolved token becomes a mention chip with its link.
+  ///
+  /// - Parameter model: The model of the editor.
+  private func resolveMentions(in model: EditorModel) {
+    guard let resolver else { return }
+    let tokens = ComposerMentionMarks.tokensToResolve(
+      in: model.text, caret: model.selection.primary.head.utf8Offset, fileRoot: kitFileRoot,
+      chips: references.union(mentions.keys), known: Set(mentionStates.keys).union(session.pendingMentionTokens))
+    for token in tokens {
+      session.pendingMentionTokens.insert(token)
+      let revision = resolver.revision
+      Task { @MainActor in
+        let state = await resolver.resolve(token)
+        guard session.mentionResolverRevision == revision || session.mentionResolverRevision == nil else { return }
+        session.pendingMentionTokens.remove(token)
+        mentionStates.updateValue(state, forKey: token)
+        if case .resolved(let link) = state {
+          mentions.updateValue(link, forKey: token)
+          push(model.text, references: references, mentions: mentions)
+        }
+      }
+    }
   }
 
   /// The text that an insert at the caret adds: `text`, after a space when
@@ -387,6 +426,7 @@ public struct EditorKitPromptEditor: View {
       break
     }
     push(model.text, references: references, mentions: mentions)
+    resolveMentions(in: model)
   }
 
   /// Whether a transaction is the change of a text that the editor took from
@@ -617,6 +657,7 @@ public struct EditorKitPromptEditor: View {
     let plain = String(text.characters)
     guard plain != model.text else { return }
     model.replaceAll(plain)
+    resolveMentions(in: model)
   }
 
   /// The accepted file references of a prompt text: the inverse of
@@ -924,6 +965,22 @@ final class PromptEditorSession {
   ///   `.some(nil)` for a row with no link.
   func offeredMention(_ token: String) -> URL?? {
     mentions.offered(token)
+  }
+
+  /// The tokens that wait for an answer of the mention resolver.
+  var pendingMentionTokens: Set<String> = []
+
+  /// The revision of the mention resolver that the answers belong to, or
+  /// `nil` before the first change of the revision.
+  private(set) var mentionResolverRevision: AnyHashable?
+
+  /// Forgets the tokens that wait for an answer, after a change of the
+  /// revision of the resolver.
+  ///
+  /// - Parameter revision: The new revision.
+  func resetMentionResolution(revision: AnyHashable?) {
+    pendingMentionTokens = []
+    mentionResolverRevision = revision
   }
 
   /// Whether a route of `routes` takes `sigil` from a completion source of

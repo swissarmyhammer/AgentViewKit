@@ -7,6 +7,7 @@ import EditorTestSupport
 import Foundation
 import EditorStyle
 import SwiftUI
+import Synchronization
 import Testing
 
 /// One prefix-completion route of the composer tests, and the rows of its
@@ -128,11 +129,14 @@ struct RoutedComposerThreadHost: View {
   static func mount(
     _ session: ScriptedSession, editorSession: PromptEditorSession,
     routes: [PrefixCompletionRoute] = ComposerRouteFixture.routes, fileRoot: URL? = nil,
-    mentions: [ComposerMentionSource] = [], submitHook: ComposerSubmitHook? = nil
+    mentions: [ComposerMentionSource] = [], submitHook: ComposerSubmitHook? = nil,
+    resolve: (@Sendable (String) async -> ComposerMentionState?)? = nil
   ) throws -> MountedThread<some View> {
     try ComposerHarness.mountThread(of: session.model) {
       RoutedComposerThreadHost(session: session, editorSession: editorSession, routes: routes)
         .composerMentions(mentions)
+        .environment(
+          \.composerMentionResolver, resolve.map { ComposerMentionResolver(revision: AnyHashable(0), resolve: $0) })
         .environment(\.composerSubmitHook, submitHook)
         .promptFileRoot(fileRoot)
         .environment(\.sessionModel, session.model)
@@ -357,6 +361,60 @@ struct RoutedComposerThreadHost: View {
 
     #expect(editorSession.model.text == "ask @")
     #expect(Self.listedLabels(of: editorSession) == ["claude-code"])
+  }
+
+  /// A typed token that names no session gets the "not found" mark, and its
+  /// reason is in the hint of the editor (D199 (h), AVK-15.4).
+  @Test func aTypedTokenThatNamesNoSessionGetsTheNotFoundMark() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let editorSession = PromptEditorSession()
+    let thread = try Self.mount(
+      session, editorSession: editorSession, routes: [],
+      resolve: { token in .unresolved(reason: "No session named \(token)") })
+    defer { thread.harness.close() }
+
+    try await Self.type("ask @foo now", in: thread, editorSession: editorSession)
+    await thread.harness.render {
+      thread.harness.element(identifier: EditorKitPromptEditor.identifier)?.hint?.contains("No session named foo")
+        == true
+    }
+
+    #expect(
+      thread.harness.element(identifier: EditorKitPromptEditor.identifier)?.hint?.contains("No session named foo")
+        == true)
+    #expect(session.promptTexts.isEmpty)
+  }
+
+  /// A typed token that the resolver resolves becomes a mention chip, and
+  /// the submission gives its link.
+  @Test func aResolvedTypedTokenGoesOutWithItsLink() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let editorSession = PromptEditorSession()
+    let link = try #require(URL(string: "testudo-session://01ABC"))
+    var submissions: [ComposerSubmission] = []
+    let calls = Mutex(0)
+    let thread = try Self.mount(
+      session, editorSession: editorSession, routes: [],
+      submitHook: { submission in
+        submissions.append(submission)
+        return .cancel
+      },
+      resolve: { _ in
+        calls.withLock { $0 += 1 }
+        return .resolved(link: link)
+      })
+    defer { thread.harness.close() }
+    try await Self.type("ask @planner now", in: thread, editorSession: editorSession)
+    // The editor removes the pending token in the same step that makes the
+    // chip, so both checks together tell that the chip is there.
+    await thread.harness.render { calls.withLock { $0 } == 1 && editorSession.pendingMentionTokens.isEmpty }
+
+    try EditorKitPromptEditorHostedTests.pressReturn(in: thread.harness)
+    await thread.harness.render { !submissions.isEmpty }
+
+    #expect(submissions.first?.mentions.map(\.link) == [link])
   }
 
   /// With no routes, a sigil that no kit source owns opens no popup.
