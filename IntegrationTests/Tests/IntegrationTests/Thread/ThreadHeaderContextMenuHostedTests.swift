@@ -111,6 +111,18 @@ import Testing
     #expect(menu.items.map(\.title) == [Self.showInFinder.title, "", Self.openTasks.title])
   }
 
+  @Test func theEmptyPartOfTheHeaderShowsTheContextMenuOfTheHostPath() throws {
+    let harness = Self.mountThread(path: Self.hostPath, system: Self.makeSystem(log: CommandRunLog()))
+    defer { harness.close() }
+    let line = try #require(harness.frame(identifier: StatusLineView.identifier))
+    // A point near the trailing edge of the line, after the end of its text.
+    let point = harness.window.convertPoint(fromScreen: NSPoint(x: line.maxX - 4, y: line.midY))
+
+    let menu = try #require(try harness.contextMenu(at: point))
+
+    #expect(menu.items.map(\.title) == [Self.showInFinder.title, "", Self.openTasks.title])
+  }
+
   @Test func theHeaderContextMenuLeavesOutACommandThatIsNotAvailable() throws {
     let harness = Self.mountThread(path: Self.hostPath, system: Self.makeSystem(log: CommandRunLog()))
     defer { harness.close() }

@@ -171,6 +171,9 @@ struct StatusLineContent: View {
     .font(editorTheme.font(for: .ui, style: Self.textStyle))
     .lineLimit(1)
     .frame(maxWidth: .infinity, alignment: .leading)
+    // The full width of the line takes a click, so that a right click on
+    // its empty part opens the context menu of the header (D193 (f)).
+    .contentShape(Rectangle())
     .accessibilityElement(children: path.isEmpty ? .ignore : .contain)
     .accessibilityLabel(rendering.plainText)
     .accessibilityAddTraits(.isHeader)
