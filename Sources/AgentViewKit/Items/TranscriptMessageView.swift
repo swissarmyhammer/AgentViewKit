@@ -12,10 +12,9 @@ import SwiftUI
 /// The view shows the content as the session model holds it in the entry,
 /// through ``EntryContentView``. It keeps no copy of the content, makes no
 /// kit record of it, and keeps no stream. It does not find from `agentState`
-/// whether the entry streams. Each evaluation joins the text chunks and
-/// splits the text into paragraphs again (``ParagraphSplitter``). A paragraph
-/// that did not change keeps its view, so a chunk evaluates only the last
-/// paragraph.
+/// whether the entry streams. Each evaluation joins the text chunks. The
+/// ``ResponseView`` of a text block adds only the new end of the text to its
+/// EditorKit model, so a chunk changes only the model of its own block.
 ///
 /// Below the content, the view shows the
 /// ``SwiftUI/EnvironmentValues/messageFooter`` slot with the entry object,

@@ -1,136 +1,96 @@
 import EditorStyle
+import EditorSwiftUI
 import EditorTestSupport
 import EditorTheme
 import Foundation
 import SwiftUI
 import Testing
-import Textual
 
 @testable import AgentViewKit
 
-/// The pure parts of the inline citations: the placements of a payload, the
-/// markers in a paragraph, and the parser that makes each marker a pill.
+/// The pure parts of the inline citations: the citation chips that a
+/// payload gives the text of a response, and the metrics of a pill.
 @MainActor struct CitationProseTests {
-  /// A payload with two sources and four markers. One marker cites a source
-  /// that is not in the list.
-  static let payload = CitationPayload(
-    sources: [
-      CitationSource(id: "a", title: "Alpha", url: URL(filePath: "/alpha"), snippet: ""),
-      CitationSource(id: "b", title: "Beta", url: URL(filePath: "/beta"), snippet: ""),
-    ],
-    markers: [
-      CitationMarker(sourceID: "b", paragraphIndex: 1, offset: 4),
-      CitationMarker(sourceID: "a", paragraphIndex: 0, offset: 3),
-      CitationMarker(sourceID: "missing", paragraphIndex: 0, offset: 1),
-      CitationMarker(sourceID: "a", paragraphIndex: 1, offset: 2),
-    ])
+  /// The first source.
+  static let alpha = CitationSource(id: "a", title: "Alpha", url: URL(filePath: "/alpha"), snippet: "")
 
-  // MARK: - Payload
+  /// The second source.
+  static let beta = CitationSource(id: "b", title: "Beta", url: URL(filePath: "/beta"), snippet: "")
 
-  @Test func thePlacementsAreGroupedByParagraphWithOneBasedNumbers() {
-    let placements = Self.payload.placementsByParagraph()
-
-    #expect(placements[0] == [CitationPlacement(offset: 3, number: 1)])
-    #expect(
-      placements[1] == [
-        CitationPlacement(offset: 4, number: 2),
-        CitationPlacement(offset: 2, number: 1),
-      ])
-    #expect(placements.count == 2)
+  /// The chips of one marker in `markdown`.
+  ///
+  /// - Parameters:
+  ///   - marker: The marker. It cites ``alpha`` or ``beta``.
+  ///   - markdown: The text of the response.
+  /// - Returns: The chips.
+  static func chips(of marker: CitationMarker, in markdown: String) -> [EditorCitation] {
+    CitationPayload(sources: [alpha, beta], markers: [marker]).editorCitations(in: markdown)
   }
 
-  @Test func aMarkerOfAnUnknownSourceHasNoPlacement() {
+  // MARK: - Chips
+
+  @Test func aMarkerInTheFirstParagraphIsAtItsOffset() {
+    let chips = Self.chips(of: CitationMarker(sourceID: "a", paragraphIndex: 0, offset: 5), in: "Hello world")
+
+    #expect(chips == [EditorCitation(offset: 5, number: 1, id: "a", title: "Alpha")])
+  }
+
+  @Test func aMarkerInALaterParagraphCountsFromTheStartOfItsParagraph() {
+    let markdown = "One.\n\nTwo words."
+    let chips = Self.chips(of: CitationMarker(sourceID: "b", paragraphIndex: 1, offset: 3), in: markdown)
+
+    #expect(chips.map(\.offset) == ["One.\n\nTwo".utf8.count])
+  }
+
+  @Test func theOffsetOfAChipCountsTheUTF8BytesOfMultibyteText() {
+    let markdown = "Café ü.\n\nÄ 日本 is here."
+    let chips = Self.chips(of: CitationMarker(sourceID: "a", paragraphIndex: 1, offset: 4), in: markdown)
+
+    #expect(chips.map(\.offset) == ["Café ü.\n\nÄ 日本".utf8.count])
+  }
+
+  @Test func theNumberOfAChipIsThePositionOfItsSourcePlusOne() {
+    let chips = Self.chips(of: CitationMarker(sourceID: "b", paragraphIndex: 0, offset: 0), in: "Text")
+
+    #expect(chips.map(\.number) == [2])
+    #expect(chips.map(\.title) == ["Beta"])
+  }
+
+  @Test func eachMarkerOfAPayloadMakesOneChipInMarkerOrder() {
     let payload = CitationPayload(
-      sources: [], markers: [CitationMarker(sourceID: "x", paragraphIndex: 0, offset: 0)])
-
-    #expect(payload.placementsByParagraph().isEmpty)
-  }
-
-  // MARK: - Markers
-
-  @Test func theMarkersGoInAtTheOffsetsAndKeepTheirOrderAtOneOffset() {
-    let marked = CitationMarkers.marked(
-      "Hello world",
-      placements: [
-        CitationPlacement(offset: 5, number: 2),
-        CitationPlacement(offset: 11, number: 1),
-        CitationPlacement(offset: 5, number: 1),
+      sources: [Self.alpha, Self.beta],
+      markers: [
+        CitationMarker(sourceID: "b", paragraphIndex: 1, offset: 1),
+        CitationMarker(sourceID: "a", paragraphIndex: 0, offset: 2),
       ])
 
-    #expect(
-      marked.text
-        == "Hello" + CitationMarkers.marker(number: 2) + CitationMarkers.marker(number: 1)
-        + " world" + CitationMarkers.marker(number: 1))
-    #expect(marked.numbers == [2, 1, 1])
+    #expect(payload.editorCitations(in: "ab\n\ncd").map(\.id) == ["b", "a"])
   }
 
-  @Test func anOffsetOutsideTheTextIsClamped() {
-    let marked = CitationMarkers.marked(
-      "Hi",
-      placements: [
-        CitationPlacement(offset: -3, number: 1),
-        CitationPlacement(offset: 99, number: 2),
-      ])
-
-    #expect(marked.text == CitationMarkers.marker(number: 1) + "Hi" + CitationMarkers.marker(number: 2))
-    #expect(marked.numbers == [1, 2])
+  @Test func aMarkerOfAnUnknownSourceMakesNoChip() {
+    #expect(Self.chips(of: CitationMarker(sourceID: "x", paragraphIndex: 0, offset: 0), in: "Text").isEmpty)
   }
 
-  @Test func aParagraphWithACodeFenceGetsNoMarker() {
-    let text = "```swift\nlet x = 1\n```"
-    let marked = CitationMarkers.marked(text, placements: [CitationPlacement(offset: 3, number: 1)])
-
-    #expect(marked.text == text)
-    #expect(marked.numbers.isEmpty)
+  @Test func aMarkerOfAParagraphPastTheEndMakesNoChip() {
+    #expect(Self.chips(of: CitationMarker(sourceID: "a", paragraphIndex: 2, offset: 0), in: "One.\n\nTwo.").isEmpty)
   }
 
-  @Test func thePartsSplitTheTextAtEachMarker() {
-    let text = "a" + CitationMarkers.marker(number: 3) + "b" + CitationMarkers.marker(number: 12)
+  @Test func anOffsetPastTheEndOfItsParagraphIsTheEndOfTheParagraph() {
+    let chips = Self.chips(of: CitationMarker(sourceID: "a", paragraphIndex: 0, offset: 99), in: "One.\n\nTwo.")
 
-    #expect(
-      CitationMarkers.parts(of: text) == [.text("a"), .marker(3), .text("b"), .marker(12)])
-    #expect(CitationMarkers.parts(of: "plain") == [.text("plain")])
+    #expect(chips.map(\.offset) == ["One.".utf8.count])
   }
 
-  @Test func aStartWithNoValidMarkerStaysInTheText() {
-    let broken = "a" + String(CitationMarkers.start) + "x"
-    let text = broken + CitationMarkers.marker(number: 4) + "b"
+  @Test func anOffsetBelowZeroIsTheStartOfItsParagraph() {
+    let chips = Self.chips(of: CitationMarker(sourceID: "a", paragraphIndex: 1, offset: -3), in: "One.\n\nTwo.")
 
-    #expect(CitationMarkers.parts(of: text) == [.text(broken), .marker(4), .text("b")])
-    #expect(CitationMarkers.parts(of: "") == [])
+    #expect(chips.map(\.offset) == ["One.\n\n".utf8.count])
   }
 
-  // MARK: - Parser
+  @Test func aMarkerInAFencedCodeBlockMakesNoChip() {
+    let markdown = "Code:\n\n```swift\nlet x = 1\n```"
 
-  /// The citation parser over the math parser, with the pill digits in the
-  /// system face.
-  static let parser = CitationMarkdownParser(
-    base: MathMarkdownParser(), digitFace: .system, padding: InlineCitationPadding(style: .default))
-
-  @Test func theParserMakesEachMarkerAPillWithTheCitationLink() throws {
-    let input = "Claim" + CitationMarkers.marker(number: 2) + " **bold**"
-    let output = try Self.parser.attributedString(for: input)
-
-    #expect(String(output.characters) == "Claim" + MathMarkdownParser.attachmentCharacter + " bold")
-    let pills = output.runs.filter { $0.textual.attachment != nil }
-    #expect(pills.count == 1)
-    #expect(pills.first?.link == InlineCitation.url(index: 2))
-    #expect(pills.first?.textual.attachment?.description == "[2]")
-  }
-
-  @Test func theParserDropsAMarkerInACodeBlock() throws {
-    let input = "    code" + CitationMarkers.marker(number: 1)
-    let output = try Self.parser.attributedString(for: input)
-
-    #expect(!String(output.characters).contains(MathMarkdownParser.attachmentCharacter))
-    #expect(!String(output.characters).contains(CitationMarkers.start))
-  }
-
-  @Test func theParserKeepsATextWithNoMarker() throws {
-    let base = MathMarkdownParser()
-    let parser = CitationMarkdownParser(base: base, digitFace: .system, padding: InlineCitationPadding(style: .default))
-
-    #expect(try parser.attributedString(for: "Some *text*") == base.attributedString(for: "Some *text*"))
+    #expect(Self.chips(of: CitationMarker(sourceID: "a", paragraphIndex: 1, offset: 3), in: markdown).isEmpty)
   }
 
   // MARK: - Metrics

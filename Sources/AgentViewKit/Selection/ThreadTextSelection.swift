@@ -4,9 +4,9 @@ import SwiftUI
 
 /// The one text selection of a thread (Docs/decisions/text-selection.md).
 ///
-/// A thread has many text areas: each Markdown paragraph is a Textual
-/// `StructuredText`, and each code block, command output and JSON value is a
-/// read-only EditorKit `EditorView`. Each text area keeps a selection model
+/// A thread has many text areas: each Markdown text of an answer, and each
+/// code block, command output and JSON value, is a read-only EditorKit
+/// `EditorView`, and each plain text is a Textual `StructuredText`. Each text area keeps a selection model
 /// of its own. Without this coordinator, a selection in one area stays when
 /// the user selects text in a different area, so the thread shows more than
 /// one selection.

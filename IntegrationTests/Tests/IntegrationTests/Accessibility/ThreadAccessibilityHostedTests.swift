@@ -2,6 +2,7 @@
 import AgentViewKitTestSupport
 import AppKit
 import EditorCommandsUI
+import EditorSwiftUI
 import EditorTestSupport
 import Foundation
 import FoundationModelsACP
@@ -53,9 +54,6 @@ extension ReportRecorder<TurnAnnouncementStep> {
 
   /// The text of a message with three paragraphs.
   static let threeParagraphs = "One.\n\nTwo.\n\nThree."
-
-  /// The number of paragraphs of ``threeParagraphs``.
-  static let paragraphCount = 3
 
   /// The text of the second message, with one paragraph.
   static let secondMessageText = "Four."
@@ -205,20 +203,24 @@ extension ReportRecorder<TurnAnnouncementStep> {
 
   // MARK: - Reading groups
 
-  @Test func eachParagraphOfAnAgentMessageEntryLinksTheOtherParagraphs() async throws {
-    let session = try await ScriptedSession.open()
-    defer { session.close() }
-    let harness = await Self.makeHarness(session: session, announcer: RecordingAnnouncer())
+  /// Two text blocks of one message are in the reading group of the
+  /// message, so the text of each block links the text of the other.
+  @Test func theTextsOfTheBlocksOfOneMessageLinkEachOther() throws {
+    let harness = HostedViewHarness(
+      VStack {
+        ResponseView(id: "group-first-block", markdown: Self.threeParagraphs)
+        ResponseView(id: "group-second-block", markdown: Self.secondMessageText)
+      }
+      .environment(\.accessibilityMessageGroupID, Self.firstMessageID)
+      .accessibilityReadingScope(),
+      size: Self.hostSize)
     defer { harness.close() }
-    _ = try await Self.sendTwoMessages(to: session, rendering: harness)
+    harness.render()
 
-    let identifiers = (0..<Self.paragraphCount).map(ResponseView.paragraphIdentifier(index:))
-    for identifier in identifiers {
-      let paragraph = try #require(harness.element(identifier: identifier))
-      let linked = Set(paragraph.linkedElements.compactMap(\.identifier))
-      let others = Set(identifiers.filter { $0 != identifier })
-      #expect(others.isSubset(of: linked), "\(identifier) links \(linked)")
-    }
+    let texts = harness.accessibilityElements().filter { $0.identifier == ResponseView.textIdentifier }
+    #expect(texts.map(\.value) == [Self.threeParagraphs, Self.secondMessageText])
+    let first = try #require(texts.first)
+    #expect(first.linkedElements.contains { $0.value == Self.secondMessageText })
   }
 
   @Test func eachRowOfTheThreadOfASessionLinksTheOtherRows() async throws {
@@ -235,24 +237,22 @@ extension ReportRecorder<TurnAnnouncementStep> {
     #expect(linked.contains(ItemRow.identifier(for: secondKey)))
   }
 
-  @Test func aStandaloneResponseLinksItsParagraphs() throws {
-    let harness = HostedViewHarness(ResponseView(id: "standalone", markdown: Self.threeParagraphs), size: Self.hostSize)
+  /// The text element of an answer reads its math at its place, as the TeX
+  /// source, and EditorKit gives each formula an element of its own whose
+  /// value is its TeX source.
+  @Test func anAnswerReadsItsMathAtItsPlaceAndKeepsTheMathElement() async throws {
+    let cache = CodeBlockModelCache()
+    let text = "Let $x^2$ be big."
+    let harness = HostedViewHarness(
+      ResponseView(id: "math", markdown: text).environment(\.codeBlockModelCache, cache), size: Self.hostSize)
     defer { harness.close() }
     harness.render()
+    let model = try #require(ResponseTextChecks.model(of: "math", in: cache))
+    await ResponseTextChecks.renderParsed(model, in: harness)
 
-    let first = try #require(harness.element(identifier: ResponseView.paragraphIdentifier(index: 0)))
-    let linked = first.linkedElements.compactMap(\.identifier)
-    #expect(linked.contains(ResponseView.paragraphIdentifier(index: 2)))
-  }
-
-  @Test func aParagraphReadsItsMathAtItsPlaceAndKeepsTheMathElement() {
-    let harness = HostedViewHarness(ResponseView(id: "math", markdown: "Let $x^2$ be big."), size: Self.hostSize)
-    defer { harness.close() }
-    harness.render()
-
-    let labels = harness.accessibilityElements().compactMap(\.label)
-    #expect(labels.contains("Let x^2 be big."))
-    #expect(harness.element(identifier: MathView.identifier(display: false))?.label == "x^2")
+    #expect(ResponseTextChecks.texts(in: harness) == [text])
+    let formulas = harness.accessibilityElements().filter { $0.label == EditorSwiftUIStrings.mathLabel }
+    #expect(formulas.map(\.value) == ["x^2"])
   }
 
   // MARK: - Announcements of a session model

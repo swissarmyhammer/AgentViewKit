@@ -52,7 +52,7 @@ import Testing
     let thread = AgentThreadView(session: session).environment(\.codeBlockModelCache, cache)
 
     try await Self.generate(thread, named: "thread", size: SnapshotFixtures.threadSize) {
-      await SnapshotFixtures.waitForSyntax(of: try SnapshotFixtures.codeBlockModel(in: cache, session: session))
+      await SnapshotFixtures.waitForSyntax(of: try SnapshotFixtures.codeMessageModel(in: cache, session: session))
     }
   }
 

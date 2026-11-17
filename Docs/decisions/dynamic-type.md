@@ -45,12 +45,10 @@ font design, or a bare system text style, such as `.font(.caption)`, which
 draws in the system font and not in the `ui` face.
 Review holds this (EditorKit style.md).
 
-Two views set a point size, and both sizes come from a resolved text style:
+One view sets a point size, and the size comes from a resolved text style.
+EditorKit sizes the math and the citation chips of an answer from the
+display font of its text (D185):
 
-- `MathView` resolves the environment font (default `.body`) and scales the
-  math font from that size. When the engine cannot parse the source, the
-  view shows the source in `codeFont`. In a message, the environment font is
-  the `displayFont` of the prose.
 - `InlineCitation` measures the size of the text font of its run, and scales
   the digit font from that size. The digits are chrome, so they draw in a
   copy of the `ui` face with that fixed size, and a `ui` family reaches them.

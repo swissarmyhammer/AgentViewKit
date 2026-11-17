@@ -131,9 +131,8 @@ import Testing
   // MARK: - display
 
   @Test func theProseOfAResponseDrawsInTheDisplayRole() throws {
-    try FontRoleExpectations.expectText(
-      of: ResponseView(id: "font-role-response", markdown: Self.text),
-      identifier: ResponseView.paragraphIdentifier(index: 0), drawsIn: .display)
+    try FontRoleExpectations.expectEditor(
+      in: ResponseView(id: "font-role-response", markdown: Self.text), drawsIn: .display)
   }
 
   @Test func theComposerDrawsInTheDisplayRole() throws {

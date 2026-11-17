@@ -17,9 +17,8 @@ import XCTest
 /// The XCUIAutomation API is main-actor isolated, so the class is too.
 @MainActor
 final class MainMenuEndToEndTests: XCTestCase {
-  /// The identifier of the first paragraph of a message
-  /// (`ResponseView.paragraphIdentifier(index: 0)`).
-  private static let firstParagraph = "response-paragraph-0"
+  /// The identifier of the text of an answer (`ResponseView.textIdentifier`).
+  private static let responseText = "response-text"
 
   /// The identifier of the title of a permission request card
   /// (`PermissionView.titleIdentifier`).
@@ -86,11 +85,9 @@ final class MainMenuEndToEndTests: XCTestCase {
 
   func testTheEditMenuShowsCopyMessageEnabledAfterCopyForTheFocusedMessage() throws {
     app.openThePermissionSession()
-    // A click on the text of the message makes the selectable text the first
-    // responder, which stands in the scope of the message row. The paragraph
-    // is as wide as the column, and its text can end before the middle of the
-    // paragraph, so the click goes to the text and not to the paragraph.
-    app.element(DemoTestValues.permissionAgentMessageRow).element(Self.firstParagraph).staticTexts.firstMatch.click()
+    // A click on the text of the message makes the EditorKit text view the
+    // first responder, which stands in the scope of the message row.
+    app.element(DemoTestValues.permissionAgentMessageRow).element(Self.responseText).click()
 
     let rows = openMenu(Self.editMenu)
 

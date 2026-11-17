@@ -621,12 +621,6 @@ enum PreviewFixtures {
     }
     .joined(separator: " ")
 
-  /// The citation pills of ``citedResponse``: one at the end of each
-  /// sentence, from the markers of ``citations``.
-  static var citationPlacements: [CitationPlacement] {
-    citations.placementsByParagraph()[0] ?? []
-  }
-
   /// The text of ``textResource``: the last lines of a build log.
   static let buildLogText = """
     Compiling Checkout CartView.swift

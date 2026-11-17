@@ -25,10 +25,10 @@ The direct dependencies are:
   `SessionModel`, and the in-process helper `InProcessAgent`.
 - FoundationModelsACP: the ACP v2 schema types, `ClientSideConnection` and
   `InMemoryTransport`.
-- EditorKit: code blocks, diffs, the composer editor, the commands, and the
-  theme of the kit.
-- Textual: Markdown.
-- swiftui-math: math.
+- EditorKit: the Markdown of an answer with its code blocks, math and
+  citation chips, diffs, the composer editor, the commands, and the theme of
+  the kit.
+- Textual: the plain text of the other views.
 
 [`Docs/decisions/dependencies.md`](Docs/decisions/dependencies.md) gives the
 versions and the products.
@@ -511,9 +511,8 @@ The list follows the inventory of [`plan.md`](plan.md) §9.
 
 **Streaming content**
 
-- `ResponseView`: the paragraph-split Markdown view on Textual, with the code block hook.
+- `ResponseView`: the Markdown of an answer in one read-only EditorKit model, in the rendered form, with its code blocks, its math and its citation chips. A streamed chunk adds only the new end of the text.
 - `CodeBlockView`: a read-only EditorKit editor with copy, filename, and language.
-- `MathView`: inline and block LaTeX.
 - `ReasoningView`: the collapsible view of a thought entry.
 - `ActivityIndicator` and `ShimmerView`: the in-progress effects.
 
@@ -530,7 +529,7 @@ The list follows the inventory of [`plan.md`](plan.md) §9.
 
 **Infrastructure**
 
-- `StreamingMarkdownBalancer`, `ScrollAnchorManager`, `ExpandedBlocksStore`: the balancer of open Markdown, the scroll anchors, and the expanded state of the blocks.
+- `ScrollAnchorManager`, `ExpandedBlocksStore`: the scroll anchors, and the expanded state of the blocks.
 - `AgentCommands`: the kit verbs as EditorKit commands (`AgentCommandVerb`) with the default keymap (`AgentKeymap`). Each attachment chip, image, artifact file and attachment inspector is a scope (`agentAttachment:<id>`) with the attachment verbs Open, Reveal in Finder, Share, Save and Inspect (`AgentAttachmentVerb`; Inspect writes the file to the inspector selection, D191); the buttons of the inspector, the context menu and the palette run the same commands. The verbs are in five groups (`AgentCommandGroup`: `agent.compose`, `agent.control`, `agent.navigate`, `agent.clipboard`, `agent.attachment`). A host turns off a group with `.agentCommandGroups(off:)`, and then its verbs are not in the menus, the context menus or the palette, and their keys do nothing.
 - `GrammarBundle`: the TextMate grammars of the languages that agents write most.
 

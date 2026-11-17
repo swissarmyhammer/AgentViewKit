@@ -1,11 +1,13 @@
 import EditorSwiftUI
 import SwiftUI
 
-/// The identity of one fenced code block in a message (plan.md §8).
+/// The identity of one block of a message that keeps an EditorKit model
+/// (plan.md §8): a fenced code block, or the whole text of a
+/// ``ResponseView``.
 ///
-/// The paragraph splitter gives each paragraph of a message a stable id. A
-/// fenced code block is one paragraph, so the message id and the paragraph
-/// id together identify the block.
+/// The message id and the paragraph id together identify the block. The
+/// whole text of a response has the paragraph id
+/// ``ResponseView/textBlockKey``.
 nonisolated public struct CodeBlockID: Hashable, Sendable {
   /// The id of the message that holds the block.
   public var messageID: String
@@ -23,12 +25,13 @@ nonisolated public struct CodeBlockID: Hashable, Sendable {
   }
 }
 
-/// Keeps one EditorKit model for each fenced code block (plan.md §8).
+/// Keeps one EditorKit model for each block of a message (plan.md §8): each
+/// fenced code block, and the text of each ``ResponseView``.
 ///
-/// When the streaming tail of a message renders again, each settled code
-/// block gets the same model. Thus EditorKit does not lay out a settled block
-/// again. The owner of the messages calls ``evict(messageID:)`` when it
-/// removes a message.
+/// When a view of a block is made again, such as a row that a lazy list
+/// shows again, the block gets the same model. Thus EditorKit does not parse
+/// and lay out the text of the block again. The owner of the messages calls
+/// ``evict(messageID:)`` when it removes a message.
 ///
 /// The cache is not observable. A view can read it in its body.
 public final class CodeBlockModelCache {
@@ -61,10 +64,26 @@ public final class CodeBlockModelCache {
   ///   - code: The text of a new model.
   /// - Returns: The model of the code block.
   public func model(for id: CodeBlockID, code: String) -> EditorModel {
+    model(for: id, text: code, make: EditorModel.makeReadOnly)
+  }
+
+  /// The model of the block `id`.
+  ///
+  /// When the cache has no model for `id`, it makes a model with `make`.
+  /// When the cache has a model, it returns that model and does not change
+  /// its text.
+  ///
+  /// - Parameters:
+  ///   - id: The identity of the block.
+  ///   - text: The text of a new model.
+  ///   - make: Makes a model that holds a text, such as a read-only model in
+  ///     the rendered presentation (``RenderedMarkdownView``).
+  /// - Returns: The model of the block.
+  func model(for id: CodeBlockID, text: String, make: (String) -> EditorModel) -> EditorModel {
     if let model = models[id] {
       return model
     }
-    let model = EditorModel.makeReadOnly(code)
+    let model = make(text)
     models[id] = model
     return model
   }
@@ -108,8 +127,8 @@ extension EditorModel {
 }
 
 extension EnvironmentValues {
-  /// The cache that ``EditorKitCodeBlockStyle`` gets its models from, or
-  /// `nil` when each code block keeps its own model.
+  /// The cache that ``ResponseView`` and ``EditorKitCodeBlockStyle`` get
+  /// their models from, or `nil` when each view keeps its own model.
   @Entry public var codeBlockModelCache: CodeBlockModelCache? = nil
 
   /// The identity of the code block in this subtree, or `nil` when the

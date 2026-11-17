@@ -1,33 +1,39 @@
-import EditorStyle
+import EditorSwiftUI
 import SwiftUI
-import Textual
 
-/// The Markdown body of a response, rendered through Textual
-/// (plan.md §4.2, §8, §9 B).
+/// The Markdown body of a response, in the rendered form of EditorKit
+/// (plan.md §4.2, §8, §9 B, D185).
 ///
 /// The model applies the streamed chunks to the text of the entry at the
-/// display rate, so the view gets the whole text each time. The view splits
-/// the text into paragraphs (``ParagraphSplitter``) and gives each paragraph
-/// to Textual in a ``ParagraphView``. A paragraph that does not change keeps
-/// its view, so a chunk evaluates only the paragraphs that it changes.
+/// display rate, so the view gets the whole text each time. The view shows
+/// the text in one read-only EditorKit model (``RenderedMarkdownView``). A new
+/// text that starts with the old text goes into the model as one edit at the
+/// end, so EditorKit parses and lays out only the end of the text. Each
+/// response has a model of its own, keyed by its id: a chunk changes only the
+/// model of its own response. When the environment has a
+/// ``CodeBlockModelCache``, the model is in the cache. Otherwise the view
+/// keeps the model in its state.
 ///
-/// The view applies ``EditorKitCodeBlockStyle``, so each fenced block shows
-/// in a ``CodeBlockView``. The view uses the ``CodeBlockModelCache`` of the
-/// environment. When the environment has no cache, the view keeps its own.
+/// EditorKit shows each fenced code block, each formula and each image of the
+/// text. When the view has a ``CitationPayload``, EditorKit shows a citation
+/// chip at each ``CitationMarker``. A press on a chip selects its source, as
+/// a press on an ``InlineCitation`` pill does.
 ///
-/// When the view has a ``CitationPayload``, each paragraph shows an
-/// ``InlineCitation`` pill at each ``CitationMarker`` of the paragraph. The
-/// paragraph index of a marker counts the paragraphs of the Markdown text.
-///
-/// The paragraphs are in one linked reading group (plan.md §6). In a message,
-/// the group is the group of the message. The view applies
+/// The text is one accessibility element with the identifier
+/// ``textIdentifier``, in one linked reading group (plan.md §6). In a
+/// message, the group is the group of the message. The view applies
 /// ``SwiftUI/View/accessibilityReadingScope()``, so the group works also
 /// outside an ``AgentThreadView``.
 public struct ResponseView: View {
-  /// The start of the accessibility identifier of each paragraph.
-  public static let paragraphIdentifierPrefix = "response-paragraph-"
+  /// The accessibility identifier of the text of each response. The value of
+  /// that element is the Markdown text.
+  public static let textIdentifier = "response-text"
 
-  /// The id that keys the code blocks and the evaluation counters.
+  /// The paragraph id of the whole text of a response in a
+  /// ``CodeBlockModelCache``.
+  static let textBlockKey = "response-text"
+
+  /// The id that keys the model of the text, unique in the thread.
   let id: String
 
   /// The Markdown text to show.
@@ -37,18 +43,15 @@ public struct ResponseView: View {
   /// the text has no citations.
   let citations: CitationPayload?
 
-  @Environment(\.codeBlockModelCache) private var environmentCache
-  @Environment(\.editorStyle) private var editorStyle
-
-  /// The cache that the view uses when the environment has no cache.
-  @State private var ownCache = CodeBlockModelCache()
+  @Environment(\.codeBlockModelCache) private var cache
+  @Environment(\.accessibilityMessageGroupID) private var messageGroupID
 
   /// Makes the body of one Markdown text, such as the text of an ACP text
   /// block of a transcript entry.
   ///
   /// - Parameters:
-  ///   - id: The id that keys the code blocks and the evaluation counters,
-  ///     unique in the thread, such as the id of the block view.
+  ///   - id: The id that keys the model of the text, unique in the thread,
+  ///     such as the id of the block view.
   ///   - markdown: The Markdown text.
   ///   - citations: The sources of the text and the places that cite them,
   ///     or `nil` when the text has no citations. Show the sources in a
@@ -60,87 +63,42 @@ public struct ResponseView: View {
     self.citations = citations
   }
 
-  /// The accessibility identifier of the paragraph at `index`.
+  /// The citation chips of the text.
+  var chips: [EditorCitation] {
+    citations?.editorCitations(in: markdown) ?? []
+  }
+
+  /// The model of the text of the response `id` in `cache`.
   ///
-  /// - Parameter index: The position of the paragraph in the text.
-  /// - Returns: `response-paragraph-<index>`.
-  public static func paragraphIdentifier(index: Int) -> String {
-    AccessibilityIdentifier.make(prefix: paragraphIdentifierPrefix, value: String(index))
+  /// - Parameters:
+  ///   - cache: The cache of the models.
+  ///   - id: The id of the response.
+  ///   - markdown: The text of a new model.
+  /// - Returns: The read-only model in the rendered presentation.
+  static func model(in cache: CodeBlockModelCache, id: String, markdown: String) -> EditorModel {
+    cache.model(for: modelID(for: id), text: markdown, make: RenderedMarkdownView.makeModel)
+  }
+
+  /// The identity of the text of the response `id` in a
+  /// ``CodeBlockModelCache``.
+  ///
+  /// - Parameter id: The id of the response.
+  /// - Returns: The identity. Its message id is `id`, so that
+  ///   ``CodeBlockModelCache/evict(messageID:)`` removes the model.
+  static func modelID(for id: String) -> CodeBlockID {
+    CodeBlockID(messageID: id, paragraphID: textBlockKey)
   }
 
   public var body: some View {
-    VStack(alignment: .leading, spacing: editorStyle.spacing.m) {
-      ParagraphList(
-        messageID: id,
-        paragraphs: ParagraphSplitter.paragraphs(markdown),
-        citations: citations?.placementsByParagraph() ?? [:])
-    }
+    RenderedMarkdownView(
+      markdown, identifier: Self.textIdentifier, citations: chips,
+      model: cache.map { Self.model(in: $0, id: id, markdown: markdown) }
+    )
+    // A new id is a new response, with a model of its own.
+    .id(id)
     .frame(maxWidth: .infinity, alignment: .leading)
-    .environment(\.codeBlockModelCache, environmentCache ?? ownCache)
-    .textual.codeBlockStyle(EditorKitCodeBlockStyle())
+    .accessibilityReadingGroup(messageGroupID ?? id)
     .accessibilityReadingScope()
-  }
-}
-
-/// One ``ParagraphView`` for each paragraph, keyed by the paragraph id.
-///
-/// This view, and not each ``ParagraphView``, reads the reading group of the
-/// message from the environment, and gives it to each paragraph as a value.
-///
-/// The list gives each paragraph view through a ``ParagraphViewCache``, so a
-/// settled paragraph keeps the same stored value from one update to the next.
-/// Then SwiftUI does not evaluate it again, also before SwiftUI can call `==`.
-private struct ParagraphList: View {
-  /// The id of the message.
-  let messageID: String
-
-  /// The paragraphs to show, in message order.
-  let paragraphs: [ParagraphSplitter.Paragraph]
-
-  /// The citation pills of each paragraph, keyed by the paragraph index.
-  let citations: [Int: [CitationPlacement]]
-
-  /// The linked reading group of the message that holds the view, or `nil`
-  /// to use the group of ``messageID``.
-  @Environment(\.accessibilityMessageGroupID) private var messageGroupID
-
-  /// The last view of each paragraph.
-  @State private var cache = ParagraphViewCache()
-
-  var body: some View {
-    let readingGroupID = messageGroupID ?? messageID
-    let views = cache.reuse(
-      paragraphs.map { paragraph in
-        ParagraphView(
-          messageID: messageID,
-          paragraph: paragraph,
-          citations: citations[paragraph.id.index] ?? [],
-          readingGroupID: readingGroupID
-        )
-      })
-    ForEach(views, id: \.paragraph.id) { view in
-      ParagraphSlot(paragraph: view)
-    }
-  }
-}
-
-/// The element of the ``ParagraphList`` ForEach: it shows its
-/// ``ParagraphView`` with `.equatable()` one level below the ForEach.
-///
-/// The ForEach updates an element that it inserted after the mount again on
-/// each update when a transaction modifier, such as
-/// `.transaction { $0.disablesAnimations = true }`, is above the list. When
-/// the `.equatable()` view is the direct element, SwiftUI then evaluates the
-/// body of each such paragraph again, and `==` has no effect. This slot takes
-/// that update: its body is only the equatable paragraph, so SwiftUI compares
-/// the new paragraph view with the old one, and a settled paragraph does not
-/// evaluate again.
-private struct ParagraphSlot: View {
-  /// The paragraph view to show.
-  let paragraph: ParagraphView
-
-  var body: some View {
-    paragraph.equatable()
   }
 }
 

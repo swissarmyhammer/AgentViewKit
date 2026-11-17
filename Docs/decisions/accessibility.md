@@ -17,10 +17,10 @@ hosted tests are in `Tests/AgentViewKitTests/Accessibility/`.
   (`accessibilityReadingScope()`). `ConversationView` and `ResponseView` also
   apply the modifier. The modifier makes a namespace only when the
   environment has none, so a view outside a thread also has groups.
-- Each paragraph element (`response-paragraph-N`) and the streaming tail
-  element are in the group of their message. `MessageLayout` gives the
-  message id to its subtree, so the paragraphs of all the text blocks of one
-  message are in one group.
+- The text element of each text block (`response-text`, one EditorKit text
+  view for the whole text of the block) is in the group of its message.
+  `MessageLayout` gives the message id to its subtree, so the texts of all
+  the text blocks of one message are in one group.
 - Each row of the `LazyVStack` of `ConversationView` (`item-row-<id>`) is in
   the group `agent-thread`. The load-earlier row keeps its `causesPageTurn`
   trait and its scroll action. The list keeps its "N of M items" value.
@@ -31,17 +31,14 @@ hosted tests are in `Tests/AgentViewKitTests/Accessibility/`.
 
 ## Math in the reading order
 
-Textual draws each math span in a canvas, so the text element of a paragraph
-does not read the math. When a paragraph has math,
-`MathMarkdownParser.spokenText(for:)` makes the plain text with the LaTeX
-source of each span at its place. `MarkdownProse` combines the text into one
-element with that text as its label. Thus VoiceOver reads each formula at
-its place in the sentence.
+EditorKit shows the math of an answer (D185, AVK-9.3). The value of the text
+element of a text block is its Markdown text, so VoiceOver reads each
+formula at its place in the sentence, as its TeX source with its
+delimiters.
 
-The `math-inline` and `math-block` elements stay after the text, with their
-identifiers and labels, so that a user can also move to each formula. A
-paragraph with math is one element, so VoiceOver does not move to a link in
-that paragraph.
+EditorKit also gives each formula an element of its own, with the label
+"Math" and the TeX source as its value, so that a user can also move to each
+formula.
 
 ## Announcements
 

@@ -289,28 +289,24 @@ enum SnapshotFixtures {
     DefaultThreadComposer().environment(\.sessionModel, session)
   }
 
-  /// The model of the code block of the agent message of `session` in
-  /// `cache`.
+  /// The model of the text of the agent message of `session` with the code
+  /// block, in `cache`.
   ///
-  /// The thread makes the model in its first render pass. The identity of
-  /// the model is the identity that ``ParagraphView`` gives the paragraph of
-  /// the code block: the id of the text block of the message, and the key of
-  /// the paragraph.
+  /// The thread makes the model in its first render pass. The text of the
+  /// message, with its code block, is one EditorKit model, keyed by the id
+  /// of the text block of the message (``ResponseView``).
   ///
   /// - Parameters:
   ///   - cache: The cache that the thread uses.
   ///   - session: The session of ``threadSession``.
   /// - Returns: The model.
   /// - Throws: An issue when the session has no agent message with the code
-  ///   block, or the cache has no model for it.
-  static func codeBlockModel(in cache: CodeBlockModelCache, session: SessionModel) throws -> EditorModel {
+  ///   block, or the cache has no model for its text.
+  static func codeMessageModel(in cache: CodeBlockModelCache, session: SessionModel) throws -> EditorModel {
     let entry = try #require(session.transcript.first(where: isCodeMessage))
-    let paragraph = try #require(ParagraphSplitter.paragraphs(agentMessage).first { $0.text.contains(shellFence) })
-    let id = CodeBlockID(
-      messageID: EntryContentView.blockID(entryID: entry.id.rowKey, index: 0),
-      paragraphID: ParagraphView.key(for: paragraph.id))
+    let id = ResponseView.modelID(for: EntryContentView.blockID(entryID: entry.id.rowKey, index: 0))
     try #require(cache.contains(id))
-    return cache.model(for: id, code: shellCode)
+    return cache.model(for: id, code: agentMessage)
   }
 
   /// Whether `entry` is the agent message with the code block.
@@ -330,7 +326,8 @@ enum SnapshotFixtures {
   /// The parse runs off the main actor, and it ends for certain. The wait has
   /// no clock.
   ///
-  /// - Parameter model: The model of a code block.
+  /// - Parameter model: The model of a code block or of the text of a
+  ///   message.
   static func waitForSyntax(of model: EditorModel) async {
     _ = await model.syntax?.ensureParsed(upTo: model.state.version)
   }
