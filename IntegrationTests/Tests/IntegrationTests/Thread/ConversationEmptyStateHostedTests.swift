@@ -53,8 +53,16 @@
     /// The text of the default empty state.
     static let defaultMessage = "Send a message to start the conversation."
 
-    /// The accessibility label of the code block of ``welcomeMarkdown``.
-    static let codeBlockLabel = "swift code block"
+    /// The code of the code block of ``welcomeMarkdown``.
+    static let code = "let answer = 42"
+
+    /// Whether the Markdown text of the empty state holds `text`.
+    ///
+    /// The text shows in an EditorKit text view (D185), whose value is the
+    /// Markdown.
+    static func shows(_ text: String, in harness: HostedViewHarness<some View>) -> Bool {
+      harness.element(identifier: ConversationLayout.emptyStateTextIdentifier)?.value?.contains(text) == true
+    }
 
     // MARK: - Host Markdown
 
@@ -69,12 +77,10 @@
       harness.render()
 
       #expect(harness.element(identifier: ConversationLayout.emptyStateIdentifier) != nil)
-      #expect(harness.hasElement(label: Self.heading))
-      #expect(Self.listItems.allSatisfy { harness.hasElement(label: $0) })
-      let link = harness.element(identifier: Self.linkAddress)
-      #expect(link?.role == "AXLink")
-      #expect(link?.label == Self.linkText)
-      #expect(harness.element(identifier: CodeBlockView.identifier)?.label == Self.codeBlockLabel)
+      #expect(Self.shows(Self.heading, in: harness))
+      #expect(Self.listItems.allSatisfy { Self.shows($0, in: harness) })
+      #expect(Self.shows(Self.linkText, in: harness))
+      #expect(Self.shows(Self.code, in: harness))
     }
 
     @Test func theHostMarkdownGoesAwayAfterTheFirstEntry() async throws {
@@ -86,14 +92,14 @@
       let harness = HostedViewHarness(view, size: Self.hostSize)
       defer { harness.close() }
       harness.render()
-      #expect(harness.hasElement(label: Self.heading))
+      #expect(Self.shows(Self.heading, in: harness))
 
       let insertedKey = try await ConversationViewHostedTests.insertMessage(into: session)
       harness.render()
 
       #expect(harness.element(identifier: ConversationLayout.listIdentifier) != nil)
       #expect(harness.element(identifier: ConversationLayout.emptyStateIdentifier) == nil)
-      #expect(!harness.hasElement(label: Self.heading))
+      #expect(!Self.shows(Self.heading, in: harness))
       #expect(harness.element(identifier: ItemRow.identifier(for: insertedKey)) != nil)
     }
 
@@ -108,10 +114,10 @@
       harness.render()
 
       let title = try #require(harness.frame(identifier: ConversationLayout.emptyStateTitleIdentifier))
-      let code = try #require(harness.frame(identifier: CodeBlockView.identifier))
+      let text = try #require(harness.frame(identifier: ConversationLayout.emptyStateTextIdentifier))
       #expect(harness.element(identifier: ConversationLayout.emptyStateTitleIdentifier)?.label == Self.title)
       // The y axis of a screen frame goes up, so the higher view has the larger y.
-      #expect(title.minY > code.maxY)
+      #expect(title.minY >= text.maxY)
     }
 
     @Test func hostMarkdownWithNoTitleShowsNoTitle() async throws {
@@ -137,7 +143,7 @@
       harness.render()
 
       #expect(harness.element(identifier: ConversationLayout.emptyStateTitleIdentifier)?.label == Self.defaultTitle)
-      #expect(harness.hasElement(label: Self.defaultMessage))
+      #expect(Self.shows(Self.defaultMessage, in: harness))
     }
 
     // MARK: - Environment
@@ -153,8 +159,8 @@
 
       #expect(harness.element(identifier: ConversationLayout.emptyStateIdentifier) != nil)
       #expect(harness.element(identifier: ConversationLayout.emptyStateTitleIdentifier)?.label == Self.title)
-      #expect(harness.hasElement(label: Self.environmentMarkdown))
-      #expect(!harness.hasElement(label: Self.defaultMessage))
+      #expect(Self.shows(Self.environmentMarkdown, in: harness))
+      #expect(!Self.shows(Self.defaultMessage, in: harness))
     }
 
     @Test func anExplicitMarkdownWinsOverTheModifier() async throws {
@@ -168,8 +174,8 @@
       defer { harness.close() }
       harness.render()
 
-      #expect(harness.hasElement(label: Self.heading))
-      #expect(!harness.hasElement(label: Self.environmentMarkdown))
+      #expect(Self.shows(Self.heading, in: harness))
+      #expect(!Self.shows(Self.environmentMarkdown, in: harness))
     }
   }
 #endif

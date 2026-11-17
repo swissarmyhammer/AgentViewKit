@@ -25,6 +25,22 @@ final class OwnModelSlot {
     isEditable = editable
   }
 
+  /// The model of the slot. The first read makes the model with `make`.
+  ///
+  /// - Parameters:
+  ///   - text: The text of a new model.
+  ///   - make: Makes a model that holds a text, such as a read-only model in
+  ///     the rendered presentation (``RenderedMarkdownView``).
+  /// - Returns: The model.
+  func model(text: String, make: (String) -> EditorModel) -> EditorModel {
+    if let model {
+      return model
+    }
+    let model = make(text)
+    self.model = model
+    return model
+  }
+
   /// The model of the slot. The first read makes a model that holds `text`:
   /// an editable model when the slot is editable, and a read-only model
   /// otherwise.

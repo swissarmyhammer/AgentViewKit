@@ -22,6 +22,10 @@ public enum ConversationLayout {
   /// ``ConversationEmptyState``.
   public static let emptyStateTitleIdentifier = "conversation-empty-state-title"
 
+  /// The accessibility identifier of the text view of the Markdown of the
+  /// empty state (``ConversationEmptyState``). Its value is the Markdown.
+  public static let emptyStateTextIdentifier = "conversation-empty-state-text"
+
   /// The scroll identifier of the empty view at the end of the content of the
   /// list. A scroll to the bottom goes to this view (^66has33).
   static let bottomIdentifier = "conversation-bottom"

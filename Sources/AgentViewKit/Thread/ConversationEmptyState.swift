@@ -66,8 +66,8 @@ extension View {
 /// transcript has no entry.
 ///
 /// The view shows an optional title with an optional SF Symbol, and a
-/// Markdown text below it. The text renders through ``ResponseView``, the
-/// same as the text of an agent message, so headings, lists, links, math and
+/// Markdown text below it. The text shows in the rendered form of EditorKit
+/// (``RenderedMarkdownView``, D185), so headings, lists, links, math and
 /// code blocks show, and the EditorKit theme applies.
 ///
 /// - ``init()`` shows the content of
@@ -116,7 +116,7 @@ public struct ConversationEmptyState: View {
     ScrollView {
       VStack(alignment: .leading, spacing: editorStyle.spacing.m) {
         ConversationEmptyHeader(title: shown.title, systemImage: shown.systemImage)
-        ResponseView(id: ConversationLayout.emptyStateIdentifier, markdown: shown.markdown)
+        RenderedMarkdownView(shown.markdown, identifier: ConversationLayout.emptyStateTextIdentifier)
       }
     }
     .defaultScrollAnchor(.center, for: .alignment)

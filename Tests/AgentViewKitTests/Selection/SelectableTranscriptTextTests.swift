@@ -8,8 +8,9 @@ import Testing
 /// The unit tests mount no view, so the tests read the view types and the
 /// source of the kit. Two facts hold:
 ///
-/// - The selectable Textual components (Markdown prose, plain text and
-///   attachment text) have the region modifier in their body.
+/// - The selectable Textual components (Markdown prose and plain text) have
+///   the region modifier in their body. EditorKit views join the region by
+///   themselves.
 /// - No view of the kit selects text with a selection that the kit cannot
 ///   clear: no SwiftUI `.textSelection(.enabled)`, and no Textual selection
 ///   or `StructuredText` outside the region modifier.
@@ -53,11 +54,14 @@ import Testing
     #expect(String(describing: type(of: body)).contains(Self.region))
   }
 
+  /// Plain text is a ``SelectableText``. Markdown (``RenderedMarkdownView``)
+  /// and code (``CodeBlockView``) show in an EditorKit `EditorView`, which
+  /// joins the selection of the thread by itself (D185).
   @Test func attachmentTextIsASelectionRegion() {
     let body = AttachmentTextContent(text: "Notes", type: .plainText, filename: nil).body
     let name = String(describing: type(of: body))
-    #expect(name.contains(Self.region))
     #expect(name.contains("SelectableText"))
+    #expect(name.contains("RenderedMarkdownView"))
     #expect(name.contains("CodeBlockView"))
   }
 
