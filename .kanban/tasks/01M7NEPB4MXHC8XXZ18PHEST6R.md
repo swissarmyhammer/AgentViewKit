@@ -1,6 +1,8 @@
 ---
 assignees:
 - claude-code
+depends_on:
+- 01M7NEPK3QHB30W786RBDV6CER
 position_column: todo
 position_ordinal: '8380'
 title: 'AVK-9.4: Citations in chat Markdown use .editorCitations(_:onActivate:)'

@@ -1,5 +1,8 @@
 @testable import AgentViewKit
 import EditorSwiftUI
+import FoundationModelsACP
+import FoundationModelsACPClient
+import Foundation
 import Testing
 
 /// The read-only EditorKit view of static Markdown (AVK-9.1, D185).
@@ -31,5 +34,17 @@ import Testing
     let content = ConversationEmptyState(markdown: "Ask about the **code**.")
 
     #expect(String(describing: type(of: content.body)).contains("RenderedMarkdownView"))
+  }
+
+  // MARK: - Images (AVK-9.6)
+
+  @Test func imagesLoadFromTheFolderOfTheSession() {
+    let session = SessionModel.preview(cwd: AbsolutePath(rawValue: "/tmp/project"))
+
+    #expect(RenderedMarkdownView.imageFolder(of: session) == URL(filePath: "/tmp/project", directoryHint: .isDirectory))
+  }
+
+  @Test func withNoSessionNoFolderGivesImages() {
+    #expect(RenderedMarkdownView.imageFolder(of: nil) == nil)
   }
 }

@@ -6,8 +6,8 @@ comments:
   id: 01m7neqnh63k1217pb518hb32w
   text: 'Decision from testudoapp-75: images use `FileImageSource` relative to the cwd of the session; nothing outside that folder. Links: a click calls `openURL`, and the host decides. AVK opens no URL itself.'
   timestamp: 2026-11-17T19:11:26.758255+00:00
-position_column: todo
-position_ordinal: '8580'
+position_column: done
+position_ordinal: ffffffe080
 title: 'AVK-9.6: Images and links in chat Markdown'
 ---
 D185.

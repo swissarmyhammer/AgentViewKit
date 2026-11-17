@@ -1,5 +1,6 @@
 import EditorSwiftUI
 import EditorText
+import FoundationModelsACPClient
 import SwiftUI
 
 /// Static Markdown in the rendered form of EditorKit (D185, AVK-9).
@@ -26,6 +27,7 @@ struct RenderedMarkdownView: View {
   let identifier: String
 
   @State private var ownModel = OwnModelSlot()
+  @Environment(\.sessionModel) private var session
 
   /// Makes the view of Markdown text.
   ///
@@ -41,6 +43,7 @@ struct RenderedMarkdownView: View {
     let model = ownModel.model(text: markdown, make: Self.makeModel)
     EditorView(model: model)
       .editorTextAccessibilityIdentifier(identifier)
+      .editorImageSource(FileImageSource(), relativeTo: Self.imageFolder(of: session))
       .sizedToContent()
       .editorSyntax(.markdown)
       .editorPresentation(.rendered)
@@ -48,6 +51,20 @@ struct RenderedMarkdownView: View {
       .onChange(of: markdown) {
         Self.sync(model, to: markdown)
       }
+  }
+
+  /// The folder that the images of the Markdown load from: the working
+  /// folder of the session (AVK-9.6).
+  ///
+  /// `FileImageSource` reads only regular files inside this folder. With no
+  /// folder, no image loads, and each image shows its alt text. A click on a
+  /// link calls the `openURL` action of the environment, so the host decides
+  /// what a link opens. The kit opens no URL itself.
+  ///
+  /// - Parameter session: The session of the view, or `nil`.
+  /// - Returns: The folder, or `nil` when the session has no working folder.
+  static func imageFolder(of session: SessionModel?) -> URL? {
+    session.flatMap(StatusLineView.folder(of:)).map { URL(filePath: $0, directoryHint: .isDirectory) }
   }
 
   /// Makes the read-only model of Markdown text, in the rendered

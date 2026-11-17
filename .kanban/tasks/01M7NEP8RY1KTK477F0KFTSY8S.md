@@ -1,6 +1,8 @@
 ---
 assignees:
 - claude-code
+depends_on:
+- 01M7NEPK3QHB30W786RBDV6CER
 position_column: todo
 position_ordinal: '8280'
 title: 'AVK-9.3: Math in chat Markdown uses EditorKit math; remove MathMarkdownParser'
