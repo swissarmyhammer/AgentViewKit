@@ -63,16 +63,20 @@ enum PromptContent {
   ///   - input: The text and the attachments.
   ///   - capabilities: The prompt capabilities of the agent, or `nil` when
   ///     the agent advertises none.
-  /// - Returns: A `text` block, then one block for each attachment that the
-  ///   agent accepts (``isAccepted(attachmentAt:by:)``), in order.
+  ///   - addedText: The texts that the submit hook of the host adds
+  ///   (``ComposerSubmitResult/addedText``), each as one text block.
+  /// - Returns: A `text` block, one `text` block for each added text, then
+  ///   one block for each attachment that the agent accepts
+  ///   (``isAccepted(attachmentAt:by:)``), in order.
   static func makeBlocks(
-    for input: UserInput, accepting capabilities: PromptCapabilities?
+    for input: UserInput, accepting capabilities: PromptCapabilities?, addingText addedText: [String] = []
   ) -> [FoundationModelsACP.ContentBlock] {
     let embedsFiles = capabilities?.embeddedContext != nil
     let attachmentBlocks = input.attachments
       .filter { isAccepted(attachmentAt: $0, by: capabilities) }
       .map { makeBlock(forAttachmentAt: $0, embeddingFiles: embedsFiles) }
-    return [.text(FoundationModelsACP.TextContent(text: input.text))] + attachmentBlocks
+    let textBlocks = ([input.text] + addedText).map { FoundationModelsACP.ContentBlock.text(.init(text: $0)) }
+    return textBlocks + attachmentBlocks
   }
 
   /// Tells whether an attached file is an image, from its file name

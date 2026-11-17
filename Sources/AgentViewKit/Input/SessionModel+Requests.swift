@@ -22,7 +22,7 @@ extension SessionModel {
   /// when the prompt returns.
   ///
   /// The blocks of the prompt follow the prompt capabilities of the agent
-  /// (``PromptContent/makeBlocks(for:accepting:)``): an attachment that the
+  /// (``PromptContent/makeBlocks(for:accepting:addingText:)``): an attachment that the
   /// agent does not accept does not go out.
   ///
   /// The model adds the local user message with the send state `pending`
@@ -36,8 +36,14 @@ extension SessionModel {
   ///   - capabilities: The prompt capabilities of the agent, read from
   ///     `ConnectionModel.agentCapabilities` at the time of the call, or `nil`
   ///     when the agent advertises none.
-  func sendPrompt(with input: UserInput, accepting capabilities: PromptCapabilities?) async {
-    await sendPrompt(PromptContent.makeBlocks(for: input, accepting: capabilities))
+  ///   - result: What the submit hook of the host adds: text blocks after
+  ///     the text block, and the `_meta` of the request.
+  func sendPrompt(
+    with input: UserInput, accepting capabilities: PromptCapabilities?, result: ComposerSubmitResult = .send
+  ) async {
+    await sendPrompt(
+      PromptContent.makeBlocks(for: input, accepting: capabilities, addingText: result.addedText),
+      meta: result.requestMeta)
   }
 
   /// Sends `content` as `session/prompt` with `prompt(_:meta:)`, and returns
@@ -47,10 +53,12 @@ extension SessionModel {
   /// failure marks it as failed and adds the error entry. This function then
   /// writes the failure to the log, and does not throw it.
   ///
-  /// - Parameter content: The ACP content blocks of the prompt.
-  func sendPrompt(_ content: [FoundationModelsACP.ContentBlock]) async {
+  /// - Parameters:
+  ///   - content: The ACP content blocks of the prompt.
+  ///   - meta: The `_meta` of the request, or `nil`.
+  func sendPrompt(_ content: [FoundationModelsACP.ContentBlock], meta: JSONValue? = nil) async {
     do {
-      _ = try await prompt(content)
+      _ = try await prompt(content, meta: meta)
     } catch {
       sessionRequestLogger.error("session/prompt failed: \(String(describing: error), privacy: .public)")
     }
@@ -71,7 +79,7 @@ extension SessionModel {
     Task { @MainActor in await sendPrompt(content) }
   }
 
-  /// Sends `text` as `session/prompt` with ``sendPrompt(with:accepting:)``,
+  /// Sends `text` as `session/prompt` with ``sendPrompt(with:accepting:result:)``,
   /// and returns when the prompt returns.
   ///
   /// The text has no attachment, so the prompt capabilities do not change
@@ -83,7 +91,7 @@ extension SessionModel {
   }
 
   /// Starts a main-actor task that sends `input` as `session/prompt` with
-  /// ``sendPrompt(with:accepting:)``.
+  /// ``sendPrompt(with:accepting:result:)``.
   ///
   /// The composer calls this function at once for each submit, also while
   /// the agent runs and while an earlier prompt is open.
@@ -93,8 +101,11 @@ extension SessionModel {
   ///   - capabilities: The prompt capabilities of the agent, read from
   ///     `ConnectionModel.agentCapabilities` at the time of the submit, or
   ///     `nil` when the agent advertises none.
-  func startPrompt(with input: UserInput, accepting capabilities: PromptCapabilities?) {
-    Task { @MainActor in await sendPrompt(with: input, accepting: capabilities) }
+  ///   - result: What the submit hook of the host adds, or ``ComposerSubmitResult/send``.
+  func startPrompt(
+    with input: UserInput, accepting capabilities: PromptCapabilities?, result: ComposerSubmitResult = .send
+  ) {
+    Task { @MainActor in await sendPrompt(with: input, accepting: capabilities, result: result) }
   }
 
   /// Starts a main-actor task that sends `text` as `session/prompt` with

@@ -44,8 +44,13 @@ public struct DefaultPromptAccessory: View {
   /// The accessibility identifier of the Stop button.
   public static let stopIdentifier = "prompt-stop"
 
+  /// The accessibility identifier of the progress mark that shows in place
+  /// of the submit button while the submit hook of the host runs.
+  public static let submitProgressIdentifier = "prompt-submit-progress"
+
   @Environment(\.sessionModel) private var session
   @Environment(\.promptSubmitAction) private var submit
+  @Environment(\.promptSubmitInProgress) private var isSubmitting
   @Environment(\.promptSuggestions) private var suggestions
   @Environment(\.editorStyle) private var editorStyle
 
@@ -84,7 +89,16 @@ public struct DefaultPromptAccessory: View {
         if canCancel {
           stopButton
         }
-        submitButton
+        if isSubmitting {
+          // The submit hook of the host runs (`onComposerSubmit`): the send
+          // is in progress.
+          ProgressView()
+            .controlSize(.small)
+            .accessibilityLabel(String(localized: "Sending", bundle: .module))
+            .accessibilityIdentifier(Self.submitProgressIdentifier)
+        } else {
+          submitButton
+        }
       }
       // Each button of the accessory is its own glass in the container of
       // the floating controls, not a button on another glass, so it keeps

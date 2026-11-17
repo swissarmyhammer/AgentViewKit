@@ -110,6 +110,10 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.agentCommandTarget) private var commandTarget
   @Environment(\.promptSubmitReport) private var reportSubmit
+  @Environment(\.composerSubmitHook) private var submitHook
+  @Environment(\.promptFileRoot) private var fileRoot
+  /// Whether the composer waits for the submit hook of the host.
+  @State private var isSubmitting = false
 
   /// The scale of the bound of the editor, whose text is in the display font.
   @ThemeFontScale(.display) private var editorFontScale
@@ -200,7 +204,7 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   /// Whether a submit sends the text now: the text is not blank, and the
   /// environment has a session model that is not closed.
   private var canSubmit: Bool {
-    Self.message(from: text) != nil && session?.isClosed == false
+    !isSubmitting && Self.message(from: text) != nil && session?.isClosed == false
   }
 
   /// Whether the session model of the environment is closed, so the composer
@@ -226,10 +230,12 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
       // rule 10).
       ControlStack(alignment: .leading) {
         field(context)
+          .disabled(isSubmitting)
         accessory()
       }
     }
     .disabled(isSessionClosed)
+    .environment(\.promptSubmitInProgress, isSubmitting)
     .attachmentDropDestination(attachments)
     .environment(
       \.promptSubmitAction, PromptSubmitAction(isEnabled: canSubmit, action: submitCommand))
@@ -294,18 +300,51 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
     cancel()
   }
 
-  /// Sends the text at once, also while the agent runs. Then clears
-  /// the text and calls the host closure.
+  /// Sends the text, also while the agent runs. Then clears the text and
+  /// calls the host closure.
+  ///
+  /// With a submit hook of the host (``SwiftUI/View/onComposerSubmit(_:)``),
+  /// the hook runs first, while the text stays. Until it returns, the
+  /// composer takes no second submit and shows that a send is in progress.
+  /// A cancel of the hook sends nothing and keeps the text. With no hook,
+  /// the text goes out at once.
   ///
   /// The prompt blocks follow the prompt capabilities of the connection
-  /// model, read at the time of the submit. The composer reports the outcome
+  /// model, read at the time of the send. The composer reports the outcome
   /// through ``SwiftUI/EnvironmentValues/promptSubmitReport``.
   private func submit() {
-    guard canSubmit, let session, let input = takeInput() else {
+    guard canSubmit, session != nil else {
       reportSubmit?(.notSent)
       return
     }
-    session.startPrompt(with: input, accepting: connection?.promptCapabilities)
+    guard let submitHook else {
+      send(.send)
+      return
+    }
+    let submission = ComposerSubmission(text, fileRoot: fileRoot)
+    isSubmitting = true
+    Task { @MainActor in
+      let result = await submitHook(submission)
+      isSubmitting = false
+      guard !result.isCancelled else {
+        reportSubmit?(.notSent)
+        return
+      }
+      send(result)
+    }
+  }
+
+  /// Takes the text and the files, and sends them with what the hook of the
+  /// host adds.
+  ///
+  /// - Parameter result: The result of the submit hook, or
+  ///   ``ComposerSubmitResult/send``.
+  private func send(_ result: ComposerSubmitResult) {
+    guard let session, !session.isClosed, let input = takeInput() else {
+      reportSubmit?(.notSent)
+      return
+    }
+    session.startPrompt(with: input, accepting: connection?.promptCapabilities, result: result)
     reportSubmit?(.sent)
     onSubmit()
   }

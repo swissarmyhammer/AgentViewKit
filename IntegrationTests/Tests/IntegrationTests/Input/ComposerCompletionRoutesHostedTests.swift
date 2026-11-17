@@ -128,11 +128,12 @@ struct RoutedComposerThreadHost: View {
   static func mount(
     _ session: ScriptedSession, editorSession: PromptEditorSession,
     routes: [PrefixCompletionRoute] = ComposerRouteFixture.routes, fileRoot: URL? = nil,
-    mentions: [ComposerMentionSource] = []
+    mentions: [ComposerMentionSource] = [], submitHook: ComposerSubmitHook? = nil
   ) throws -> MountedThread<some View> {
     try ComposerHarness.mountThread(of: session.model) {
       RoutedComposerThreadHost(session: session, editorSession: editorSession, routes: routes)
         .composerMentions(mentions)
+        .environment(\.composerSubmitHook, submitHook)
         .promptFileRoot(fileRoot)
         .environment(\.sessionModel, session.model)
     }
@@ -281,6 +282,61 @@ struct RoutedComposerThreadHost: View {
 
     #expect(editorSession.model.text == "@claude-code ")
     #expect(editorSession.offeredMention("claude-code") == .some(link))
+    #expect(session.promptTexts.isEmpty)
+  }
+
+  /// The submit hook gets the mention with its link while the text is still
+  /// in the composer, and its added text goes out after the prompt text
+  /// (D199, AVK-15.3).
+  @Test func theSubmitHookGetsTheMentionsBeforeTheTextClears() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let editorSession = PromptEditorSession()
+    let link = try #require(URL(string: "testudo-session://01ABC"))
+    let mention = ComposerMention(label: "claude-code", token: "claude-code", link: link)
+    var submissions: [ComposerSubmission] = []
+    var textsAtHook: [String] = []
+    let thread = try Self.mount(
+      session, editorSession: editorSession, routes: [], mentions: [ComposerMentionSource { _ in [mention] }],
+      submitHook: { submission in
+        submissions.append(submission)
+        textsAtHook.append(editorSession.model.text)
+        return .send(addingText: ["Sent to claude-code: delivered"])
+      })
+    defer { thread.harness.close() }
+    try await Self.type("@cla", in: thread, editorSession: editorSession)
+    await Self.waitForRows(["claude-code"], of: editorSession, in: thread)
+    try EditorKitPromptEditorHostedTests.press(.return, in: thread.harness)
+    try #require(editorSession.model.text == "@claude-code ")
+
+    try EditorKitPromptEditorHostedTests.pressReturn(in: thread.harness)
+    await ObservationWait.until { !session.promptBlocks.isEmpty }
+
+    #expect(textsAtHook == ["@claude-code "])
+    #expect(submissions.first?.mentions.map(\.link) == [link])
+    #expect(session.promptBlocks.first?.count == 2)
+    #expect(session.promptTexts.first?.contains("Sent to claude-code: delivered") == true)
+  }
+
+  /// A cancel of the submit hook sends nothing and keeps the text.
+  @Test func aCancelOfTheSubmitHookKeepsTheText() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let editorSession = PromptEditorSession()
+    var calls = 0
+    let thread = try Self.mount(
+      session, editorSession: editorSession, routes: [],
+      submitHook: { _ in
+        calls += 1
+        return .cancel
+      })
+    defer { thread.harness.close() }
+    try await Self.type("hello", in: thread, editorSession: editorSession)
+
+    try EditorKitPromptEditorHostedTests.pressReturn(in: thread.harness)
+    await thread.harness.render { calls == 1 }
+
+    #expect(editorSession.model.text == "hello")
     #expect(session.promptTexts.isEmpty)
   }
 
