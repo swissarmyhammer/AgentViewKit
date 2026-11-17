@@ -59,6 +59,9 @@ private struct TextualSelectionRegion: ViewModifier {
     content
       .id(owner.generation)
       .textual.textSelection(.enabled)
+      // A right click on the text shows the item menu of the kit, not the
+      // menu of Textual (D193 (f)).
+      .onAppear { TextualContextMenu.start() }
       .background {
         if let region {
           TextualSelectionProbe(region: region, owner: owner)
