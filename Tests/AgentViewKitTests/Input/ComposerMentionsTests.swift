@@ -138,3 +138,77 @@ nonisolated final class BodyLog: Sendable {
     #expect(!EditorKitPromptEditor.isTrigger("ask @", reportsCommands: false, hasAtSource: false))
   }
 }
+
+/// Tests for the chip and the link of an accepted mention row (AVK-15.2,
+/// D199).
+@Suite @MainActor struct ComposerMentionChipTests {
+  /// The link of the mention of the tests.
+  static let link = URL(string: "testudo-session://01ABC")!
+
+  /// The file root of the tests.
+  static let root = URL(filePath: "/tmp/project", directoryHint: .isDirectory)
+
+  // MARK: - Offered rows
+
+  @Test func anOfferedRowIsKnownByItsToken() async {
+    let mentions = ComposerMentionSources([ComposerMentionsTests.source()])
+    let fixture = CompletionFixture(
+      "@", sources: [AtReferenceSource(files: nil, mentions: mentions)])
+
+    _ = await fixture.query()
+
+    #expect(mentions.offered("claude-code") == .some(ComposerMentionsTests.mentions[0].link))
+    #expect(mentions.offered("reviewer") == .some(nil))
+    #expect(mentions.offered("someone") == nil)
+  }
+
+  @Test func theAcceptedMentionIsTheRunBeforeTheSpace() {
+    #expect(EditorKitPromptEditor.acceptedMentionToken(before: "ask @claude-code ") == "claude-code")
+    #expect(EditorKitPromptEditor.acceptedMentionToken(before: "ask @claude-code") == nil)
+    #expect(EditorKitPromptEditor.acceptedMentionToken(before: "ask claude ") == nil)
+  }
+
+  // MARK: - Chip
+
+  @Test func theDetectorFindsOnlyTheAcceptedTokens() {
+    let text = "ask @claude-code and @someone"
+
+    let matches = MentionDetector.mentions(in: text, tokens: ["claude-code"])
+
+    #expect(matches.map(\.text) == ["@claude-code"])
+  }
+
+  // MARK: - Link
+
+  @Test func theLinkOfAMentionIsOnItsRun() throws {
+    let text = EditorKitPromptEditor.attributedText(
+      "ask @claude-code now", references: [], root: Self.root, mentions: ["claude-code": Self.link])
+
+    let run = try #require(text.runs.first { $0.link != nil })
+    #expect(String(text[run.range].characters) == "@claude-code")
+    #expect(run.link == Self.link)
+  }
+
+  @Test func theMentionsOfAPromptTextRoundTrip() {
+    let mentions: [String: URL?] = ["claude-code": Self.link]
+    let text = EditorKitPromptEditor.attributedText(
+      "@notes.txt and @claude-code", references: ["notes.txt"], root: Self.root, mentions: mentions)
+
+    #expect(EditorKitPromptEditor.mentions(in: text, root: Self.root) == mentions)
+    #expect(EditorKitPromptEditor.references(in: text, root: Self.root) == ["notes.txt"])
+  }
+
+  @Test func aMentionLinkIsNotAnAttachment() {
+    let text = EditorKitPromptEditor.attributedText(
+      "ask @claude-code", references: [], root: Self.root, mentions: ["claude-code": Self.link])
+
+    #expect(PromptInputView<EditorKitPromptEditor, DefaultPromptAccessory>.attachmentURLs([], in: text).isEmpty)
+  }
+
+  @Test func aMentionWithNoLinkHasNoLinkInThePromptText() {
+    let text = EditorKitPromptEditor.attributedText(
+      "@reviewer", references: [], root: nil, mentions: ["reviewer": nil])
+
+    #expect(text.runs.allSatisfy { $0.link == nil })
+  }
+}

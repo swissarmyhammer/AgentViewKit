@@ -110,6 +110,10 @@ public struct EditorKitPromptEditor: View {
   /// The paths of the accepted file references, relative to the file root.
   @State private var references: Set<String> = []
 
+  /// The accepted mentions, by their token without the `@`. The value is
+  /// the link of the row, or `nil` for a row with no link (D199).
+  @State private var mentions: [String: URL?] = [:]
+
   /// Makes the editor.
   ///
   /// - Parameter context: The values that the composer gives.
@@ -146,7 +150,8 @@ public struct EditorKitPromptEditor: View {
     .sizedToContent()
     .editorPlaceholder(context.placeholder)
     .editorInlineDecorations([
-      EditorSwiftUI.SmartTag(.token, detect: FileReferenceDetector(paths: references))
+      EditorSwiftUI.SmartTag(.token, detect: FileReferenceDetector(paths: references)),
+      EditorSwiftUI.SmartTag(.token, detect: MentionDetector(tokens: Set(mentions.keys))),
     ])
     // The identifier and the label go on the text view that takes typing, so
     // that a UI test finds one element to type into, and VoiceOver names it.
@@ -264,7 +269,7 @@ public struct EditorKitPromptEditor: View {
     guard let action = Self.returnAction(for: Self.eventModifiers(of: modifiers), in: context) else {
       return false
     }
-    push(model.text, references: references)
+    push(model.text, references: references, mentions: mentions)
     action()
     // A submit clears the text of the prompt. The editor takes the change at
     // once, so that a commit that the stream still holds cannot give the old
@@ -327,19 +332,24 @@ public struct EditorKitPromptEditor: View {
     // taken text gives nothing back to the prompt.
     guard !Self.isPull(transaction) else { return }
     var references = references
+    var mentions = mentions
     switch transaction.annotations.userEvent {
     case .input, .delete:
       updateCompletion(in: model)
     case .completionAccept:
-      if let path = Self.acceptedFile(before: caretLine(in: model), root: kitFileRoot) {
+      let line = caretLine(in: model)
+      if let path = Self.acceptedFile(before: line, root: kitFileRoot) {
         references.insert(path)
         self.references = references
+      } else if let token = Self.acceptedMentionToken(before: line), let link = session.offeredMention(token) {
+        mentions.updateValue(link, forKey: token)
+        self.mentions = mentions
       }
       didAccept(in: model)
     default:
       break
     }
-    push(model.text, references: references)
+    push(model.text, references: references, mentions: mentions)
   }
 
   /// Whether a transaction is the change of a text that the editor took from
@@ -530,8 +540,9 @@ public struct EditorKitPromptEditor: View {
   /// - Parameters:
   ///   - text: The text of the editor.
   ///   - references: The paths of the accepted file references.
-  private func push(_ text: String, references: Set<String>) {
-    let attributed = Self.attributedText(text, references: references, root: kitFileRoot)
+  ///   - mentions: The accepted mentions and their links.
+  private func push(_ text: String, references: Set<String>, mentions: [String: URL?]) {
+    let attributed = Self.attributedText(text, references: references, root: kitFileRoot, mentions: mentions)
     if context.text.wrappedValue != attributed {
       session.didPush(attributed)
       context.text.wrappedValue = attributed
@@ -565,6 +576,7 @@ public struct EditorKitPromptEditor: View {
   private func pull(_ text: AttributedString, into model: EditorModel) {
     session.didPull()
     references = Self.references(in: text, root: kitFileRoot)
+    mentions = Self.mentions(in: text, root: kitFileRoot)
     let plain = String(text.characters)
     guard plain != model.text else { return }
     model.replaceAll(plain)
@@ -586,6 +598,40 @@ public struct EditorKitPromptEditor: View {
     return Set(text.runs.compactMap(\.link).compactMap { relativePath(of: $0, under: root) })
   }
 
+  /// The accepted mentions of a prompt text: the inverse of
+  /// ``attributedText(_:references:root:mentions:)`` for the mentions.
+  ///
+  /// Each `link` attribute on a run of `@` and a token is one mention,
+  /// unless the link is a file URL under `root`. A mention with no link has
+  /// no attribute, so it does not come back.
+  ///
+  /// - Parameters:
+  ///   - text: The text of the prompt.
+  ///   - root: The file root, or `nil`.
+  /// - Returns: The link of each mention, by its token without the `@`.
+  static func mentions(in text: AttributedString, root: URL?) -> [String: URL?] {
+    var result: [String: URL?] = [:]
+    for run in text.runs {
+      guard let link = run.link, root.flatMap({ relativePath(of: link, under: $0) }) == nil else { continue }
+      let run = String(text[run.range].characters)
+      guard run.hasPrefix(FileReferenceSource.trigger) else { continue }
+      result.updateValue(link, forKey: String(run.dropFirst(FileReferenceSource.trigger.count)))
+    }
+    return result
+  }
+
+  /// The token of the mention that an accept just inserted.
+  ///
+  /// - Parameter line: The text of the caret line before the caret.
+  /// - Returns: The token without the `@`, when the text ends in `@`, a
+  ///   token, and a space. `nil` otherwise.
+  static func acceptedMentionToken(before line: Substring) -> String? {
+    guard line.hasSuffix(" ") else { return nil }
+    let run = Self.lastRun(of: line.dropLast())
+    guard run.hasPrefix(FileReferenceSource.trigger), run.count > FileReferenceSource.trigger.count else { return nil }
+    return String(run.dropFirst(FileReferenceSource.trigger.count))
+  }
+
   /// The path of a linked file relative to the file root.
   ///
   /// - Parameters:
@@ -605,17 +651,32 @@ public struct EditorKitPromptEditor: View {
   /// The prompt text of the editor text.
   ///
   /// Each accepted file reference gets a `link` attribute that holds the file
-  /// URL.
+  /// URL. Each accepted mention with a link gets a `link` attribute that
+  /// holds that link (D199). A file reference wins over a mention with the
+  /// same token.
   ///
   /// - Parameters:
   ///   - text: The text of the editor.
   ///   - references: The paths of the accepted file references.
   ///   - root: The file root, or `nil`.
+  ///   - mentions: The accepted mentions and their links.
   /// - Returns: The attributed text.
-  static func attributedText(_ text: String, references: Set<String>, root: URL?) -> AttributedString {
+  static func attributedText(
+    _ text: String, references: Set<String>, root: URL?, mentions: [String: URL?] = [:]
+  ) -> AttributedString {
     var result = AttributedString(text)
-    guard let root, !references.isEmpty else { return result }
-    for reference in FileReferenceDetector.references(in: text) where references.contains(reference.path) {
+    let fileReferences = root == nil ? [] : references
+    guard !fileReferences.isEmpty || !mentions.isEmpty else { return result }
+    for reference in FileReferenceDetector.references(in: text) {
+      let link: URL?
+      if let root, fileReferences.contains(reference.path) {
+        link = root.appending(path: reference.path)
+      } else if let mention = mentions[reference.path] {
+        link = mention
+      } else {
+        continue
+      }
+      guard let link else { continue }
       let utf8 = text.utf8
       let lower = utf8.index(utf8.startIndex, offsetBy: reference.range.lowerBound)
       let upper = utf8.index(utf8.startIndex, offsetBy: reference.range.upperBound)
@@ -626,7 +687,7 @@ public struct EditorKitPromptEditor: View {
         logger.error("The prompt text drops the link of an accepted file reference.")
         continue
       }
-      result[range].link = root.appending(path: reference.path)
+      result[range].link = link
     }
     return result
   }
@@ -817,6 +878,15 @@ final class PromptEditorSession {
   ///   prompt after that.
   func isNewestPush(_ text: AttributedString) -> Bool {
     text == pushedText
+  }
+
+  /// The link of the row of the last mention query with `token`.
+  ///
+  /// - Parameter token: The text after `@`.
+  /// - Returns: `nil` when the last query had no row with the token;
+  ///   `.some(nil)` for a row with no link.
+  func offeredMention(_ token: String) -> URL?? {
+    mentions.offered(token)
   }
 
   /// Whether a route of `routes` takes `sigil` from a completion source of

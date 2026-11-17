@@ -263,6 +263,27 @@ struct RoutedComposerThreadHost: View {
     #expect(Self.listedLabels(of: editorSession) == ["notes.txt", "claude-code"])
   }
 
+  /// An accepted mention row inserts its token, and the editor keeps the
+  /// link of the row for the chip and the prompt text (D199, AVK-15.2).
+  @Test func anAcceptedMentionRowKeepsItsLink() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let editorSession = PromptEditorSession()
+    let link = try #require(URL(string: "testudo-session://01ABC"))
+    let mention = ComposerMention(label: "claude-code", token: "claude-code", link: link)
+    let thread = try Self.mount(
+      session, editorSession: editorSession, routes: [], mentions: [ComposerMentionSource { _ in [mention] }])
+    defer { thread.harness.close() }
+    try await Self.type("@cla", in: thread, editorSession: editorSession)
+    await Self.waitForRows(["claude-code"], of: editorSession, in: thread)
+
+    try EditorKitPromptEditorHostedTests.press(.return, in: thread.harness)
+
+    #expect(editorSession.model.text == "@claude-code ")
+    #expect(editorSession.offeredMention("claude-code") == .some(link))
+    #expect(session.promptTexts.isEmpty)
+  }
+
   /// With no routes, a sigil that no kit source owns opens no popup.
   @Test func withNoRoutesASigilOpensNoPopup() async throws {
     let session = try await ScriptedSession.open()

@@ -1,5 +1,6 @@
 import EditorComplete
 import EditorCore
+import EditorDecorations
 import EditorExtensions
 import Foundation
 import SwiftUI
@@ -21,7 +22,13 @@ public nonisolated struct ComposerMention: Sendable, Hashable {
   public var detail: String?
 
   /// The link of the mention, or `nil`.
+  ///
+  /// An accepted row with a link becomes a chip, and the prompt text has the
+  /// link on the run of `@` and the token.
   public var link: URL?
+
+  /// The name of the SF Symbol of the row, or `nil` for no icon.
+  public var symbol: String?
 
   /// Makes a mention row.
   ///
@@ -30,11 +37,13 @@ public nonisolated struct ComposerMention: Sendable, Hashable {
   ///   - token: The text after `@` that an accept inserts.
   ///   - detail: The secondary text of the row, or `nil`.
   ///   - link: The link of the mention, or `nil`.
-  public init(label: String, token: String, detail: String? = nil, link: URL? = nil) {
+  ///   - symbol: The name of the SF Symbol of the row, or `nil`.
+  public init(label: String, token: String, detail: String? = nil, link: URL? = nil, symbol: String? = nil) {
     self.label = label
     self.token = token
     self.detail = detail
     self.link = link
+    self.symbol = symbol
   }
 }
 
@@ -96,11 +105,36 @@ nonisolated final class ComposerMentionSources: Sendable {
   /// The sources.
   private let state: Mutex<[ComposerMentionSource]>
 
+  /// The link of each row of the last query, by its token. A row with no
+  /// link has the value `nil`.
+  private let offeredRows = Mutex<[String: URL?]>([:])
+
   /// Makes a list of sources.
   ///
   /// - Parameter sources: The sources, in display order.
   init(_ sources: [ComposerMentionSource]) {
     state = Mutex(sources)
+  }
+
+  /// Keeps the rows of a query, in place of the rows of the last query.
+  /// The first row of a token wins.
+  ///
+  /// - Parameter mentions: The rows of the query.
+  func offer(_ mentions: [ComposerMention]) {
+    var rows: [String: URL?] = [:]
+    for mention in mentions where rows[mention.token] == nil {
+      rows.updateValue(mention.link, forKey: mention.token)
+    }
+    offeredRows.withLock { $0 = rows }
+  }
+
+  /// The link of the row of the last query with `token`.
+  ///
+  /// - Parameter token: The text after `@`.
+  /// - Returns: `nil` when the last query had no row with the token;
+  ///   `.some(nil)` for a row with no link.
+  func offered(_ token: String) -> URL?? {
+    offeredRows.withLock { $0[token] }
   }
 
   /// The sources, in display order.
@@ -137,11 +171,15 @@ nonisolated struct AtReferenceSource: EditorExtensions.CompletionSource {
   func completions(for context: CompletionContext) async -> CompletionResult? {
     guard !Task.isCancelled, let body = Self.body(at: context) else { return nil }
     var items = await files?.completions(for: context)?.items ?? []
+    var offered: [ComposerMention] = []
     for source in mentions.sources {
       guard !Task.isCancelled else { return nil }
-      items += await source.mentions(body).map(Self.completion(for:))
+      offered += await source.mentions(body)
     }
-    guard !Task.isCancelled, !items.isEmpty else { return nil }
+    guard !Task.isCancelled else { return nil }
+    mentions.offer(offered)
+    items += offered.map(Self.completion(for:))
+    guard !items.isEmpty else { return nil }
     return CompletionResult(items: items, isRanked: true)
   }
 
@@ -173,5 +211,48 @@ nonisolated struct AtReferenceSource: EditorExtensions.CompletionSource {
     let run = text[start..<caret]
     guard run.hasPrefix(FileReferenceSource.trigger) else { return nil }
     return String(run.dropFirst(FileReferenceSource.trigger.count))
+  }
+}
+
+/// Finds the accepted mentions of the prompt, so that each one shows as a
+/// chip (D199).
+///
+/// A typed `@` token that the user did not accept from the popup is not a
+/// chip.
+nonisolated struct MentionDetector: EditorDecorations.TagDetector {
+  /// The kind of each match.
+  static let kind = "mention"
+
+  /// The tokens of the accepted mentions, without the `@`.
+  let tokens: Set<String>
+
+  /// The accepted mentions in `range`.
+  ///
+  /// - Parameters:
+  ///   - range: The range to scan.
+  ///   - context: The editor context.
+  /// - Returns: One match for each accepted mention.
+  func detect(in range: EditorRange, context: EditorContext) -> [EditorDecorations.TagMatch] {
+    guard !tokens.isEmpty else { return [] }
+    let document = context.state.document
+    return Self.mentions(in: context.text(in: range), tokens: tokens).map { mention in
+      let lower = range.lowerBound.utf8Offset + mention.range.lowerBound
+      let upper = range.lowerBound.utf8Offset + mention.range.upperBound
+      return EditorDecorations.TagMatch(
+        range: EditorRange(document.position(utf8Offset: lower), document.position(utf8Offset: upper)),
+        kind: Self.kind, text: mention.text)
+    }
+  }
+
+  /// Each `@` token of `text` whose token is in `tokens`.
+  ///
+  /// - Parameters:
+  ///   - text: The text to scan.
+  ///   - tokens: The accepted tokens, without the `@`.
+  /// - Returns: The UTF-8 range, the full text and the token of each match.
+  static func mentions(in text: String, tokens: Set<String>) -> [(range: Range<Int>, text: String, token: String)] {
+    FileReferenceDetector.references(in: text).compactMap { reference in
+      tokens.contains(reference.path) ? (reference.range, reference.text, reference.path) : nil
+    }
   }
 }
