@@ -5,7 +5,6 @@ import EditorSwiftUI
 import EditorTestSupport
 import SwiftUI
 import Testing
-import Textual
 
 @Suite(.serialized, .hostedSerially) @MainActor struct CodeBlockViewHostedTests {
   static let swiftCode = "let x = 1\nprint(x)"
@@ -124,54 +123,6 @@ import Textual
     harness.render()
 
     #expect(harness.element(identifier: CodeBlockView.copyIdentifier)?.label == "Copy code")
-  }
-
-  // MARK: - Textual
-
-  @Test func aFencedBlockInATextualDocumentMountsACodeBlock() throws {
-    try NSPasteboard.withIsolated { pasteboard in
-      let markdown = "Some prose.\n\n```json\n{\"a\": 1}\n```\n\nMore prose."
-      let harness = HostedViewHarness(
-        StructuredText(markdown: markdown)
-          .textual.codeBlockStyle(EditorKitCodeBlockStyle())
-          .environment(\.pasteboard, pasteboard))
-      defer { harness.close() }
-      harness.render()
-
-      let element = harness.element(identifier: CodeBlockView.identifier)
-      #expect(element?.label == "json code block")
-      try pasteboard.expectOneCopy(of: "{\"a\": 1}") {
-        try harness.perform(.press, on: CodeBlockView.copyIdentifier)
-      }
-    }
-  }
-
-  @Test func aFencedBlockWithNoLanguageMountsAsPlainText() {
-    let markdown = "```\nplain\n```"
-    let harness = HostedViewHarness(
-      StructuredText(markdown: markdown)
-        .textual.codeBlockStyle(EditorKitCodeBlockStyle()))
-    defer { harness.close() }
-    harness.render()
-
-    #expect(harness.element(identifier: CodeBlockView.identifier)?.label == "plain text code block")
-  }
-
-  @Test func theStyleUsesTheCachedModelOfTheBlockID() {
-    let cache = CodeBlockModelCache()
-    let blockID = CodeBlockID(messageID: "message-1", paragraphID: "paragraph-1")
-    let markdown = "```json\n{}\n```"
-    let harness = HostedViewHarness(
-      StructuredText(markdown: markdown)
-        .textual.codeBlockStyle(EditorKitCodeBlockStyle())
-        .codeBlockModelCache(cache, blockID: blockID))
-    defer { harness.close() }
-    harness.render()
-
-    #expect(cache.count == 1)
-    let model = cache.model(for: blockID, code: "")
-    #expect(model.text == "{}")
-    #expect(model.syntax != nil)
   }
 }
 

@@ -85,7 +85,6 @@ let package = Package(
     .package(url: "git@github.com:swissarmyhammer/EditorKit.git", branch: "main"),
     .package(url: "git@github.com:swissarmyhammer/FoundationModelsACP.git", branch: "main"),
     .package(url: "git@github.com:swissarmyhammer/FoundationModelsACPClient.git", branch: "main"),
-    .package(url: "https://github.com/gonzalezreal/textual", exact: "0.5.0"),
   ],
   targets: [
     // The hosted tests: each one mounts a view in EditorKit's
@@ -94,9 +93,7 @@ let package = Package(
     // of the product reads.
     .testTarget(
       name: "IntegrationTests",
-      dependencies: rootProducts + editorKitProducts + acpProducts + [
-        .product(name: "Textual", package: "textual")
-      ],
+      dependencies: rootProducts + editorKitProducts + acpProducts,
       // AgentViewKitDemoSupport and AgentViewKitTestSupport reach the Router of
       // FoundationModelsACPAgent, whose llama.cpp C++ modules declare `requires
       // cplusplus`. Thus this target needs C++ interoperability too.

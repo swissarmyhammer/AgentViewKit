@@ -34,7 +34,8 @@ Renderer names:
 
 - `image`: a preview of the image.
 - `pdf`: a thumbnail from `QLThumbnailGenerator`.
-- `text`: the text through Textual. A markdown file shows as Markdown.
+- `text`: the text in an EditorKit `EditorLabel`. A markdown file shows as
+  Markdown, in the rendered form of EditorKit.
 - `code`: the text in a `CodeBlockView`.
 - `audio`: an AVKit player with the controls only.
 - `movie`: an AVKit player.

@@ -3,6 +3,11 @@
 Status: decided. Source: plan.md §9 B, §11 decision 7, §14 research R9.
 Task ^vznkzkp. Date: 2026-09-16.
 
+Superseded on 2026-11-17 (AVK-9.8, D185). EditorKit renders the Markdown of
+the kit, and its math widgets typeset TeX with iosMath. The kit has no
+`MathView` and does not depend on swiftui-math or Textual any more. The
+text below is history.
+
 This file records the math engine of `MathView` and how `ResponseView` routes
 math spans to it.
 

@@ -58,12 +58,13 @@ The owner made these decisions on 2026-10-02:
   On 2026-10-28 the owner decided that AgentViewKit is the shared visual
   layer of the view kits. The package now has two library products,
   `AgentViewKit` and `AgentViewKitStyle`. `AgentViewKitStyle` holds the
-  shared look and links only EditorKit products: no ACP package, no Textual
-  and no swiftui-math. `AgentViewKit` holds the views and the ACP helpers,
+  shared look and links only EditorKit products: no ACP package.
+  `AgentViewKit` holds the views and the ACP helpers,
   depends on `AgentViewKitStyle` and re-exports it. SnapshotViewKit and
   KanbanViewKit link only `AgentViewKitStyle` (plan.md §11 decision 1).
 - **Keep Textual and swiftui-math.** Textual renders Markdown, and
-  swiftui-math renders math. They stay as UI dependencies.
+  swiftui-math renders math. They stay as UI dependencies. On 2026-11-17
+  (D185, AVK-9.8) the kit removed both: EditorKit renders the text.
 - **Remove branches, checkpoints, subagents and compaction markers now.** ACP
   has no producer for them. Add them again when ACP gives a producer.
   On 2026-11-03 the owner reversed the removal of subagents. See
@@ -165,7 +166,7 @@ define:
 ## Dependencies
 
 The direct dependencies are FoundationModelsACPClient, FoundationModelsACP,
-EditorKit, Textual and swiftui-math. `Docs/decisions/dependencies.md` gives
+EditorKit and Stencil. `Docs/decisions/dependencies.md` gives
 the table. FoundationModels, FoundationModelsRouter and FoundationModelsExtras
 are not direct dependencies. FoundationModelsExtras stays in the package
 graph only because the library target of FoundationModelsACPClient depends

@@ -243,7 +243,7 @@ run_example_step() {
 
 # Runs `xcodebuild` for one example, with a time limit.
 #
-# EditorKit and Textual use Swift macros. A build with no person to approve them must skip
+# EditorKit uses Swift macros. A build with no person to approve them must skip
 # the macro and the plugin validation. The SwiftPM prebuilts stay off: on Xcode 27.2 the
 # prebuilt swift-syntax fails with `SDK does not match`.
 #

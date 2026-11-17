@@ -10,8 +10,7 @@ symbols in it. The AgentViewKit library builds its agent thread views on it,
 and re-exports it.
 
 The library links EditorKit only. Its dependency closure holds no ACP
-package, no Textual and no math engine, so a view kit that must not link ACP
-links it.
+package, so a view kit that must not link ACP links it.
 
 The inspector of the view kits is EditorKit's `EditorInspector`: the
 `Inspectable` protocol, `InspectorView`, the grouped `InspectorForm`, the
