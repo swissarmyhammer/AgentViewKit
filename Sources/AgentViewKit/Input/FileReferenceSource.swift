@@ -12,6 +12,8 @@ import Foundation
 /// the entries of the directory part of the path whose names start with the
 /// last part. Directories come first.
 ///
+/// Each row shows the symbol of a folder or of a file.
+///
 /// An accepted file inserts `@`, the path, and a space. An accepted directory
 /// inserts `@`, the path, and a `/`, so that the user can continue into the
 /// directory. The source lists entries through an EditorKit `FileSystem`. It
@@ -166,7 +168,8 @@ nonisolated struct FileReference {
     return Completion(
       label: label, insert: .text(insert), kind: .path,
       detail: directory.isEmpty ? nil : directory, filterText: tail,
-      sortKey: String(format: "%08d", rank))
+      sortKey: String(format: "%08d", rank),
+      symbol: entry.isDirectory ? AgentSymbol.folder : AgentSymbol.file)
   }
 }
 

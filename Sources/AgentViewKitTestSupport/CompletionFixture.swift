@@ -48,7 +48,14 @@ import EditorSwiftUI
   ///
   /// - Returns: The labels of the listed rows, in order.
   public func query() async -> [String] {
-    await completion.ensureQueried(trigger: .typed, in: EditorContext(document.state)).items.map(\.label)
+    await queryItems().map(\.label)
+  }
+
+  /// Runs the query at the caret now.
+  ///
+  /// - Returns: The listed rows, in order.
+  public func queryItems() async -> [Completion] {
+    await completion.ensureQueried(trigger: .typed, in: EditorContext(document.state)).items
   }
 
   /// Accepts the row with `label`.

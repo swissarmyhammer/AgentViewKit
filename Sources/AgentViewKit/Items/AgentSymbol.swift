@@ -169,6 +169,9 @@ nonisolated enum AgentSymbol {
   /// directory.
   static let folder = "folder"
 
+  /// The symbol of a file: a row of the `@file` popup.
+  static let file = "doc"
+
   /// The symbol of the button that saves a file.
   static let save = "square.and.arrow.down"
 

@@ -27,7 +27,9 @@ public nonisolated struct ComposerMention: Sendable, Hashable {
   /// link on the run of `@` and the token.
   public var link: URL?
 
-  /// The name of the SF Symbol of the row, or `nil` for no icon.
+  /// The name of the SF Symbol of the row, or `nil` for no icon. The popup
+  /// shows it at the leading edge of the row, as the `@file` rows show the
+  /// symbol of a file or a folder.
   public var symbol: String?
 
   /// Makes a mention row.
@@ -183,14 +185,15 @@ nonisolated struct AtReferenceSource: EditorExtensions.CompletionSource {
     return CompletionResult(items: items, isRanked: true)
   }
 
-  /// The row of a mention: it inserts `@`, the token, and a space.
+  /// The row of a mention: it inserts `@`, the token, and a space, and it
+  /// shows the symbol of the mention.
   ///
   /// - Parameter mention: The mention.
   /// - Returns: The row.
   static func completion(for mention: ComposerMention) -> Completion {
     Completion(
       label: mention.label, insert: .text(FileReferenceSource.trigger + mention.token + " "), kind: .tag,
-      detail: mention.detail)
+      detail: mention.detail, symbol: mention.symbol)
   }
 
   /// The body of the `@` token at the caret: the text after the `@`.

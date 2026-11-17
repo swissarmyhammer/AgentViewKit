@@ -1,6 +1,7 @@
 import AgentViewKitTestSupport
 import EditorComplete
 import EditorCore
+import EditorExtensions
 import Foundation
 import Synchronization
 import Testing
@@ -63,6 +64,22 @@ nonisolated final class BodyLog: Sendable {
     let labels = await Self.fixture("@", sources: [Self.source()]).query()
 
     #expect(labels == ["src/", "notes.txt", "README.md", "claude-code", "reviewer"])
+  }
+
+  @Test func eachRowHasTheSymbolOfItsKind() async {
+    let mention = ComposerMention(label: "planner", token: "planner", symbol: "bubble.left")
+    let source = ComposerMentionSource { _ in [mention] }
+
+    let rows = await Self.fixture("@", sources: [source]).queryItems()
+
+    #expect(rows.map(\.label) == ["src/", "notes.txt", "README.md", "planner"])
+    #expect(rows.map(\.symbol) == [AgentSymbol.folder, AgentSymbol.file, AgentSymbol.file, "bubble.left"])
+  }
+
+  @Test func aMentionWithNoSymbolHasNoIcon() {
+    let row = AtReferenceSource.completion(for: ComposerMention(label: "reviewer", token: "reviewer"))
+
+    #expect(row.symbol == nil)
   }
 
   @Test func eachSourceGetsTheBodyAfterTheAtSign() async {
