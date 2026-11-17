@@ -114,6 +114,8 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   @Environment(\.promptFileRoot) private var fileRoot
   /// Whether the composer waits for the submit hook of the host.
   @State private var isSubmitting = false
+  /// The texts that the composer asks the editor to insert at the caret.
+  @State private var insertions = PromptInsertions()
 
   /// The scale of the bound of the editor, whose text is in the display font.
   @ThemeFontScale(.display) private var editorFontScale
@@ -215,10 +217,7 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   }
 
   public var body: some View {
-    let context = PromptEditorContext(
-      text: $text, placeholder: Self.placeholder, onSubmit: submitCommand,
-      onCancel: Self.cancelsOnEscape(in: session) ? cancelCommand : nil,
-      commands: session?.availableCommands)
+    let context = editorContext
     // The field, the menu of the editor and the accessory are siblings in one
     // container. Only the field and the menu are on glass, so the glass
     // buttons of the accessory are not glass on glass, and the container
@@ -242,6 +241,17 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
     .environment(\.promptText, $text)
   }
 
+  /// The context that the editor gets: the text, the submit and cancel
+  /// actions, the slash commands, and the insert requests.
+  private var editorContext: PromptEditorContext {
+    var context = PromptEditorContext(
+      text: $text, placeholder: Self.placeholder, onSubmit: submitCommand,
+      onCancel: Self.cancelsOnEscape(in: session) ? cancelCommand : nil,
+      commands: session?.availableCommands)
+    context.insertions = insertions
+    return context
+  }
+
   /// The field of the composer: the attachment chips and the editor, on the
   /// floating glass of the kit.
   ///
@@ -262,7 +272,8 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
         .background {
           if let commandTarget {
             ComposerCommandProbe(
-              target: commandTarget, canSubmit: { canSubmit }, submit: submit, load: load)
+              target: commandTarget, canSubmit: { canSubmit }, submit: submit, load: load,
+              insert: insertions.request)
           }
         }
         // The editor is a jump target of its own. A landed jump focuses its

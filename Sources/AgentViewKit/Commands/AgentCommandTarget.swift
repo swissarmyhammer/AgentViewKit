@@ -27,6 +27,10 @@ struct AgentComposerHook {
   /// Moves the focus to the editor of the composer. Returns `true` when the
   /// focus moved.
   let focus: @MainActor () -> Bool
+
+  /// Inserts the argument at the caret of the editor, and asks the editor
+  /// for completions there.
+  var insert: @MainActor (String) -> Void = { _ in }
 }
 
 /// The calls that the thread view gives to the session commands.
@@ -215,6 +219,7 @@ final class AgentCommandTarget {
     case .toggleExpandAll: expandedBlocks != nil && !session.transcript.isEmpty
     case .scrollToBottom: anchors != nil && !session.transcript.isEmpty
     case .focusComposer: composer != nil
+    case .insertMention: composer != nil && !session.isClosed
     case .goToParent, .openChild, .nextSibling, .previousSibling, .jumpToSession:
       navigation != nil && canNavigate(verb, payload: payload, in: session)
     }
@@ -240,7 +245,7 @@ final class AgentCommandTarget {
     case .copyCodeBlock: String(localized: "The caret is not in a code block.", bundle: .module)
     case .toggleExpandAll: String(localized: "The thread has no items.", bundle: .module)
     case .scrollToBottom: String(localized: "The thread list is not shown.", bundle: .module)
-    case .focusComposer: String(localized: "The composer is not shown.", bundle: .module)
+    case .focusComposer, .insertMention: String(localized: "The composer is not shown.", bundle: .module)
     case .goToParent: String(localized: "This session has no parent.", bundle: .module)
     case .openChild: String(localized: "This session has no child.", bundle: .module)
     case .nextSibling: String(localized: "No session is after this session.", bundle: .module)
@@ -327,6 +332,10 @@ final class AgentCommandTarget {
     case .toggleExpandAll: toggleExpandAll(session)
     case .scrollToBottom: anchors?.pinToBottom()
     case .focusComposer: return composer?.focus() ?? false
+    case .insertMention:
+      guard let composer else { return false }
+      _ = composer.focus()
+      composer.insert(AgentCommandPayload.string(AgentCommandPayload.textKey, in: payload) ?? FileReferenceSource.trigger)
     case .goToParent: show(session.parent?.sessionId)
     case .openChild: show(childToShow(payload: payload, in: session)?.sessionId)
     case .nextSibling: show(sibling(offset: 1, of: session)?.sessionId)

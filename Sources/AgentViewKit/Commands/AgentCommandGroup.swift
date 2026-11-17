@@ -61,7 +61,7 @@ nonisolated extension AgentCommandVerb {
   /// The group of the verb.
   public var group: AgentCommandGroup {
     switch self {
-    case .send, .focusComposer: .compose
+    case .send, .focusComposer, .insertMention: .compose
     case .cancel, .approvePending, .rejectPending: .control
     case .jumpToNext, .jumpToPrevious, .nextRequest, .previousRequest, .scrollToBottom, .toggleExpandAll,
       .goToParent, .openChild, .nextSibling, .previousSibling, .jumpToSession:

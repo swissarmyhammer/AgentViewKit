@@ -15,7 +15,7 @@ import Testing
 @MainActor struct AgentCommandGroupTests {
   /// The verbs of each group, as the kits agreed them.
   static let expectedVerbs: [AgentCommandGroup: Set<AgentCommandVerb>] = [
-    .compose: [.send, .focusComposer],
+    .compose: [.send, .focusComposer, .insertMention],
     .control: [.cancel, .approvePending, .rejectPending],
     .navigate: [
       .jumpToNext, .jumpToPrevious, .nextRequest, .previousRequest, .scrollToBottom, .toggleExpandAll,

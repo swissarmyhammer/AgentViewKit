@@ -138,6 +138,7 @@ nonisolated extension AgentCommandVerb {
     case .send: MenuPlacement(path: .session, group: "agentPrompt", order: 0)
     case .cancel: MenuPlacement(path: .session, group: "agentPrompt", order: 1)
     case .focusComposer: MenuPlacement(path: .session, group: "agentComposer", order: 0)
+    case .insertMention: MenuPlacement(path: .session, group: "agentComposer", order: 1)
     case .approvePending: MenuPlacement(path: .session, group: "agentRequest", order: 0)
     case .rejectPending: MenuPlacement(path: .session, group: "agentRequest", order: 1)
     case .copyThread: MenuPlacement(path: .session, group: "agentThread", order: 0)
@@ -169,6 +170,7 @@ nonisolated extension AgentCommandVerb {
     switch self {
     case .copyMessage: ContextMenuPlacement(group: 0, order: 0)
     case .copyCodeBlock: ContextMenuPlacement(group: 0, order: 1)
+    case .insertMention: ContextMenuPlacement(group: 0, order: 0)
     case .jumpToNext: ContextMenuPlacement(group: 1, order: 0)
     case .jumpToPrevious: ContextMenuPlacement(group: 1, order: 1)
     case .approvePending: ContextMenuPlacement(group: 0, order: 0)
@@ -193,6 +195,7 @@ nonisolated extension AgentCommandVerb {
     case .toggleExpandAll: AgentSymbol.expandAll
     case .scrollToBottom: AgentSymbol.scrollToBottom
     case .focusComposer: AgentSymbol.focusComposer
+    case .insertMention: AgentSymbol.mention
     case .goToParent: AgentSymbol.parentSession
     case .openChild: AgentSymbol.childSession
     case .jumpToSession: AgentSymbol.jumpToSession
@@ -234,6 +237,9 @@ nonisolated extension AgentCommandVerb {
   /// - Parameter path: The invocation path.
   /// - Returns: `true` when the verb shows.
   func isVisible(at path: FocusPath) -> Bool {
+    // Mention… acts on the composer, so the context menu of an item does not
+    // show it. The composer and the thread show it.
+    if self == .insertMention { return AgentScopeKind.item(in: path) == nil }
     guard let itemKind, let item = AgentScopeKind.item(in: path) else { return true }
     return item.kind == itemKind
   }

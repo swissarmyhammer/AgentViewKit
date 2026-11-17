@@ -143,6 +143,9 @@ nonisolated enum AgentSymbol {
   /// The symbol of the command that moves the focus to the composer.
   static let focusComposer = "character.cursor.ibeam"
 
+  /// The symbol of the command that inserts a mention in the composer.
+  static let mention = "at"
+
   /// The symbol of the button that loads the next page of a list.
   static let loadMore = "arrow.down.to.line"
 

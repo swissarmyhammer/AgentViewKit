@@ -50,6 +50,11 @@ public struct PromptEditorContext {
   /// reported no command (``SlashCommandSource``).
   public let commands: [AvailableCommand]?
 
+  /// The texts that the composer asks the editor to insert at the caret,
+  /// for example the `@` of ``AgentCommandVerb/insertMention``, or `nil`
+  /// when the composer asks for none. ``EditorKitPromptEditor`` reads them.
+  var insertions: PromptInsertions?
+
   /// Makes an editor context.
   ///
   /// - Parameters:
@@ -170,5 +175,34 @@ extension View {
   /// - Returns: A view that gives `suggestions` to its subtree.
   public func promptSuggestions(_ suggestions: [String]) -> some View {
     environment(\.promptSuggestions, suggestions)
+  }
+}
+
+/// The texts that a composer asks its editor to insert at the caret
+/// (``AgentCommandVerb/insertMention``).
+///
+/// The composer adds a request, and the editor takes each request one time.
+/// The editor observes ``count``, so a new request updates the editor.
+@MainActor @Observable final class PromptInsertions {
+  /// The number of requests so far.
+  private(set) var count = 0
+
+  /// The requests that the editor did not take yet, in order.
+  @ObservationIgnored private var pending: [String] = []
+
+  /// Asks the editor to insert `text` at the caret.
+  ///
+  /// - Parameter text: The text to insert.
+  func request(_ text: String) {
+    pending.append(text)
+    count += 1
+  }
+
+  /// Takes the requests that the editor did not take yet.
+  ///
+  /// - Returns: The texts, in request order.
+  func take() -> [String] {
+    defer { pending = [] }
+    return pending
   }
 }

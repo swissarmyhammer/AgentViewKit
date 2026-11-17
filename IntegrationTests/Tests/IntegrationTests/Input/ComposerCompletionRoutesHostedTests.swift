@@ -340,6 +340,25 @@ struct RoutedComposerThreadHost: View {
     #expect(session.promptTexts.isEmpty)
   }
 
+  /// Mention… inserts `@` in the composer and opens the popup with the
+  /// mention rows (D199 (j), AVK-15.6).
+  @Test func mentionInsertsAnAtSignAndOpensThePopup() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let editorSession = PromptEditorSession()
+    let mention = ComposerMention(label: "claude-code", token: "claude-code")
+    let thread = try Self.mount(
+      session, editorSession: editorSession, routes: [], mentions: [ComposerMentionSource { _ in [mention] }])
+    defer { thread.harness.close() }
+    try await Self.type("ask", in: thread, editorSession: editorSession)
+
+    #expect(thread.system.registry.perform(AgentCommandVerb.insertMention.id, at: thread.path))
+    await Self.waitForRows(["claude-code"], of: editorSession, in: thread)
+
+    #expect(editorSession.model.text == "ask @")
+    #expect(Self.listedLabels(of: editorSession) == ["claude-code"])
+  }
+
   /// With no routes, a sigil that no kit source owns opens no popup.
   @Test func withNoRoutesASigilOpensNoPopup() async throws {
     let session = try await ScriptedSession.open()

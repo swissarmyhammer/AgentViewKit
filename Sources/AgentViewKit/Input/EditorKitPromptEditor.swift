@@ -177,6 +177,43 @@ public struct EditorKitPromptEditor: View {
     .onChange(of: context.text.wrappedValue, initial: true) { _, text in
       promptTextDidChange(text, in: model)
     }
+    .onChange(of: context.insertions?.count) {
+      for text in context.insertions?.take() ?? [] {
+        insert(text, in: model)
+      }
+    }
+  }
+
+  /// Inserts `text` at the caret as typed input, so the editor asks for
+  /// completions there: an `@` opens the `@` popup
+  /// (``AgentCommandVerb/insertMention``).
+  ///
+  /// - Parameters:
+  ///   - text: The text to insert.
+  ///   - model: The model of the editor.
+  private func insert(_ text: String, in model: EditorModel) {
+    let document = model.state.document
+    let caret = model.selection.primary.head.utf8Offset
+    let inserted = Self.insertion(of: text, after: caretLine(in: model))
+    let end = EditorPosition(utf8Offset: caret + inserted.utf8.count, version: document.version.next())
+    var annotations = TransactionAnnotations()
+    annotations.userEvent = .input
+    model.dispatch(
+      EditorTransaction(
+        changes: ChangeSet(fromLength: document.utf8Count, replacements: [(caret..<caret, inserted)]),
+        selection: .cursor(end), annotations: annotations))
+  }
+
+  /// The text that an insert at the caret adds: `text`, after a space when
+  /// the character before the caret is not white space.
+  ///
+  /// - Parameters:
+  ///   - text: The text to insert.
+  ///   - line: The text of the caret line before the caret.
+  /// - Returns: The text to add.
+  static func insertion(of text: String, after line: Substring) -> String {
+    guard let last = line.last, !last.isWhitespace else { return text }
+    return " " + text
   }
 
   // MARK: - Completion list

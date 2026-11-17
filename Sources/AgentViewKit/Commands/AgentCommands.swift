@@ -68,6 +68,12 @@ public nonisolated enum AgentCommandVerb: String, CaseIterable, Sendable {
   /// Moves the keyboard focus to the composer.
   case focusComposer
 
+  /// Moves the keyboard focus to the composer, inserts `@` at the caret, and
+  /// opens the `@` popup, so that the user picks a file or a mention (D199).
+  /// The ``AgentCommandPayload/text(_:)`` payload gives another text to
+  /// insert.
+  case insertMention
+
   /// Shows the parent of the shown session. It is not available at a root
   /// session.
   case goToParent
@@ -115,6 +121,7 @@ public nonisolated enum AgentCommandVerb: String, CaseIterable, Sendable {
     case .toggleExpandAll: String(localized: "Expand or Collapse All", bundle: .module)
     case .scrollToBottom: String(localized: "Scroll to Bottom", bundle: .module)
     case .focusComposer: String(localized: "Focus Composer", bundle: .module)
+    case .insertMention: String(localized: "Mention…", bundle: .module)
     case .goToParent: String(localized: "Go to Parent Session", bundle: .module)
     case .openChild: String(localized: "Open Child Session", bundle: .module)
     case .nextSibling: String(localized: "Next Sibling Session", bundle: .module)
