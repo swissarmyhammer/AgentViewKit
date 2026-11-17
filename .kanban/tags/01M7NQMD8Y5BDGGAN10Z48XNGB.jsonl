@@ -1,0 +1,1 @@
+{"id":"01M7NQMD8ZGAZWASQBGX91AT56","timestamp":"2026-11-17T21:46:57.183094Z","op":"create","item_id":"01M7NQMD8Y5BDGGAN10Z48XNGB","forward_patch":"--- original\n+++ modified\n@@ -0,0 +1,2 @@\n+color: d73a4a\n+tag_name: avk-15\n","reverse_patch":"--- original\n+++ modified\n@@ -1,2 +0,0 @@\n-color: d73a4a\n-tag_name: avk-15\n","transaction_id":null}
