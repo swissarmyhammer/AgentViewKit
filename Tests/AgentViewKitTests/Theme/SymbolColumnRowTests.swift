@@ -23,7 +23,8 @@ enum LeadingSymbolRow: String, CaseIterable, Sendable {
   case statusBar
   /// The title line of an error card (`StatusTitleLayout`, in an `ErrorView`).
   case errorCard
-  /// The title label of an artifact (`ArtifactView`).
+  /// The title label of an artifact (`ArtifactView`), with the image of its
+  /// file (`FileIcon`, D196) in the symbol column.
   case artifactTitle
 
   /// The text of the rows. The text is long, so that the row with the symbol

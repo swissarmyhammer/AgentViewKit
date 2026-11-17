@@ -38,7 +38,13 @@ Renderer names:
 - `code`: the text in a `CodeBlockView`.
 - `audio`: an AVKit player with the controls only.
 - `movie`: an AVKit player.
-- `chip`: the file icon from `NSWorkspace`, the name, and the size.
+- `chip`: the image of the file as Finder shows it (`FileIcon`, D196), the
+  name, and the size. The image is the Quick Look thumbnail of the content
+  from `QLThumbnailGenerator` (`.thumbnail`, then `.icon`, in icon mode, at the
+  scale of the screen). Until the thumbnail is ready, and when there is none,
+  the image is the icon from `NSWorkspace.shared.icon(forFile:)`. The header of
+  an `ArtifactView` shows the same image. The kit draws no type icons of its
+  own.
 
 `AttachmentView` walks the types in this order: `public.image`,
 `com.adobe.pdf`, `public.source-code`, `public.plain-text`, `public.audio`,

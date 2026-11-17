@@ -226,9 +226,6 @@ nonisolated enum AgentSymbol {
   /// The symbol of an image that cannot show.
   static let imageFailure = "photo.badge.exclamationmark"
 
-  /// The symbol of an artifact.
-  static let artifact = "richtext.page"
-
   /// The symbol of an activity timeline with no entries: the trace of an
   /// activity.
   static let activity = "waveform.path.ecg"

@@ -183,6 +183,16 @@ import Testing
       ChipRowsGalleryFixtures.gallery, named: "chip-rows-narrow", size: ChipRowsGalleryFixtures.size)
   }
 
+  /// The files of the kit with the look of Finder (D196): chips and an
+  /// artifact, each with the Quick Look thumbnail of its file
+  /// (``FileIconGalleryFixtures``).
+  @Test func theFilesWithTheirQuickLookThumbnails() async throws {
+    let fixtures = try await FileIconGalleryFixtures()
+    defer { fixtures.remove() }
+
+    try await Self.generate(fixtures.gallery, named: "file-icons", size: FileIconGalleryFixtures.size)
+  }
+
   /// The normal, the selected and the focused state of each view of the
   /// kit that has a selection look or a focus look (^crz4q29, EditorKit
   /// `style.md`, "Selection and focus"): one image for each view, with the

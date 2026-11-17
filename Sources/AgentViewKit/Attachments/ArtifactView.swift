@@ -57,10 +57,24 @@ public struct ArtifactView: View {
     let attachment = Self.attachment(of: artifact)
     ContentTileStack {
       HStack(spacing: editorStyle.spacing.s) {
-        Label(artifact.title, columnSymbol: AgentSymbol.artifact)
-          .font(editorTheme.font(for: .ui, style: .headline))
-          .lineLimit(1)
-          .accessibilityIdentifier(Self.titleIdentifier)
+        Label {
+          Text(artifact.title)
+        } icon: {
+          // The image of the file as Finder shows it, or the icon of the type
+          // of the inline text (D196), in the symbol column of the style, so
+          // the title starts at the x of the text of the other rows.
+          Group {
+            if let attachment {
+              FileIcon(attachment, side: editorStyle.symbolColumnWidth)
+            } else {
+              FileIcon(type: Self.type(of: artifact), side: editorStyle.symbolColumnWidth)
+            }
+          }
+          .symbolColumn()
+        }
+        .font(editorTheme.font(for: .ui, style: .headline))
+        .lineLimit(1)
+        .accessibilityIdentifier(Self.titleIdentifier)
         Spacer(minLength: editorStyle.spacing.s)
         if attachment != nil {
           AttachmentActions(identifierPrefix: Self.identifierPrefix)
@@ -70,8 +84,7 @@ public struct ArtifactView: View {
       if let attachment {
         AttachmentView(attachment)
       } else if let inlineText = artifact.inlineText {
-        AttachmentTextContent(
-          text: inlineText, type: UTType(artifact.type) ?? .plainText, filename: nil)
+        AttachmentTextContent(text: inlineText, type: Self.type(of: artifact), filename: nil)
           .accessibilityElement(children: .contain)
           .accessibilityIdentifier(Self.inlineTextIdentifier)
       }
@@ -81,6 +94,15 @@ public struct ArtifactView: View {
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier(Self.identifier)
     .agentAttachmentScope(attachment, focusLook: .contentSurface)
+  }
+
+  /// The type of an artifact.
+  ///
+  /// - Parameter artifact: The artifact.
+  /// - Returns: The type of ``ArtifactPayload/type``, or plain text when the
+  ///   type is not known.
+  private static func type(of artifact: ArtifactPayload) -> UTType {
+    UTType(artifact.type) ?? .plainText
   }
 
   /// The attachment of an artifact file.

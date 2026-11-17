@@ -1,11 +1,10 @@
-import AppKit
 import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import SwiftUI
 
-/// A compact view of a file: the type icon, the name, and the size
-/// (plan.md §3.6).
+/// A compact view of a file: the image of the file as Finder shows it
+/// (``FileIcon``, D196), the name, and the size (plan.md §3.6).
 ///
 /// ``AttachmentView`` shows the chip for a type that has no other default
 /// view, and for a file that a preview cannot load.
@@ -21,7 +20,7 @@ import SwiftUI
 /// selection of an ``AttachmentView`` around the chip, replaces the base fill
 /// of the chip.
 public struct AttachmentChip: View {
-  /// The side of the type icon, in points at the default theme font. The icon
+  /// The side of the ``FileIcon``, in points at the default theme font. The image
   /// stands beside the two lines of text, so it scales with them.
   private static let iconSide: CGFloat = 28
 
@@ -57,10 +56,7 @@ public struct AttachmentChip: View {
 
   public var body: some View {
     HStack(spacing: editorStyle.spacing.s) {
-      Image(nsImage: NSWorkspace.shared.icon(for: attachment.type))
-        .resizable()
-        .frame(width: Self.iconSide * fontScale, height: Self.iconSide * fontScale)
-        .accessibilityHidden(true)
+      FileIcon(attachment, side: Self.iconSide * fontScale)
       VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
         Text(attachment.name)
           .lineLimit(1)
