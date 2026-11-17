@@ -10,8 +10,16 @@ comments:
   id: 01m7ngfj6nwvh0de9jrtsvgfvb
   text: 'EditorKit task 01M7NGEQT0VKWDQ79RKZ6S8XE8 (EditorLabel). Proposed API: `EditorLabel(_ text: AttributedString)`, `EditorLabel(verbatim: String)` in EditorSwiftUI. No date. editorkit-7a sends the commit after review. Told testudoapp-75 that there is no date.'
   timestamp: 2026-11-17T19:41:58.357294+00:00
-position_column: todo
-position_ordinal: '8480'
+- actor: claude-code
+  id: 01m7nye8pct0jagfp9wbjf2nhy
+  text: |-
+    ### commit — changed
+    - evidence: ef32b1b5, merged in d5802aea (pushed). `swift test` on main: 1276 tests in 150 suites and 55 in 11 pass. Hosted packages compile; new hosted tests PlainTextContextMenuPointerHostedTests and PlainTextSelectionHostedTests not run.
+    - All SelectableText sites use EditorLabel. New `PlacedLabel` (AgentViewKitStyle) picks the content or glass text color. Removed `SelectableTextStyle`, `selectableTextStyle(_:)`.
+    - Gap: EditorLabel takes only theme color roles, so text on glass draws NSColor.labelColor / secondaryLabelColor, not the vibrant SwiftUI `.secondary`. Primary text draws in the theme editorForeground.
+  timestamp: 2026-11-17T23:45:55.916513+00:00
+position_column: done
+position_ordinal: ffffffeb80
 title: 'AVK-9.5: Selection and context menu on EditorView; replace SelectableText'
 ---
 D185. `EditorView` already joins `ThreadTextSelection` (the EditorKit `TextSelectionRegion`).
