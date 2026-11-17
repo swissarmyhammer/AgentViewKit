@@ -227,7 +227,13 @@ extension SessionMessageEntry: InspectableClientModel {
       author: { $0.senderSessionId?.rawValue },
       messageID: { $0.messageId.rawValue }
     ) {
-      Field(FieldLabel(localized: "From Session", bundle: .module)) { $0.model.senderSessionId?.rawValue }
+      // The sender shows its title from `_meta.sah.message` when the agent
+      // gives one (D199 (f)), else its id.
+      Field(FieldLabel(localized: "From Session", bundle: .module)) { model in
+        let message = SessionMessageView.sender(in: model.model.meta)
+        let session = message?.sender.sessionId ?? model.model.senderSessionId
+        return message?.sender.title ?? session?.rawValue
+      }
       Field(FieldLabel(localized: "To Session", bundle: .module)) { $0.model.recipientSessionId?.rawValue }
     }
   }

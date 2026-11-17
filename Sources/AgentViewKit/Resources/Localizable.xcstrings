@@ -851,6 +851,16 @@
         }
       }
     },
+    "From %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From %@"
+          }
+        }
+      }
+    },
     "From %@ to %@" : {
       "localizations" : {
         "en" : {
@@ -867,6 +877,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "From Session"
+          }
+        }
+      }
+    },
+    "From the user" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From the user"
+          }
+        }
+      }
+    },
+    "From the user, in %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From the user, in %@"
           }
         }
       }
