@@ -1,5 +1,6 @@
 import AgentViewKitTestSupport
 import AppKit
+import EditorSwiftUI
 import EditorTestSupport
 import Foundation
 import SwiftUI
@@ -54,14 +55,41 @@ private struct OpenURLButton: View {
   /// Makes a response of ``text`` with the citations of the payload, and the
   /// footer of the payload below it, in one citation scope.
   ///
-  /// - Parameter id: The id of the response view.
+  /// - Parameters:
+  ///   - id: The id of the response view.
+  ///   - cache: The cache that keeps the model of the response.
   /// - Returns: The view.
-  static func citedResponse(id: String) -> some View {
+  static func citedResponse(id: String, cache: CodeBlockModelCache) -> some View {
     VStack {
       ResponseView(id: id, markdown: text, citations: payload)
       SourcesView(payload: payload)
     }
     .citationScope()
+    .environment(\.codeBlockModelCache, cache)
+  }
+
+  /// The accessibility label of the citation chip of the source at
+  /// `index`: "Citation N: title".
+  ///
+  /// - Parameter index: The one-based number of the source.
+  /// - Returns: The label.
+  static func chipLabel(index: Int) -> String {
+    EditorSwiftUIStrings.citationLabel(number: index, title: payload.sources[index - 1].title)
+  }
+
+  /// Mounts the cited response `id`, and renders it after the syntax parse
+  /// of its model.
+  ///
+  /// - Parameter id: The id of the response view.
+  /// - Returns: The harness. The caller closes it.
+  /// - Throws: An issue when the cache has no model for the response.
+  static func mountCitedResponse(id: String) async throws -> HostedViewHarness<some View> {
+    let cache = CodeBlockModelCache()
+    let harness = HostedViewHarness(citedResponse(id: id, cache: cache), size: hostSize)
+    harness.render()
+    let model = try #require(ResponseTextChecks.model(of: id, in: cache))
+    await ResponseTextChecks.renderParsed(model, in: harness)
+    return harness
   }
 
   /// Tells whether a row shows the highlight.
@@ -117,36 +145,36 @@ private struct OpenURLButton: View {
     #expect(harness.element(identifier: SourcesView.rowIdentifier(index: 1)) == nil)
   }
 
-  // MARK: - Pills
+  // MARK: - Chips
 
-  @Test func eachCitedParagraphShowsItsPill() {
-    let harness = HostedViewHarness(
-      Self.citedResponse(id: "cited-pills"), size: Self.hostSize)
+  @Test func eachCitedParagraphShowsItsChip() async throws {
+    let harness = try await Self.mountCitedResponse(id: "cited-chips")
     defer { harness.close() }
-    harness.render()
 
-    #expect(harness.element(identifier: InlineCitation.identifier(index: 1))?.label == "Source 1")
-    #expect(harness.element(identifier: InlineCitation.identifier(index: 2))?.label == "Source 2")
+    #expect(ResponseTextChecks.node(labeled: Self.chipLabel(index: 1), in: harness) != nil)
+    #expect(ResponseTextChecks.node(labeled: Self.chipLabel(index: 2), in: harness) != nil)
   }
 
-  @Test func aResponseWithNoCitationsShowsNoPill() {
+  @Test func aResponseWithNoCitationsShowsNoChip() {
     let harness = HostedViewHarness(
       ResponseView(id: "uncited", markdown: Self.text), size: Self.hostSize)
     defer { harness.close() }
     harness.render()
 
-    #expect(harness.element(identifier: ResponseView.paragraphIdentifier(index: 1)) != nil)
-    #expect(harness.element(identifier: InlineCitation.identifier(index: 1)) == nil)
+    #expect(ResponseTextChecks.texts(in: harness) == [Self.text])
+    #expect(ResponseTextChecks.node(labeled: Self.chipLabel(index: 1), in: harness) == nil)
   }
 
-  @Test func aTapOnPillTwoHighlightsRowTwo() throws {
-    let harness = HostedViewHarness(
-      Self.citedResponse(id: "cited-tap"), size: Self.hostSize)
+  /// A press on a chip selects its source, as a press on an
+  /// ``InlineCitation`` pill does.
+  @Test func aPressOnChipTwoHighlightsRowTwo() async throws {
+    let harness = try await Self.mountCitedResponse(id: "cited-press")
     defer { harness.close() }
-    harness.render()
     #expect(!Self.isHighlighted(harness, index: 2))
+    let chip = try #require(ResponseTextChecks.node(labeled: Self.chipLabel(index: 2), in: harness))
 
-    try harness.perform(.press, on: InlineCitation.identifier(index: 2))
+    #expect(try performAccessibilityPress(on: chip))
+    harness.render()
 
     #expect(Self.isHighlighted(harness, index: 2))
     #expect(!Self.isHighlighted(harness, index: 1))

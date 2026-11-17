@@ -3,8 +3,8 @@ import Foundation
 /// The sources of a response and the places in the response that cite them
 /// (plan.md §9 C).
 ///
-/// ``SourcesView`` shows the sources. ``ResponseView`` shows an
-/// ``InlineCitation`` pill at each marker.
+/// ``SourcesView`` shows the sources. ``ResponseView`` shows a citation chip
+/// at each marker.
 public nonisolated struct CitationPayload: Codable, Sendable, Hashable {
   /// The cited sources, in display order.
   public var sources: [CitationSource]
@@ -62,7 +62,8 @@ public nonisolated struct CitationMarker: Codable, Sendable, Hashable {
   /// The ``CitationSource/id`` of the cited source.
   public var sourceID: String
 
-  /// The zero-based index of the paragraph that holds the marker.
+  /// The zero-based index of the paragraph that holds the marker. A blank
+  /// line ends a paragraph, and a fenced code block is one paragraph.
   public var paragraphIndex: Int
 
   /// The zero-based character offset of the marker in its paragraph.

@@ -96,9 +96,9 @@ private struct CitationScope: ViewModifier {
 /// environment. The ``SourcesView`` of the same scope then highlights the row
 /// of the source and scrolls it into view.
 ///
-/// ``ResponseView`` puts a pill in the prose at each ``CitationMarker`` of the
-/// ``CitationPayload`` that it gets. There, Textual draws the pill, the pill
-/// opens ``url(index:)``, and ``SwiftUI/View/citationScope()`` gets the link.
+/// ``ResponseView`` shows an EditorKit citation chip in the prose at each
+/// ``CitationMarker`` of the ``CitationPayload`` that it gets. A press on that
+/// chip selects its source in the same way.
 ///
 /// The pill is an accessibility button with the label "Source <index>" and
 /// the identifier `inline-citation-<index>`.
@@ -179,10 +179,6 @@ extension View {
 // MARK: - Pill
 
 /// The padding of a citation pill, from the tokens of `\.editorStyle`.
-///
-/// Textual sizes an attachment outside the SwiftUI environment, so the pill
-/// and the attachment carry this value. `EditorStyle` is not `Hashable`, and a
-/// Textual attachment must be.
 nonisolated struct InlineCitationPadding: Hashable, Sendable {
   /// The padding above and below the digits, as a part of their cap height:
   /// the ``ChipMetrics`` rule of a chip.
@@ -203,9 +199,7 @@ nonisolated struct InlineCitationPadding: Hashable, Sendable {
 
 /// The font and the sizes of a citation pill for one font size.
 ///
-/// ``InlineCitationPill`` and the Textual attachment of a pill use the same
-/// font and sizes, so that the pill fits the space that the text layout gives
-/// it. The digits are chrome, so they draw in the `ui` face of the theme, and
+/// The digits are chrome, so they draw in the `ui` face of the theme, and
 /// the sizes come from that face. The height is the one chip rule
 /// (``ChipMetrics``): the line height of the digits and the chip padding above
 /// and below them.
@@ -263,8 +257,8 @@ nonisolated struct InlineCitationMetrics: Equatable, Sendable {
 /// the text color of the environment: the accent is not a text color.
 ///
 /// The pill takes its size from the font of the environment. The view has no
-/// accessibility element, because Textual draws it in a canvas. The caller
-/// adds the element.
+/// accessibility element of its own. The caller adds the element, as
+/// ``InlineCitation`` and ``SourcesView`` do.
 struct InlineCitationPill: View {
   /// The opacity of the accent color in the capsule.
   static let fillOpacity = 0.18

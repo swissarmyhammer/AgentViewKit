@@ -126,12 +126,6 @@ let textualProducts: [Target.Dependency] = [
   .product(name: "Textual", package: "textual")
 ]
 
-/// The math engine (plan.md §11 decision 7). Docs/decisions/math-engine.md
-/// records the choice and the version.
-let mathEngineProducts: [Target.Dependency] = [
-  .product(name: "SwiftUIMath", package: "swiftui-math")
-]
-
 /// The template engine of the text that the kit builds in loops: the Markdown
 /// export, the copy text and the plan steps of the inspector
 /// (`Sources/AgentViewKit/Text/TextTemplates.swift`).
@@ -173,9 +167,6 @@ let package = Package(
     .package(url: "git@github.com:swissarmyhammer/FoundationModelsACPAgent.git", branch: "main"),
     // Textual is a 0.x package, so the pin is exact.
     .package(url: "https://github.com/gonzalezreal/textual", exact: "0.5.0"),
-    // The math engine is a 0.x package, so the pin is exact. Textual 0.5.0
-    // also depends on it, with `from: "0.1.0"`.
-    .package(url: "https://github.com/gonzalezreal/swiftui-math", exact: "0.1.0"),
     // The template engine is a 0.x package, so the pin is exact. It is the
     // same package and version as the template engine of
     // FoundationModelsExtras, which the skills use.
@@ -199,7 +190,7 @@ let package = Package(
     // FoundationModels, FoundationModelsRouter or FoundationModelsExtras.
     .target(
       name: "AgentViewKit",
-      dependencies: ["AgentViewKitStyle"] + editorKitProducts + acpProducts + textualProducts + mathEngineProducts
+      dependencies: ["AgentViewKitStyle"] + editorKitProducts + acpProducts + textualProducts
         + templateEngineProducts + gitProducts,
       // The TextMate grammars of GrammarBundle, and their licenses. The string
       // catalog holds the English source text of each localized string of

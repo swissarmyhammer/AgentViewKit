@@ -136,7 +136,7 @@
     ///   - key: The row key of the thought.
     ///   - harness: The harness that shows the thread.
     static func expectCompleteThought<Content: View>(key: String, in harness: HostedViewHarness<Content>) {
-      #expect(SessionTranscriptViewHostedTests.showsParagraphs(of: thoughtText, in: harness))
+      #expect(SessionTranscriptViewHostedTests.showsText(thoughtText, in: harness))
       #expect(harness.element(identifier: ReasoningView.titleIdentifier(for: key)) != nil)
       #expect(
         harness.element(identifier: ReasoningView.identifier(for: key))?.label
@@ -259,7 +259,7 @@
       store.expand(entry: entry)
       harness.render()
 
-      #expect(SessionTranscriptViewHostedTests.showsParagraphs(of: Self.thoughtText, in: harness))
+      #expect(SessionTranscriptViewHostedTests.showsText(Self.thoughtText, in: harness))
       #expect(harness.element(identifier: LinkView.cardIdentifier)?.label == Self.linkName)
     }
 

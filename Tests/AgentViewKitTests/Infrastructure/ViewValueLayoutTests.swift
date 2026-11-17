@@ -79,21 +79,6 @@ import Testing
       .expectNoPaddingByte(functionFieldCount: 1)
   }
 
-  // MARK: - ParagraphView
-
-  @Test func theParagraphViewHasNoPaddingByte() {
-    StoredLayout<ParagraphView>(\.messageID, \.paragraph, \.citations, \.readingGroupID)
-      .expectNoPaddingByte()
-  }
-
-  @Test func theParagraphHasNoPaddingByte() {
-    StoredLayout<ParagraphSplitter.Paragraph>(\.id, \.text).expectNoPaddingByte()
-  }
-
-  @Test func theParagraphIDHasNoPaddingByte() {
-    StoredLayout<ParagraphSplitter.Paragraph.ID>(\.index, \.textHash).expectNoPaddingByte()
-  }
-
   // MARK: - ItemRow
 
   /// The one stored field of `ItemRow` is private, so the test compares the

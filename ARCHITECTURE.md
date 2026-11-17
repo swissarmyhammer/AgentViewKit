@@ -21,7 +21,7 @@ The package has two library products:
 | Product | Target | Links | For |
 | --- | --- | --- | --- |
 | `AgentViewKitStyle` | `Sources/AgentViewKitStyle` | EditorKit only: `EditorStyle`, `EditorTheme`, `EditorSwiftUI`, `EditorDiff`, `EditorCommands`, `EditorCommandsUI` | Each view kit. Its dependency closure holds no ACP package, no Textual and no math engine. |
-| `AgentViewKit` | `Sources/AgentViewKit` | `AgentViewKitStyle`, EditorKit, FoundationModelsACP, FoundationModelsACPClient, Textual, swiftui-math, Stencil | An ACP client app: the agent thread views and the ACP helpers. |
+| `AgentViewKit` | `Sources/AgentViewKit` | `AgentViewKitStyle`, EditorKit, FoundationModelsACP, FoundationModelsACPClient, Textual, Stencil | An ACP client app: the agent thread views and the ACP helpers. |
 
 Two more library products, `AgentViewKitTestSupport` and `AgentViewKitDemoSupport`, are test support for the nested `IntegrationTests/` and `ScreenshotTests/` packages (see "Tests of this kit"). No host of the kit links them.
 

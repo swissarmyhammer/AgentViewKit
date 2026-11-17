@@ -1,6 +1,7 @@
 #if DEBUG
-  import AgentViewKit
+  @testable import AgentViewKit
   import AgentViewKitTestSupport
+  import EditorSwiftUI
   import EditorTestSupport
   import FoundationModelsACPClient
   import SwiftUI
@@ -12,7 +13,9 @@
   /// The session model coalesces the chunks at
   /// `SessionModel.defaultCoalescingCadence`. Each row binds directly to its
   /// `TranscriptEntry` object, so a flush evaluates the row of the streamed
-  /// entry only.
+  /// entry only, and changes only the EditorKit model of the text block of
+  /// that entry. The models are in a ``CodeBlockModelCache`` of the
+  /// environment, so the test reads them.
   ///
   /// The mount makes its body evaluations in the render pass after the model
   /// has each row, before the reset of the counters. Then the test waits for
@@ -67,6 +70,16 @@
         "agent_message_chunk", messageID: messageID(at: position), block: WireBlockJSON.makeText(text))
     }
 
+    /// The model of the text block of the row `key` in `cache`.
+    ///
+    /// - Parameters:
+    ///   - key: The row key of an agent message with one text block.
+    ///   - cache: The cache of the thread.
+    /// - Returns: The model, or `nil` when the cache has none.
+    static func model(ofRow key: String, in cache: CodeBlockModelCache) -> EditorModel? {
+      ResponseTextChecks.model(of: EntryContentView.blockID(entryID: key, index: 0), in: cache)
+    }
+
     /// Sets the row count and the content count of each key to zero.
     ///
     /// - Parameter keys: The row keys of the rows.
@@ -80,7 +93,9 @@
     @Test func aStreamOfChunksEvaluatesOnlyTheStreamedRowAndShowsTheEntryText() async throws {
       let session = try await ScriptedSession.open(coalescingCadence: SessionModel.defaultCoalescingCadence)
       defer { session.close() }
-      let harness = HostedViewHarness(AgentThreadView(session: session.model), size: Self.tallSize)
+      let cache = CodeBlockModelCache()
+      let harness = HostedViewHarness(
+        AgentThreadView(session: session.model).environment(\.codeBlockModelCache, cache), size: Self.tallSize)
       defer { harness.close() }
       let model = session.model
       for position in 0..<Self.rowCount {
@@ -90,6 +105,8 @@
       let keys = model.transcript.map(\.id.rowKey)
       try #require(keys.count == Self.rowCount)
       #expect(SessionTranscriptViewHostedTests.rowKeys(in: harness) == keys)
+      let models = try keys.map { try #require(Self.model(ofRow: $0, in: cache)) }
+      let versions = models.map(\.state.version)
       Self.resetCounts(of: keys)
 
       for index in 0..<Self.streamedChunkCount {
@@ -110,10 +127,11 @@
         #expect(BodyEvaluationCounter.count(ItemRow.contentCounterKey(for: key)) == 0, "\(key)")
         #expect(BodyEvaluationCounter.count(ItemRow.counterKey(for: key)) == 0, "\(key)")
       }
-      let labels = Set(harness.accessibilityElements().compactMap(\.label))
-      let paragraphs = ParagraphSplitter.paragraphs(entryText).map(\.text)
-      #expect(!paragraphs.isEmpty)
-      #expect(paragraphs.allSatisfy { labels.contains($0) }, "\(paragraphs)")
+      for (position, model) in models.enumerated() where position != Self.streamedPosition {
+        #expect(model.state.version == versions[position], "\(keys[position])")
+      }
+      #expect(models[Self.streamedPosition].text == expected)
+      #expect(ResponseTextChecks.texts(in: harness).contains(expected))
       Self.resetCounts(of: keys)
     }
   }

@@ -282,16 +282,17 @@
     }
 
     /// The thread screen: each block expanded, captured after the syntax
-    /// parse of the code block.
+    /// parse of the message with the code block.
     ///
     /// - Returns: The key screen.
     /// - Throws: The error of a decode or of the note. The settle records an
-    ///   issue when the cache has no model for the code block.
+    ///   issue when the cache has no model for the message with the code
+    ///   block.
     static func threadScreen() throws -> ReviewScreen {
       let session = try transcriptSession()
       let cache = CodeBlockModelCache()
       return try ReviewGalleryScreen.thread.reviewScreen(settle: { _ in
-        await SnapshotFixtures.waitForSyntax(of: try SnapshotFixtures.codeBlockModel(in: cache, session: session))
+        await SnapshotFixtures.waitForSyntax(of: try SnapshotFixtures.codeMessageModel(in: cache, session: session))
       }) { _ in
         demoThread(session, connection: connection)
           .environment(\.expandedBlocksStore, ExpandedBlocksStore(defaultExpanded: { _ in true }))

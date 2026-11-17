@@ -1,6 +1,7 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
 import EditorTestSupport
+import EditorText
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
@@ -191,10 +192,19 @@ import Testing
 
   // MARK: - Spoken math
 
-  @Test func theSpokenTextHasEachMathSpanAtItsPlace() {
-    let parser = MathMarkdownParser()
-    #expect(parser.spokenText(for: "Let $x^2$ be **big**.") == "Let x^2 be big.")
-    #expect(parser.spokenText(for: "No math here.") == nil)
-    #expect(parser.spokenText(for: "Code `$x$` and $y$.") == "Code $x$ and y.")
+  /// EditorKit shows each math span of an answer as a widget whose
+  /// accessibility value is the TeX source of the span. The text element of
+  /// the answer reads the whole Markdown text, with the source of each span
+  /// at its place.
+  @Test func eachMathSpanOfAnAnswerKeepsTheTeXThatItsWidgetSpeaks() {
+    let model = RenderedMarkdownView.makeModel("Let $x^2$ be big.\n\n$$y = 1$$")
+
+    #expect(MathSpans.spans(in: model.state.document).map(\.tex) == ["x^2", "y = 1"])
+  }
+
+  @Test func mathInCodeIsNotAMathSpan() {
+    let model = RenderedMarkdownView.makeModel("Code `$x$` and $y$.")
+
+    #expect(MathSpans.spans(in: model.state.document).map(\.tex) == ["y"])
   }
 }

@@ -12,7 +12,7 @@ import SwiftUI
 /// ``SwiftUI/View/contentBlockView(for:_:)``. Otherwise the view uses the
 /// default view of the kind:
 ///
-/// - text: a ``ResponseView``, through Textual.
+/// - text: a ``ResponseView``, in the rendered form of EditorKit.
 /// - image: an ``ImageView``. A tap selects the image in the inspector.
 /// - audio: an ``AudioPlayerView``, through AVKit.
 /// - resource link: for a `file:` URL, an ``AttachmentView`` of the file. A

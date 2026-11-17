@@ -8,9 +8,9 @@ import Testing
 /// The unit tests mount no view, so the tests read the view types and the
 /// source of the kit. Two facts hold:
 ///
-/// - The selectable Textual components (Markdown prose and plain text) have
-///   the region modifier in their body. EditorKit views join the region by
-///   themselves.
+/// - The selectable Textual component (plain text) has the region modifier
+///   in its body. EditorKit views, such as the text of an answer, join the
+///   region by themselves.
 /// - No view of the kit selects text with a selection that the kit cannot
 ///   clear: no SwiftUI `.textSelection(.enabled)`, and no Textual selection
 ///   or `StructuredText` outside the region modifier.
@@ -44,9 +44,12 @@ import Testing
       .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") }
   }
 
-  @Test func markdownProseIsASelectionRegion() {
-    let body = MarkdownProse(text: "Some *text*.").body
-    #expect(String(describing: type(of: body)).contains(Self.region))
+  /// The text of an answer shows in an EditorKit `EditorView`
+  /// (``RenderedMarkdownView``), which joins the selection of the thread by
+  /// itself (D185).
+  @Test func theTextOfAnAnswerIsAnEditorView() {
+    let body = ResponseView(id: "answer", markdown: "Some *text*.").body
+    #expect(String(describing: type(of: body)).contains("RenderedMarkdownView"))
   }
 
   @Test func plainTextIsASelectionRegion() {

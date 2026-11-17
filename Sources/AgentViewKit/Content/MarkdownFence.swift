@@ -1,19 +1,14 @@
-/// The code fence rules that ``ParagraphSplitter`` and
-/// ``StreamingMarkdownBalancer`` share (plan.md §8).
+/// The code fence rules of ``MarkdownParagraphs`` (plan.md §9 C).
 ///
 /// A fence line has at most three spaces of indent, and then a run of three or
 /// more backticks. The info string follows the run. A closing fence line has a
 /// run of backticks that is at least as long as the opening run, and nothing
-/// after the run but whitespace. The two types must use the same rules, so that
-/// the balancer sees an open fence exactly when the splitter keeps the fence in
-/// the tail.
+/// after the run but whitespace.
 nonisolated enum MarkdownFence {
   /// The data of an opening fence line.
   struct Opening: Equatable, Sendable {
     /// The count of backticks in the run.
     var length: Int
-    /// The first word of the info string, or `nil` when there is no word.
-    var language: String?
   }
 
   /// The largest indent that a fence line can have.
@@ -21,15 +16,6 @@ nonisolated enum MarkdownFence {
 
   /// The smallest count of backticks in a fence run.
   private static let minimumLength = 3
-
-  /// Changes each CRLF and each lone CR to LF.
-  ///
-  /// - Parameter text: The Markdown text.
-  /// - Returns: The text with LF line breaks only.
-  static func normalizeLineBreaks(_ text: String) -> String {
-    guard text.utf8.contains(UInt8(ascii: "\r")) else { return text }
-    return text.replacing("\r\n", with: "\n").replacing("\r", with: "\n")
-  }
 
   /// Reads `line` as an opening fence line.
   ///
@@ -39,8 +25,7 @@ nonisolated enum MarkdownFence {
   static func opening(_ line: Substring) -> Opening? {
     guard let (length, rest) = backtickRun(line) else { return nil }
     guard !rest.contains("`") else { return nil }
-    let language = rest.split(whereSeparator: \.isWhitespace).first.map(String.init)
-    return Opening(length: length, language: language)
+    return Opening(length: length)
   }
 
   /// Tells if `line` closes a fence that `opening` opened.

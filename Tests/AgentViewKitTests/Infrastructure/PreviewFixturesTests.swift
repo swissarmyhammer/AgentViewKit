@@ -369,13 +369,13 @@ import Testing
     #expect(paragraph.count > PreviewFixtures.formattedMarkdown.count)
   }
 
-  @Test func theCitationPlacementsPutAPillAfterEachCitedSentence() {
-    let placements = PreviewFixtures.citationPlacements
+  @Test func theCitationChipsStandAfterEachCitedSentence() {
+    let chips = PreviewFixtures.citations.editorCitations(in: PreviewFixtures.citedResponse)
 
     #expect(
-      placements.map(\.offset)
-        == [PreviewFixtures.citedFirstSentence.count, PreviewFixtures.citedResponse.count])
-    #expect(placements.map(\.number) == Array(1...PreviewFixtures.citations.sources.count))
+      chips.map(\.offset)
+        == [PreviewFixtures.citedFirstSentence.utf8.count, PreviewFixtures.citedResponse.utf8.count])
+    #expect(chips.map(\.number) == Array(1...PreviewFixtures.citations.sources.count))
   }
 
   @Test func theTextResourceHoldsTextAtAURI() {

@@ -1,11 +1,13 @@
-import AgentViewKit
+@testable import AgentViewKit
 import AgentViewKitTestSupport
+import EditorSwiftUI
 import EditorTestSupport
 import Foundation
 import SwiftUI
 import Testing
 
-/// Hosted tests of ``ResponseView`` and ``ParagraphView``.
+/// Hosted tests of ``ResponseView``: the text of an answer in the rendered
+/// form of EditorKit (AVK-9.7, D185).
 @Suite(.serialized, .hostedSerially) @MainActor struct ResponseViewHostedTests {
   /// The size of the host window. It is tall enough for each paragraph.
   static let hostSize = CGSize(width: 480, height: 640)
@@ -13,76 +15,68 @@ import Testing
   /// A text with four paragraphs.
   static let fourParagraphText = "One.\n\nTwo.\n\nThree.\n\nFour"
 
-  /// The identifiers of the paragraph elements that `harness` shows.
-  ///
-  /// - Parameters:
-  ///   - harness: The harness that hosts the view.
-  ///   - limit: The largest paragraph index to look for, plus one.
-  /// - Returns: The identifiers that the harness finds.
-  static func paragraphIdentifiers(
-    in harness: HostedViewHarness<some View>, limit: Int
-  ) -> [String] {
-    (0..<limit)
-      .map(ResponseView.paragraphIdentifier(index:))
-      .filter { harness.element(identifier: $0) != nil }
-  }
+  /// A text with a fenced code block.
+  static let fencedText = "Some code:\n\n```swift\nlet x = 1\n```"
 
   // MARK: - Elements
 
-  @Test func aTextWithFourParagraphsMountsFourParagraphElements() {
+  @Test func aTextWithFourParagraphsIsOneTextElement() {
     let harness = HostedViewHarness(
       ResponseView(id: "response-four", markdown: Self.fourParagraphText), size: Self.hostSize)
     defer { harness.close() }
     harness.render()
 
-    let paragraphs = Self.paragraphIdentifiers(in: harness, limit: 5)
-    #expect(paragraphs == (0..<4).map(ResponseView.paragraphIdentifier(index:)))
+    #expect(ResponseTextChecks.texts(in: harness) == [Self.fourParagraphText])
   }
 
-  @Test func aTextThatEndsWithABlankLineMountsOneParagraphElement() {
+  @Test func aFencedBlockIsPartOfTheTextOfTheResponse() {
     let harness = HostedViewHarness(
-      ResponseView(id: "response-blank-end", markdown: "One.\n\n"), size: Self.hostSize)
+      ResponseView(id: "response-fence", markdown: Self.fencedText), size: Self.hostSize)
     defer { harness.close() }
     harness.render()
 
-    #expect(Self.paragraphIdentifiers(in: harness, limit: 2) == [
-      ResponseView.paragraphIdentifier(index: 0)
-    ])
+    #expect(ResponseTextChecks.texts(in: harness) == [Self.fencedText])
+    #expect(harness.element(identifier: CodeBlockView.identifier) == nil)
   }
 
-  // MARK: - Code fences
-
-  @Test func aFencedBlockMountsACodeBlock() {
+  @Test func twoResponsesShowTwoTextElements() {
     let harness = HostedViewHarness(
-      ResponseView(id: "response-fence", markdown: "Some code:\n\n```swift\nlet x = 1\n```"),
+      VStack {
+        ResponseView(id: "response-first", markdown: "First.")
+        ResponseView(id: "response-second", markdown: "Second.")
+      },
       size: Self.hostSize)
     defer { harness.close() }
     harness.render()
 
-    #expect(harness.element(identifier: CodeBlockView.identifier)?.label == "swift code block")
-    #expect(Self.paragraphIdentifiers(in: harness, limit: 3).count == 2)
+    #expect(ResponseTextChecks.texts(in: harness) == ["First.", "Second."])
   }
 
-  // MARK: - Paragraph view
+  // MARK: - Models
 
-  @Test func twoParagraphViewsWithTheSameParagraphAreEqual() {
-    let paragraph = ParagraphSplitter.Paragraph(index: 0, text: "One.")
-    let other = ParagraphSplitter.Paragraph(index: 0, text: "Two.")
-    #expect(
-      ParagraphView(messageID: "m", paragraph: paragraph)
-        == ParagraphView(messageID: "m", paragraph: paragraph))
-    #expect(
-      ParagraphView(messageID: "m", paragraph: paragraph)
-        != ParagraphView(messageID: "m", paragraph: other))
-    #expect(
-      ParagraphView(messageID: "m", paragraph: paragraph)
-        != ParagraphView(messageID: "n", paragraph: paragraph))
+  @Test func theModelOfAResponseIsInTheCacheOfTheEnvironment() throws {
+    let cache = CodeBlockModelCache()
+    let harness = HostedViewHarness(
+      ResponseView(id: "response-cached", markdown: "Cached.").environment(\.codeBlockModelCache, cache),
+      size: Self.hostSize)
+    defer { harness.close() }
+    harness.render()
+
+    let model = try #require(ResponseTextChecks.model(of: "response-cached", in: cache))
+    #expect(model.text == "Cached.")
+    #expect(model.presentation == .rendered)
   }
 
-  @Test func twoParagraphViewsInDifferentReadingGroupsAreNotEqual() {
-    let paragraph = ParagraphSplitter.Paragraph(index: 0, text: "One.")
-    #expect(
-      ParagraphView(messageID: "m", paragraph: paragraph, readingGroupID: "a")
-        != ParagraphView(messageID: "m", paragraph: paragraph, readingGroupID: "b"))
+  @Test func aCachedModelWithAnOlderTextGetsTheTextOfTheView() throws {
+    let cache = CodeBlockModelCache()
+    let model = ResponseView.model(in: cache, id: "response-older", markdown: "Old")
+    let harness = HostedViewHarness(
+      ResponseView(id: "response-older", markdown: "Old and new.").environment(\.codeBlockModelCache, cache),
+      size: Self.hostSize)
+    defer { harness.close() }
+    harness.render()
+
+    #expect(model.text == "Old and new.")
+    #expect(ResponseTextChecks.texts(in: harness) == ["Old and new."])
   }
 }

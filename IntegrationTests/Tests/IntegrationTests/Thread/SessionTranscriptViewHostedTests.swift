@@ -33,7 +33,8 @@
     static let chunkedPosition = 1
 
     /// The text chunks that the stream test sends to one agent message, in
-    /// order. Each chunk after the first starts a new paragraph.
+    /// order. Each chunk after the first starts a new paragraph of the one
+    /// text.
     static let streamedChunks = ["One.", "\n\nTwo.", "\n\nThree."]
 
     /// The `messageId` of the agent message of the stream test.
@@ -51,25 +52,18 @@
       WireBlockJSON.makeChunk(kind, messageID: messageID, block: WireBlockJSON.makeText(text))
     }
 
-    /// Tells whether `harness` shows `text` as the paragraphs that a pure
-    /// call of `ParagraphSplitter` makes of it.
+    /// Tells whether `harness` shows `text` as the one response text of the
+    /// thread.
     ///
-    /// The harness must show one paragraph element for each paragraph, and
-    /// no more, and a text element with the text of each paragraph.
+    /// The harness must show one response text element, and its value must
+    /// be the whole text.
     ///
     /// - Parameters:
     ///   - text: The whole text of an entry.
     ///   - harness: The harness that shows the thread.
-    /// - Returns: `true` when the harness shows each paragraph of `text`.
-    static func showsParagraphs<Content: View>(of text: String, in harness: HostedViewHarness<Content>) -> Bool {
-      let paragraphs = ParagraphSplitter.paragraphs(text)
-      let elements = harness.accessibilityElements()
-      let identifiers = elements.compactMap(\.identifier).filter {
-        $0.hasPrefix(ResponseView.paragraphIdentifierPrefix)
-      }
-      let labels = Set(elements.compactMap(\.label))
-      return identifiers == paragraphs.map { ResponseView.paragraphIdentifier(index: $0.id.index) }
-        && paragraphs.allSatisfy { labels.contains($0.text) }
+    /// - Returns: `true` when the harness shows `text` in one text element.
+    static func showsText<Content: View>(_ text: String, in harness: HostedViewHarness<Content>) -> Bool {
+      ResponseTextChecks.texts(in: harness) == [text]
     }
 
     /// The row keys of the rows that `harness` shows, in view order.
@@ -221,7 +215,7 @@
       #expect(harness.element(identifier: UnknownItemView.identifier) == nil)
     }
 
-    @Test func theChunksOfOneMessageShowAsOneParagraph() async throws {
+    @Test func theChunksOfOneMessageShowAsOneText() async throws {
       let session = try await ScriptedSession.open()
       defer { session.close() }
       let harness = HostedViewHarness(
@@ -233,10 +227,7 @@
       try await session.sendUpdate(Self.chunk("agent_message_chunk", messageID: "join-m", text: "world."))
       await harness.render { Self.entryText(of: model, at: 0) == "Hello world." }
 
-      let paragraphs = harness.accessibilityElements().filter {
-        $0.identifier == ResponseView.paragraphIdentifier(index: 0)
-      }
-      #expect(paragraphs.count == 1)
+      #expect(Self.showsText("Hello world.", in: harness))
     }
 
     /// Each row of a ``ConversationView`` has the row key of its entry as its
@@ -288,14 +279,14 @@
         let sent = Self.streamedChunks[...index].joined()
         await harness.render { Self.entryText(of: model, at: 0) == sent }
         let text = try #require(Self.entryText(of: model, at: 0))
-        #expect(Self.showsParagraphs(of: text, in: harness), "\(text)")
+        #expect(Self.showsText(text, in: harness), "\(text)")
       }
       #expect(ComposerSessionModelHostedTests.isRunning(model))
 
       try await session.sendUpdate(ScriptedSession.idleState)
       await harness.render { !ComposerSessionModelHostedTests.isRunning(model) }
 
-      #expect(Self.showsParagraphs(of: Self.streamedChunks.joined(), in: harness))
+      #expect(Self.showsText(Self.streamedChunks.joined(), in: harness))
     }
 
     @Test func aChunkEvaluatesOnlyTheRowOfItsEntry() async throws {
