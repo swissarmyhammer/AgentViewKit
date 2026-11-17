@@ -52,6 +52,12 @@ public nonisolated enum AgentCommandVerb: String, CaseIterable, Sendable {
   /// message of the context menu.
   case copyMessage
 
+  /// Copies the code of one fenced code block, with no fence lines: the
+  /// block of the payload, or the block of the caret or of the context menu
+  /// in a rendered Markdown view (D185, D193 (f)). The palette and the
+  /// context menu show it only in a code block.
+  case copyCodeBlock
+
   /// Expands each item of the thread, or collapses each item when all items
   /// are expanded.
   case toggleExpandAll
@@ -105,6 +111,7 @@ public nonisolated enum AgentCommandVerb: String, CaseIterable, Sendable {
     case .jumpToPrevious: String(localized: "Previous Prompt", bundle: .module)
     case .copyThread: String(localized: "Copy Thread", bundle: .module)
     case .copyMessage: String(localized: "Copy Message", bundle: .module)
+    case .copyCodeBlock: String(localized: "Copy Code Block", bundle: .module)
     case .toggleExpandAll: String(localized: "Expand or Collapse All", bundle: .module)
     case .scrollToBottom: String(localized: "Scroll to Bottom", bundle: .module)
     case .focusComposer: String(localized: "Focus Composer", bundle: .module)
@@ -156,6 +163,9 @@ public nonisolated enum AgentCommandPayload {
   /// a session model, the value is the row key of the transcript entry.
   public static let messageKey = "message"
 
+  /// The key of the code that ``AgentCommandVerb/copyCodeBlock`` copies.
+  public static let codeKey = "code"
+
   /// The payload that sends `text`.
   ///
   /// - Parameter text: The text to send.
@@ -189,6 +199,15 @@ public nonisolated enum AgentCommandPayload {
   /// - Returns: The payload.
   public static func session(_ session: SessionId) -> CommandPayload {
     CommandPayload(values: [sessionKey: session.rawValue])
+  }
+
+  /// The payload that copies `code` with
+  /// ``AgentCommandVerb/copyCodeBlock``.
+  ///
+  /// - Parameter code: The code to copy.
+  /// - Returns: The payload.
+  public static func code(_ code: String) -> CommandPayload {
+    CommandPayload(values: [codeKey: code])
   }
 
   /// The string value of `key` in `payload`, or `nil`.
@@ -246,11 +265,30 @@ nonisolated struct AgentCommand: EditorCommands.Command {
   func availability(in context: CommandContext) -> Availability {
     CommandTargetAccess.availability(
       at: target, unavailable: .unavailable(reason: String(localized: "The thread is not shown.", bundle: .module))
-    ) { $0.availability(of: verb, payload: itemPayload) }
+    ) { $0.availability(of: verb, payload: payload(in: context)) }
   }
 
   func run(in context: CommandContext) -> Bool {
-    CommandTargetAccess.run(at: target) { $0.run(verb, payload: itemPayload) }
+    CommandTargetAccess.run(at: target) { $0.run(verb, payload: payload(in: context)) }
+  }
+
+  /// The payload of the dispatch, with the item of the scope and the code
+  /// of the code block of the context, when the payload does not name them.
+  ///
+  /// EditorKit writes the fenced code block of the caret, or of the point of
+  /// a context menu, to `CommandContext.codeBlock`. Thus Copy Code Block
+  /// copies that block. A payload that names the code wins.
+  ///
+  /// - Parameter context: The context of the invocation.
+  /// - Returns: The payload.
+  @MainActor private func payload(in context: CommandContext) -> CommandPayload? {
+    let payload = itemPayload
+    guard verb == .copyCodeBlock, AgentCommandPayload.string(AgentCommandPayload.codeKey, in: payload) == nil,
+      let code = context.codeBlock?.text
+    else { return payload }
+    var values = payload?.values ?? [:]
+    values[AgentCommandPayload.codeKey] = code
+    return CommandPayload(values: values, objects: payload?.objects ?? [:])
   }
 
   /// The payload of the dispatch, with the item of the scope when the payload
@@ -305,7 +343,7 @@ nonisolated struct AgentCommand: EditorCommands.Command {
       menu: verb.menu,
       contextMenu: verb.contextMenu,
       keys: keys,
-      isVisible: { verb.isVisible(at: $0.path) },
+      isVisible: { verb.isVisible(in: $0) },
       make: { [weak target] payload in
         AgentCommand(verb: verb, target: target, payload: payload)
       })

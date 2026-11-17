@@ -591,6 +591,16 @@
         }
       }
     },
+    "Copy Code Block" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy Code Block"
+          }
+        }
+      }
+    },
     "Copy Message" : {
       "localizations" : {
         "en" : {
@@ -2625,6 +2635,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The browser did not open. Press Retry to open it again."
+          }
+        }
+      }
+    },
+    "The caret is not in a code block." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The caret is not in a code block."
           }
         }
       }

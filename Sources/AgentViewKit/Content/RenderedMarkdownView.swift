@@ -42,6 +42,11 @@ struct RenderedMarkdownView: View {
   var body: some View {
     let model = ownModel.model(text: markdown, make: Self.makeModel)
     EditorView(model: model)
+      .editorCodeBlockHeader { block in
+        if let title = Self.headerTitle(of: block) {
+          Text(verbatim: title)
+        }
+      }
       .editorTextAccessibilityIdentifier(identifier)
       .editorImageSource(FileImageSource(), relativeTo: Self.imageFolder(of: session))
       .sizedToContent()
@@ -51,6 +56,17 @@ struct RenderedMarkdownView: View {
       .onChange(of: markdown) {
         Self.sync(model, to: markdown)
       }
+  }
+
+  /// The title of the header of a fenced code block: a borderless label
+  /// with no controls (D193 (f)). Copy Code Block is a command of the code
+  /// block scope (``AgentCommandVerb/copyCodeBlock``), not a button.
+  ///
+  /// - Parameter block: The block.
+  /// - Returns: The file name of the info string, else its language, else
+  ///   `nil` for a block with neither.
+  static func headerTitle(of block: FencedCodeBlock) -> String? {
+    block.fileName ?? block.language
   }
 
   /// The folder that the images of the Markdown load from: the working

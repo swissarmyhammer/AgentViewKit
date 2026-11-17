@@ -28,7 +28,7 @@ final class CallCounter {
   static let message = "Hello"
 
   /// The number of verbs of the kit.
-  static let verbCount = 18
+  static let verbCount = 19
 
   /// The number of turns that ``sendTurns(to:)`` sends.
   static let turnCount = 3

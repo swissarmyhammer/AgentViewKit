@@ -148,6 +148,7 @@ nonisolated extension AgentCommandVerb {
     case .toggleExpandAll: MenuPlacement(path: .view, group: "agentThread", order: 0)
     case .scrollToBottom: MenuPlacement(path: .view, group: "agentThread", order: 1)
     case .copyMessage: MenuPlacement(path: .edit, group: "agentClipboard", order: 0)
+    case .copyCodeBlock: MenuPlacement(path: .edit, group: "agentClipboard", order: 1)
     case .goToParent: MenuPlacement(path: .view, group: "agentSessions", order: 0)
     case .openChild: MenuPlacement(path: .view, group: "agentSessions", order: 1)
     case .previousSibling: MenuPlacement(path: .view, group: "agentSessions", order: 2)
@@ -161,10 +162,13 @@ nonisolated extension AgentCommandVerb {
   ///
   /// The context menu of a message shows Copy Message, then Next Prompt and
   /// Previous Prompt. The context menu of a permission request card shows
-  /// Approve Request and Reject Request. ``itemKind`` tells the item.
+  /// Approve Request and Reject Request. ``itemKind`` tells the item. The
+  /// context menu of a fenced code block in rendered Markdown shows Copy
+  /// Code Block (``isVisible(in:)``).
   public var contextMenu: ContextMenuPlacement? {
     switch self {
     case .copyMessage: ContextMenuPlacement(group: 0, order: 0)
+    case .copyCodeBlock: ContextMenuPlacement(group: 0, order: 1)
     case .jumpToNext: ContextMenuPlacement(group: 1, order: 0)
     case .jumpToPrevious: ContextMenuPlacement(group: 1, order: 1)
     case .approvePending: ContextMenuPlacement(group: 0, order: 0)
@@ -185,7 +189,7 @@ nonisolated extension AgentCommandVerb {
     case .jumpToNext: AgentSymbol.nextPrompt
     case .jumpToPrevious: AgentSymbol.previousPrompt
     case .copyThread: AgentSymbol.copyThread
-    case .copyMessage: AgentSymbol.copy
+    case .copyMessage, .copyCodeBlock: AgentSymbol.copy
     case .toggleExpandAll: AgentSymbol.expandAll
     case .scrollToBottom: AgentSymbol.scrollToBottom
     case .focusComposer: AgentSymbol.focusComposer
@@ -232,5 +236,21 @@ nonisolated extension AgentCommandVerb {
   func isVisible(at path: FocusPath) -> Bool {
     guard let itemKind, let item = AgentScopeKind.item(in: path) else { return true }
     return item.kind == itemKind
+  }
+
+  /// Tells if the menus, the context menus and the palette show the verb in
+  /// `context`.
+  ///
+  /// ``copyCodeBlock`` shows only in a fenced code block: the context has
+  /// the code block of EditorKit (`EditorCodeBlockScope.isInside(_:)`). The
+  /// gate also matches the caret in a block, which a structural gate does
+  /// not. Each other verb shows as ``isVisible(at:)`` tells for the path of
+  /// the context.
+  ///
+  /// - Parameter context: The folded context of the invocation path.
+  /// - Returns: `true` when the verb shows.
+  func isVisible(in context: CommandContext) -> Bool {
+    guard self != .copyCodeBlock else { return EditorCodeBlockScope.isInside(context) }
+    return isVisible(at: context.path)
   }
 }

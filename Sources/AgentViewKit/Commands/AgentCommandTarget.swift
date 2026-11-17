@@ -211,6 +211,7 @@ final class AgentCommandTarget {
     case .jumpToPrevious: anchors != nil && jumpTarget(forward: false) != nil
     case .copyThread: !Self.plainText(of: session).isEmpty
     case .copyMessage: messageMarkdown(payload: payload, in: session)?.isEmpty == false
+    case .copyCodeBlock: AgentCommandPayload.string(AgentCommandPayload.codeKey, in: payload) != nil
     case .toggleExpandAll: expandedBlocks != nil && !session.transcript.isEmpty
     case .scrollToBottom: anchors != nil && !session.transcript.isEmpty
     case .focusComposer: composer != nil
@@ -236,6 +237,7 @@ final class AgentCommandTarget {
     case .jumpToPrevious: String(localized: "No prompt is above.", bundle: .module)
     case .copyThread: String(localized: "The thread has no messages.", bundle: .module)
     case .copyMessage: String(localized: "The message has no text.", bundle: .module)
+    case .copyCodeBlock: String(localized: "The caret is not in a code block.", bundle: .module)
     case .toggleExpandAll: String(localized: "The thread has no items.", bundle: .module)
     case .scrollToBottom: String(localized: "The thread list is not shown.", bundle: .module)
     case .focusComposer: String(localized: "The composer is not shown.", bundle: .module)
@@ -321,6 +323,7 @@ final class AgentCommandTarget {
     case .jumpToPrevious: jump(forward: false)
     case .copyThread: pasteboard.copyText(Self.plainText(of: session))
     case .copyMessage: pasteboard.copyText(messageMarkdown(payload: payload, in: session) ?? "")
+    case .copyCodeBlock: pasteboard.copyText(AgentCommandPayload.string(AgentCommandPayload.codeKey, in: payload) ?? "")
     case .toggleExpandAll: toggleExpandAll(session)
     case .scrollToBottom: anchors?.pinToBottom()
     case .focusComposer: return composer?.focus() ?? false

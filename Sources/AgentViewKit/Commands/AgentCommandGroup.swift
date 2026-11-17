@@ -66,7 +66,7 @@ nonisolated extension AgentCommandVerb {
     case .jumpToNext, .jumpToPrevious, .nextRequest, .previousRequest, .scrollToBottom, .toggleExpandAll,
       .goToParent, .openChild, .nextSibling, .previousSibling, .jumpToSession:
       .navigate
-    case .copyMessage, .copyThread: .clipboard
+    case .copyMessage, .copyThread, .copyCodeBlock: .clipboard
     }
   }
 }

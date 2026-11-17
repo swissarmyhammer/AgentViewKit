@@ -29,7 +29,7 @@ import Testing
   ]
 
   /// The verbs of the Edit menu.
-  static let editMenuVerbs: Set<AgentCommandVerb> = [.copyMessage]
+  static let editMenuVerbs: Set<AgentCommandVerb> = [.copyMessage, .copyCodeBlock]
 
   /// The menu of `verb` in the design (AVK-1, D41), or `nil` when the verb
   /// is in none of the three menu tables.

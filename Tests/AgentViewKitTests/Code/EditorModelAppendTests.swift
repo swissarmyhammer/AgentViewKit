@@ -63,6 +63,9 @@ import Testing
 
   // MARK: - syncStreaming
 
+  // `syncStreaming(to:)` is the EditorKit method now (AVK-9.7). These tests
+  // keep the contract that CodeBlockModelCache reads.
+
   @Test func syncAppendsOnlyTheNewSuffix() {
     let model = EditorModel("let x")
     model.isReadOnly = true

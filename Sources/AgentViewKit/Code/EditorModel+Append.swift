@@ -25,29 +25,6 @@ extension EditorModel {
       ChangeSet(fromLength: end, replacements: [(end..<end, text)]))
   }
 
-  /// Changes the document to `text` with the smallest streaming edit.
-  ///
-  /// When the document is a prefix of `text`, the helper adds only the new
-  /// suffix with ``appendStreaming(_:)``. When the document is not a prefix,
-  /// the helper replaces the full document. When the document is equal to
-  /// `text`, the helper does nothing.
-  ///
-  /// - Parameter text: The full text that the document must have.
-  public func syncStreaming(to text: String) {
-    // The comparison uses the UTF-8 bytes, because the document ranges are
-    // UTF-8 byte ranges. A comparison of characters can join the last
-    // character of the document with the first new scalar.
-    let current = self.text.utf8
-    let target = text.utf8
-    guard !current.elementsEqual(target) else { return }
-    if target.starts(with: current) {
-      appendStreaming(String(decoding: target.dropFirst(current.count), as: UTF8.self))
-    } else {
-      dispatchIgnoringReadOnly(
-        ChangeSet(fromLength: current.count, replacements: [(0..<current.count, text)]))
-    }
-  }
-
   /// Dispatches `changes` with no undo history, also on a read-only model.
   ///
   /// - Parameter changes: The document change to dispatch.
