@@ -227,7 +227,7 @@ import Testing
     #expect(fixture.accept("/compact"))
 
     #expect(fixture.text == "/compact ")
-    #expect(!EditorKitPromptEditor.isTrigger("/compact ", reportsCommands: true, hasRoot: false))
+    #expect(!EditorKitPromptEditor.isTrigger("/compact ", reportsCommands: true, hasAtSource: false))
     #expect(session.promptTexts.isEmpty)
   }
 
@@ -308,7 +308,7 @@ import Testing
     #expect(await fixture.query() == ["src/"])
     #expect(fixture.accept("src/"))
     #expect(fixture.text == "@src/")
-    #expect(EditorKitPromptEditor.isTrigger("@src/", reportsCommands: false, hasRoot: true))
+    #expect(EditorKitPromptEditor.isTrigger("@src/", reportsCommands: false, hasAtSource: true))
 
     #expect(await fixture.query() == ["main.swift"])
   }
@@ -316,7 +316,7 @@ import Testing
   /// Without a file root, an at sign is no trigger, and the engine of the
   /// editor lists nothing for it. See ^c3ya9ed above.
   @Test func withoutAFileRootTheEditorEngineListsNothingForAnAtSign() async {
-    #expect(!EditorKitPromptEditor.isTrigger("@", reportsCommands: false, hasRoot: false))
+    #expect(!EditorKitPromptEditor.isTrigger("@", reportsCommands: false, hasAtSource: false))
     #expect(await CompletionFixture.editor("@", commands: nil, root: nil).query().isEmpty)
   }
 }

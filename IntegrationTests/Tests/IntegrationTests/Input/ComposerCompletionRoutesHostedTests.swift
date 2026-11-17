@@ -122,14 +122,17 @@ struct RoutedComposerThreadHost: View {
   ///   - editorSession: The session of the editor of the composer.
   ///   - routes: The routes of the host.
   ///   - fileRoot: The file root of the composer, or `nil`.
+  ///   - mentions: The mention sources of the host (D199).
   /// - Returns: The mounted thread.
   /// - Throws: An error when the window has no undo stack.
   static func mount(
     _ session: ScriptedSession, editorSession: PromptEditorSession,
-    routes: [PrefixCompletionRoute] = ComposerRouteFixture.routes, fileRoot: URL? = nil
+    routes: [PrefixCompletionRoute] = ComposerRouteFixture.routes, fileRoot: URL? = nil,
+    mentions: [ComposerMentionSource] = []
   ) throws -> MountedThread<some View> {
     try ComposerHarness.mountThread(of: session.model) {
       RoutedComposerThreadHost(session: session, editorSession: editorSession, routes: routes)
+        .composerMentions(mentions)
         .promptFileRoot(fileRoot)
         .environment(\.sessionModel, session.model)
     }
@@ -238,6 +241,26 @@ struct RoutedComposerThreadHost: View {
     await Self.waitForRows(ComposerRouteFixture.files.labels, of: editorSession, in: thread)
 
     #expect(Self.listedLabels(of: editorSession) == ComposerRouteFixture.files.labels)
+  }
+
+  /// A mention source of the host adds its rows after the file rows of the
+  /// file root (D199, AVK-15.1).
+  @Test func typingAnAtSignListsTheFilesThenTheMentions() async throws {
+    let root = try TemporaryFileRoot(files: ["notes.txt"])
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let editorSession = PromptEditorSession()
+    let mention = ComposerMention(
+      label: "claude-code", token: "claude-code", link: URL(string: "testudo-session://01ABC"))
+    let thread = try Self.mount(
+      session, editorSession: editorSession, routes: [], fileRoot: root.url,
+      mentions: [ComposerMentionSource { _ in [mention] }])
+    defer { thread.harness.close() }
+
+    try await Self.type("@", in: thread, editorSession: editorSession)
+    await Self.waitForRows(["notes.txt", "claude-code"], of: editorSession, in: thread)
+
+    #expect(Self.listedLabels(of: editorSession) == ["notes.txt", "claude-code"])
   }
 
   /// With no routes, a sigil that no kit source owns opens no popup.

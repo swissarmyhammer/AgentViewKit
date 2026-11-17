@@ -94,6 +94,7 @@ public struct EditorKitPromptEditor: View {
 
   @Environment(\.promptFileRoot) private var fileRoot
   @Environment(\.composerCompletionRoutes) private var routes
+  @Environment(\.composerMentionSources) private var mentionSources
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
 
@@ -360,12 +361,13 @@ public struct EditorKitPromptEditor: View {
     let editor = Self.editorContext(of: model)
     let caret = model.selection.primary.head
     let isTrigger = Self.isTrigger(
-      caretLine(in: model), reportsCommands: kitCommands != nil, hasRoot: kitFileRoot != nil)
+      caretLine(in: model), reportsCommands: kitCommands != nil, hasAtSource: hasAtSource)
     guard isTrigger || Self.isRouteToken(at: caret, in: editor, routes: routes) else {
       dismissCompletion(in: model)
       return
     }
-    session.engine(commands: kitCommands, root: kitFileRoot, routes: routes).request(trigger: .typed, in: editor)
+    session.engine(commands: kitCommands, root: kitFileRoot, routes: routes, mentions: kitMentionSources)
+      .request(trigger: .typed, in: editor)
   }
 
   /// Follows an accept of a row of the completion list.
@@ -410,6 +412,18 @@ public struct EditorKitPromptEditor: View {
     PromptEditorSession.routes(routes, take: FileReferenceSource.trigger) ? nil : fileRoot
   }
 
+  /// The mention sources of the `@` source of the kit (D199).
+  ///
+  /// - Returns: No source when a route of the host takes the `@`.
+  private var kitMentionSources: [ComposerMentionSource] {
+    PromptEditorSession.routes(routes, take: FileReferenceSource.trigger) ? [] : mentionSources
+  }
+
+  /// Whether the kit answers `@`: it has a file root or a mention source.
+  private var hasAtSource: Bool {
+    kitFileRoot != nil || !kitMentionSources.isEmpty
+  }
+
   /// Accepts a row of the completion list.
   ///
   /// The model dispatches the transaction, so that the caret moves and the
@@ -450,17 +464,18 @@ public struct EditorKitPromptEditor: View {
   ///   - line: The text of the caret line before the caret.
   ///   - reportsCommands: Whether the agent reported its slash commands. An
   ///     empty list counts as reported.
-  ///   - hasRoot: Whether the editor has a file root.
+  ///   - hasAtSource: Whether the kit answers `@`: the editor has a file
+  ///     root or a mention source.
   /// - Returns: `true` for a `/` token at the start of the line, or for a run
   ///   that starts with `@` after white space.
-  static func isTrigger(_ line: Substring, reportsCommands: Bool, hasRoot: Bool) -> Bool {
+  static func isTrigger(_ line: Substring, reportsCommands: Bool, hasAtSource: Bool) -> Bool {
     if reportsCommands, line.hasPrefix(SlashCommandSource.trigger),
       line.dropFirst(SlashCommandSource.trigger.count).allSatisfy(CompletionTokenizer.isWordCharacter)
     {
       return true
     }
     let run = Self.lastRun(of: line)
-    return hasRoot && run.hasPrefix(FileReferenceSource.trigger)
+    return hasAtSource && run.hasPrefix(FileReferenceSource.trigger)
   }
 
   /// Whether a route of the host opens the token at the caret.
@@ -643,6 +658,15 @@ final class PromptEditorSession {
   /// The sigils of the routes that the sources of the engine read.
   private var engineSigils: [String] = []
 
+  /// Whether the engine has mention sources.
+  private var engineHasMentions = false
+
+  /// The mention sources of the host.
+  ///
+  /// The session keeps one list and gives it the newest sources before each
+  /// request, so new sources take effect at the next keystroke.
+  private let mentions = ComposerMentionSources([])
+
   /// The source of the prefix-completion routes of the host.
   ///
   /// The session keeps one source and gives it the newest routes before each
@@ -662,7 +686,8 @@ final class PromptEditorSession {
   init() {
     let prefixes = PrefixCompletionSource(routes: [])
     self.prefixes = prefixes
-    storedEngine = CompletionEngine(sources: Self.sources(commands: nil, root: nil, prefixes: prefixes))
+    storedEngine = CompletionEngine(
+      sources: Self.sources(commands: nil, root: nil, prefixes: prefixes, mentions: mentions))
   }
 
   /// The newest text that the editor gave to the text of the prompt, until
@@ -805,47 +830,69 @@ final class PromptEditorSession {
     routes.contains { $0.sigil == sigil }
   }
 
-  /// The completion engine for `commands`, `root` and `routes`. The session
-  /// makes a new engine when the commands, the root or the sigils of the
-  /// routes change. New providers of the same sigils need no new engine:
-  /// the prefix source reads its routes at each request.
+  /// The completion engine for `commands`, `root`, `routes` and `mentions`.
+  /// The session makes a new engine when the commands, the root, the sigils
+  /// of the routes, or the presence of mention sources change. New providers
+  /// of the same sigils and new mention sources need no new engine: the
+  /// sources read them at each request.
   ///
   /// - Parameters:
   ///   - commands: The slash commands of the session, or `nil` when the agent
   ///     did not report its commands.
   ///   - root: The file root, or `nil`.
   ///   - routes: The prefix-completion routes of the host.
+  ///   - mentions: The mention sources of the `@` source of the kit.
   /// - Returns: The engine.
-  func engine(commands: [AvailableCommand]?, root: URL?, routes: [PrefixCompletionRoute]) -> CompletionEngine {
+  func engine(
+    commands: [AvailableCommand]?, root: URL?, routes: [PrefixCompletionRoute],
+    mentions mentionSources: [ComposerMentionSource] = []
+  ) -> CompletionEngine {
     prefixes.routes = routes
+    mentions.sources = mentionSources
     let sigils = prefixes.routes.map(\.sigil)
-    guard engineCommands != commands || engineRoot != root || engineSigils != sigils else { return storedEngine }
-    storedEngine = CompletionEngine(sources: Self.sources(commands: commands, root: root, prefixes: prefixes))
+    let hasMentions = !mentionSources.isEmpty
+    guard
+      engineCommands != commands || engineRoot != root || engineSigils != sigils
+        || engineHasMentions != hasMentions
+    else { return storedEngine }
+    storedEngine = CompletionEngine(
+      sources: Self.sources(commands: commands, root: root, prefixes: prefixes, mentions: mentions))
     engineCommands = commands
     engineRoot = root
     engineSigils = sigils
+    engineHasMentions = hasMentions
     return storedEngine
   }
 
   /// The completion sources of an engine: the slash commands, unless a
-  /// route takes the `/`; the file references, when there is a root; and the
-  /// routes of the host, composed with EditorKit `Autocomplete`.
+  /// route takes the `/`; the `@` source of the kit; and the routes of the
+  /// host, composed with EditorKit `Autocomplete`.
+  ///
+  /// The `@` source is the ``FileReferenceSource`` of the root when the
+  /// host gives no mention source. With a mention source, it is an
+  /// ``AtReferenceSource``: the file rows, when there is a root, then the
+  /// mention rows (D199).
   ///
   /// - Parameters:
   ///   - commands: The slash commands of the session, or `nil`.
   ///   - root: The file root, or `nil`.
   ///   - prefixes: The source of the prefix-completion routes of the host.
+  ///   - mentions: The mention sources of the host.
   /// - Returns: The sources, in builder order.
-  private static func sources(
-    commands: [AvailableCommand]?, root: URL?, prefixes: PrefixCompletionSource
+  static func sources(
+    commands: [AvailableCommand]?, root: URL?, prefixes: PrefixCompletionSource,
+    mentions: ComposerMentionSources
   ) -> [any EditorExtensions.CompletionSource] {
     let routes = prefixes.routes
     var sources: [any EditorExtensions.CompletionSource] = []
     if !Self.routes(routes, take: SlashCommandSource.trigger) {
       sources.append(SlashCommandSource(commands: commands))
     }
-    if let root {
-      sources.append(FileReferenceSource(root: root))
+    let files = root.map(FileReferenceSource.init(root:))
+    if !mentions.sources.isEmpty {
+      sources.append(AtReferenceSource(files: files, mentions: mentions))
+    } else if let files {
+      sources.append(files)
     }
     if !routes.isEmpty {
       sources += editorExtensions { Autocomplete(sources: [.prefixed(prefixes)]) }.completionSources

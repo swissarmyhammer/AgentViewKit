@@ -217,13 +217,13 @@ struct InMemoryFileSystem: FileSystem {
   // MARK: - Triggers
 
   @Test func aTriggerIsASlashTokenAtTheStartOrAnAtSignRun() {
-    #expect(EditorKitPromptEditor.isTrigger("/co", reportsCommands: true, hasRoot: false))
-    #expect(!EditorKitPromptEditor.isTrigger("/co", reportsCommands: false, hasRoot: false))
-    #expect(!EditorKitPromptEditor.isTrigger("/co ", reportsCommands: true, hasRoot: false))
-    #expect(!EditorKitPromptEditor.isTrigger("hi /co", reportsCommands: true, hasRoot: false))
-    #expect(EditorKitPromptEditor.isTrigger("see @src/ma", reportsCommands: false, hasRoot: true))
-    #expect(!EditorKitPromptEditor.isTrigger("see @src/ma", reportsCommands: false, hasRoot: false))
-    #expect(!EditorKitPromptEditor.isTrigger("@a.txt ", reportsCommands: true, hasRoot: true))
+    #expect(EditorKitPromptEditor.isTrigger("/co", reportsCommands: true, hasAtSource: false))
+    #expect(!EditorKitPromptEditor.isTrigger("/co", reportsCommands: false, hasAtSource: false))
+    #expect(!EditorKitPromptEditor.isTrigger("/co ", reportsCommands: true, hasAtSource: false))
+    #expect(!EditorKitPromptEditor.isTrigger("hi /co", reportsCommands: true, hasAtSource: false))
+    #expect(EditorKitPromptEditor.isTrigger("see @src/ma", reportsCommands: false, hasAtSource: true))
+    #expect(!EditorKitPromptEditor.isTrigger("see @src/ma", reportsCommands: false, hasAtSource: false))
+    #expect(!EditorKitPromptEditor.isTrigger("@a.txt ", reportsCommands: true, hasAtSource: true))
   }
 
   @Test func anAcceptedFileIsAReferenceToAFileBeforeASpace() throws {

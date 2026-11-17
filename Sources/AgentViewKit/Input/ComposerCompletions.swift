@@ -35,7 +35,8 @@ extension View {
   /// (``SlashCommandSource``), and an `@` route replaces the file references
   /// of ``SwiftUI/EnvironmentValues/promptFileRoot``
   /// (``FileReferenceSource``). A row that an `@` route inserts is plain
-  /// text, not a file chip.
+  /// text, not a file chip. To add rows to the `@file` rows, and not
+  /// replace them, use ``SwiftUI/View/composerMentions(_:)``.
   ///
   /// - Parameter routes: The routes, in declaration order. EditorKit drops a
   ///   route whose sigil an earlier route uses.

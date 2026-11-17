@@ -98,7 +98,7 @@ import Testing
     await ObservationWait.until { !model.transcript.isEmpty }
 
     #expect(model.availableCommands == nil)
-    #expect(!EditorKitPromptEditor.isTrigger("/", reportsCommands: model.availableCommands != nil, hasRoot: false))
+    #expect(!EditorKitPromptEditor.isTrigger("/", reportsCommands: model.availableCommands != nil, hasAtSource: false))
     #expect(await CompletionFixture.editor("/", commands: model.availableCommands, root: nil).query().isEmpty)
   }
 
@@ -139,7 +139,7 @@ import Testing
     let commands = session.model.availableCommands
 
     #expect(commands?.compactMap(SlashCommandSource.command(of:)).map(\.name) == ["compact", "plan"])
-    #expect(EditorKitPromptEditor.isTrigger("/", reportsCommands: commands != nil, hasRoot: false))
+    #expect(EditorKitPromptEditor.isTrigger("/", reportsCommands: commands != nil, hasAtSource: false))
     let labels = await CompletionFixture.editor("/", commands: commands, root: nil).query()
     #expect(Set(labels) == ["/compact", "/plan"])
   }
