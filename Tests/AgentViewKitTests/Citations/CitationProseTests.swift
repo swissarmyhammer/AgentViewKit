@@ -49,6 +49,15 @@ import Testing
     #expect(chips.map(\.offset) == ["Café ü.\n\nÄ 日本".utf8.count])
   }
 
+  /// The offset counts grapheme clusters: a family emoji and a letter with
+  /// a combining accent each count as one character.
+  @Test func theOffsetCountsGraphemeClusters() {
+    let markdown = "\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467} e\u{301} end"
+    let chips = Self.chips(of: CitationMarker(sourceID: "a", paragraphIndex: 0, offset: 3), in: markdown)
+
+    #expect(chips.map(\.offset) == ["\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467} e\u{301}".utf8.count])
+  }
+
   @Test func theNumberOfAChipIsThePositionOfItsSourcePlusOne() {
     let chips = Self.chips(of: CitationMarker(sourceID: "b", paragraphIndex: 0, offset: 0), in: "Text")
 

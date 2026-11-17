@@ -67,6 +67,10 @@ public nonisolated struct CitationMarker: Codable, Sendable, Hashable {
   public var paragraphIndex: Int
 
   /// The zero-based character offset of the marker in its paragraph.
+  ///
+  /// The offset counts Swift `Character` values (grapheme clusters), not
+  /// Unicode scalars or UTF-16 units. So an emoji or a letter with a
+  /// combining accent counts as one character.
   public var offset: Int
 
   /// Makes a citation marker.
