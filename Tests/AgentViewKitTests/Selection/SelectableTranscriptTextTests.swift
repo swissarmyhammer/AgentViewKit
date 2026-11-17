@@ -8,16 +8,12 @@ import Testing
 /// The unit tests mount no view, so the tests read the view types and the
 /// source of the kit. Two facts hold:
 ///
-/// - The selectable Textual component (plain text) has the region modifier
-///   in its body. EditorKit views, such as the text of an answer, join the
-///   region by themselves.
+/// - Each text that the user can select is an EditorKit view: an
+///   `EditorView` for Markdown and code, and an `EditorLabel` for plain
+///   text. Each one joins the selection region of the thread by itself.
 /// - No view of the kit selects text with a selection that the kit cannot
-///   clear: no SwiftUI `.textSelection(.enabled)`, and no Textual selection
-///   or `StructuredText` outside the region modifier.
+///   clear: no SwiftUI `.textSelection(.enabled)`.
 @MainActor @Suite struct SelectableTranscriptTextTests {
-  /// The name of the region modifier type.
-  static let region = "TextualSelectionRegion"
-
   /// The folder of the package.
   static let packageRoot = URL(filePath: #filePath)
     .deletingLastPathComponent()
@@ -52,18 +48,14 @@ import Testing
     #expect(String(describing: type(of: body)).contains("RenderedMarkdownView"))
   }
 
-  @Test func plainTextIsASelectionRegion() {
-    let body = SelectableText("A command").body
-    #expect(String(describing: type(of: body)).contains(Self.region))
-  }
-
-  /// Plain text is a ``SelectableText``. Markdown (``RenderedMarkdownView``)
-  /// and code (``CodeBlockView``) show in an EditorKit `EditorView`, which
-  /// joins the selection of the thread by itself (D185).
+  /// Plain text is an EditorKit `EditorLabel`. Markdown
+  /// (``RenderedMarkdownView``) and code (``CodeBlockView``) show in an
+  /// EditorKit `EditorView`. Each one joins the selection of the thread by
+  /// itself (D185).
   @Test func attachmentTextIsASelectionRegion() {
     let body = AttachmentTextContent(text: "Notes", type: .plainText, filename: nil).body
     let name = String(describing: type(of: body))
-    #expect(name.contains("SelectableText"))
+    #expect(name.contains("EditorLabel"))
     #expect(name.contains("RenderedMarkdownView"))
     #expect(name.contains("CodeBlockView"))
   }
@@ -71,26 +63,8 @@ import Testing
   @Test func kitHasNoSwiftUITextSelection() throws {
     var found: [String] = []
     for target in ["AgentViewKit", "AgentViewKitStyle"] {
-      for (path, text) in try Self.sources(of: target) where !path.hasSuffix("SelectableTextStyle.swift") {
-        for line in Self.codeLines(of: text) where line.contains(".textSelection(") && !line.contains(".textual.") {
-          found.append("\(path): \(line)")
-        }
-      }
-    }
-    #expect(found.isEmpty, "\(found)")
-  }
-
-  @Test func eachTextualTextIsASelectionRegion() throws {
-    var found: [String] = []
-    for (path, text) in try Self.sources(of: "AgentViewKit") where !path.hasSuffix("TextualSelectionRegion.swift") {
-      let lines = Self.codeLines(of: text)
-      for (index, line) in lines.enumerated() {
-        if line.contains(".textual.textSelection(") {
-          found.append("\(path): \(line)")
-        }
-        guard line.contains("StructuredText(") else { continue }
-        let following = lines[index..<min(lines.count, index + 8)].joined(separator: "\n")
-        if !following.contains(".selectableTextualRegion()") {
+      for (path, text) in try Self.sources(of: target) {
+        for line in Self.codeLines(of: text) where line.contains(".textSelection(") {
           found.append("\(path): \(line)")
         }
       }

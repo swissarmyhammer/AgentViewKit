@@ -103,8 +103,8 @@ extension ElicitationHeader {
 /// The line shows
 /// ``ElicitationHeader/whoAsks(agentPath:source:rootLabel:locale:)`` in the
 /// locale of the environment, in one line, with the middle truncated, in the `ui` font role of the
-/// EditorKit theme at the callout text style, and in `\.placedSecondary`. The
-/// text is selectable. VoiceOver reads the line as one element with the label
+/// EditorKit theme at the callout text style, and in the secondary text color
+/// of its place (``PlacedLabel``). The text is selectable. VoiceOver reads the line as one element with the label
 /// of
 /// ``ElicitationHeader/whoAsksAccessibilityLabel(agentPath:source:rootLabel:locale:)``
 /// in the locale of the environment, and the identifier ``ElicitationView/whoAsksIdentifier``. A request with
@@ -119,16 +119,14 @@ struct ElicitationWhoAsksLine: View {
   @Environment(\.elicitationRootAgentLabel) private var rootLabel
   @Environment(\.editorTheme) private var editorTheme
   @Environment(\.locale) private var locale
-  @Environment(\.placedSecondary) private var placedSecondary
 
   var body: some View {
     if let text = ElicitationHeader.whoAsks(agentPath: agentPath, source: source, rootLabel: rootLabel, locale: locale),
       let label = ElicitationHeader.whoAsksAccessibilityLabel(
         agentPath: agentPath, source: source, rootLabel: rootLabel, locale: locale)
     {
-      SelectableText(text, label: label)
+      PlacedLabel(verbatim: text, accessibilityLabel: label, textColor: .secondary)
         .font(editorTheme.font(for: .ui, style: .callout))
-        .foregroundStyle(placedSecondary)
         .accessibilityIdentifier(ElicitationView.whoAsksIdentifier)
     }
   }

@@ -277,7 +277,7 @@ public struct PermissionView: View {
     VStack(alignment: .leading, spacing: editorStyle.spacing.s) {
       VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
         Label {
-          SelectableText(command.command)
+          PlacedLabel(verbatim: command.command)
         } icon: {
           SymbolColumnImage(name: Self.commandSymbol)
         }

@@ -73,9 +73,8 @@ public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
       header(key: key)
     } body: {
       if let error = entry.error {
-        SelectableText(error)
+        EditorLabel(AttributedString(error, attributes: AttributeContainer().foregroundColor(editorTheme.severityError)))
           .font(editorTheme.font(for: .ui, style: .callout))
-          .foregroundStyle(editorTheme.severityError)
           .accessibilityIdentifier(Self.errorIdentifier)
       }
       summary(key: key)

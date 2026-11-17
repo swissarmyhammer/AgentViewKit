@@ -48,6 +48,11 @@ same fill, with no ring. A part with no scope of its own inside another item,
 such as a tab chip, shows its selection only with
 ``SwiftUI/View/selectionSurface(_:corners:)``.
 
+A text that the user can select is EditorKit's `EditorLabel`, which joins
+the text selection region of the environment. A view that shows on glass and
+in content, such as the explanation of a ``StatusTitleLayout``, shows its
+text in a ``PlacedLabel``: an `EditorLabel` in the text color of its place.
+
 A view of the library takes the behaviour of a kit through a style protocol
 of the environment, in the shape of `ButtonStyle`. AgentViewKit gives the
 button of a ``StatusBar`` the focus scope of a bar control with
@@ -68,6 +73,10 @@ button of a ``StatusBar`` the focus scope of a bar control with
 - ``SwiftUI/View/selectionSurface(_:corners:)``
 - ``SwiftUI/View/changeHighlightEdge(corners:isShowing:)``
 - ``SwiftUI/View/changeHighlightEdge(radius:isShowing:)``
+
+### Text
+
+- ``PlacedLabel``
 
 ### The status bar
 

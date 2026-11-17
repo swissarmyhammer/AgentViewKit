@@ -248,8 +248,9 @@ public struct StatusBar: View {
         actionButton(action)
       }
     }
-    // A bar is chrome, so its explanation and a neutral symbol keep the
-    // vibrant `.secondary`.
+    // A bar is chrome, so a neutral symbol keeps the vibrant `.secondary`,
+    // and the explanation (a `PlacedLabel`) draws in the system secondary
+    // label color.
     .onChrome()
     .contentTile()
     .inlineEdge(radius: editorStyle.radii.l)

@@ -5,7 +5,7 @@ import UniformTypeIdentifiers
 /// The default view of an embedded resource block (plan.md §9 A2).
 ///
 /// Text contents show through ``AttachmentTextContent``: a source type shows
-/// in a ``CodeBlockView``, and other text shows through Textual. Binary
+/// in a ``CodeBlockView``, and other text shows in an EditorKit view. Binary
 /// contents show through ``BlobResourceView``: the view writes the bytes to a
 /// local file and shows that file in an ``AttachmentView``, so a press
 /// selects the file in the inspector, as a message attachment does.

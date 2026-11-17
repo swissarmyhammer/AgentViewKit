@@ -33,7 +33,8 @@ public struct AttachmentView: View {
     case image
     /// A thumbnail of the document from QuickLook.
     case pdf
-    /// The text through Textual.
+    /// The text in an EditorKit view: a Markdown text in its rendered form,
+    /// and other text in an `EditorLabel`.
     case text
     /// The text in a ``CodeBlockView``.
     case code

@@ -1,4 +1,3 @@
-import AgentViewKitStyle
 import EditorSwiftUI
 import SwiftUI
 
@@ -6,8 +5,8 @@ import SwiftUI
 ///
 /// A thread has many text areas: each Markdown text of an answer, and each
 /// code block, command output and JSON value, is a read-only EditorKit
-/// `EditorView`, and each plain text is a Textual `StructuredText`. Each text area keeps a selection model
-/// of its own. Without this coordinator, a selection in one area stays when
+/// `EditorView`, and each plain text is an EditorKit `EditorLabel`. Each
+/// text area keeps a selection model of its own. Without this coordinator, a selection in one area stays when
 /// the user selects text in a different area, so the thread shows more than
 /// one selection.
 ///
@@ -16,8 +15,8 @@ import SwiftUI
 /// previous owner. A claim from the current owner does nothing.
 ///
 /// The coordinator conforms to the EditorKit `TextSelectionRegion`, so that
-/// each `EditorView` in the environment takes part with no other change.
-/// The Textual areas take part through ``SwiftUI/View/selectableTextualRegion()``.
+/// each `EditorView` and each `EditorLabel` in the environment takes part
+/// with no other change.
 @MainActor
 final class ThreadTextSelection: TextSelectionRegion {
   /// The area that holds the selection now, or `nil`.
@@ -80,15 +79,5 @@ private struct ThreadTextSelectionScope: ViewModifier {
   func body(content: Content) -> some View {
     content
       .textSelectionRegion(outer ?? own)
-      .selectableTextStyle(ThreadSelectableTextStyle())
-  }
-}
-
-/// Shows each selectable text of AgentViewKitStyle, such as the explanation
-/// of a ``StatusTitleLayout``, as a ``SelectableText``, so that the text is
-/// part of the one selection of the thread.
-struct ThreadSelectableTextStyle: SelectableTextStyle {
-  func makeBody(text: String) -> some View {
-    SelectableText(text)
   }
 }

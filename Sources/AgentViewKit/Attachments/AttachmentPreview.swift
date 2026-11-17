@@ -1,8 +1,8 @@
 import AVKit
+import EditorSwiftUI
 import EditorTheme
 import QuickLookThumbnailing
 import SwiftUI
-import Textual
 import UniformTypeIdentifiers
 
 /// The sizes of the default attachment and content block views, at the default
@@ -226,7 +226,7 @@ private struct TextFilePreview: View {
 /// A source type shows in a ``CodeBlockView``. A markdown type shows in the
 /// rendered form of EditorKit (``RenderedMarkdownView``, D185), with its
 /// fenced code blocks in the same text layout. Other text shows as plain
-/// text through Textual.
+/// text in an EditorKit `EditorLabel`.
 struct AttachmentTextContent: View {
   /// The markdown type.
   static let markdown = UTType(importedAs: "net.daringfireball.markdown")
@@ -246,7 +246,7 @@ struct AttachmentTextContent: View {
     } else if type.conforms(to: Self.markdown) {
       RenderedMarkdownView(text)
     } else {
-      SelectableText(text)
+      EditorLabel(verbatim: text)
     }
   }
 }
