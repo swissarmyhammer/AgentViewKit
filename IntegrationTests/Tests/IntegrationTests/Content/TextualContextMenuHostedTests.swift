@@ -7,9 +7,9 @@ import Testing
 /// A right click on the Textual text of an item shows the context menu of
 /// the item, not the menu of Textual ("Share…", "Copy") (D193 (f)).
 ///
-/// The app-local monitor (``TextualContextMenu``) sees the press before the
-/// window. The test gives the press to the same lookup, at the Textual
-/// interaction view that is under the text in the window.
+/// The app-local monitor (``TextualContextMenu``) sees a press before the
+/// window, and the `menu(for:)` of the Textual view gives the item menu to
+/// each caller that asks the view, such as VoiceOver.
 @Suite(.serialized, .hostedSerially) @MainActor struct TextualContextMenuHostedTests {
   /// The title of the item menu command of the test.
   static let copyMessage = "Copy Message"
@@ -59,16 +59,16 @@ import Testing
     #expect(found.menu.items.map(\.title) == [Self.copyMessage])
   }
 
-  @Test func theTextualViewAloneGivesItsOwnMenu() async throws {
+  @Test func theMenuOfTheTextIsTheMenuOfTheItem() async throws {
     let harness = await Self.mount()
     defer { harness.close() }
     let text = try Self.interactionView(in: harness)
-    let press = try Self.rightPress(on: text, in: harness.window)
+    let center = text.convert(NSPoint(x: text.bounds.midX, y: text.bounds.midY), to: nil)
 
-    // The defect: the hit view gives the menu of Textual, which has no
-    // command of the item.
-    let own = text.menu(for: press)
+    // The harness, as VoiceOver, asks the view under the point for its menu
+    // with no press through the event monitor.
+    let menu = try #require(try harness.contextMenu(at: center))
 
-    #expect(!(own?.items.map(\.title) ?? []).contains(Self.copyMessage))
+    #expect(menu.items.map(\.title) == [Self.copyMessage])
   }
 }
