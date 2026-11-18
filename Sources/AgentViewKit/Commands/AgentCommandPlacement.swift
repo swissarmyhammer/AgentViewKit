@@ -127,12 +127,15 @@ nonisolated extension AgentCommandVerb {
   ///
   /// | Menu | Verbs |
   /// | --- | --- |
-  /// | ``EditorCommands/MenuPath/session`` | Send Message, Stop, Focus Composer, Mention…, Approve Request, Reject Request, Copy Thread, Export as Markdown… |
+  /// | ``EditorCommands/MenuPath/session`` | Send Message, Stop, Focus Composer, Mention…, Approve Request, Reject Request, Copy Thread, Export as Markdown…, Fork from Here |
   /// | View | Next Prompt, Previous Prompt, Next Request, Previous Request, Expand or Collapse All, Scroll to Bottom, Go to Parent Session, Open Child Session, Previous Sibling Session, Next Sibling Session, Jump to Session |
   /// | Edit | Copy Message |
   ///
   /// EditorKit puts the rows of the Edit path right after the Cut, Copy and
   /// Paste rows of the system Edit menu, so Copy Message is next to Copy.
+  /// Fork from Here is after Export as Markdown…, in the same order as the
+  /// buttons of ``MessageActions``. In the Session menu, it acts on the
+  /// selected message.
   public var menu: MenuPlacement? {
     switch self {
     case .send: MenuPlacement(path: .session, group: "agentPrompt", order: 0)
@@ -143,6 +146,7 @@ nonisolated extension AgentCommandVerb {
     case .rejectPending: MenuPlacement(path: .session, group: "agentRequest", order: 1)
     case .copyThread: MenuPlacement(path: .session, group: "agentThread", order: 0)
     case .exportMarkdown: MenuPlacement(path: .session, group: "agentThread", order: 1)
+    case .forkFromHere: MenuPlacement(path: .session, group: "agentThread", order: 2)
     case .jumpToNext: MenuPlacement(path: .view, group: "agentPrompts", order: 0)
     case .jumpToPrevious: MenuPlacement(path: .view, group: "agentPrompts", order: 1)
     case .nextRequest: MenuPlacement(path: .view, group: "agentRequests", order: 0)
@@ -162,8 +166,8 @@ nonisolated extension AgentCommandVerb {
   /// The place of the verb in the context menu of an item (AVK-1), or `nil`
   /// when the verb is not in a context menu.
   ///
-  /// The context menu of a message shows Copy Message, then Next Prompt and
-  /// Previous Prompt. The context menu of a permission request card shows
+  /// The context menu of a message shows Copy Message and Fork from Here,
+  /// then Next Prompt and Previous Prompt. The context menu of a permission request card shows
   /// Approve Request and Reject Request. ``itemKind`` tells the item. The
   /// context menu of a fenced code block in rendered Markdown shows Copy
   /// Code Block (``isVisible(in:)``).
@@ -171,6 +175,7 @@ nonisolated extension AgentCommandVerb {
     switch self {
     case .copyMessage: ContextMenuPlacement(group: 0, order: 0)
     case .copyCodeBlock: ContextMenuPlacement(group: 0, order: 1)
+    case .forkFromHere: ContextMenuPlacement(group: 0, order: 2)
     case .insertMention: ContextMenuPlacement(group: 0, order: 0)
     case .jumpToNext: ContextMenuPlacement(group: 1, order: 0)
     case .jumpToPrevious: ContextMenuPlacement(group: 1, order: 1)
@@ -193,6 +198,7 @@ nonisolated extension AgentCommandVerb {
     case .jumpToPrevious: AgentSymbol.previousPrompt
     case .copyThread: AgentSymbol.copyThread
     case .exportMarkdown: AgentSymbol.save
+    case .forkFromHere: AgentSymbol.fork
     case .copyMessage, .copyCodeBlock: AgentSymbol.copy
     case .toggleExpandAll: AgentSymbol.expandAll
     case .scrollToBottom: AgentSymbol.scrollToBottom
@@ -208,7 +214,7 @@ nonisolated extension AgentCommandVerb {
   /// when no context menu shows the verb.
   var itemKind: String? {
     switch self {
-    case .copyMessage, .jumpToNext, .jumpToPrevious: AgentScopeKind.message
+    case .copyMessage, .forkFromHere, .jumpToNext, .jumpToPrevious: AgentScopeKind.message
     case .approvePending, .rejectPending: AgentScopeKind.request
     default: nil
     }
@@ -218,7 +224,7 @@ nonisolated extension AgentCommandVerb {
   /// when the verb does not act on the item.
   var itemPayloadKey: String? {
     switch self {
-    case .copyMessage: AgentCommandPayload.messageKey
+    case .copyMessage, .forkFromHere: AgentCommandPayload.messageKey
     case .approvePending, .rejectPending: AgentCommandPayload.requestKey
     default: nil
     }
@@ -230,7 +236,8 @@ nonisolated extension AgentCommandVerb {
   /// A verb with no ``itemKind`` shows at each path. At a path with no item
   /// segment, each verb shows. Its availability tells if it can run there:
   /// ``copyMessage`` needs a message, so the Edit menu shows it disabled
-  /// until a message has the focus. At a path in an item scope, a verb with
+  /// until a message has the focus. ``forkFromHere`` in the Session menu is
+  /// the same. At a path in an item scope, a verb with
   /// an ``itemKind`` shows only for an item of that kind. Thus the context
   /// menu of a message does not show Approve Request. No verb has the item
   /// kind ``AgentScopeKind/toolCall``, so the context menu of a tool call

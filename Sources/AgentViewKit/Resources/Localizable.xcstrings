@@ -851,6 +851,16 @@
         }
       }
     },
+    "Fork from Here" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fork from Here"
+          }
+        }
+      }
+    },
     "From %@" : {
       "localizations" : {
         "en" : {
@@ -1288,6 +1298,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No inspector shows the file here."
+          }
+        }
+      }
+    },
+    "No message is selected." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No message is selected."
           }
         }
       }
@@ -2489,6 +2509,16 @@
         }
       }
     },
+    "The agent has no ID for this message yet." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The agent has no ID for this message yet."
+          }
+        }
+      }
+    },
     "The agent has no messages of this thread yet." : {
       "localizations" : {
         "en" : {
@@ -2765,6 +2795,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The history can be partial"
+          }
+        }
+      }
+    },
+    "The host cannot fork a session." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The host cannot fork a session."
           }
         }
       }

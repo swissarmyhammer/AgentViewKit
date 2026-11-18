@@ -28,7 +28,7 @@ final class CallCounter {
   static let message = "Hello"
 
   /// The number of verbs of the kit.
-  static let verbCount = 21
+  static let verbCount = 22
 
   /// The number of turns that ``sendTurns(to:)`` sends.
   static let turnCount = 3
@@ -41,6 +41,10 @@ final class CallCounter {
 
   /// A text block that is only for the assistant.
   static let assistantOnlyText = #"{"type":"text","text":"Hidden.","annotations":{"audience":["assistant"]}}"#
+
+  /// A fork action of the host that does nothing, so that the scope
+  /// registers each verb of the kit, Fork from Here too.
+  static let forkAction = ForkFromHereAction(unavailableReason: nil) { _ in }
 
   /// The objects of one harness test.
   struct Fixture {
@@ -153,7 +157,7 @@ final class CallCounter {
   @Test func theScopeListsEachCommandOfTheKit() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
-    let fixture = Self.makeFixture(session: session.model)
+    let fixture = Self.makeFixture(session: session.model) { $0.forkFromHere = Self.forkAction }
 
     let ids = Set(fixture.system.registry.definitions(at: fixture.path).map(\.id))
 
@@ -217,8 +221,10 @@ final class CallCounter {
     let newer = AgentScopeMount(unregister: AgentCommandRegistration.deregister(at:from:))
     let olderTarget = AgentCommandTarget()
     olderTarget.session = session.model
+    olderTarget.forkFromHere = Self.forkAction
     let newerTarget = AgentCommandTarget()
     newerTarget.session = session.model
+    newerTarget.forkFromHere = Self.forkAction
 
     older.mount(at: path, in: system) { AgentCommandRegistration.register(olderTarget, at: path, into: &$0) }
     newer.mount(at: path, in: system) { AgentCommandRegistration.register(newerTarget, at: path, into: &$0) }

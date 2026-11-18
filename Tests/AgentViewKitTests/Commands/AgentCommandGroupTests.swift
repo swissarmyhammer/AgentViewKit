@@ -23,6 +23,7 @@ import Testing
     ],
     .clipboard: [.copyMessage, .copyThread, .copyCodeBlock],
     .export: [.exportMarkdown],
+    .fork: [.forkFromHere],
     // The attachment verbs are of their own type; see
     // AgentAttachmentCommandsTests.
     .attachment: [],
@@ -55,12 +56,14 @@ import Testing
     return Fixture(target: target, model: model, path: path)
   }
 
-  /// The ids of the verbs that are not in `groups`.
+  /// The ids of the verbs that are not in `groups`, and that the target of
+  /// ``makeFixture()`` registers: the target has no fork action of the host,
+  /// so Fork from Here is not in the registry.
   ///
   /// - Parameter groups: The groups that are off.
   /// - Returns: The command ids of each other verb.
   static func ids(notIn groups: Set<AgentCommandGroup>) -> Set<CommandID> {
-    Set(AgentCommandVerb.allCases.filter { !groups.contains($0.group) }.map(\.id))
+    Set(AgentCommandVerb.allCases.filter { !groups.contains($0.group) && $0 != .forkFromHere }.map(\.id))
   }
 
   // MARK: - Groups
@@ -78,7 +81,7 @@ import Testing
     #expect(
       AgentCommandGroup.allCases.map(\.id) == [
         "agent.compose", "agent.control", "agent.navigate", "agent.clipboard", "agent.export",
-        "agent.attachment",
+        "agent.fork", "agent.attachment",
       ])
   }
 

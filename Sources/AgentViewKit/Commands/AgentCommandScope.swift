@@ -19,7 +19,9 @@ import SwiftUI
 ///
 /// The scope does not register the verbs of the groups that the host turns
 /// off with ``SwiftUI/View/agentCommandGroups(off:)`` (see
-/// ``AgentCommandGroup``).
+/// ``AgentCommandGroup``). It registers ``AgentCommandVerb/forkFromHere``
+/// only when the host gives its fork action with
+/// ``SwiftUI/View/onForkFromHere(unavailableReason:_:)``.
 ///
 /// Each command reads its eligibility from the model directly: the
 /// `agentState`, the `pendingPermissions` and the `transcript` of a
@@ -66,6 +68,9 @@ struct AgentCommandScope: ViewModifier {
   /// The groups of the commands that the host turns off.
   @Environment(\.agentCommandGroupsOff) private var groupsOff
 
+  /// The fork action of the host, or `nil`.
+  @Environment(\.forkFromHere) private var forkFromHere
+
   /// The target of this scope.
   @State private var ownTarget = AgentCommandTarget()
 
@@ -85,7 +90,7 @@ struct AgentCommandScope: ViewModifier {
       let scope = AgentCommandMount.Scope(
         system: system, path: path, session: session,
         pasteboard: pasteboard, requestStartReport: reportRequestStart, groupsOff: groupsOff,
-        connection: connection ?? hostConnection)
+        connection: connection ?? hostConnection, forkFromHere: forkFromHere)
       content
         .environment(\.agentCommandTarget, ownTarget)
         .environment(\.agentCommandScopeSegment, segment)
@@ -195,10 +200,11 @@ enum AgentCommandRegistration {
   /// layer flag and the `.scope` part that `.commandScope` wrote at the same
   /// path, so the fold gives the current live subject of the scope.
   ///
-  /// The call does not register a verb of a group in `groupsOff`. It
-  /// unregisters that verb, so `CommandRegistry.unregister` also removes each
-  /// key of the verb. Thus a group that a later call turns off goes away, and
-  /// a group that a later call turns on comes back.
+  /// The call does not register a verb of a group in `groupsOff`, or a verb
+  /// that the target does not register (``AgentCommandTarget/registers(_:)``).
+  /// It unregisters that verb, so `CommandRegistry.unregister` also removes
+  /// each key of the verb. Thus a group or a host action that a later call
+  /// turns off goes away, and one that a later call turns on comes back.
   ///
   /// - Parameters:
   ///   - target: The target that the commands act on.
@@ -209,10 +215,14 @@ enum AgentCommandRegistration {
     _ target: AgentCommandTarget, at path: FocusPath, into registry: inout CommandRegistry,
     groupsOff: Set<AgentCommandGroup> = []
   ) {
-    let definitions = AgentCommandVerb.allCases.map { verb in
+    let verbs = AgentCommandVerb.allCases
+    let definitions = verbs.filter(target.registers).map { verb in
       GroupedDefinition(group: verb.group, definition: AgentCommand.definition(of: verb, for: target))
     }
     register(definitions, at: path, into: &registry, groupsOff: groupsOff)
+    for verb in verbs where !target.registers(verb) {
+      registry.unregister(verb.id, at: path)
+    }
     AgentKeymap.bindSecondaryChords(into: &registry, at: path, groupsOff: groupsOff)
   }
 
@@ -275,6 +285,8 @@ struct AgentCommandMount: NSViewRepresentable {
     let groupsOff: Set<AgentCommandGroup>
     /// The connection model of the agent, or `nil`.
     let connection: ConnectionModel?
+    /// The fork action of the host, or `nil`.
+    let forkFromHere: ForkFromHereAction?
   }
 
   /// The target to keep current.
@@ -386,6 +398,7 @@ struct AgentCommandMount: NSViewRepresentable {
       target.system = scope.system
       target.path = scope.path
       target.connection = scope.connection
+      target.forkFromHere = scope.forkFromHere
     }
     if let anchors {
       target.anchors = anchors

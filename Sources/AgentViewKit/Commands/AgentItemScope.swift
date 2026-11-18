@@ -175,13 +175,36 @@ extension AgentCommandTarget {
   /// - Returns: The Markdown, or `nil` when the payload names no message
   ///   entry of the transcript.
   func messageMarkdown(payload: CommandPayload?, in session: SessionModel) -> String? {
+    messageEntry(payload: payload, in: session).map { ThreadExporter.markdown(for: $0.content) }
+  }
+
+  /// The request of ``AgentCommandVerb/forkFromHere`` for the message that
+  /// the payload names (``ForkFromHereRequest/init(entry:)``).
+  ///
+  /// - Parameters:
+  ///   - payload: The payload of the dispatch, or `nil`.
+  ///   - session: The session model of the scope.
+  /// - Returns: The request, or `nil` when the payload names no message entry
+  ///   of the transcript, or a message with no `MessageId`.
+  func forkRequest(payload: CommandPayload?, in session: SessionModel) -> ForkFromHereRequest? {
+    messageEntry(payload: payload, in: session).flatMap(ForkFromHereRequest.init(entry:))
+  }
+
+  /// The message entry that the message key of the payload names.
+  ///
+  /// - Parameters:
+  ///   - payload: The payload of the dispatch, or `nil`.
+  ///   - session: The session model of the scope.
+  /// - Returns: The user message entry or the agent message entry, or `nil`
+  ///   when the payload names no message entry of the transcript.
+  func messageEntry(payload: CommandPayload?, in session: SessionModel) -> MessageEntry? {
     let transcript = session.transcript
     guard let key = AgentCommandPayload.string(AgentCommandPayload.messageKey, in: payload),
       let position = transcript.position(ofRowKey: key)
     else { return nil }
     switch transcript[position] {
-    case .userMessage(let entry): return ThreadExporter.markdown(for: entry.content)
-    case .agentMessage(let entry): return ThreadExporter.markdown(for: entry.content)
+    case .userMessage(let entry): return .user(entry)
+    case .agentMessage(let entry): return .agent(entry)
     default: return nil
     }
   }

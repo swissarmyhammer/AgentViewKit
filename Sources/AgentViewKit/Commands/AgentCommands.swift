@@ -53,6 +53,14 @@ public nonisolated enum AgentCommandVerb: String, CaseIterable, Sendable {
   /// comes from `SessionModel.markdown(options:)`, with no thoughts.
   case exportMarkdown
 
+  /// Gives one message to the fork action of the host (D205): the message of
+  /// the payload, or the message of the context menu or of the selection.
+  /// An agent message gives ``ForkSide/after``, and a user message gives
+  /// ``ForkSide/before`` and its text. With no fork action of the host
+  /// (``SwiftUI/View/onForkFromHere(unavailableReason:_:)``), the verb is not
+  /// in the registry (TestudoApp D164).
+  case forkFromHere
+
   /// Copies the Markdown of one message: the message of the payload, or the
   /// message of the context menu.
   case copyMessage
@@ -122,6 +130,7 @@ public nonisolated enum AgentCommandVerb: String, CaseIterable, Sendable {
     case .jumpToPrevious: String(localized: "Previous Prompt", bundle: .module)
     case .copyThread: String(localized: "Copy Thread", bundle: .module)
     case .exportMarkdown: String(localized: "Export as Markdown…", bundle: .module)
+    case .forkFromHere: String(localized: "Fork from Here", bundle: .module)
     case .copyMessage: String(localized: "Copy Message", bundle: .module)
     case .copyCodeBlock: String(localized: "Copy Code Block", bundle: .module)
     case .toggleExpandAll: String(localized: "Expand or Collapse All", bundle: .module)
@@ -362,11 +371,13 @@ nonisolated struct AgentCommand: EditorCommands.Command {
       })
   }
 
-  /// The EditorKit definitions of each verb for `target`.
+  /// The EditorKit definitions of each verb that `target` registers
+  /// (``AgentCommandTarget/registers(_:)``).
   ///
   /// - Parameter target: The target that the commands act on.
-  /// - Returns: One definition for each verb, in the order of the verbs.
-  static func definitions(for target: AgentCommandTarget) -> [CommandDefinition] {
-    AgentCommandVerb.allCases.map { definition(of: $0, for: target) }
+  /// - Returns: One definition for each verb that the target registers, in
+  ///   the order of the verbs.
+  @MainActor static func definitions(for target: AgentCommandTarget) -> [CommandDefinition] {
+    AgentCommandVerb.allCases.filter(target.registers).map { definition(of: $0, for: target) }
   }
 }

@@ -16,6 +16,7 @@ import SwiftUI
 /// | ``navigate`` | Next Prompt, Previous Prompt, Next Request, Previous Request, Scroll to Bottom, Expand or Collapse All, Go to Parent Session, Open Child Session, Next Sibling Session, Previous Sibling Session, Jump to Session |
 /// | ``clipboard`` | Copy Message, Copy Thread, Copy Code Block |
 /// | ``export`` | Export as Markdown… |
+/// | ``fork`` | Fork from Here |
 /// | ``attachment`` | Open, Reveal in Finder, Share, Save, Inspect (``AgentAttachmentVerb``) |
 ///
 /// KanbanViewKit and SnapshotViewKit use the same shape. A group with the same
@@ -38,6 +39,11 @@ public nonisolated enum AgentCommandGroup: String, CaseIterable, Sendable {
   /// The verbs that save the thread to a file. These verbs do not use the
   /// pasteboard. Thus a host that turns off ``clipboard`` keeps them.
   case export
+
+  /// The verbs that start a new session from the thread (D205). The host
+  /// runs the fork, and the verb is in the registry only when the host gives
+  /// its action (``SwiftUI/View/onForkFromHere(unavailableReason:_:)``).
+  case fork
 
   /// The verbs that act on an attached file (AVK-11). The scope of each
   /// attachment registers them, and not the scope of the thread.
@@ -73,6 +79,7 @@ nonisolated extension AgentCommandVerb {
       .navigate
     case .copyMessage, .copyThread, .copyCodeBlock: .clipboard
     case .exportMarkdown: .export
+    case .forkFromHere: .fork
     }
   }
 }

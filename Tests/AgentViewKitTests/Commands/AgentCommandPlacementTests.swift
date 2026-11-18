@@ -19,8 +19,8 @@ import Testing
 @MainActor struct AgentCommandPlacementTests {
   /// The verbs of the Session menu.
   static let sessionMenuVerbs: Set<AgentCommandVerb> = [
-    .send, .cancel, .focusComposer, .insertMention, .copyThread, .exportMarkdown, .approvePending,
-    .rejectPending,
+    .send, .cancel, .focusComposer, .insertMention, .copyThread, .exportMarkdown, .forkFromHere,
+    .approvePending, .rejectPending,
   ]
 
   /// The verbs of the View menu.
@@ -79,7 +79,9 @@ import Testing
   @Test func theDefinitionsCarryThePlacesAndTheIcons() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
-    let fixture = AgentCommandsTests.makeFixture(session: session.model)
+    let fixture = AgentCommandsTests.makeFixture(session: session.model) {
+      $0.forkFromHere = AgentCommandsTests.forkAction
+    }
 
     for verb in AgentCommandVerb.allCases {
       let definition = try #require(fixture.system.registry.definition(for: verb.id, at: fixture.path))

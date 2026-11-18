@@ -96,6 +96,10 @@ nonisolated enum AgentSymbol {
   /// The symbol of the button that copies the thread.
   static let copyThread = "document.on.clipboard"
 
+  /// The symbol of Fork from Here: a new session that starts from a message
+  /// of the thread.
+  static let fork = "arrow.triangle.branch"
+
   /// The symbol of a button that shares: the Share button of an
   /// attachment.
   static let share = "square.and.arrow.up"

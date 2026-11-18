@@ -27,6 +27,13 @@ import UniformTypeIdentifiers
 ///   (`MarkdownExportPresenter.presentExport(of:agentName:)`) and shows the
 ///   same save panel itself. It is disabled with the same rule and the same
 ///   reason as the command.
+/// - Fork: the command button of ``AgentCommandVerb/forkFromHere`` in the
+///   agent command scope, which gives the message to the fork action of the
+///   host (D205). The row shows it only when the host gives that action with
+///   ``SwiftUI/View/onForkFromHere(unavailableReason:_:)`` and does not turn
+///   off ``AgentCommandGroup/fork``, as the registry has the verb only then.
+///   With no scope, the button gives the request to the action itself. It is
+///   disabled with the same reasons as the command.
 /// - Retry, for an agent message only: finds the last `UserMessageEntry`
 ///   before the message in `SessionModel.transcript`, and sends its content
 ///   again with `SessionModel.prompt(_:meta:)`.
@@ -58,6 +65,8 @@ public struct MessageActions: View {
     case copyThread = "copy-thread"
     /// Saves the thread as a Markdown file: Export as Markdown….
     case export
+    /// Gives the message to the fork action of the host: Fork from Here.
+    case fork
     /// Sends the last user input again.
     case retry
     /// Puts the text of the user message in the composer.
@@ -74,6 +83,7 @@ public struct MessageActions: View {
       switch self {
       case .copyThread: .copyThread
       case .export: .exportMarkdown
+      case .fork: .forkFromHere
       case .copy, .retry, .edit: nil
       }
     }
@@ -84,6 +94,7 @@ public struct MessageActions: View {
       case .copy: String(localized: "Copy", bundle: .module)
       case .copyThread: AgentCommandVerb.copyThread.title
       case .export: AgentCommandVerb.exportMarkdown.title
+      case .fork: AgentCommandVerb.forkFromHere.title
       case .retry: String(localized: "Retry", bundle: .module)
       case .edit: String(localized: "Edit", bundle: .module)
       }
@@ -96,6 +107,7 @@ public struct MessageActions: View {
       case .copy: AgentSymbol.copy
       case .copyThread: AgentCommandVerb.copyThread.icon
       case .export: AgentCommandVerb.exportMarkdown.icon
+      case .fork: AgentCommandVerb.forkFromHere.icon
       case .retry: EditorSymbol.action(.reload).systemImage
       case .edit: EditorSymbol.tool(.edit).systemImage
       }
@@ -124,6 +136,8 @@ public struct MessageActions: View {
   @Environment(\.promptText) private var promptText
   @Environment(\.agentCommandTarget) private var commandTarget
   @Environment(\.connectionModel) private var connection
+  @Environment(\.forkFromHere) private var forkFromHere
+  @Environment(\.agentCommandGroupsOff) private var groupsOff
 
   /// The report that gets the method of the prompt that Retry starts, or
   /// `nil`.
@@ -186,7 +200,7 @@ public struct MessageActions: View {
     } else {
       // The row hides the captions, so the tooltip of an enabled button is
       // its title, as the button itself gives it.
-      let reason = session.flatMap { Self.disabledReason(of: action, in: $0) }
+      let reason = disabledReason(of: action)
       EditorToolbarButton(action.title, systemImage: action.systemImage) { perform(action) }
         .disabled(reason != nil)
         .help(reason ?? action.title)
@@ -196,7 +210,18 @@ public struct MessageActions: View {
   /// The buttons for the message, in display order.
   private var actionsToShow: [Action] {
     guard session != nil else { return [.copy] }
-    return Self.actions(for: entry.role)
+    return Self.actions(for: entry.role, canFork: forkFromHere != nil && !groupsOff.contains(.fork))
+  }
+
+  /// The reason that the button of `action` with no command scope is
+  /// disabled, or `nil` when the button is enabled: the reason of the fork
+  /// action for Fork, else ``disabledReason(of:in:)``.
+  ///
+  /// - Parameter action: The action of the button.
+  /// - Returns: The reason, or `nil`.
+  private func disabledReason(of action: Action) -> String? {
+    if action == .fork { return forkFromHere?.unavailableReason(for: entry) }
+    return session.flatMap { Self.disabledReason(of: action, in: $0) }
   }
 
   /// The Markdown of the message: `ThreadExporter.markdown(for:)`, read at
@@ -207,12 +232,16 @@ public struct MessageActions: View {
 
   /// The buttons for a message of `role`, in display order.
   ///
-  /// - Parameter role: The sender of the message.
+  /// - Parameters:
+  ///   - role: The sender of the message.
+  ///   - canFork: Tells if the row shows Fork, after Export: the host gives
+  ///     the fork action, so the registry has the verb.
   /// - Returns: The buttons.
-  static func actions(for role: MessageRole) -> [Action] {
+  static func actions(for role: MessageRole, canFork: Bool) -> [Action] {
+    let fork: [Action] = canFork ? [.fork] : []
     switch role {
-    case .user: [.copy, .copyThread, .export, .edit]
-    case .assistant: [.copy, .copyThread, .export, .retry]
+    case .user: return [.copy, .copyThread, .export] + fork + [.edit]
+    case .assistant: return [.copy, .copyThread, .export] + fork + [.retry]
     }
   }
 
@@ -222,8 +251,9 @@ public struct MessageActions: View {
   /// The rule and the reason are the same as for the command of the
   /// ``Action/verb`` of the action in a scope. Export is disabled when the
   /// session has no history (``SessionMarkdownExport/hasHistory(_:)``),
-  /// with ``SessionMarkdownExport/noHistoryReason``. The other buttons are
-  /// always enabled.
+  /// with ``SessionMarkdownExport/noHistoryReason``. Fork reads the fork
+  /// action of the host and not the session, so this call gives no reason
+  /// for it. The other buttons are always enabled.
   ///
   /// - Parameters:
   ///   - action: The action of the button.
@@ -233,7 +263,7 @@ public struct MessageActions: View {
     switch action {
     case .export:
       SessionMarkdownExport.hasHistory(session) ? nil : SessionMarkdownExport.noHistoryReason
-    case .copy, .copyThread, .retry, .edit: nil
+    case .copy, .copyThread, .fork, .retry, .edit: nil
     }
   }
 
@@ -262,6 +292,7 @@ public struct MessageActions: View {
     case .copy: pasteboard.copyText(markdown)
     case .copyThread: copyThread()
     case .export: export()
+    case .fork: fork()
     case .retry: retry()
     case .edit: edit()
     }
@@ -281,6 +312,17 @@ public struct MessageActions: View {
   private func export() {
     guard let session else { return }
     markdownExports.presentExport(of: session, agentName: connection?.agentName)
+  }
+
+  /// Gives the request of this message to the fork action of the host, for
+  /// a row in no command scope. The button is disabled when the action
+  /// gives a reason (``ForkFromHereAction/unavailableReason(for:)``).
+  private func fork() {
+    guard let forkFromHere, let request = ForkFromHereRequest(entry: entry) else {
+      logger.error("Fork from Here found no fork action or no message ID for \(entry.id.rowKey, privacy: .private).")
+      return
+    }
+    forkFromHere.perform(request)
   }
 
   /// Sends the content of the last user message entry before the entry of

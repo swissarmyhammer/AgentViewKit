@@ -41,6 +41,15 @@ public enum MessageEntry {
     }
   }
 
+  /// The ACP `MessageId` of the message, or `nil` when the agent gave none
+  /// yet, such as for a local user message before its echo.
+  @MainActor var messageId: MessageId? {
+    switch self {
+    case .user(let entry): entry.messageId
+    case .agent(let entry): entry.messageId
+    }
+  }
+
   /// The ACP content blocks of the entry, as the session model holds them.
   @MainActor var content: [FoundationModelsACP.ContentBlock] {
     switch self {

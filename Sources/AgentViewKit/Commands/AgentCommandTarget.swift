@@ -93,6 +93,10 @@ final class AgentSessionNavigation {
 ///   (``SessionMarkdownExport/hasHistory(_:)``). It gives the export of the
 ///   session, with the name of the agent of ``connection``, to
 ///   ``markdownExports``, and the scope shows the save panel.
+/// - Fork from Here is in the registry only with the fork action of the host
+///   (``forkFromHere``). It is disabled with the reason of the host, with no
+///   message, or for a message with no `MessageId`. It gives the
+///   ``ForkFromHereRequest`` of the message to the action.
 @MainActor
 final class AgentCommandTarget {
   /// The kind of the focus segment of an agent command scope.
@@ -133,6 +137,11 @@ final class AgentCommandTarget {
   /// thread view gave them.
   var navigation: AgentSessionNavigation?
 
+  /// The fork action of the host, or `nil` when the host gives none. With
+  /// no action, the scope does not register ``AgentCommandVerb/forkFromHere``
+  /// (``registers(_:)``).
+  var forkFromHere: ForkFromHereAction?
+
   /// The command system that the scope registered the commands in.
   var system: CommandSystem?
 
@@ -165,6 +174,19 @@ final class AgentCommandTarget {
   /// - Returns: The path `agentThread:<sessionId>/agentRequest:<uuidString>`.
   static func requestPath(in session: SessionModel, request: PendingPermissionRequest) -> FocusPath {
     FocusPath.root(segment(for: session)).appending(AgentScopeKind.request(request.id))
+  }
+
+  /// Tells if the scope registers `verb`.
+  ///
+  /// A verb that runs an action of the host is in the registry only when
+  /// the host gives that action (TestudoApp D164): the registry has no
+  /// command that cannot run. ``AgentCommandVerb/forkFromHere`` needs
+  /// ``forkFromHere``. The scope registers each other verb.
+  ///
+  /// - Parameter verb: The verb.
+  /// - Returns: `true` when the scope registers the verb.
+  func registers(_ verb: AgentCommandVerb) -> Bool {
+    verb != .forkFromHere || forkFromHere != nil
   }
 
   // MARK: - Dispatch
@@ -201,7 +223,7 @@ final class AgentCommandTarget {
     guard let session else {
       return .unavailable(reason: String(localized: "The thread is not shown.", bundle: .module))
     }
-    if let reason = missingPartReason(of: verb, payload: payload) {
+    if let reason = missingPartReason(of: verb, payload: payload) ?? hostReason(of: verb, payload: payload, in: session) {
       return .unavailable(reason: reason)
     }
     guard isAvailable(verb, payload: payload, in: session) else {
@@ -235,9 +257,35 @@ final class AgentCommandTarget {
     case .goToParent, .openChild, .nextSibling, .previousSibling, .jumpToSession:
       navigation == nil ? Self.noNavigationReason : nil
     case .cancel, .approvePending, .rejectPending, .previousRequest, .nextRequest, .copyThread,
-      .exportMarkdown, .copyMessage, .copyCodeBlock:
+      .exportMarkdown, .forkFromHere, .copyMessage, .copyCodeBlock:
       nil
     }
+  }
+
+  /// The reason when the host, or the item that the host acts on, stops
+  /// `verb`, or `nil` when nothing stops it.
+  ///
+  /// ``AgentCommandVerb/forkFromHere`` needs the fork action of the host.
+  /// The reason of the host comes first, then a message of the payload with
+  /// no `MessageId` (``ForkFromHereAction/unavailableReason(for:)``). The
+  /// other verbs run no action of the host.
+  ///
+  /// - Parameters:
+  ///   - verb: The verb.
+  ///   - payload: The payload of the dispatch, or `nil`.
+  ///   - session: The session model of the scope.
+  /// - Returns: The reason, or `nil`.
+  private func hostReason(
+    of verb: AgentCommandVerb, payload: CommandPayload?, in session: SessionModel
+  ) -> String? {
+    guard verb == .forkFromHere else { return nil }
+    guard let forkFromHere else { return Self.noForkActionReason }
+    return forkFromHere.unavailableReason(for: messageEntry(payload: payload, in: session))
+  }
+
+  /// The reason when the host gave no fork action.
+  private static var noForkActionReason: String {
+    String(localized: "The host cannot fork a session.", bundle: .module)
   }
 
   /// The reason when the thread list is not in the scope.
@@ -276,6 +324,7 @@ final class AgentCommandTarget {
     case .jumpToPrevious: jumpTarget(forward: false) != nil
     case .copyThread: !Self.plainText(of: session).isEmpty
     case .exportMarkdown: SessionMarkdownExport.hasHistory(session)
+    case .forkFromHere: forkRequest(payload: payload, in: session) != nil
     case .copyMessage: messageMarkdown(payload: payload, in: session)?.isEmpty == false
     case .copyCodeBlock: AgentCommandPayload.string(AgentCommandPayload.codeKey, in: payload) != nil
     case .toggleExpandAll, .scrollToBottom: !session.transcript.isEmpty
@@ -307,6 +356,7 @@ final class AgentCommandTarget {
     case .jumpToPrevious: String(localized: "No prompt is above.", bundle: .module)
     case .copyThread: String(localized: "The thread has no messages.", bundle: .module)
     case .exportMarkdown: SessionMarkdownExport.noHistoryReason
+    case .forkFromHere: String(localized: "No message is selected.", bundle: .module)
     case .copyMessage: String(localized: "The message has no text.", bundle: .module)
     case .copyCodeBlock: String(localized: "The caret is not in a code block.", bundle: .module)
     case .toggleExpandAll, .scrollToBottom:
@@ -395,6 +445,9 @@ final class AgentCommandTarget {
     case .jumpToPrevious: jump(forward: false)
     case .copyThread: pasteboard.copyText(Self.plainText(of: session))
     case .exportMarkdown: markdownExports.presentExport(of: session, agentName: connection?.agentName)
+    case .forkFromHere:
+      guard let forkFromHere, let request = forkRequest(payload: payload, in: session) else { return false }
+      forkFromHere.perform(request)
     case .copyMessage: pasteboard.copyText(messageMarkdown(payload: payload, in: session) ?? "")
     case .copyCodeBlock: pasteboard.copyText(AgentCommandPayload.string(AgentCommandPayload.codeKey, in: payload) ?? "")
     case .toggleExpandAll: toggleExpandAll(session)

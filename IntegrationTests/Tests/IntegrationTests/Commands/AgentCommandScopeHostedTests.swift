@@ -22,8 +22,9 @@ import Testing
   /// The size of a window that shows a thread and a composer.
   static let windowSize = CGSize(width: 480, height: 480)
 
-  /// The number of verbs of the kit.
-  static let verbCount = AgentCommandVerb.allCases.count
+  /// The number of verbs that a thread view registers when the host gives no
+  /// fork action: each verb of the kit but Fork from Here (D164, D205).
+  static let verbCount = AgentCommandVerb.allCases.filter { $0 != .forkFromHere }.count
 
   /// The JSON-RPC id of the permission request that the scripted agent sends.
   static let agentRequestID = 100
@@ -391,6 +392,25 @@ import Testing
     let eligible = Set(system.registry.eligible(path: path).map(\.id))
     #expect(eligible.isSuperset(of: [AgentCommandVerb.send.id, AgentCommandVerb.focusComposer.id]))
     #expect(system.registry.perform(AgentCommandVerb.toggleExpandAll.id, at: path))
+  }
+
+  /// The host gives its fork action with `.onForkFromHere` outside the
+  /// thread view, so the scope of the thread view registers Fork from Here
+  /// (D205).
+  @Test func aThreadViewWithTheForkActionOfTheHostRegistersForkFromHere() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let system = CommandSystem()
+    let harness = HostedViewHarness(size: Self.windowSize) {
+      AgentThreadView(session: session.model)
+        .onForkFromHere { _ in }
+        .commandSystem(system)
+    }
+    defer { harness.close() }
+    harness.render()
+
+    let path = Self.path(of: session.model)
+    #expect(system.registry.definition(for: AgentCommandVerb.forkFromHere.id, at: path) != nil)
   }
 
   /// The host moves a thread view under another outer scope, so the path of
