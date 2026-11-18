@@ -126,8 +126,24 @@ comments:
     - `swift build --build-tests` in IntegrationTests and in ScreenshotTests: both build complete. Not run.
     - next: review
   timestamp: 2026-11-18T23:39:52.209432+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m7rgm31s39dex45js8d73n27
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (968473ff). 7 files reviewed. 0 findings, 0 confirmed, 1 refuted. All 10 earlier findings are checked.
+    - next: none. The task moved to done.
+  timestamp: 2026-11-18T23:42:09.977925+00:00
+- actor: claude-code
+  id: 01m7rgmg583zwzd9ybbnpy8va8
+  text: |-
+    ### finish iteration 3 — clean
+    - implement: changed — 7 test and test-support files (production steps, shared helpers)
+    - test: green — swift test, 1389 tests in 163 suites + 54 tests in 11 suites passed
+    - commit: 968473ff
+    - review: clean — 0 findings, 10 earlier findings checked
+  timestamp: 2026-11-18T23:42:23.400274+00:00
+position_column: done
+position_ordinal: fffffff580
 title: SideQuestionCard and the .sideCards slot of the thread view for /btw (D205)
 ---
 Brief: /Users/wballard/github/swissarmyhammer/.briefs/fork/avk-brief.md, items 4 to 6 (testudoapp-9a, D205). No dependency. Send the API proposal to testudoapp-9a before the first push (sent 2026-11-18, see the comments).
