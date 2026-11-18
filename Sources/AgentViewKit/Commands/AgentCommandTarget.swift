@@ -676,10 +676,9 @@ final class AgentCommandTarget {
   ///
   /// Each `UserMessageEntry` and `AgentMessageEntry` gives one section: a
   /// role line, then the text blocks that are for the user. The entries come
-  /// from ``ThreadExporter/messageTexts(in:)``, the same function as the
-  /// transcript form of `ThreadExporter.markdown(for:)`, so the adjacent
-  /// text chunks of an entry join as the view shows them. A blank line
-  /// separates two sections. The text omits the other entries.
+  /// from ``ThreadExporter/messageTexts(in:)``, so the adjacent text chunks
+  /// of an entry join as the view shows them. A blank line separates two
+  /// sections. The text omits the other entries.
   ///
   /// - Parameter session: The session model.
   /// - Returns: The text, or an empty string when the transcript has no

@@ -10,9 +10,6 @@ import os
 /// catalog through the model of the template, so no template has a word of
 /// its own and none needs a translation.
 enum TextTemplate: String {
-  /// The Markdown export of a transcript (``ThreadExporter``).
-  case threadMarkdown = "thread-markdown"
-
   /// The Markdown of the content of one message (``ThreadExporter``).
   case messageMarkdown = "message-markdown"
 

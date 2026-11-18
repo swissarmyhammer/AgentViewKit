@@ -14,9 +14,7 @@ string catalog.
   one renderer. It reads each `TextTemplate` from the template folder of the
   module bundle (`Resources/Templates`, a `.copy` resource) and renders it
   with Stencil from a model: a dictionary of plain values.
-- A template may include another file of its folder by name
-  (`thread-markdown.stencil` includes `message-markdown.stencil`, so the
-  sections of the export are the Markdown of the content that Copy gives).
+- A template may include another file of its folder by name.
 - A template that does not render is a defect of the kit: the debug build
   stops on an assertion, and the release build logs it and gives an empty
   text.
@@ -28,20 +26,18 @@ string catalog.
 The templates are not localized, and they hold no word. Each word comes from
 the string catalog, and the site passes it in the model:
 
-- The headings of the Markdown export are the sender names `User` and
-  `Assistant`.
 - The role line of the copy text is the catalog string `copy-text.role-line`
-  (`%@:`) over the sender name, so a language can change the colon.
+  (`%@:`) over the sender name `User` or `Assistant`, so a language can
+  change the colon.
 - Each plan step is the catalog string `inspection.plan-step` (`%1$@: %2$@`).
 
-A template holds only layout: the Markdown heading mark `## `, the line
-breaks and the blank lines.
+A template holds only layout: the line breaks and the blank lines.
 
 ## Which text is a template
 
 | Site | Text | Choice | Why |
 |---|---|---|---|
-| T1 | `ThreadExporter.markdown(for:)`, both forms | Templates `thread-markdown`, `message-markdown` | A document in a file format: nested loops, a heading mark, blank lines and a closing line break. Layout, not language. |
+| T1 | `ThreadExporter.markdown(for:)` | Template `message-markdown` | The Markdown of the content of a message: a blank line between two texts. Layout, not language. The Markdown export of a thread (Export as Markdown…, D202) is not a template of the kit: `SessionModel.markdown(options:)` of FoundationModelsACPClient renders it. |
 | T2 | `AgentCommandTarget.plainText(of:)` | Template `copy-text` | A plain text document: a role line, then a line for each text, with a blank line between messages. |
 | T3 | The `Steps` field of a plan in the inspector | Template `plan-steps` | One catalog step on each line: a document of lines. |
 | T4 | `ElicitationView.fieldErrorText(title:validation:locale:)` and the error text of a form | Catalog: `“%1$@”: %2$@` for a field, and the sentence pattern `chain.sentences` (`%1$@ %2$@`) | The parts are sentences of the catalog, and the separator of two sentences depends on the language (none in Japanese or Chinese). A template is not localized, so it would fix one space for every language. |

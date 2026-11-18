@@ -166,8 +166,8 @@ extension ContextMenuUnavailablePolicy {
 
 extension AgentCommandTarget {
   /// The Markdown of the message that a ``AgentCommandVerb/copyMessage``
-  /// payload names: the content form of `ThreadExporter.markdown(for:)`, as
-  /// the Copy button of ``MessageActions`` writes it.
+  /// payload names: `ThreadExporter.markdown(for:)`, as the Copy button of
+  /// ``MessageActions`` writes it.
   ///
   /// - Parameters:
   ///   - payload: The payload of the dispatch, or `nil`.

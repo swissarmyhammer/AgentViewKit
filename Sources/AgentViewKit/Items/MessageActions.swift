@@ -15,8 +15,8 @@ import UniformTypeIdentifiers
 ///
 /// The row has these buttons, in this order:
 ///
-/// - Copy: writes the Markdown of the message (the content form of
-///   `ThreadExporter.markdown(for:)`) to the `pasteboard` environment value.
+/// - Copy: writes the Markdown of the message
+///   (`ThreadExporter.markdown(for:)`) to the `pasteboard` environment value.
 /// - Copy thread: the command button of ``AgentCommandVerb/copyThread`` in
 ///   the agent command scope, whose title, symbol, enabled state and tooltip
 ///   come from the registry. With no scope, the button writes the same text
@@ -199,8 +199,8 @@ public struct MessageActions: View {
     return Self.actions(for: entry.role)
   }
 
-  /// The Markdown of the message: the content form of
-  /// `ThreadExporter.markdown(for:)`, read at each call.
+  /// The Markdown of the message: `ThreadExporter.markdown(for:)`, read at
+  /// each call.
   private var markdown: String {
     ThreadExporter.markdown(for: entry.content)
   }

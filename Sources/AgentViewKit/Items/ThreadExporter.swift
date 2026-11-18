@@ -2,53 +2,21 @@ import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
 
-/// Writes a session transcript or the content of a message entry as a
-/// Markdown document (plan.md §9 A).
+/// Writes the content of a message entry as Markdown, and reads the message
+/// texts of a session transcript (plan.md §9 A).
 ///
-/// ``MessageActions`` uses this type for Copy. Export as Markdown…
-/// (``AgentCommandVerb/exportMarkdown``) does not use it: its text comes from
-/// `SessionModel.markdown(options:)` (``SessionMarkdownExport``). The output
-/// is the same for equal entries, so a test can compare it with a golden
-/// file.
+/// ``MessageActions`` uses this type for Copy, the inspector for the text of
+/// a message, and the item scope for the payload of a message. Export as
+/// Markdown… (``AgentCommandVerb/exportMarkdown``) does not use it: its text
+/// comes from `SessionModel.markdown(options:)` (``SessionMarkdownExport``).
+/// The output is the same for equal entries, so a test can compare it with a
+/// golden file.
 ///
-/// The document of a session transcript has only the message entries (the
-/// transcript form of `markdown(for:)`).
-///
-/// The Stencil templates `thread-markdown` and `message-markdown` of the
-/// kit lay out the Markdown, and the headings come from the string catalog
-/// (`Docs/decisions/text-templates.md`).
+/// The Stencil template `message-markdown` of the kit lays out the Markdown
+/// of the content (`Docs/decisions/text-templates.md`). Copy Thread
+/// (`AgentCommandTarget.plainText(of:)`) reads the message texts of a
+/// transcript through ``messageTexts(in:)``.
 public enum ThreadExporter {
-  /// The Markdown document of the message entries of a session transcript.
-  ///
-  /// The document has one section for each `UserMessageEntry` and each
-  /// `AgentMessageEntry` that has text for the user, in transcript order: a
-  /// level 2 heading with the sender, a blank line, and the Markdown of the
-  /// content (the content form of `markdown(for:)`). A blank line separates
-  /// two sections. The document omits the other entries. The function reads
-  /// the entries each time, so a new entry of the model is in the next
-  /// document.
-  ///
-  /// - Parameter transcript: The entries of `SessionModel.transcript`.
-  /// - Returns: The document, with a line break at the end. The document is
-  ///   empty when no entry has text for the user.
-  public static func markdown(for transcript: [TranscriptEntry]) -> String {
-    markdown(of: messageTexts(in: transcript), templates: .bundled, locale: .autoupdatingCurrent)
-  }
-
-  /// The Markdown document of some messages: the `thread-markdown` template
-  /// over the ``sections(of:heading:)`` of the messages, whose heading is the
-  /// ``senderName(of:locale:)`` of each message.
-  ///
-  /// - Parameters:
-  ///   - messages: The messages, in transcript order.
-  ///   - templates: The templates of the document.
-  ///   - locale: The locale of the headings.
-  /// - Returns: The document, with a line break at the end, or an empty
-  ///   document when `messages` is empty.
-  static func markdown(of messages: [MessageText], templates: TextTemplates, locale: Locale) -> String {
-    templates.render(.threadMarkdown, model: sections(of: messages) { senderName(of: $0, locale: locale) })
-  }
-
   /// The Markdown of the content of a message entry.
   ///
   /// The text is each text block that is for the user, with each run of
@@ -86,11 +54,10 @@ public enum ThreadExporter {
   // MARK: - Template models
 
   /// The model of a text template that lists messages
-  /// (`thread-markdown.stencil` and `copy-text.stencil`): `messages`, the
-  /// ``message(texts:heading:)`` value of each message.
+  /// (`copy-text.stencil`): `messages`, the ``message(texts:heading:)``
+  /// value of each message.
   ///
-  /// The export heads each message with its ``senderName(of:locale:)``, and
-  /// the copy text with its role line.
+  /// The copy text heads each message with its role line.
   ///
   /// - Parameters:
   ///   - messages: The messages, in transcript order.
@@ -119,8 +86,8 @@ public enum ThreadExporter {
   /// The text of each message entry of a transcript that has text for the
   /// user, in transcript order.
   ///
-  /// The export and the copy command (`AgentCommandTarget.plainText(of:)`)
-  /// read the transcript through this one function.
+  /// The copy command (`AgentCommandTarget.plainText(of:)`) reads the
+  /// transcript through this function.
   ///
   /// - Parameter transcript: The entries of `SessionModel.transcript`.
   /// - Returns: One value for each `UserMessageEntry` and each
@@ -165,8 +132,7 @@ public enum ThreadExporter {
 
   /// The name of the sender of a message, from the string catalog.
   ///
-  /// The Markdown export heads each message with it, and the copy text
-  /// starts the role line of each message with it.
+  /// The copy text starts the role line of each message with it.
   ///
   /// - Parameters:
   ///   - role: The sender of the message.

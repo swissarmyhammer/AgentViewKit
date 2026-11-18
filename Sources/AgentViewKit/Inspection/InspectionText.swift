@@ -7,7 +7,7 @@ import FoundationModelsACPClient
 /// that has no text of its own.
 enum InspectionText {
   /// The text of a message: its text blocks for the user, as the thread
-  /// shows them, with a blank line between two blocks: the content form of
+  /// shows them, with a blank line between two blocks:
   /// `ThreadExporter.markdown(for:)`, which Copy gives.
   ///
   /// - Parameter content: The content blocks of the message.

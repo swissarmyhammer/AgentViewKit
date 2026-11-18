@@ -73,7 +73,7 @@ The AgentViewKit paths are relative to `Sources/AgentViewKit/`.
 | Message actions: copy, retry, edit | ✓ `MessageActions` (`Items/MessageActions.swift`) | ✓ `MessageActions`, `MessageAction` | ✓ `ActionBarPrimitive.Copy`, `.Reload`, `.Edit` | ✓ toolbar slots |
 | Hover action bar | ✗ (footer row only) | partial: `MessageToolbar` | ✓ `ActionBarPrimitive` autohide | ✓ `toolbarVisible` |
 | Feedback (thumbs) | ✗ (no ACP method) | ✗ | ✓ `FeedbackPositive`, `FeedbackNegative`, `FeedbackAdapter` | ✓ `onThumbsUp`, `onThumbsDown` |
-| Export thread to Markdown | ✓ `MessageActions` Export, `ThreadExporter` | ✓ `ConversationDownload` | ✓ `ActionBarPrimitive.ExportMarkdown` | ✗ |
+| Export thread to Markdown | ✓ Export as Markdown… (`AgentCommandVerb.exportMarkdown`, `SessionMarkdownExport`) | ✓ `ConversationDownload` | ✓ `ActionBarPrimitive.ExportMarkdown` | ✗ |
 | Error row | ✓ `ErrorView` (`Items/ErrorView.swift`) | partial: `ToolOutput errorText` | ✓ `ErrorPrimitive`, `MessagePrimitive.Error` | partial: `onError` |
 | Unknown content fallback | ✓ `UnknownItemView` | ✗ | ✓ `tools.Fallback`, `data.Fallback` | ✓ `useDefaultRenderTool` |
 | Agent state and stop reasons | ✓ `StateBanner` (`Status/StateBanner.swift`) | ✗ | ✗ | ✗ |

@@ -6,8 +6,8 @@ import Testing
 
 @testable import AgentViewKit
 
-/// The text that the kit renders from its Stencil templates: the Markdown
-/// export, the copy text and the plan steps of the inspector.
+/// The text that the kit renders from its Stencil templates: the Markdown of
+/// a message, the copy text and the plan steps of the inspector.
 ///
 /// Each site keeps its text for the English locale of the United States
 /// (characterization), and an edit of its template changes the text with no
@@ -28,29 +28,10 @@ import Testing
     PlanEntry(content: "Ship", priority: .low, status: .pending),
   ]
 
-  // MARK: - The Markdown export
-
-  @Test func theMarkdownOfMessagesHasASectionForEachMessage() {
-    let markdown = ThreadExporter.markdown(of: Self.messages, templates: .bundled, locale: Self.locale)
-
-    #expect(markdown == "## User\n\nRead the README.\n\n## Assistant\n\nRun `swift build`.\n\nDone.\n")
-  }
-
-  @Test func theMarkdownOfNoMessageIsEmpty() {
-    #expect(ThreadExporter.markdown(of: [], templates: .bundled, locale: Self.locale).isEmpty)
-  }
+  // MARK: - The Markdown of a message
 
   @Test func theMarkdownOfAMessageContentPutsABlankLineBetweenTwoTexts() {
     #expect(ThreadExporter.markdown(ofTexts: ["Shown.", "Also."], templates: .bundled) == "Shown.\n\nAlso.")
-  }
-
-  @Test func anEditOfTheExportTemplateChangesTheExport() throws {
-    let copy = try TemplateFolderCopy(editing: .threadMarkdown, replacing: "## ", with: "### ")
-    defer { copy.remove() }
-
-    let markdown = ThreadExporter.markdown(of: Self.messages, templates: copy.templates, locale: Self.locale)
-
-    #expect(markdown == "### User\n\nRead the README.\n\n### Assistant\n\nRun `swift build`.\n\nDone.\n")
   }
 
   @Test func anEditOfTheMessageTemplateChangesTheMessageMarkdown() throws {
