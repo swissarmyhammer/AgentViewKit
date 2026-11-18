@@ -90,6 +90,13 @@ public nonisolated enum SideCardVerb: String, CaseIterable, Sendable {
     self == .closeSideCard ? StandardChords.leave : nil
   }
 
+  /// The presentation of the verb in the surfaces of EditorKit: the id, the
+  /// title, the icon, the menu, the context menu and the key of the verb.
+  var presentation: AgentCommandPresentation {
+    AgentCommandPresentation(
+      id: id, title: title, icon: icon, menu: menu, contextMenu: contextMenu, key: key)
+  }
+
   /// The sort order of the verb in its menu group: the place of the verb in
   /// `allCases`. The cases are in the order of the buttons.
   private var order: Double {
@@ -110,38 +117,43 @@ nonisolated struct SideCardCommand: EditorCommands.Command {
   /// The target of the scope that registered the command.
   weak let target: SideCardTarget?
 
+  /// The command id of the verb.
   var id: CommandID { verb.id }
 
+  /// The title of the verb.
   var title: String { verb.title }
 
+  /// Tells if the verb can run at the target of the scope.
+  ///
+  /// - Parameter context: The context of the invocation.
+  /// - Returns: The availability of the verb at the target, or
+  ///   `.sideCardNotShown` when the card is gone.
   func availability(in context: CommandContext) -> Availability {
     CommandTargetAccess.availability(at: target, unavailable: .sideCardNotShown) {
       $0.availability(of: verb)
     }
   }
 
+  /// Runs the verb at the target of the scope. With no target, the run
+  /// declines.
+  ///
+  /// - Parameter context: The context of the invocation.
+  /// - Returns: `true` when the verb ran.
   func run(in context: CommandContext) -> Bool {
     CommandTargetAccess.run(at: target) { $0.run(verb) }
   }
 
-  /// The EditorKit definition of `verb` for `target`, with the title, the
-  /// icon, the menu, the context menu and the key of the verb.
+  /// The EditorKit definition of `verb` for `target`, from the
+  /// presentation of the verb (``SideCardVerb/presentation``).
   ///
   /// - Parameters:
   ///   - verb: The verb.
   ///   - target: The target of the scope.
   /// - Returns: The definition.
   static func definition(of verb: SideCardVerb, for target: SideCardTarget) -> CommandDefinition {
-    var keys: [KeymapMode: KeyChord] = [:]
-    keys[.cua] = verb.key
-    return CommandDefinition(
-      id: verb.id,
-      title: .static(verb.title),
-      icon: verb.icon,
-      menu: verb.menu,
-      contextMenu: verb.contextMenu,
-      keys: keys,
-      make: { [weak target] _ in SideCardCommand(verb: verb, target: target) })
+    CommandDefinition(verb.presentation, target: target) { target, _ in
+      SideCardCommand(verb: verb, target: target)
+    }
   }
 }
 
@@ -238,6 +250,7 @@ final class SideCardTarget {
   }
 }
 
+/// The reasons of a side card command that cannot run.
 nonisolated extension Availability {
   /// The availability of a side card command whose card is gone.
   static var sideCardNotShown: Availability {

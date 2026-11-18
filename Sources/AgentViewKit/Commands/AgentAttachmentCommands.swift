@@ -182,6 +182,14 @@ nonisolated struct AgentAttachmentCommand: EditorCommands.Command {
     /// Runs the command at the target, with the files of the command, in
     /// order. Returns `false` when the run declines.
     let run: @MainActor @Sendable (AgentAttachmentTarget, [Attachment]) -> Bool
+
+    /// The presentation of the command in the surfaces of EditorKit: the
+    /// id, the titles, the icon, the menu and the context menu.
+    var presentation: AgentCommandPresentation {
+      AgentCommandPresentation(
+        id: id, title: title, buttonTitle: buttonTitle, icon: icon, menu: menu,
+        contextMenu: contextMenu)
+    }
   }
 
   /// The action of the command.
@@ -224,24 +232,17 @@ nonisolated struct AgentAttachmentCommand: EditorCommands.Command {
     CommandTargetAccess.run(at: target) { action.run($0, attachments) }
   }
 
-  /// The EditorKit definition of `action` for `target`, with the title, the
-  /// button title, the icon, the menu and the context menu of the action.
+  /// The EditorKit definition of `action` for `target`, from the
+  /// presentation of the action (``Action/presentation``).
   ///
   /// - Parameters:
   ///   - action: The action.
   ///   - target: The target of the scope.
   /// - Returns: The definition.
   static func definition(of action: Action, for target: AgentAttachmentTarget) -> CommandDefinition {
-    CommandDefinition(
-      id: action.id,
-      title: .static(action.title),
-      buttonTitle: action.buttonTitle.map(CommandTitle.static),
-      icon: action.icon,
-      menu: action.menu,
-      contextMenu: action.contextMenu,
-      make: { [weak target] _ in
-        AgentAttachmentCommand(action: action, target: target)
-      })
+    CommandDefinition(action.presentation, target: target) { target, _ in
+      AgentAttachmentCommand(action: action, target: target)
+    }
   }
 }
 

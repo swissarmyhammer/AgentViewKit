@@ -59,12 +59,27 @@ struct SideCardLayout: Layout {
     }
   }
 
+  /// The size of the stack: the proposed width, or the card width with no
+  /// proposal, and the height of the cards and the spacing between them.
+  ///
+  /// - Parameters:
+  ///   - proposal: The size that the parent proposes.
+  ///   - subviews: The cards, newest first.
+  ///   - cache: The cache of the layout. The layout keeps no cache.
+  /// - Returns: The size of the stack.
   func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
     let available = proposal.width ?? cardWidth
     let heights = heights(of: subviews, width: width(in: available))
     return CGSize(width: available, height: height(of: heights))
   }
 
+  /// Puts each card at its frame in `bounds`, newest at the top.
+  ///
+  /// - Parameters:
+  ///   - bounds: The bounds of the stack.
+  ///   - proposal: The size that the parent proposes.
+  ///   - subviews: The cards, newest first.
+  ///   - cache: The cache of the layout. The layout keeps no cache.
   func placeSubviews(
     in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
   ) {
@@ -94,9 +109,13 @@ struct SideCardStack: View {
   /// The cards, in the order of the host, newest first.
   let cards: AnyView
 
+  /// The style of the editor, for the spacing between the cards.
   @Environment(\.editorStyle) private var editorStyle
+
+  /// The scale of the UI font of the theme, for the widths of the layout.
   @ThemeFontScale(.ui) private var fontScale
 
+  /// The cards in the side card layout.
   var body: some View {
     SideCardLayout(
       cardWidth: SideCardLayout.defaultCardWidth * fontScale,
@@ -107,12 +126,14 @@ struct SideCardStack: View {
   }
 }
 
+/// The environment value that carries the side cards of a thread.
 extension EnvironmentValues {
   /// The side cards that the nearest ``AgentThreadView`` shows above its
   /// composer, or `nil`. Set it with ``AgentThreadView/sideCards(_:)``.
   @Entry var sideCards: AnyView? = nil
 }
 
+/// The side card slot of the thread view.
 extension AgentThreadView {
   /// Shows side cards, such as ``SideQuestionCard`` views, next to the chat
   /// (D205).

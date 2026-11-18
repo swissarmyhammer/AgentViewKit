@@ -166,9 +166,9 @@ final class CallCounter {
   }
 
   @Test func eachVerbHasATitleAndAnIdThatMapsBack() {
+    CommandTestSupport.expectKitPrefix(of: AgentCommandVerb.allCases, id: \.id)
     for verb in AgentCommandVerb.allCases {
       #expect(!verb.title.isEmpty)
-      #expect(verb.id.rawValue == "agent.\(verb.rawValue)")
       #expect(AgentCommandVerb(id: verb.id) == verb)
     }
     #expect(AgentCommandVerb(id: "editor.copy") == nil)

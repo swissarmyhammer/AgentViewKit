@@ -44,9 +44,7 @@ import Testing
   }
 
   @Test func eachVerbHasTheKitPrefix() {
-    for verb in AgentFileSelectionVerb.allCases {
-      #expect(verb.id.rawValue == "agent.\(verb.rawValue)")
-    }
+    CommandTestSupport.expectKitPrefix(of: AgentFileSelectionVerb.allCases, id: \.id)
   }
 
   @Test func eachVerbIsTitledAsTheAccessibilityActionOfItsChange() {

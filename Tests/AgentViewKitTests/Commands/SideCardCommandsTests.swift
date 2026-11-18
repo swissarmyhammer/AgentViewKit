@@ -125,28 +125,14 @@ import Testing
     return thread
   }
 
-  /// The availability of `verb` at the card of `fixture`.
-  ///
-  /// - Parameters:
-  ///   - verb: The verb.
-  ///   - fixture: The fixture.
-  /// - Returns: The availability.
-  /// - Throws: An error when the registry has no command of the verb.
-  static func availability(of verb: SideCardVerb, in fixture: Fixture) throws
-    -> Availability
-  {
-    let rows = fixture.registry.eligible(path: fixture.path)
-    let row = try #require(rows.first { $0.id == verb.id })
-    return row.isEnabled ? .available : .unavailable(reason: row.reason ?? "")
-  }
-
   // MARK: - Verbs
 
-  @Test func eachVerbHasTheKitPrefixAndATitle() {
-    let verbs = SideCardVerb.allCases
+  @Test func eachVerbHasTheKitPrefix() {
+    CommandTestSupport.expectKitPrefix(of: SideCardVerb.allCases, id: \.id)
+  }
 
-    #expect(verbs.map(\.id.rawValue) == verbs.map { "agent.\($0.rawValue)" })
-    #expect(verbs.map(\.title) == ["Send to Chat", "Open", "Close"])
+  @Test func eachVerbHasItsTitle() {
+    #expect(SideCardVerb.allCases.map(\.title) == ["Send to Chat", "Open", "Close"])
   }
 
   @Test func eachVerbIsInTheSideCardGroup() {
@@ -274,7 +260,8 @@ import Testing
     fixture.target.thread = nil
 
     #expect(
-      try Self.availability(of: .sendSideCardToChat, in: fixture)
+      try CommandTestSupport.availability(
+        of: SideCardVerb.sendSideCardToChat.id, at: fixture.path, in: fixture.registry)
         == .unavailable(reason: "The composer is not shown."))
   }
 
@@ -282,7 +269,8 @@ import Testing
     let fixture = Self.makeFixture(fork: .preview(transcript: [.user(Self.question)]))
 
     #expect(
-      try Self.availability(of: .sendSideCardToChat, in: fixture)
+      try CommandTestSupport.availability(
+        of: SideCardVerb.sendSideCardToChat.id, at: fixture.path, in: fixture.registry)
         == .unavailable(reason: "The side question has no answer yet."))
   }
 
@@ -294,8 +282,14 @@ import Testing
     let reason = Availability.unavailable(
       reason: "The side question needs input. Open it to answer.")
 
-    #expect(try Self.availability(of: .sendSideCardToChat, in: fixture) == reason)
-    #expect(try Self.availability(of: .closeSideCard, in: fixture) == reason)
-    #expect(try Self.availability(of: .openSideCard, in: fixture) == .available)
+    #expect(
+      try CommandTestSupport.availability(
+        of: SideCardVerb.sendSideCardToChat.id, at: fixture.path, in: fixture.registry) == reason)
+    #expect(
+      try CommandTestSupport.availability(
+        of: SideCardVerb.closeSideCard.id, at: fixture.path, in: fixture.registry) == reason)
+    #expect(
+      try CommandTestSupport.availability(
+        of: SideCardVerb.openSideCard.id, at: fixture.path, in: fixture.registry) == .available)
   }
 }

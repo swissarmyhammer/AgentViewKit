@@ -90,9 +90,8 @@ import Testing
   /// - Returns: The availability.
   /// - Throws: An error when the registry has no Fork from Here.
   static func availability(at path: FocusPath, in fixture: AgentCommandsTests.Fixture) throws -> Availability {
-    let row = try #require(
-      fixture.system.registry.eligible(path: path).first { $0.id == AgentCommandVerb.forkFromHere.id })
-    return row.isEnabled ? .available : .unavailable(reason: row.reason ?? "")
+    try CommandTestSupport.availability(
+      of: AgentCommandVerb.forkFromHere.id, at: path, in: fixture.system.registry)
   }
 
   /// The request that Fork from Here gives for the message at `position`.

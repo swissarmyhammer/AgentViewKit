@@ -90,8 +90,8 @@ import Testing
   // MARK: - Verbs
 
   @Test func eachVerbHasTheKitPrefixAndATitle() {
+    CommandTestSupport.expectKitPrefix(of: AgentAttachmentVerb.allCases, id: \.id)
     for verb in AgentAttachmentVerb.allCases {
-      #expect(verb.id.rawValue == "agent.\(verb.rawValue)")
       #expect(!verb.title.isEmpty, "\(verb)")
     }
   }

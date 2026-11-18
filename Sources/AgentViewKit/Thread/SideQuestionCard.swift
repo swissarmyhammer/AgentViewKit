@@ -69,7 +69,11 @@ public struct SideQuestionCard: View {
   /// thread.
   let onSendToChat: (@MainActor (String) -> Void)?
 
+  /// The style of the editor, for the spacing and the fonts of the card.
   @Environment(\.editorStyle) private var editorStyle
+
+  /// The command groups that are off. With the group of the side card off,
+  /// the card shows no button.
   @Environment(\.agentCommandGroupsOff) private var groupsOff
 
   /// The target of the scope of the card.
@@ -95,6 +99,9 @@ public struct SideQuestionCard: View {
     self.onSendToChat = onSendToChat
   }
 
+  /// The card: the question, the streamed answer of the fork or "Needs
+  /// input", and the command buttons of the side card verbs, in the scope of
+  /// the card.
   public var body: some View {
     FloatingGlassContainer(spacing: editorStyle.spacing.s) {
       VStack(alignment: .leading, spacing: editorStyle.spacing.s) {
@@ -164,6 +171,8 @@ public struct SideQuestionCard: View {
 
 // MARK: - Model
 
+/// The model of a side card: the texts that the card shows and the rules
+/// that the commands and the tests read, with no view.
 extension SideQuestionCard {
   /// The accessibility label of each side card.
   static var accessibilityLabelText: String {

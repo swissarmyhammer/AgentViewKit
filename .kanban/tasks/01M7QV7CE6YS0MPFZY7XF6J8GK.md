@@ -34,6 +34,55 @@ comments:
     - evidence: `swift test` at the package root exits 0, no test failure, no skipped test. SideCardsTests, SideCardCommandsTests and SideQuestionCardTests pass. `swift format lint -s` on changed and new files: no new finding versus HEAD. `swift build --build-tests` in IntegrationTests and ScreenshotTests: build complete. The three new unit test files have no sleep, poll, retry, clock, window or focus call.
     - next: review
   timestamp: 2026-11-18T18:28:41.741246+00:00
+- actor: claude-code
+  id: 01m7qz2jhnapfayednj0xtyz0p
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (8eab72b1). 5 findings confirmed, 2 refuted. Sources/AgentViewKit/Commands/SideCardCommands.swift:134, Sources/AgentViewKit/Commands/SideCardScope.swift:101, Sources/AgentViewKit/Thread/SideQuestionCard.swift:98, Tests/AgentViewKitTests/Commands/SideCardCommandsTests.swift:135, Tests/AgentViewKitTests/Commands/SideCardCommandsTests.swift:148
+    - next: Do each item of the "Review Findings (2026-11-18 12:29)" checklist. Then do the review again. The task stays in review.
+  timestamp: 2026-11-18T18:35:30.229033+00:00
+- actor: claude-code
+  id: 01m7qz34zbgxv469qn1sk08nk6
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 19 files (SideQuestionCard, SideCards, SideCardCommands, SideCardScope, tests, snapshots)
+    - test: green — swift test, 1377 tests in 161 suites + 54 tests in 11 suites passed
+    - commit: 8eab72b1
+    - review: findings — SideCardCommands.swift:134, SideCardScope.swift:101, SideQuestionCard.swift:98, SideCardCommandsTests.swift:135, SideCardCommandsTests.swift:148
+  timestamp: 2026-11-18T18:35:49.099100+00:00
+- actor: claude-code
+  id: 01m7rfgj5yqbk5ntj4a5as05fh
+  text: |-
+    Review findings (2026-11-18 12:29) done:
+    1. Duplication: new `AgentCommandPresentation` and `CommandDefinition.init(_:target:isVisible:make:)` in Sources/AgentViewKit/Commands/AgentCommandPresentation.swift. `SideCardVerb.presentation` and `AgentAttachmentCommand.Action.presentation` give the data. `SideCardCommand.definition(of:for:)` and `AgentAttachmentCommand.definition(of:for:)` use the helper. AgentCommands.swift is not changed: new task ^7jp7d (01M7RF9TSZHFTJXXR3R0V7JP7D) moves `AgentCommand.definition(of:for:)` to the helper.
+    2. Reuse: new generic `AgentScopeAnchor<Target>` (NSViewRepresentable) in AgentScopeMount.swift owns makeCoordinator, makeNSView, updateNSView and dismantleNSView. `SideCardMount` and `AgentAttachmentMount` are now plain views that give only the write step and the register step. `AgentCommandMount` stays as it is: its coordinator also removes parts from the target.
+    3. Docs: `body` of SideQuestionCard, and each declaration with no doc comment in the new files (SideCardCommand members, Availability extension, SideCardLayout sizeThatFits and placeSubviews, environment and view extensions, property wrappers, SideCardScope body).
+    4 and 5. Reuse in tests: new Tests/AgentViewKitTests/Commands/CommandTestSupport.swift with `availability(of:at:in:)` (CommandID, FocusPath, CommandRegistry) and `expectKitPrefix(of:id:)`. SideCardCommandsTests lost its copy; ForkFromHereCommandTests forwards to the shared helper. The kit-prefix check of AgentCommandsTests, AgentAttachmentCommandsTests and AgentFileSelectionCommandsTests also calls the helper.
+    New tests: AgentCommandPresentationTests (7), AgentScopeAnchorTests (3; a window-less NSHostingView mounts and removes the anchor in the layout pass, with no wait).
+    Discovery: in a test struct, a stored property with the name `system` clashes with the C function `system` inside a computed property; use `self.system`.
+  timestamp: 2026-11-18T23:22:45.822235+00:00
+- actor: claude-code
+  id: 01m7rfgp005gv6b9k4cyzvwc9k
+  text: |-
+    ### implement — changed
+    - evidence: `swift test` at the root: 1388 tests in 163 suites passed, and 54 tests in 11 suites passed; no warning in Sources or Tests of the kit. `swift build --build-tests` passes in IntegrationTests/ and ScreenshotTests/ (not run). `swift format lint -s` on each changed file: no new finding versus HEAD. Files: Sources/AgentViewKit/Commands/{AgentCommandPresentation (new), AgentAttachmentCommands, AgentAttachmentScope, AgentScopeMount, SideCardCommands, SideCardScope}.swift, Sources/AgentViewKit/Thread/{SideQuestionCard, SideCards}.swift, Tests/AgentViewKitTests/Commands/{CommandTestSupport (new), AgentCommandPresentationTests (new), AgentScopeAnchorTests (new), SideCardCommandsTests, ForkFromHereCommandTests, AgentCommandsTests, AgentAttachmentCommandsTests, AgentFileSelectionCommandsTests}.swift. All 5 findings checked.
+    - next: review
+  timestamp: 2026-11-18T23:22:49.728071+00:00
+- actor: claude-code
+  id: 01m7rfgz0smqnqyqrqxt1stmqw
+  text: 'Correction: the short id of the new task (01M7RF9TSZHFTJXXR3R0V7JP7D) is ^0v7jp7d, not ^7jp7d.'
+  timestamp: 2026-11-18T23:22:58.969316+00:00
+- actor: claude-code
+  id: 01m7rfmfbd4yeg0db219d4jmn3
+  text: |-
+    ### test — green
+    - evidence: swift test at package root: "Test run with 1388 tests in 163 suites passed after 29.885 seconds." and "Test run with 54 tests in 11 suites passed after 0.036 seconds." Exit code 0.
+    - evidence: swift format lint -s on all changed and new Swift files: zero findings.
+    - evidence: swift build --build-tests in IntegrationTests and ScreenshotTests: both "Build complete". They were not run.
+    - evidence: AgentCommandPresentationTests, AgentScopeAnchorTests and CommandTestSupport have no sleep, poll, retry, clock, window or focus code.
+    - note: the only warning is "missing creator for mutated node" for the mlx-swift_Cmlx bundle. It comes from the build system and not from this change.
+    - next: review.
+  timestamp: 2026-11-18T23:24:53.997329+00:00
 position_column: doing
 position_ordinal: '80'
 title: SideQuestionCard and the .sideCards slot of the thread view for /btw (D205)
@@ -52,3 +101,20 @@ Do:
 Tests: `SideQuestionCard` with a scripted `SessionModel` shows the streamed answer; Send to Chat, Open and Close call their actions; "Needs input" shows for a pending permission request; `.sideCards` shows two cards with the newest at the top, and the transcript does not change. A snapshot test of the card in light and dark (ScreenshotTests: add it, compile only, do not run; give the PNG paths when the user runs it).
 
 Push when `swift test` is green, and send the sha to testudoapp-9a.
+
+## Review Findings (2026-11-18 12:29)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 17 file(s) reviewed, 6 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+> 2 file(s) not reviewed — no validator matched:
+> - `ARCHITECTURE.md` — no validator matches this file
+> - `Sources/AgentViewKit/Resources/Localizable.xcstrings` — no validator matches this file
+
+- [x] `Sources/AgentViewKit/Commands/SideCardCommands.swift:134` `duplication/duplication` — SideCardCommand.definition(of:for:) builds a CommandDefinition with the same shape as AgentCommand.definition(of:for:) and AgentAttachmentCommand.definition(of:for:). The keys dictionary, the id, title, icon, menu and contextMenu wiring, and the weak-target make closure repeat. A fix to one copy, such as how keys or the weak target are handled, will not reach the others. Extract one shared helper that takes the id, title, icon, menu, contextMenu, cua key and make closure as parameters. Build the side card definition through it. Keep the difference (the side card keys and the absence of isVisible) as arguments. Do not edit AgentCommands.swift; report the other copies as a separate task.
+- [x] `Sources/AgentViewKit/Commands/SideCardScope.swift:101` `reuse/reuse` — SideCardMount repeats the NSViewRepresentable lifecycle of AgentAttachmentMount: makeCoordinator builds an AgentScopeMount around a deregister function, makeNSView and updateNSView both call apply(scopeMount:), dismantleNSView calls coordinator.unmount(), and apply writes the target and then calls scopeMount.mount(at:in:) with a register closure. Only the target, the values written and the register call differ. Two copies of this boilerplate will drift apart on the next change to the mount lifecycle, such as the newest-mount rule. Move the representable shell into one generic mount, parameterized by the target, the values write and the register closure, or extend AgentScopeMount so it owns makeNSView, updateNSView and dismantleNSView. Then SideCardMount and AgentAttachmentMount each supply only their write and register steps.
+- [x] `Sources/AgentViewKit/Thread/SideQuestionCard.swift:98` `code-hygiene/missing-docs-swift` — AllPublicDeclarationsHaveDocumentation: add a documentation comment for 'body'.
+- [x] `Tests/AgentViewKitTests/Commands/SideCardCommandsTests.swift:135` `reuse/reuse` — The new `availability(of:in:)` helper repeats the same lookup as `ForkFromHereCommandTests.availability(at:in:)`: find the row by verb id in `eligible(path:)`, then map `isEnabled` to `.available` or `.unavailable(reason:)`. Two copies of one test helper will drift apart. Move one shared helper into a common test file, taking a `CommandRegistry`, a `FocusPath`, and a `CommandID` (not a fixture type), and call it from both suites. Then delete the copy in SideCardCommandsTests.swift.
+- [x] `Tests/AgentViewKitTests/Commands/SideCardCommandsTests.swift:148` `reuse/reuse` — The kit-prefix check repeats in each verb test suite. The test that checks each verb id is `agent.<rawValue>` is a copy of the same assertion in other suites, so the rule for the kit prefix is not kept in one place. Add one helper that takes a sequence of verb ids and their raw values and asserts the `agent.` prefix, then call it from each verb suite. Keep each suite's own title assertion, since the titles differ per verb.

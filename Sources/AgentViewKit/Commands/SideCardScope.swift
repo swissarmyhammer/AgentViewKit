@@ -48,14 +48,27 @@ struct SideCardScope: ViewModifier {
   /// The values of the card.
   let values: SideCardValues
 
+  /// The command system that an ancestor installs, or `nil`.
   @Environment(\.commandSystem) private var ambientSystem
+
+  /// The path of the enclosing scope, or `nil` at the root.
   @Environment(\.commandScopePath) private var parentPath
+
+  /// The target of the thread around the card, whose composer gets the text
+  /// of Send to Chat, or `nil`.
   @Environment(\.agentCommandTarget) private var thread
+
+  /// The command groups that the scope does not register.
   @Environment(\.agentCommandGroupsOff) private var groupsOff
 
   /// The system that the scope uses when no ancestor installs one.
   @State private var standaloneSystem = CommandSystem()
 
+  /// Puts `content` in the scope of the card, with the mount of its
+  /// commands.
+  ///
+  /// - Parameter content: The card.
+  /// - Returns: The card in its scope.
   func body(content: Content) -> some View {
     let segment = AgentScopeKind.sideCard(values.session.sessionId)
     let system = ambientSystem ?? standaloneSystem
@@ -70,14 +83,13 @@ struct SideCardScope: ViewModifier {
   }
 }
 
-/// The zero-size view that keeps the target of a side card scope current and
-/// its commands registered.
+/// The mount of a side card scope: the ``AgentScopeAnchor`` with the write
+/// and the register steps of a side card.
 ///
-/// SwiftUI calls `updateNSView` after each change to the values, so the
-/// target always has the current fork, actions, system and path. The
-/// coordinator is the ``AgentScopeMount`` that registers the commands at the
-/// path, as for ``AgentAttachmentMount``.
-struct SideCardMount: NSViewRepresentable {
+/// The anchor keeps the target current with the fork, the actions, the
+/// system and the path, and registers the ``SideCardVerb`` commands at the
+/// path.
+struct SideCardMount: View {
   /// The values of the registration of a scope.
   struct Registration {
     /// The system to register in.
@@ -98,28 +110,23 @@ struct SideCardMount: NSViewRepresentable {
   /// The current registration of the scope.
   let registration: Registration
 
-  func makeCoordinator() -> AgentScopeMount {
-    AgentScopeMount(unregister: SideCardRegistration.deregister(at:from:))
+  /// The anchor of the scope.
+  var body: some View {
+    AgentScopeAnchor(
+      target: target, system: registration.system, path: registration.path,
+      unregister: SideCardRegistration.deregister(at:from:),
+      write: { [registration] target, _ in Self.write(registration, to: target) },
+      register: { [groupsOff = registration.groupsOff] target, path, registry in
+        SideCardRegistration.register(target, at: path, into: &registry, groupsOff: groupsOff)
+      })
   }
 
-  func makeNSView(context: Context) -> NSView {
-    apply(scopeMount: context.coordinator)
-    return NSView(frame: .zero)
-  }
-
-  func updateNSView(_ anchor: NSView, context: Context) {
-    apply(scopeMount: context.coordinator)
-  }
-
-  static func dismantleNSView(_ anchor: NSView, coordinator: AgentScopeMount) {
-    coordinator.unmount()
-  }
-
-  /// Writes the values to the target, and registers the commands at the
-  /// current path.
+  /// Writes the values of `registration` to `target`.
   ///
-  /// - Parameter scopeMount: The coordinator, which holds the path.
-  private func apply(scopeMount: AgentScopeMount) {
+  /// - Parameters:
+  ///   - registration: The registration of the scope.
+  ///   - target: The target of the card.
+  private static func write(_ registration: Registration, to target: SideCardTarget) {
     let values = registration.values
     target.question = values.question
     target.session = values.session
@@ -127,9 +134,5 @@ struct SideCardMount: NSViewRepresentable {
     target.close = values.close
     target.hostSend = values.hostSend
     target.thread = registration.thread
-    scopeMount.mount(at: registration.path, in: registration.system) {
-      [target, path = registration.path, groupsOff = registration.groupsOff] registry in
-      SideCardRegistration.register(target, at: path, into: &registry, groupsOff: groupsOff)
-    }
   }
 }

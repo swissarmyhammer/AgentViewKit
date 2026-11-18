@@ -178,22 +178,16 @@ private struct AttachmentPresentation: ViewModifier {
 
 // MARK: - Mount
 
-/// The zero-size view that keeps the target of an attachment scope current
-/// and its commands registered.
+/// The mount of an attachment scope: the ``AgentScopeAnchor`` with the
+/// write and the register steps of an attachment.
 ///
-/// SwiftUI calls `updateNSView` after each change to the values, so the
-/// target always has the current service, system and path. The view is also
-/// the place where the share picker of the ``AttachmentPresenter`` shows: it
-/// is in the background of the attachment, with its size.
-///
-/// The coordinator is the ``AgentScopeMount`` that registers the commands at
-/// the path. SwiftUI can make a newer view at the same path before it removes
-/// the older view, and two windows that show one attachment have the same
-/// path. The newest mount registers, and the teardown of an older mount does
-/// not remove the commands of the newer mount. When the newer mount goes away
-/// first, the path goes back to the older mount on the next pass of the main
-/// run loop.
-struct AgentAttachmentMount: NSViewRepresentable {
+/// The anchor keeps the target current with the service, the selection
+/// actions, the system and the path, and registers the commands at the
+/// path: the file selection commands too when the registration has a select
+/// action. The view of the anchor is also the place where the share picker
+/// of the ``AttachmentPresenter`` shows: it is in the background of the
+/// attachment, with its size.
+struct AgentAttachmentMount: View {
   /// The values of the registration of a scope.
   struct Registration {
     /// The system to register in.
@@ -225,45 +219,30 @@ struct AgentAttachmentMount: NSViewRepresentable {
   /// The current registration of the scope.
   let registration: Registration
 
-  func makeCoordinator() -> AgentScopeMount {
-    AgentScopeMount(unregister: AgentAttachmentRegistration.deregister(at:from:))
+  /// The anchor of the scope.
+  var body: some View {
+    AgentScopeAnchor(
+      target: target, system: registration.system, path: registration.path,
+      unregister: AgentAttachmentRegistration.deregister(at:from:),
+      write: { [presenter, registration] target, anchor in
+        presenter.anchor = anchor
+        Self.write(registration, to: target)
+      },
+      register: { [groupsOff = registration.groupsOff, selects = registration.select != nil] in
+        AgentAttachmentRegistration.register(
+          $0, at: $1, into: &$2, groupsOff: groupsOff, selects: selects)
+      })
   }
 
-  func makeNSView(context: Context) -> NSView {
-    let anchor = NSView(frame: .zero)
-    apply(anchor: anchor, scopeMount: context.coordinator)
-    return anchor
-  }
-
-  func updateNSView(_ anchor: NSView, context: Context) {
-    apply(anchor: anchor, scopeMount: context.coordinator)
-  }
-
-  static func dismantleNSView(_ anchor: NSView, coordinator: AgentScopeMount) {
-    coordinator.unmount()
-  }
-
-  /// Writes the values to the target and the presenter, and registers the
-  /// commands at the current path: the file selection commands too when the
-  /// registration has a select action.
-  ///
-  /// A change of the path or of the system ends the registration at the old
-  /// place first.
+  /// Writes the values of `registration` to `target`.
   ///
   /// - Parameters:
-  ///   - anchor: The view of the mount.
-  ///   - scopeMount: The coordinator, which holds the path.
-  private func apply(anchor: NSView, scopeMount: AgentScopeMount) {
-    presenter.anchor = anchor
+  ///   - registration: The registration of the scope.
+  ///   - target: The target of the attachment.
+  private static func write(_ registration: Registration, to target: AgentAttachmentTarget) {
     target.service = registration.service
     target.select = registration.select
     target.selection = registration.selection
     target.inspect = registration.inspect
-    scopeMount.mount(at: registration.path, in: registration.system) {
-      [target, path = registration.path, groupsOff = registration.groupsOff,
-        selects = registration.select != nil] registry in
-      AgentAttachmentRegistration.register(
-        target, at: path, into: &registry, groupsOff: groupsOff, selects: selects)
-    }
   }
 }
