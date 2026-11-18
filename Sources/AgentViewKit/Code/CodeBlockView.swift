@@ -129,7 +129,10 @@ public struct CodeBlockView: View {
   /// - Returns: The editor.
   @ViewBuilder
   private func editor(model: EditorModel) -> some View {
+    // A right click on the code gives the menu of the row, not the text
+    // menu of AppKit (D108, D193 (f)).
     let view = EditorView(model: model)
+      .editorTextMenu(.ancestor)
       .sizedToContent()
       .editorGutter(LineNumbers())
     if let grammarID {

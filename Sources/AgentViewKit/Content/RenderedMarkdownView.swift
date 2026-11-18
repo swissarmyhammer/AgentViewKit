@@ -71,6 +71,9 @@ struct RenderedMarkdownView: View {
     let model = hostModel ?? ownModel.model(text: markdown, make: Self.makeModel)
     let selection = citationSelection
     EditorView(model: model)
+      // A right click on the text gives the menu of the row, not the text
+      // menu of AppKit (D108, D193 (f)).
+      .editorTextMenu(.ancestor)
       .editorCodeBlockHeader { block in
         if let title = Self.headerTitle(of: block) {
           Text(verbatim: title)

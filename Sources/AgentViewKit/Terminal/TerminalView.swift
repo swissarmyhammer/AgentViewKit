@@ -172,7 +172,10 @@ public struct TerminalView: View {
       if rows.isCapped {
         capRow(rows)
       }
+      // A right click on the output gives the menu of the row, not the text
+      // menu of AppKit (D108, D193 (f)).
       EditorView(model: model)
+        .editorTextMenu(.ancestor)
         .sizedToContent()
       footer
     }
