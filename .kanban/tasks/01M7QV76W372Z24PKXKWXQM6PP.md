@@ -67,8 +67,24 @@ comments:
     - IntegrationTests and ScreenshotTests were not run (they take the screen focus).
     - next: review
   timestamp: 2026-11-18T18:00:31.393339+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m7qx6wyjysg6sxxwhj3jvk2d
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (7566978a): 0 findings, 0 confirmed, 0 refuted, 7 attempted, 0 failed. 1 file reviewed (Sources/AgentViewKit/Commands/AgentCommandPlacement.swift). The 2 earlier findings are checked.
+    - next: none. The task is in done.
+  timestamp: 2026-11-18T18:02:54.802747+00:00
+- actor: claude-code
+  id: 01m7qx76phgezzbx2rt7hmyptj
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — AgentCommandPlacement.swift (named orders and groups)
+    - test: green — swift test, 1340 tests in 158 suites + 54 tests in 11 suites passed
+    - commit: 7566978a
+    - review: clean — 0 findings, 2 earlier findings checked
+  timestamp: 2026-11-18T18:03:04.785553+00:00
+position_column: done
+position_ordinal: fffffff480
 title: Fork from Here verb, message action and context menu row (D205)
 ---
 Brief: /Users/wballard/github/swissarmyhammer/.briefs/fork/avk-brief.md and overview.md (testudoapp-9a, D205, TestudoApp commit 483664d). No dependency: the host runs the fork. Send the API proposal to testudoapp-9a before the first push (sent 2026-11-18, see the comments).
