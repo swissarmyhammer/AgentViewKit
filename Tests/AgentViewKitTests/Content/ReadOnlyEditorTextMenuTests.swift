@@ -59,21 +59,6 @@ enum ReadOnlyEditorSite: String, CaseIterable, Sendable {
   /// The width of the host, in points.
   static let width: CGFloat = 400
 
-  /// The window number of a press with no window.
-  static let noWindowNumber = 0
-
-  /// The event number of the press.
-  static let eventNumber = 0
-
-  /// The click count of one right click.
-  static let clickCount = 1
-
-  /// The pressure of a right press.
-  static let pressure: Float = 1
-
-  /// The time stamp of the press.
-  static let timestamp: TimeInterval = 0
-
   /// Mounts `site` in a host with no window, under a view that has `menu`.
   ///
   /// - Parameters:
@@ -95,20 +80,6 @@ enum ReadOnlyEditorSite: String, CaseIterable, Sendable {
     return (row, try #require(firstView(ofType: NSTextView.self, in: hosting)))
   }
 
-  /// A right press at the center of `view`, which the test never posts.
-  ///
-  /// - Parameter view: The view under the press.
-  /// - Returns: The press.
-  /// - Throws: An error when AppKit makes no event.
-  static func rightPress(on view: NSView) throws -> NSEvent {
-    let center = view.convert(NSPoint(x: view.bounds.midX, y: view.bounds.midY), to: nil)
-    return try #require(
-      NSEvent.mouseEvent(
-        with: .rightMouseDown, location: center, modifierFlags: [], timestamp: timestamp,
-        windowNumber: noWindowNumber, context: nil, eventNumber: eventNumber,
-        clickCount: clickCount, pressure: pressure))
-  }
-
   /// A production change that fails this test: an editor of a row keeps the
   /// default text menu (`.system`), so a right click on its text shows Look
   /// Up, Font and the other AppKit items in place of the menu of the row.
@@ -116,7 +87,7 @@ enum ReadOnlyEditorSite: String, CaseIterable, Sendable {
   func aRightClickOnTheTextGivesTheMenuOfTheRow(site: ReadOnlyEditorSite) throws {
     let rowMenu = NSMenu(title: "Row")
     let (row, text) = try Self.mount(site, under: rowMenu)
-    let press = try Self.rightPress(on: text)
+    let press = try RightPress.makeEvent(atCenterOf: text)
 
     let shown = withExtendedLifetime(row) { text.menu(for: press) }
 

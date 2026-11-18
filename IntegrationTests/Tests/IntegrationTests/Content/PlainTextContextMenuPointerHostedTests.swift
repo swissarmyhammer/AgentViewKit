@@ -1,9 +1,11 @@
-@testable import AgentViewKit
+import AgentViewKitTestSupport
 import AppKit
 import EditorSwiftUI
 import EditorTestSupport
 import SwiftUI
 import Testing
+
+@testable import AgentViewKit
 
 /// A right click on the plain text of an item shows the context menu of the
 /// item (D193 (f)).
@@ -46,20 +48,11 @@ import Testing
       harness.hostingView.descendants.first { String(describing: type(of: $0)) == labelViewTypeName })
   }
 
-  /// A right press at the center of `view`.
-  static func rightPress(on view: NSView, in window: NSWindow) throws -> NSEvent {
-    let center = view.convert(NSPoint(x: view.bounds.midX, y: view.bounds.midY), to: nil)
-    return try #require(
-      NSEvent.mouseEvent(
-        with: .rightMouseDown, location: center, modifierFlags: [], timestamp: 0,
-        windowNumber: window.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 1))
-  }
-
   @Test func aRightClickOnTheTextShowsTheMenuOfTheItem() throws {
     let harness = Self.mount()
     defer { harness.close() }
     let text = try Self.labelView(in: harness)
-    let press = try Self.rightPress(on: text, in: harness.window)
+    let press = try RightPress.makeEvent(atCenterOf: text)
 
     let menu = try #require(text.menu(for: press))
 

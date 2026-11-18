@@ -63,15 +63,30 @@ import Testing
   static func makeSystem(log: CommandRunLog) -> CommandSystem {
     let system = CommandSystem()
     system.registry.tree = system.registry.tree.merging(nil, by: .host, at: hostPath)
-    for command in [showInFinder, openTasks] {
-      let id = command.id
-      system.registry.register(command.definition { _ in RunRecordingCommand(id: id, log: log) }, at: hostPath)
-    }
+    register([showInFinder, openTasks], at: hostPath, in: system, log: log)
     let stop = stop
     let reason = stopReason
     system.registry.register(
       stop.definition { _ in UnavailableCommand(id: stop.id, title: stop.title, reason: reason) }, at: hostPath)
     return system
+  }
+
+  /// Registers `commands` at `path` in `system`. Each command records its
+  /// runs in `log`.
+  ///
+  /// - Parameters:
+  ///   - commands: The host commands to register.
+  ///   - path: The path of the scope that gets the commands.
+  ///   - system: The command system that gets the commands.
+  ///   - log: The log that gets each run of the commands.
+  static func register(
+    _ commands: [HostCommand], at path: FocusPath, in system: CommandSystem, log: CommandRunLog
+  ) {
+    for command in commands {
+      let id = command.id
+      let definition = command.definition { _ in RunRecordingCommand(id: id, log: log) }
+      system.registry.register(definition, at: path)
+    }
   }
 
   /// A code-built connection model whose agent gave its info, so that the
@@ -83,17 +98,21 @@ import Testing
         protocolVersion: ACPClient.supportedProtocolVersion))
   }
 
-  /// Mounts a thread whose header shows the context menu of `path`, in
-  /// `system`.
+  /// Mounts a thread of `session` whose header shows the context menu of
+  /// `path`, in `system`.
   ///
   /// - Parameters:
+  ///   - session: The session model of the thread. The default has an empty
+  ///     transcript.
   ///   - path: The path of the host scope, or `nil` for no context menu.
   ///   - system: The ambient command system of the thread.
   /// - Returns: The harness, after one render pass.
-  static func mountThread(path: FocusPath?, system: CommandSystem) -> HostedViewHarness<some View> {
+  static func mountThread(
+    _ session: SessionModel = .preview(), path: FocusPath?, system: CommandSystem
+  ) -> HostedViewHarness<some View> {
     let harness = HostedViewHarness(size: size) {
       AgentThreadView(
-        session: .preview(), connection: connection, sessionTitle: "AgentViewKit", headerContextMenuPath: path
+        session: session, connection: connection, sessionTitle: "AgentViewKit", headerContextMenuPath: path
       )
       .commandSystem(system)
       .transaction { $0.disablesAnimations = true }

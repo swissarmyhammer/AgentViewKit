@@ -34,6 +34,46 @@ comments:
     - evidence: swift test at package root exit 0, all suites pass (ReadOnlyEditorTextMenuTests passed, 4 cases). swift format lint -s on changed files: no new findings against HEAD (same findings as HEAD). IntegrationTests swift build --build-tests: build complete. The only warning is a build-tool message about mlx-swift_Cmlx.bundle, not from this change. The new unit test has no sleep, poll, retry, clock, window or focus.
     - next: review
   timestamp: 2026-11-18T16:58:38.221050+00:00
+- actor: claude-code
+  id: 01m7qsqkhahm2vfc6cpn2tg3mp
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (bc8b5383); 2 findings (2 confirmed, 1 refuted) — IntegrationTests/Tests/IntegrationTests/Content/AnswerTextContextMenuPointerHostedTests.swift:61, Tests/AgentViewKitTests/Content/ReadOnlyEditorTextMenuTests.swift:103
+    - next: Do the 2 items in the "Review Findings (2026-11-18 11:00)" section. Then do the review again. The task stays in review.
+  timestamp: 2026-11-18T17:02:07.914357+00:00
+- actor: claude-code
+  id: 01m7qsr3ca1mbvmqj95ef9s6za
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — RenderedMarkdownView, CodeBlockView, CommandOutputView, TerminalView use .editorTextMenu(.ancestor); 2 new tests
+    - test: green — swift test passed; IntegrationTests and ScreenshotTests compile
+    - commit: bc8b5383
+    - review: findings — AnswerTextContextMenuPointerHostedTests.swift:61, ReadOnlyEditorTextMenuTests.swift:103
+  timestamp: 2026-11-18T17:02:24.138863+00:00
+- actor: claude-code
+  id: 01m7qt98q71ft4t1d1am5tdexk
+  text: |-
+    Review findings (2026-11-18 11:00), both done:
+    - Finding 1 (mount): `ThreadHeaderContextMenuHostedTests.mountThread` has a new first parameter `session` (default `.preview()`). A new `ThreadHeaderContextMenuHostedTests.register(_:at:in:log:)` registers host commands at a path; `makeSystem(log:)` and `AnswerTextContextMenuPointerHostedTests.mountAnswer()` both call it. `mountAnswer()` now calls `mountThread(session, path: nil, system:)` and has no mount of its own. The local `size` constant of the answer suite is removed (the window is now 480 x 600, the size of the header suite).
+    - Finding 2 (right press): new `RightPress.makeEvent(atCenterOf:)` in Sources/AgentViewKitTestSupport/RightPress.swift. The unit target and the IntegrationTests package both link AgentViewKitTestSupport. The press takes the window number of the view's window, or 0 when the view has no window. `ReadOnlyEditorTextMenuTests` (unit) and `PlainTextContextMenuPointerHostedTests` (hosted, the existing copy) both call it; both local `rightPress` functions and their constants are removed. EditorKit's own right press in `HostedViewHarness` is private, so AVK cannot reuse it.
+    - PlainTextContextMenuPointerHostedTests: the `@testable import` moved after the regular imports, so the new import adds no OrderedImports finding.
+  timestamp: 2026-11-18T17:11:46.663081+00:00
+- actor: claude-code
+  id: 01m7qt9my556k5t119mw6rgfw3
+  text: |-
+    ### implement — changed
+    - evidence: 6 files — Sources/AgentViewKitTestSupport/RightPress.swift (new), Tests/AgentViewKitTests/Content/ReadOnlyEditorTextMenuTests.swift, IntegrationTests/Tests/IntegrationTests/Content/AnswerTextContextMenuPointerHostedTests.swift, IntegrationTests/Tests/IntegrationTests/Content/PlainTextContextMenuPointerHostedTests.swift, IntegrationTests/Tests/IntegrationTests/Thread/ThreadHeaderContextMenuHostedTests.swift, and this card (2 of 2 findings checked). `swift test` at the root: 1320 tests in 157 suites and 54 tests in 11 suites pass (ReadOnlyEditorTextMenuTests: 4 cases pass). `swift build --build-tests` in IntegrationTests and ScreenshotTests: build complete. `swift format lint -s` on the changed files: no new findings against HEAD (fewer in PlainText and ThreadHeader). The only warning is the build-tool message about mlx-swift_Cmlx.bundle, not from this change. No sleep, poll, retry or clock; the unit test opens no window.
+    - next: review
+  timestamp: 2026-11-18T17:11:59.173579+00:00
+- actor: claude-code
+  id: 01m7qtds6ctdzcjevs6xr24mnr
+  text: |-
+    ### test — green
+    - evidence: swift test (package root) — 1320 tests in 157 suites passed, 0 failed, 0 skipped. swift build --build-tests in IntegrationTests and ScreenshotTests — both exit 0, no compile error.
+    - lint: swift format lint -s on the 4 changed files and RightPress.swift. Finding count against HEAD: AnswerText 0 to 0, PlainText 7 to 1, ThreadHeader 20 to 19, ReadOnlyEditorTextMenuTests 0 to 0, RightPress 0. No new finding.
+    - note: the only build warning is "missing creator for mutated node" for the mlx-swift_Cmlx bundle. It comes from the build system, not from this change.
+    - next: review
+  timestamp: 2026-11-18T17:14:14.604135+00:00
 position_column: doing
 position_ordinal: '80'
 title: Right click on answer text shows the item menu, not the AppKit text menu (D108, D193 f)
@@ -52,3 +92,13 @@ Do, when the hook is on EditorKit main:
 - Add a hosted test in IntegrationTests: a right click on answer text gives the item menu (Copy Message, Inspect, Inspect in New Pane), and not the AppKit text menu. Compile it only. Do not run it: the user runs the hosted suites.
 - Add a unit test if the hook gives a headless check.
 - Run `swift test`. Push, and send the sha to testudoapp-9a.
+
+## Review Findings (2026-11-18 11:00)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 6 file(s) reviewed, 4 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+- [x] `IntegrationTests/Tests/IntegrationTests/Content/AnswerTextContextMenuPointerHostedTests.swift:61` `reuse/reuse` — `mountAnswer()` repeats the thread-mount pattern already in `ThreadHeaderContextMenuHostedTests.mountThread`: build a session, a command system, register host commands at the thread path, and render a `HostedViewHarness` around `AgentThreadView`. The change already uses that suite's `HostCommand` type, so it is coupled to that file, yet it still copies its mount logic. Reuse `ThreadHeaderContextMenuHostedTests.mountThread` or `ComposerHarness.mountThread`, passing the answer and the host commands as parameters. If their signatures do not fit, extend one of them with the parameter that differs rather than adding a parallel mount.
+- [x] `Tests/AgentViewKitTests/Content/ReadOnlyEditorTextMenuTests.swift:103` `reuse/reuse` — The new `rightPress(on:)` rebuilds a right mouse-down event at the view center, which an existing helper already does. Two copies of the same press construction will drift apart. If the two test targets cannot share a helper, the claim is weaker, but the duplicate should still move to a shared test-support module. Move one right-press helper into a support target that both test targets import, such as `EditorTestSupport` or `AgentViewKitTestSupport`, and call it from both suites. If the targets cannot share it, record why in a comment.

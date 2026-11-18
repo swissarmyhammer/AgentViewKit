@@ -26,9 +26,6 @@ import Testing
 /// off the screen and not key. Each suite whose name ends in
 /// `PointerHostedTests` holds such a hit test.
 @Suite(.serialized, .hostedSerially) @MainActor struct AnswerTextContextMenuPointerHostedTests {
-  /// The size of the window.
-  static let size = CGSize(width: 480, height: 400)
-
   /// The text of the answer.
   static let answer = "The parser reads each line of the file."
 
@@ -57,24 +54,17 @@ import Testing
   /// Mounts a thread with one agent answer, with the host commands at the
   /// thread path.
   ///
+  /// The mount is the thread mount of ``ThreadHeaderContextMenuHostedTests``,
+  /// with no context menu on the header.
+  ///
   /// - Returns: The harness, after one render pass.
   static func mountAnswer() -> HostedViewHarness<some View> {
     let session = SessionModel.preview(transcript: [.agent(answer)])
     let system = CommandSystem()
-    let log = CommandRunLog()
-    let threadPath = AgentCommandScopeHostedTests.path(of: session)
-    for command in [inspect, inspectInNewPane] {
-      let id = command.id
-      let definition = command.definition { _ in RunRecordingCommand(id: id, log: log) }
-      system.registry.register(definition, at: threadPath)
-    }
-    let harness = HostedViewHarness(size: size) {
-      AgentThreadView(session: session)
-        .commandSystem(system)
-        .transaction { $0.disablesAnimations = true }
-    }
-    harness.render()
-    return harness
+    ThreadHeaderContextMenuHostedTests.register(
+      [inspect, inspectInNewPane], at: AgentCommandScopeHostedTests.path(of: session), in: system,
+      log: CommandRunLog())
+    return ThreadHeaderContextMenuHostedTests.mountThread(session, path: nil, system: system)
   }
 
   /// The titles of the menu that a right click on the text of the answer
