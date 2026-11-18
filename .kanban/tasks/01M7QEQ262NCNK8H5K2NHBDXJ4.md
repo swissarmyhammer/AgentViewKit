@@ -109,8 +109,24 @@ comments:
     - note: one build warning "missing creator for mutated node" for mlx-swift_Cmlx.bundle. It comes from the build system and the dependency bundle. It is not from this task.
     - next: review
   timestamp: 2026-11-18T15:15:34.229259+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m7qkrjzrdd3gm5nqgf5spmwm
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (b949c434). 0 findings, 0 confirmed, 0 refuted. 7 validator runs, 0 failed. 8 files reviewed. All 5 items of the 2026-11-18 08:57 findings are checked.
+    - next: The task is in done. No more work for review.
+  timestamp: 2026-11-18T15:17:48.664518+00:00
+- actor: claude-code
+  id: 01m7qkryhd2nbv6wt33sg2h4se
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — 9 files (true unavailable reasons, Export button rule, one export path, FileExportPresentation, table name)
+    - test: green — swift test, 1323 tests in 156 suites + 54 tests in 11 suites passed
+    - commit: b949c434
+    - review: clean — 0 findings, 5 earlier findings checked
+  timestamp: 2026-11-18T15:18:00.493121+00:00
+position_column: done
+position_ordinal: fffffff080
 title: Export as Markdown… kit verb with a save panel (D202)
 ---
 Brief: /Users/wballard/github/swissarmyhammer/.briefs/export-markdown/avk-brief.md and overview.md (testudoapp-9a, D202, TestudoApp commit 40450ab).
