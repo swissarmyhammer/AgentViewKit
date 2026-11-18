@@ -125,10 +125,11 @@ agent keeps the transcripts of a project in the project, at
 the stage copies all the directories into that folder of its working
 directory. In each copied `index.md`, the stage changes the recorded `cwd` to
 its working directory, and the recorded model `Qwen3.8-27B-mxfp4` to
-`Qwen3-4B-4bit`. Then it runs FoundationModelsACPAgent in the process of the
-app, through the package, so that a restore never changes the files in this
-directory. The tab starts no `acp-agent` program. The agent uses its stub
-model, so no model loads. The stage holds a user-layer `config.yaml` that
-selects the builtin profile `tiny` (D189), whose `standard` model is
-`Qwen3-4B-4bit`, because the agent restores a session only when the model
-that it recorded is the resident model of its slot.
+`Qwen3.8-27B-4bit` with its drafter `Qwen3.8-27B-MTP-4bit`. Then it runs
+FoundationModelsACPAgent in the process of the app, through the package, so
+that a restore never changes the files in this directory. The tab starts no
+`acp-agent` program. The agent uses its stub model, so no model loads. The
+stage holds a user-layer `config.yaml` that selects the bundled profile
+`small`, whose `standard` model is `Qwen3.8-27B-4bit` with that drafter,
+because the agent restores a session only when the model that it recorded,
+with its drafter, is the resident model of its slot.

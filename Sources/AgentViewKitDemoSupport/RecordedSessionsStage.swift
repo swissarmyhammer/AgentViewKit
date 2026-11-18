@@ -27,9 +27,10 @@ import Foundation
 /// The stage also gives an empty working directory for the start of the
 /// agent and for `session/list`, and a configuration directory for the user
 /// layer of the agent. The user layer holds one file, ``profileFileName``,
-/// that names ``recordedStandardModel``: the agent restores a session only
-/// when the model that it recorded is the resident model of its slot, and the
-/// default `standard` model of the agent is not the model of the recordings.
+/// that selects the profile ``DemoAgent/defaultProfileName``. The agent
+/// restores a session only when the model that it recorded is the resident
+/// model of its slot, thus the stage changes ``recordedStandardModel`` to
+/// ``DemoAgent/defaultProfileModelEntry`` in each copied index file.
 /// ``DemoAgent/makeInProcess(recordedSessions:)`` gives the transcript
 /// location and ``agentEnvironment`` to the agent in code.
 public struct RecordedSessionsStage: Equatable, Sendable {
@@ -63,20 +64,14 @@ public struct RecordedSessionsStage: Equatable, Sendable {
   static let configurationHomeKey = "XDG_CONFIG_HOME"
 
   /// The `standard` model that the recorded sessions of the demo app ran
-  /// with, without a drafter. No builtin profile has this model now, so the
-  /// stage changes it to ``DemoAgent/defaultProfileModel`` in each copied
-  /// index file: the agent restores a session only when its recorded model
-  /// is the resident model of its slot.
+  /// with, without a drafter. No bundled profile has this model now, so the
+  /// stage changes it to ``DemoAgent/defaultProfileModelEntry`` in each
+  /// copied index file: the agent restores a session only when its recorded
+  /// model is the resident model of its slot.
   nonisolated public static let recordedStandardModel = "mlx-community/Qwen3.8-27B-mxfp4"
 
   /// The name of the configuration file in the user layer of the agent.
   nonisolated public static let profileFileName = "config.yaml"
-
-  /// The text of the configuration file: the builtin profile
-  /// ``DemoAgent/defaultProfileName``.
-  nonisolated static var profileText: String {
-    "profile:\n  preset: \(DemoAgent.defaultProfileName)\n"
-  }
 
   /// The name of the index file of a recorded session, whose frontmatter
   /// has the `cwd` of the session.
@@ -199,7 +194,7 @@ public struct RecordedSessionsStage: Equatable, Sendable {
     for directory in [transcriptsDirectory, workingDirectory, userLayerDirectory] {
       try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     }
-    try Data(Self.profileText.utf8).write(to: profileFile)
+    try Data(DemoAgent.defaultProfileText.utf8).write(to: profileFile)
   }
 
   /// Writes the agent definitions of the nested recording in the project
@@ -260,7 +255,7 @@ public struct RecordedSessionsStage: Equatable, Sendable {
     let replacement = recorded.hasSuffix("/") ? stagePath : String(stagePath.dropLast())
     let moved = text.replacingOccurrences(of: recorded, with: replacement)
       .replacingOccurrences(
-        of: "\nmodel: \(Self.recordedStandardModel)\n", with: "\nmodel: \(DemoAgent.defaultProfileModel)\n")
+        of: "\nmodel: \(Self.recordedStandardModel)\n", with: "\n\(DemoAgent.defaultProfileModelEntry)")
     try Data(moved.utf8).write(to: index)
   }
 

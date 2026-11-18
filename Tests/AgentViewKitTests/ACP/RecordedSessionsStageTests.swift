@@ -235,14 +235,28 @@ import Testing
     #expect(names == [Self.profileFileName])
   }
 
-  @Test func theProfileFileSelectsTheTinyProfile() throws {
+  @Test func theProfileFileSelectsTheSmallProfile() throws {
     let recordings = try Recordings()
     defer { recordings.directory.remove() }
 
     let stage = try recordings.makeStage()
 
     let text = try String(contentsOf: stage.profileFile, encoding: .utf8)
-    #expect(text == "profile:\n  preset: tiny\n")
+    #expect(text == "profile: small\n")
+  }
+
+  @Test func aCopiedIndexFileNamesTheModelOfTheDefaultProfile() throws {
+    let recordings = try Recordings()
+    defer { recordings.directory.remove() }
+    let indexPath = "\(Self.firstSession)/index.md"
+    try recordings.write(
+      "---\ncwd: /recorded/\nmodel: \(RecordedSessionsStage.recordedStandardModel)\n---\n",
+      to: "\(Self.firstRecording)/\(indexPath)")
+
+    let stage = try recordings.makeStage()
+
+    let text = String(decoding: try Self.stagedData(at: indexPath, of: stage), as: UTF8.self)
+    #expect(text.contains("\n\(DemoAgent.defaultProfileModelEntry)"))
   }
 
   @Test func theAgentEnvironmentPutsTheConfigurationRootInTheStage() throws {

@@ -101,10 +101,10 @@ import Testing
       .filter { $0.lastPathComponent == "index.md" }
     let index = try String(contentsOf: try #require(indexFiles.first), encoding: .utf8)
 
-    #expect(index.contains("\nmodel: \(DemoAgent.defaultProfileModel)\n"))
+    #expect(index.contains("\n\(DemoAgent.defaultProfileModelEntry)"))
   }
 
-  @Test func theDefaultProfileFileSelectsTheTinyProfile() throws {
+  @Test func theDefaultProfileFileSelectsTheSmallProfile() throws {
     let parent = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { parent.remove() }
 
@@ -114,7 +114,7 @@ import Testing
     let text = try String(contentsOf: directory.appending(path: "config.yaml"), encoding: .utf8)
     #expect(DemoAgent.defaultsDirectoryKey == "AGENTVIEWKIT-DEMO_DEFAULTS_DIR")
     #expect(environment["KEY"] == "value")
-    #expect(text == "profile:\n  preset: tiny\n")
+    #expect(text == "profile: small\n")
   }
 
   @Test func aDefaultsDirectoryOfTheEnvironmentWinsOverTheDefaultProfile() throws {

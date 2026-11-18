@@ -49,19 +49,36 @@ public final class DemoAgent {
   /// `acp-agent` program of the user.
   static let agentDotfolderName = "agentviewkit-demo"
 
-  /// The builtin profile of the ACP tab and of the recorded sessions: the
-  /// smallest profile of Router, so that it fits in the memory of each Mac
-  /// of the team and of the CI runners. The user selects a builtin profile,
-  /// not a model for each slot (FoundationModelsACPAgent ACPA-21, D189).
-  nonisolated public static let defaultProfileName = "tiny"
+  /// The profile of the ACP tab and of the recorded sessions: `small`, the
+  /// bundled profile of FoundationModelsACPAgent for a Mac with less memory.
+  /// A profile is a file `profiles/<name>.yaml` of the project layer, of the
+  /// user layer or of the bundled resources of the agent (its
+  /// `ProfileStore`). The defaults layer gives no profile file, thus the
+  /// demo selects a bundled profile and writes no profile file.
+  nonisolated public static let defaultProfileName = "small"
 
   /// The model of the `standard` and the `flash` slot of
-  /// ``defaultProfileName``, with no drafter.
-  nonisolated public static let defaultProfileModel = "mlx-community/Qwen3-4B-4bit"
+  /// ``defaultProfileName``. Its MTP drafter is ``defaultProfileDrafter``.
+  nonisolated public static let defaultProfileModel = "mlx-community/Qwen3.8-27B-4bit"
 
-  /// The text of the `config.yaml` of the defaults layer of the ACP tab.
-  static var defaultProfileText: String {
-    "profile:\n  preset: \(defaultProfileName)\n"
+  /// The MTP drafter of ``defaultProfileModel`` in ``defaultProfileName``.
+  /// The drafter is a part of the identity of the model: the agent restores
+  /// a session only when the recorded model and its drafter are the
+  /// resident model of the slot.
+  nonisolated public static let defaultProfileDrafter = "mlx-community/Qwen3.8-27B-MTP-4bit"
+
+  /// The `model` key of the index file of a session that runs on the
+  /// `standard` slot of ``defaultProfileName``. A model with a drafter is a
+  /// mapping of `repo` and `drafter`, not one line.
+  nonisolated public static var defaultProfileModelEntry: String {
+    "model:\n  repo: \(defaultProfileModel)\n  drafter: \(defaultProfileDrafter)\n"
+  }
+
+  /// The text of a `config.yaml` that selects ``defaultProfileName``: the
+  /// defaults layer of the ACP tab, and the user layer of a stage of the
+  /// recorded sessions.
+  nonisolated static var defaultProfileText: String {
+    "profile: \(defaultProfileName)\n"
   }
 
   /// The environment variable that names the defaults layer of the agent:
