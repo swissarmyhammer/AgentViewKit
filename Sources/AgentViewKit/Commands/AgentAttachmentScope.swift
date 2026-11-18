@@ -147,7 +147,8 @@ extension EnvironmentValues {
 
 // MARK: - Presentation
 
-/// Applies the file exporter of an ``AttachmentPresenter``.
+/// Applies the file exporter of an ``AttachmentPresenter``, through the
+/// shared ``FileExportPresentation``.
 ///
 /// The Save command writes the attachment to save. The panel clears its
 /// value when it closes. A save of several files shows a save panel for each
@@ -165,13 +166,11 @@ private struct AttachmentPresentation: ViewModifier {
     // the body again. A read in a binding closure is not tracked.
     let exported = presenter.exportedAttachment
     content
-      .fileExporter(
-        isPresented: Binding(
-          get: { exported != nil }, set: { if !$0 { presenter.exportDidClose() } }),
-        document: exported.map { AttachmentDocument(url: $0.url) },
-        contentType: exported?.type ?? .data,
-        defaultFilename: exported?.name,
-        onCompletion: { FileExportLog.record($0, of: exported?.name ?? "", to: logger) }
+      .modifier(
+        FileExportPresentation(
+          document: exported.map { AttachmentDocument(url: $0.url) },
+          contentType: exported?.type ?? .data, defaultFilename: exported?.name,
+          close: presenter.exportDidClose, logger: logger)
       )
       .onChange(of: exported) { presenter.exportNextFile() }
   }

@@ -53,6 +53,17 @@ struct SessionMarkdownExport: Equatable {
   static func hasHistory(_ session: SessionModel) -> Bool {
     session.transcript.contains { $0.id.origin == .wire }
   }
+
+  /// The text that tells the user why a session with no history gives no
+  /// export (``hasHistory(_:)``).
+  ///
+  /// The transcript can hold local messages, such as a prompt that the
+  /// agent did not get, so the text tells that the agent has no messages of
+  /// the thread. ``AgentCommandVerb/exportMarkdown`` and the Export button of
+  /// ``MessageActions`` with no scope show this text.
+  static var noHistoryReason: String {
+    String(localized: "The agent has no messages of this thread yet.", bundle: .module)
+  }
 }
 
 /// The export that waits for the save panel of a view.
@@ -66,11 +77,20 @@ struct SessionMarkdownExport: Equatable {
   /// shows.
   private(set) var pending: SessionMarkdownExport?
 
-  /// Shows the save panel for `export`.
+  /// Shows the save panel for the export of `session`, when the session
+  /// has history (``SessionMarkdownExport/hasHistory(_:)``). A session with
+  /// no history shows no save panel.
   ///
-  /// - Parameter export: The export to save.
-  func present(_ export: SessionMarkdownExport) {
-    pending = export
+  /// ``AgentCommandVerb/exportMarkdown`` and the Export button of
+  /// ``MessageActions`` with no scope both call this function, so that they
+  /// make the export in the same way.
+  ///
+  /// - Parameters:
+  ///   - session: The session model.
+  ///   - agentName: The name of the agent, or `nil` for the catalog word.
+  func presentExport(of session: SessionModel, agentName: String?) {
+    guard SessionMarkdownExport.hasHistory(session) else { return }
+    pending = SessionMarkdownExport(session: session, agentName: agentName)
   }
 
   /// Clears the export after the save panel closes.
@@ -81,10 +101,10 @@ struct SessionMarkdownExport: Equatable {
 
 /// Shows the save panel of a ``MarkdownExportPresenter``.
 ///
-/// The panel is the `fileExporter` of SwiftUI, with the default file name
-/// and the default folder (`fileDialogDefaultDirectory(_:)`) of the export.
-/// The panel asks before it replaces a file. A save that fails goes to the
-/// log through ``FileExportLog``.
+/// The panel is the shared ``FileExportPresentation``, with the default file
+/// name of the export, and with the default folder of the export
+/// (`fileDialogDefaultDirectory(_:)`). The panel asks before it replaces a
+/// file. A save that fails goes to the log through ``FileExportLog``.
 struct MarkdownExportPresentation: ViewModifier {
   /// The presenter whose export the panel saves.
   let presenter: MarkdownExportPresenter
@@ -97,13 +117,11 @@ struct MarkdownExportPresentation: ViewModifier {
     // body again. A read in a binding closure is not tracked.
     let pending = presenter.pending
     content
-      .fileExporter(
-        isPresented: Binding(
-          get: { pending != nil }, set: { if !$0 { presenter.exportDidClose() } }),
-        document: pending.map { MarkdownDocument(text: $0.text) },
-        contentType: MarkdownDocument.contentType,
-        defaultFilename: pending?.fileName,
-        onCompletion: { FileExportLog.record($0, of: pending?.fileName ?? "", to: logger) }
+      .modifier(
+        FileExportPresentation(
+          document: pending.map { MarkdownDocument(text: $0.text) },
+          contentType: MarkdownDocument.contentType, defaultFilename: pending?.fileName,
+          close: presenter.exportDidClose, logger: logger)
       )
       .fileDialogDefaultDirectory(pending?.folder)
   }

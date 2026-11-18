@@ -24,7 +24,9 @@ import UniformTypeIdentifiers
 /// - Export: the command button of ``AgentCommandVerb/exportMarkdown`` in the
 ///   agent command scope, which saves the thread as a Markdown file through a
 ///   save panel (D202). With no scope, the button makes the same export
-///   (`SessionMarkdownExport`) and shows the same save panel itself.
+///   (`MarkdownExportPresenter.presentExport(of:agentName:)`) and shows the
+///   same save panel itself. It is disabled with the same rule and the same
+///   reason as the command.
 /// - Retry, for an agent message only: finds the last `UserMessageEntry`
 ///   before the message in `SessionModel.transcript`, and sends its content
 ///   again with `SessionModel.prompt(_:meta:)`.
@@ -172,7 +174,8 @@ public struct MessageActions: View {
 
   /// The button of `action`: the command button of the ``Action/verb`` of
   /// the action in an agent command scope, else a button that runs the
-  /// action here.
+  /// action here. A button with no scope is disabled with the reason of
+  /// ``disabledReason(of:in:)`` as its tooltip, as the command button is.
   ///
   /// - Parameter action: The action of the button.
   /// - Returns: The button.
@@ -181,7 +184,12 @@ public struct MessageActions: View {
     if let verb = action.verb, commandTarget != nil {
       EditorToolbarButton(command: verb.id)
     } else {
+      // The row hides the captions, so the tooltip of an enabled button is
+      // its title, as the button itself gives it.
+      let reason = session.flatMap { Self.disabledReason(of: action, in: $0) }
       EditorToolbarButton(action.title, systemImage: action.systemImage) { perform(action) }
+        .disabled(reason != nil)
+        .help(reason ?? action.title)
     }
   }
 
@@ -205,6 +213,27 @@ public struct MessageActions: View {
     switch role {
     case .user: [.copy, .copyThread, .export, .edit]
     case .assistant: [.copy, .copyThread, .export, .retry]
+    }
+  }
+
+  /// The reason that the button of `action` with no command scope is
+  /// disabled, or `nil` when the button is enabled.
+  ///
+  /// The rule and the reason are the same as for the command of the
+  /// ``Action/verb`` of the action in a scope. Export is disabled when the
+  /// session has no history (``SessionMarkdownExport/hasHistory(_:)``),
+  /// with ``SessionMarkdownExport/noHistoryReason``. The other buttons are
+  /// always enabled.
+  ///
+  /// - Parameters:
+  ///   - action: The action of the button.
+  ///   - session: The session model of the row.
+  /// - Returns: The reason, or `nil`.
+  static func disabledReason(of action: Action, in session: SessionModel) -> String? {
+    switch action {
+    case .export:
+      SessionMarkdownExport.hasHistory(session) ? nil : SessionMarkdownExport.noHistoryReason
+    case .copy, .copyThread, .retry, .edit: nil
     }
   }
 
@@ -246,13 +275,12 @@ public struct MessageActions: View {
   }
 
   /// Shows the save panel with the same export as
-  /// ``AgentCommandVerb/exportMarkdown``, for a row in no command scope. A
-  /// thread with no history gives no export, as the command is then
-  /// unavailable.
+  /// ``AgentCommandVerb/exportMarkdown``, for a row in no command scope.
+  /// The button is disabled when the thread has no history
+  /// (``disabledReason(of:in:)``).
   private func export() {
-    guard let session, SessionMarkdownExport.hasHistory(session) else { return }
-    markdownExports.present(
-      SessionMarkdownExport(session: session, agentName: connection?.agentName))
+    guard let session else { return }
+    markdownExports.presentExport(of: session, agentName: connection?.agentName)
   }
 
   /// Sends the content of the last user message entry before the entry of

@@ -21,11 +21,11 @@ import Testing
   /// The title of the verb in the string catalog.
   static let title = "Export as Markdown…"
 
-  /// The reason of the verb when the thread has no messages.
-  static let emptyReason = "The thread has no messages."
+  /// The reason of the verb when the transcript has no wire entry.
+  static let emptyReason = "The agent has no messages of this thread yet."
 
-  /// The table of the string catalog of the kit.
-  static let catalogTable = "Localizable"
+  /// The name of the agent of the scripted connection.
+  static let agentName = "scripted-agent"
 
   /// The value that a catalog lookup gives when the catalog has no entry.
   static let missingValue = "<no catalog entry>"
@@ -170,7 +170,7 @@ import Testing
     let export = try Self.runExport(in: fixture)
 
     let options = SessionMarkdown.Options(
-      includeThoughts: false, agentName: "scripted-agent", labels: MarkdownExportLabels.catalog)
+      includeThoughts: false, agentName: Self.agentName, labels: MarkdownExportLabels.catalog)
     #expect(export.text == session.model.markdown(options: options))
   }
 
@@ -188,12 +188,51 @@ import Testing
     #expect(MessageActions.Action.export.systemImage == AgentCommandVerb.exportMarkdown.icon)
   }
 
+  @Test func theExportButtonWithNoScopeIsDisabledWithTheReasonInAnEmptyThread() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+
+    #expect(MessageActions.disabledReason(of: .export, in: session.model) == Self.emptyReason)
+  }
+
+  @Test func theExportButtonWithNoScopeIsEnabledAfterOneAgentMessage() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    try await Self.sendAgentTurn(to: session)
+
+    #expect(MessageActions.disabledReason(of: .export, in: session.model) == nil)
+  }
+
+  // MARK: - Presenter
+
+  @Test func thePresenterShowsNoExportForAnEmptyThread() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let presenter = MarkdownExportPresenter()
+
+    presenter.presentExport(of: session.model, agentName: nil)
+
+    #expect(presenter.pending == nil)
+  }
+
+  @Test func thePresenterShowsTheExportOfTheSession() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    try await Self.sendAgentTurn(to: session)
+    let presenter = MarkdownExportPresenter()
+
+    presenter.presentExport(of: session.model, agentName: Self.agentName)
+
+    let expected = SessionMarkdownExport(session: session.model, agentName: Self.agentName)
+    #expect(presenter.pending == expected)
+  }
+
   // MARK: - Labels
 
   @Test func eachLabelHasAnEntryInTheCatalog() {
     for entry in MarkdownExportLabels.entries {
       let text = Bundle.module.localizedString(
-        forKey: entry.key, value: Self.missingValue, table: Self.catalogTable)
+        forKey: entry.key, value: Self.missingValue, table: MarkdownExportLabels.table)
       #expect(text != Self.missingValue, "\(entry.key)")
     }
   }

@@ -2489,6 +2489,16 @@
         }
       }
     },
+    "The agent has no messages of this thread yet." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The agent has no messages of this thread yet."
+          }
+        }
+      }
+    },
     "The agent has no work to stop." : {
       "localizations" : {
         "en" : {
@@ -3029,6 +3039,16 @@
         }
       }
     },
+    "The session is closed." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The session is closed."
+          }
+        }
+      }
+    },
     "The sessions of the agent show here." : {
       "localizations" : {
         "en" : {
@@ -3115,6 +3135,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The thread list is not shown."
+          }
+        }
+      }
+    },
+    "The thread view cannot show other sessions." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The thread view cannot show other sessions."
           }
         }
       }

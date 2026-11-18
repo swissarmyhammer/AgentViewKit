@@ -63,6 +63,52 @@ comments:
     - evidence: scan of ExportMarkdownCommandTests and the new hosted test - no sleep, poll, retry, clock, time limit, or window or focus calls. The new hosted test does not press the button, so no save panel shows.
     - next: review. Code is not committed.
   timestamp: 2026-11-18T14:56:50.543708+00:00
+- actor: claude-code
+  id: 01m7qjtgk21x32mwbm6ww7wnej
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (dfcb483d). 5 findings (5 confirmed, 2 refuted). Sources/AgentViewKit/Commands/AgentCommandTarget.swift:257, Sources/AgentViewKit/Items/MessageActions.swift:253 (2 findings), Sources/AgentViewKit/Items/SessionMarkdownExport.swift:95, Tests/AgentViewKitTests/Commands/ExportMarkdownCommandTests.swift:28
+    - next: Correct all items of the dated "## Review Findings (2026-11-18 08:57)" section. Then run the review again. The task stays in review.
+  timestamp: 2026-11-18T15:01:23.170102+00:00
+- actor: claude-code
+  id: 01m7qjv1g6na2nvz0v9kwyyxah
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 24 files (verb, action, labels, Export button, pins ACP 7e31ad0, ACPClient a83cc6d, Extras b87233e)
+    - test: green — swift test, 1313 tests in 155 suites + 54 tests in 11 suites passed
+    - commit: dfcb483d
+    - review: findings — AgentCommandTarget.swift:257, MessageActions.swift:253 (2), SessionMarkdownExport.swift:95, ExportMarkdownCommandTests.swift:28
+  timestamp: 2026-11-18T15:01:40.486288+00:00
+- actor: claude-code
+  id: 01m7qk0dntb3f9gm6ncyw6wt7f
+  text: |-
+    Research for the findings of 2026-11-18 08:57:
+    - Finding 1, the cause in the whole file: AgentCommandTarget gives one fixed reason for each verb, but some rules have two conditions. Other verbs have the same false reason: jumpToNext/jumpToPrevious with no list tell "No prompt is below/above."; toggleExpandAll with no store tells "The thread has no items."; scrollToBottom with a list and an empty thread tells "The thread list is not shown."; insertMention in a closed session tells "The composer is not shown."; the session verbs with no navigation tell "This session has no parent." etc.; send with no composer and no text tells "Type a message first.". Plan: a check of the missing parts (list, store, composer, navigation) gives the reason of the part first, then the rule of the verb gives the reason of the verb.
+    - A local user message keeps its local id also after the agent links it (EntryOrigin in ACPClient). Thus a thread with only a sent prompt has no wire entry.
+    - Finding 2: EditorToolbarButton with an action has no tooltip parameter (EditorKit 5711323a); the button sets `.help(title)` inside when its caption is hidden. The no-scope Export button gets `.disabled` and `.help(reason)` from outside. The headless suite cannot show which tooltip SwiftUI shows.
+    - Finding 4: the attachment side can use the shared exporter modifier with no change of behavior, if the default folder stays out of the shared modifier: `.fileDialogDefaultDirectory(nil)` on the attachment scope would replace a default folder that a host sets. The Markdown side applies the folder after the shared modifier, as the attachment side applies its onChange.
+  timestamp: 2026-11-18T15:04:36.794980+00:00
+- actor: claude-code
+  id: 01m7qkgpn515kyy1255tgp43s5
+  text: |-
+    ### implement — changed
+    - Finding 1: Export as Markdown… has its own reason, `SessionMarkdownExport.noHistoryReason` = "The agent has no messages of this thread yet." (a local prompt is not a message of the agent). Copy Thread keeps "The thread has no messages.". The same cause in the whole file: `AgentCommandTarget.missingPartReason(of:payload:)` now tells the missing part first (list, store, composer, navigation), and `reason(for:)` tells only the reason of the rule. New catalog keys: "The agent has no messages of this thread yet.", "The session is closed.", "The thread view cannot show other sessions.". Note: the "Do" list of this card still names "The thread has no messages." for the verb; finding 1 replaces it.
+    - Finding 2: the no-scope Export button is disabled by `MessageActions.disabledReason(of:in:)`, with the same reason as help text. The headless suite cannot show which tooltip SwiftUI shows, because EditorToolbarButton sets its own `.help(title)` inside.
+    - Finding 3: `MarkdownExportPresenter.presentExport(of:agentName:)` holds the guard and the construction; the verb and the button call it. `present(_:)` is gone.
+    - Finding 4: new `FileExportPresentation<Document>` in Platform/FileExport.swift. MarkdownExportPresentation and AttachmentPresentation both use it, with no change of behavior (the default folder and the onChange stay with each caller). No new board task is necessary.
+    - Finding 5: `MarkdownExportLabels.table` is internal; the test uses it.
+    - evidence: `swift test` at the root: 1323 tests in 156 suites passed, 54 tests in 11 suites passed, no warning (only the known mlx bundle line). New tests: UnavailableReasonTests (6), ExportMarkdownCommandTests (+4). Each new test failed first (RED), then passed. `swift build --build-tests` clean in IntegrationTests and ScreenshotTests (not run). `swift format lint -s`: no new findings in the changed files.
+    - files: Sources/AgentViewKit/{Commands/AgentCommandTarget.swift, Commands/AgentAttachmentScope.swift, Items/MessageActions.swift, Items/SessionMarkdownExport.swift, Platform/FileExport.swift, Text/MarkdownExportLabels.swift, Resources/Localizable.xcstrings}, Tests/AgentViewKitTests/Commands/{ExportMarkdownCommandTests.swift, UnavailableReasonTests.swift (new)}
+    - next: /review. Not committed.
+  timestamp: 2026-11-18T15:13:30.277771+00:00
+- actor: claude-code
+  id: 01m7qkmfpn3cgp4xacxefmkvzf
+  text: |-
+    ### test — green
+    - evidence: swift test at package root: 1323 tests in 156 suites passed, plus 54 tests in 11 suites passed; 0 failed, 0 skipped. swift format lint -s on the 8 changed Swift files: 0 findings (HEAD had 20 in the 7 modified files). IntegrationTests and ScreenshotTests: swift build --build-tests complete (not run). UnavailableReasonTests.swift: no sleep, poll, retry, clock, window or focus. The word "clock" is only in a doc comment.
+    - note: one build warning "missing creator for mutated node" for mlx-swift_Cmlx.bundle. It comes from the build system and the dependency bundle. It is not from this task.
+    - next: review
+  timestamp: 2026-11-18T15:15:34.229259+00:00
 position_column: doing
 position_ordinal: '80'
 title: Export as Markdown… kit verb with a save panel (D202)
@@ -86,3 +132,20 @@ Tests:
 - The tests of Copy Message, Copy Thread and the inspector stay green.
 
 Push when `swift test` is green, and send the sha to testudoapp-9a.
+
+## Review Findings (2026-11-18 08:57)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 21 file(s) reviewed, 4 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+> 2 file(s) not reviewed — no validator matched:
+> - `ARCHITECTURE.md` — no validator matches this file
+> - `Sources/AgentViewKit/Resources/Localizable.xcstrings` — no validator matches this file
+
+- [x] `Sources/AgentViewKit/Commands/AgentCommandTarget.swift:257` `completeness/public-output-contract` — The shared unavailable reason for exportMarkdown says 'The thread has no messages.' But exportMarkdown is available only when the transcript has a wire entry (SessionMarkdownExport.hasHistory, line 230). A thread with local messages and no wire entry is disabled with a reason that is false for it. The reason must match the real availability test. Give exportMarkdown its own reason string, for example 'The thread has no answer to export.' (add the key to the string catalog). Keep copyThread's reason as 'The thread has no messages.'.
+- [x] `Sources/AgentViewKit/Items/MessageActions.swift:253` `completeness/public-output-contract` — The no-scope Export button stays enabled, but its guard returns silently when the thread has no wire entry. A press then does nothing and shows no feedback. The scoped command reports the state through its disabled reason (line 257 of AgentCommandTarget.swift), so the two paths behave differently for the same condition. Make the no-scope button disabled when `SessionMarkdownExport.hasHistory(session)` is false, as the command is. If the button must stay enabled, log the skipped export or show the same reason text.
+- [x] `Sources/AgentViewKit/Items/MessageActions.swift:253` `reuse/reuse` — The Export button with no scope repeats the export logic of the verb. It checks SessionMarkdownExport.hasHistory, builds SessionMarkdownExport with connection?.agentName, and calls markdownExports.present. This is a second copy of the same steps. If the verb changes (for example, the agent name source or the history rule), the button and the verb can diverge. Move the guard, the construction and the present call into one shared function, for example a static func on SessionMarkdownExport or a method on MarkdownExportPresenter that takes the session and the connection. Call it from both the verb in AgentCommandTarget.run and MessageActions.export().
+- [x] `Sources/AgentViewKit/Items/SessionMarkdownExport.swift:95` `duplication/duplication` — The body of MarkdownExportPresentation repeats the fileExporter wiring of AttachmentPresentation: the same Binding get and set on the presenter, the same document, content type, default file name and completion log through FileExportLog with a logger. AttachmentPresentation adds only an onChange. Two copies of the save panel wiring can drift apart, and a fix to one panel (for example the close handling) would not reach the other. Extract one shared file-exporter modifier that takes the presenter's close handler, the document, the content type, the default name and the default folder as parameters. Use it from MarkdownExportPresentation and from AttachmentPresentation. Keep the extra onChange in the attachment case only. Because AttachmentPresentation is outside this change, make the shared helper and the new call site here, and report the attachment side as a separate task.
+- [x] `Tests/AgentViewKitTests/Commands/ExportMarkdownCommandTests.swift:28` `reuse/reuse` — The test declares its own copy of the catalog table name "Localizable". The source keeps the same value as a private constant, MarkdownExportLabels.table, in MarkdownExportLabels.swift. If the table name changes, the source and the test can drift apart without a compile error. Make MarkdownExportLabels.table internal (not private) and use MarkdownExportLabels.table in the test. Remove catalogTable from the test.

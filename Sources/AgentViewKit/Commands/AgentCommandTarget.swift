@@ -201,10 +201,58 @@ final class AgentCommandTarget {
     guard let session else {
       return .unavailable(reason: String(localized: "The thread is not shown.", bundle: .module))
     }
+    if let reason = missingPartReason(of: verb, payload: payload) {
+      return .unavailable(reason: reason)
+    }
     guard isAvailable(verb, payload: payload, in: session) else {
       return .unavailable(reason: Self.reason(for: verb))
     }
     return .available
+  }
+
+  /// The reason when a part of the view that `verb` needs is not in the
+  /// scope, or `nil` when each part is there.
+  ///
+  /// The parts are the scroll anchors of the thread list, the store of the
+  /// expanded items, the composer, and the navigation of the thread view.
+  /// The check of the parts comes before the rule of the verb, so that the
+  /// reason tells the part that is missing, and ``reason(for:)`` tells the
+  /// reason of the rule only when each part is there.
+  ///
+  /// - Parameters:
+  ///   - verb: The verb.
+  ///   - payload: The payload of the dispatch, or `nil`.
+  /// - Returns: The reason, or `nil`.
+  private func missingPartReason(of verb: AgentCommandVerb, payload: CommandPayload?) -> String? {
+    switch verb {
+    case .jumpToNext, .jumpToPrevious, .scrollToBottom:
+      anchors == nil ? Self.listNotShownReason : nil
+    case .toggleExpandAll: expandedBlocks == nil ? Self.listNotShownReason : nil
+    case .focusComposer, .insertMention: composer == nil ? Self.composerNotShownReason : nil
+    case .send:
+      composer == nil && AgentCommandPayload.string(AgentCommandPayload.textKey, in: payload) == nil
+        ? Self.composerNotShownReason : nil
+    case .goToParent, .openChild, .nextSibling, .previousSibling, .jumpToSession:
+      navigation == nil ? Self.noNavigationReason : nil
+    case .cancel, .approvePending, .rejectPending, .previousRequest, .nextRequest, .copyThread,
+      .exportMarkdown, .copyMessage, .copyCodeBlock:
+      nil
+    }
+  }
+
+  /// The reason when the thread list is not in the scope.
+  private static var listNotShownReason: String {
+    String(localized: "The thread list is not shown.", bundle: .module)
+  }
+
+  /// The reason when the composer is not in the scope.
+  private static var composerNotShownReason: String {
+    String(localized: "The composer is not shown.", bundle: .module)
+  }
+
+  /// The reason when the thread view gave no navigation to the scope.
+  private static var noNavigationReason: String {
+    String(localized: "The thread view cannot show other sessions.", bundle: .module)
   }
 
   /// Tells if `verb` can run now on `session`.
@@ -224,22 +272,25 @@ final class AgentCommandTarget {
     case .rejectPending: answer(payload: payload, rejects: true) != nil
     case .previousRequest: DeckSource.session(session).layout.previous != nil
     case .nextRequest: DeckSource.session(session).layout.next != nil
-    case .jumpToNext: anchors != nil && jumpTarget(forward: true) != nil
-    case .jumpToPrevious: anchors != nil && jumpTarget(forward: false) != nil
+    case .jumpToNext: jumpTarget(forward: true) != nil
+    case .jumpToPrevious: jumpTarget(forward: false) != nil
     case .copyThread: !Self.plainText(of: session).isEmpty
     case .exportMarkdown: SessionMarkdownExport.hasHistory(session)
     case .copyMessage: messageMarkdown(payload: payload, in: session)?.isEmpty == false
     case .copyCodeBlock: AgentCommandPayload.string(AgentCommandPayload.codeKey, in: payload) != nil
-    case .toggleExpandAll: expandedBlocks != nil && !session.transcript.isEmpty
-    case .scrollToBottom: anchors != nil && !session.transcript.isEmpty
-    case .focusComposer: composer != nil
-    case .insertMention: composer != nil && !session.isClosed
+    case .toggleExpandAll, .scrollToBottom: !session.transcript.isEmpty
+    case .focusComposer: true
+    case .insertMention: !session.isClosed
     case .goToParent, .openChild, .nextSibling, .previousSibling, .jumpToSession:
-      navigation != nil && canNavigate(verb, payload: payload, in: session)
+      canNavigate(verb, payload: payload, in: session)
     }
   }
 
-  /// The text that tells the user why `verb` cannot run.
+  /// The text that tells the user why the rule of `verb` stops it, when
+  /// each part of the view that the verb needs is in the scope.
+  ///
+  /// Each reason is true for each case that the rule of the verb stops. A
+  /// part that is missing has its own reason (`missingPartReason(of:payload:)`).
   ///
   /// - Parameter verb: The verb.
   /// - Returns: The reason.
@@ -254,13 +305,14 @@ final class AgentCommandTarget {
     case .nextRequest: String(localized: "No request is after the front request.", bundle: .module)
     case .jumpToNext: String(localized: "No prompt is below.", bundle: .module)
     case .jumpToPrevious: String(localized: "No prompt is above.", bundle: .module)
-    case .copyThread, .exportMarkdown:
-      String(localized: "The thread has no messages.", bundle: .module)
+    case .copyThread: String(localized: "The thread has no messages.", bundle: .module)
+    case .exportMarkdown: SessionMarkdownExport.noHistoryReason
     case .copyMessage: String(localized: "The message has no text.", bundle: .module)
     case .copyCodeBlock: String(localized: "The caret is not in a code block.", bundle: .module)
-    case .toggleExpandAll: String(localized: "The thread has no items.", bundle: .module)
-    case .scrollToBottom: String(localized: "The thread list is not shown.", bundle: .module)
-    case .focusComposer, .insertMention: String(localized: "The composer is not shown.", bundle: .module)
+    case .toggleExpandAll, .scrollToBottom:
+      String(localized: "The thread has no items.", bundle: .module)
+    case .focusComposer: composerNotShownReason
+    case .insertMention: String(localized: "The session is closed.", bundle: .module)
     case .goToParent: String(localized: "This session has no parent.", bundle: .module)
     case .openChild: String(localized: "This session has no child.", bundle: .module)
     case .nextSibling: String(localized: "No session is after this session.", bundle: .module)
@@ -342,9 +394,7 @@ final class AgentCommandTarget {
     case .jumpToNext: jump(forward: true)
     case .jumpToPrevious: jump(forward: false)
     case .copyThread: pasteboard.copyText(Self.plainText(of: session))
-    case .exportMarkdown:
-      markdownExports.present(
-        SessionMarkdownExport(session: session, agentName: connection?.agentName))
+    case .exportMarkdown: markdownExports.presentExport(of: session, agentName: connection?.agentName)
     case .copyMessage: pasteboard.copyText(messageMarkdown(payload: payload, in: session) ?? "")
     case .copyCodeBlock: pasteboard.copyText(AgentCommandPayload.string(AgentCommandPayload.codeKey, in: payload) ?? "")
     case .toggleExpandAll: toggleExpandAll(session)

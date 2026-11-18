@@ -21,7 +21,7 @@ enum MarkdownExportLabels {
   }
 
   /// The table of the string catalog of the kit.
-  private static let table = "Localizable"
+  static let table = "Localizable"
 
   /// The entry of each field of `SessionMarkdown.Labels`, one time each.
   static let entries: [Entry] = [
