@@ -1,6 +1,25 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m7qeb4n4fhhcwvy2egn8zwbd
+  text: |-
+    The EditorKit API is on origin/main (editorkit-7a): feature commit 29db1752, head adee09b3. This task is not blocked now.
+
+    API (Sources/EditorSwiftUI/EditorLabelForeground.swift):
+    - `public enum EditorLabelForeground: Sendable, Equatable { case theme; case vibrant(EditorTextColorRole) }`. `.vibrant(.primary)` gives labelColor, and `.vibrant(.secondary)` gives secondaryLabelColor.
+    - `extension View { public func editorLabelForeground(_ foreground: EditorLabelForeground) -> some View }`.
+
+    Use: `EditorLabel(verbatim: "3 files changed").editorLabelForeground(.vibrant(.secondary)).padding().glassEffect()`.
+
+    - The modifier applies to each EditorLabel below it, as `.editorLabelFont` does. It replaces the `editorTextColor(_:)` role.
+    - A run that has its own color keeps that color.
+    - On macOS, the label view returns allowsVibrancy true. Under SwiftUI glass or a material, AppKit gives it the vibrant appearance, so Increase Contrast and Reduce Transparency come from the system.
+    - Content text keeps the theme colors (D110).
+
+    Use it where AVK-9.5 now uses the plain NSColor.labelColor or secondaryLabelColor on glass or on a material.
+  timestamp: 2026-11-18T13:43:05.124892+00:00
 position_column: todo
 position_ordinal: '8280'
 title: Vibrant text for each EditorLabel on glass (D110)

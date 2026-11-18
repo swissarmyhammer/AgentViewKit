@@ -14,6 +14,16 @@ import SwiftUI
 /// ``CodeBlockModelCache``, the model is in the cache. Otherwise the view
 /// keeps the model in its state.
 ///
+/// In a thread, a response far from the rows in view drops its editor and
+/// its model (``LiveRowRange``, task ^t9416x5). It keeps only its text, and
+/// shows an empty space of the height of its last layout. When its row comes
+/// near again, the response makes a new model from its text, so a text that
+/// streamed in while the row was far shows whole. A response whose editor
+/// holds the selection of the thread (``ResponseSelectionClaim``) keeps its
+/// editor, so the selection stays and a copy still copies it. A response
+/// that was never laid out shows its editor. In the empty space, the text is
+/// still one accessibility element with the same identifier and value.
+///
 /// EditorKit shows each fenced code block, each formula and each image of the
 /// text. When the view has a ``CitationPayload``, EditorKit shows a citation
 /// chip at each ``CitationMarker``. A press on a chip selects its source, as
@@ -45,6 +55,16 @@ public struct ResponseView: View {
 
   @Environment(\.codeBlockModelCache) private var cache
   @Environment(\.accessibilityMessageGroupID) private var messageGroupID
+  @Environment(\.liveRowRange) private var liveRows
+  @Environment(\.transcriptRowPosition) private var rowPosition
+  @Environment(\.textSelectionRegion) private var selectionRegion
+
+  /// The height of the text at its last layout with its editor.
+  @State private var laidOutHeight = LaidOutHeight()
+
+  /// The selection region of the editor, which records whether the editor
+  /// holds the selection of the thread.
+  @State private var selectionClaim = ResponseSelectionClaim()
 
   /// Makes the body of one Markdown text, such as the text of an ACP text
   /// block of a transcript entry.
@@ -89,17 +109,92 @@ public struct ResponseView: View {
     CodeBlockID(messageID: id, paragraphID: textBlockKey)
   }
 
+  /// Whether the row of the response keeps its models. A response outside
+  /// a thread row is always live.
+  private var isLive: Bool {
+    guard let liveRows, let rowPosition else { return true }
+    return liveRows.isLive(rowPosition)
+  }
+
+  /// The height of the empty space that the response shows in place of its
+  /// editor, or `nil` when the response shows its editor.
+  ///
+  /// - Parameters:
+  ///   - isLive: Whether the row of the response keeps its models.
+  ///   - laidOutHeight: The height of the text at its last layout with its
+  ///     editor, or `nil` when the text was never laid out.
+  ///   - holdsSelection: Whether the editor holds the selection of the
+  ///     thread.
+  /// - Returns: The height of the last layout when the row is not live, the
+  ///   text was laid out, and the editor does not hold the selection.
+  ///   Otherwise `nil`.
+  static func placeholderHeight(isLive: Bool, laidOutHeight: CGFloat?, holdsSelection: Bool)
+    -> CGFloat?
+  {
+    guard !isLive, !holdsSelection else { return nil }
+    return laidOutHeight
+  }
+
   public var body: some View {
-    RenderedMarkdownView(
+    content
+      // A new id is a new response, with a model of its own.
+      .id(id)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .accessibilityReadingGroup(messageGroupID ?? id)
+      .accessibilityReadingScope()
+  }
+
+  /// The editor of the text, or an empty space of its height when the row
+  /// is far from the rows in view.
+  @ViewBuilder private var content: some View {
+    let height = Self.placeholderHeight(
+      isLive: isLive, laidOutHeight: laidOutHeight.points,
+      holdsSelection: selectionClaim.holdsSelection)
+    if let height {
+      placeholder(height: height)
+    } else {
+      editor
+    }
+  }
+
+  /// The text in a read-only EditorKit editor.
+  private var editor: some View {
+    let laidOutHeight = laidOutHeight
+    return RenderedMarkdownView(
       markdown, identifier: Self.textIdentifier, citations: chips,
       model: cache.map { Self.model(in: $0, id: id, markdown: markdown) }
     )
-    // A new id is a new response, with a model of its own.
-    .id(id)
-    .frame(maxWidth: .infinity, alignment: .leading)
-    .accessibilityReadingGroup(messageGroupID ?? id)
-    .accessibilityReadingScope()
+    .textSelectionRegion(selectionClaim.forwarding(to: selectionRegion))
+    .onGeometryChange(for: CGFloat.self) {
+      $0.size.height
+    } action: {
+      laidOutHeight.points = $0
+    }
   }
+
+  /// The empty space in place of the editor. Its accessibility element has
+  /// the identifier and the value of the text of the editor.
+  ///
+  /// - Parameter height: The height of the text at its last layout.
+  /// - Returns: The empty space.
+  private func placeholder(height: CGFloat) -> some View {
+    Color.clear
+      .frame(height: height)
+      .accessibilityElement()
+      .accessibilityIdentifier(Self.textIdentifier)
+      .accessibilityValue(Text(verbatim: markdown))
+  }
+}
+
+/// The height of the text of a ``ResponseView`` at its last layout with its
+/// editor.
+///
+/// The value is not observable, so a new height does not make the response
+/// evaluate its body again. The response reads it when the row leaves the
+/// ``LiveRowRange``.
+final class LaidOutHeight {
+  /// The height in points, or `nil` when the text was never laid out.
+  var points: CGFloat?
 }
 
 #Preview("Response with citations") {

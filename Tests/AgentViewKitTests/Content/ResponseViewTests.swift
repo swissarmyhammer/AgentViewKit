@@ -80,4 +80,42 @@ import Testing
 
     #expect(cache.count == 0)
   }
+
+  // MARK: - Rows far from view (task ^t9416x5)
+
+  /// The height of a laid-out text in the tests of the placeholder.
+  static let laidOutHeight: CGFloat = 40
+
+  /// A production change that fails this test: a live row drops its editor.
+  @Test func aLiveResponseShowsItsEditor() {
+    #expect(
+      ResponseView.placeholderHeight(
+        isLive: true, laidOutHeight: Self.laidOutHeight, holdsSelection: false) == nil)
+  }
+
+  /// A production change that fails this test: a response far from view
+  /// keeps its editor and its model.
+  @Test func aResponseFarFromViewShowsAPlaceholderOfItsHeight() {
+    #expect(
+      ResponseView.placeholderHeight(
+        isLive: false, laidOutHeight: Self.laidOutHeight, holdsSelection: false)
+        == Self.laidOutHeight)
+  }
+
+  /// A production change that fails this test: a response that was never
+  /// laid out shows an empty placeholder, so the row has no height.
+  @Test func aResponseThatWasNeverLaidOutShowsItsEditor() {
+    #expect(
+      ResponseView.placeholderHeight(isLive: false, laidOutHeight: nil, holdsSelection: false)
+        == nil)
+  }
+
+  /// A production change that fails this test: a response far from view
+  /// drops the editor that holds the selection of the thread, so a copy
+  /// copies nothing.
+  @Test func aResponseThatHoldsTheSelectionShowsItsEditor() {
+    #expect(
+      ResponseView.placeholderHeight(
+        isLive: false, laidOutHeight: Self.laidOutHeight, holdsSelection: true) == nil)
+  }
 }

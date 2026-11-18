@@ -207,6 +207,11 @@ public struct ConversationView<EmptyState: View>: View {
   /// row again then (``settleItemScroll(visible:)``).
   @State private var unsettledItemID: String?
 
+  /// The rows that keep their EditorKit models: the rows in view and a
+  /// margin on each side of them. A row far from them drops its models
+  /// (task ^t9416x5).
+  @State private var liveRows = LiveRowRange()
+
   @Environment(\.conversationPageSize) private var pageSize
   @Environment(\.editorStyle) private var editorStyle
 
@@ -270,6 +275,7 @@ public struct ConversationView<EmptyState: View>: View {
       }
     }
     .environment(\.sessionModel, session)
+    .environment(\.liveRowRange, liveRows)
     // The text areas of the conversation have one selection. In a thread
     // view, the conversation uses the selection of the thread view.
     .threadTextSelection()
@@ -518,7 +524,8 @@ public struct ConversationView<EmptyState: View>: View {
     }
   }
 
-  /// Tells the manager which rows are in view.
+  /// Tells the manager and the live rows (``LiveRowRange``) which rows are
+  /// in view.
   ///
   /// The view first tells the manager about a new last item
   /// (``noteLastItem()``). SwiftUI can call the visibility action of the list
@@ -539,9 +546,9 @@ public struct ConversationView<EmptyState: View>: View {
     // Each id gets its position one time, and the sort compares the stored
     // positions.
     let transcript = session.transcript
-    let sorted = ids.map { (id: $0, position: transcript.position(ofRowKey: $0) ?? 0) }
-      .sorted { $0.position < $1.position }
-      .map(\.id)
+    let positioned = ids.map { (id: $0, position: transcript.position(ofRowKey: $0)) }
+    liveRows.noteVisible(positions: positioned.compactMap(\.position))
+    let sorted = positioned.sorted { ($0.position ?? 0) < ($1.position ?? 0) }.map(\.id)
     anchors.noteVisible(
       ids: sorted, distanceFromBottom: self.isNearBottom ? 0 : .greatestFiniteMagnitude)
   }
