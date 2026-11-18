@@ -24,7 +24,11 @@ final class LiveRowRange {
 
   /// The number of rows that the rows in view can move before the range
   /// moves with them.
-  static let slack = margin / 2
+  ///
+  /// It is half of ``margin``. Thus, after the range moves, the rows in view
+  /// can move `slack` rows in each direction before the range moves again,
+  /// and each row in view keeps at least `slack` live rows beyond it.
+  static let slack = 8
 
   /// The positions of the live rows, or `nil` before the first report, when
   /// each row is live.
