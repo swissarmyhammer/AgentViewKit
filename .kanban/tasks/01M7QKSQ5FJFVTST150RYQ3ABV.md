@@ -25,8 +25,24 @@ comments:
     - note: the only build warning is "missing creator for mutated node" for the mlx-swift_Cmlx bundle. It is a build system warning and is not from this change.
     - next: review
   timestamp: 2026-11-18T15:33:57.301293+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m7qmsaq6kayvn9mj05gp19p5
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (129821bb). 0 findings, 0 confirmed, 0 refuted. 7 validator runs, 0 failed. The engine did not review README.md (no validator matches) and the .kanban files (ignore rule).
+    - next: The task is in done. Push and send the sha to testudoapp-9a, as the task tells.
+  timestamp: 2026-11-18T15:35:41.542729+00:00
+- actor: claude-code
+  id: 01m7qmsmc8fnvvcggqee8mannn
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — AgentCommandGroup.swift, AgentCommandGroupTests.swift, ExportMarkdownCommandTests.swift, README.md (new public group export)
+    - test: green — swift test, 1319 tests in 156 suites + 54 tests in 11 suites passed
+    - commit: 129821bb
+    - review: clean — 0 findings
+  timestamp: 2026-11-18T15:35:51.432249+00:00
+position_column: done
+position_ordinal: fffffff280
 title: Move agent.exportMarkdown out of the clipboard command group
 ---
 Request from testudoapp-9a (2026-11-18), after task 01M7QEQ262NCNK8H5K2NHBDXJ4 (dfcb483d, b949c434).
