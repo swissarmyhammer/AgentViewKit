@@ -46,8 +46,24 @@ comments:
     - evidence: `swift test` at package root: 1298 tests in 154 suites passed, plus 54 tests in 11 suites passed; 0 failures, 0 skipped tests. `swift format lint -s` on PlacedLabel.swift, StatusBar.swift, PlacedLabelTests.swift: 0 findings. `swift build --build-tests` in IntegrationTests and ScreenshotTests: Build complete. The only build warning is the SwiftPM "missing creator for mutated node" tool message for the mlx bundle. It does not come from this change.
     - next: review
   timestamp: 2026-11-18T14:12:28.283842+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m7qg7gmhnt404p02958jqh9k
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (cb75cd93): 0 findings, 0 confirmed, 0 refuted. The engine examined 3 files. It did not examine 5 files: 4 .kanban files (ignore rule) and Docs/decisions/text-selection.md (no validator matches it).
+    - next: The task is in done.
+  timestamp: 2026-11-18T14:16:03.473189+00:00
+- actor: claude-code
+  id: 01m7qg7w19cpx49rcerthvj0se
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — PlacedLabel.swift, StatusBar.swift, PlacedLabelTests.swift, Docs/decisions/text-selection.md; EditorKit resolves at 5711323
+    - test: green — swift test, 1298 tests in 154 suites + 54 tests in 11 suites passed
+    - commit: cb75cd93
+    - review: clean — 0 findings
+  timestamp: 2026-11-18T14:16:15.145828+00:00
+position_column: done
+position_ordinal: ffffffef80
 title: Vibrant text for each EditorLabel on glass (D110)
 ---
 TestudoApp decision (testudoapp-9a, 2026-11-18): text on glass is "vibrant" (D110: text on glass uses vibrant foreground styles). testudoapp-9a asked editorkit-7a for a vibrant role for `EditorLabel` on glass.
