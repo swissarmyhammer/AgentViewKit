@@ -21,7 +21,8 @@ import Testing
       .jumpToNext, .jumpToPrevious, .nextRequest, .previousRequest, .scrollToBottom, .toggleExpandAll,
       .goToParent, .openChild, .nextSibling, .previousSibling, .jumpToSession,
     ],
-    .clipboard: [.copyMessage, .copyThread, .copyCodeBlock, .exportMarkdown],
+    .clipboard: [.copyMessage, .copyThread, .copyCodeBlock],
+    .export: [.exportMarkdown],
     // The attachment verbs are of their own type; see
     // AgentAttachmentCommandsTests.
     .attachment: [],
@@ -76,7 +77,8 @@ import Testing
   @Test func eachGroupIdHasThePrefixOfTheKit() {
     #expect(
       AgentCommandGroup.allCases.map(\.id) == [
-        "agent.compose", "agent.control", "agent.navigate", "agent.clipboard", "agent.attachment",
+        "agent.compose", "agent.control", "agent.navigate", "agent.clipboard", "agent.export",
+        "agent.attachment",
       ])
   }
 
@@ -92,6 +94,17 @@ import Testing
     let paletteIDs = Set(registry.eligible(path: fixture.path).map(\.id))
     #expect(ids == Self.ids(notIn: [.clipboard]))
     #expect(paletteIDs.isDisjoint(with: AgentCommandGroup.clipboard.verbs.map(\.id)))
+  }
+
+  @Test func aHostThatTurnsOffTheClipboardKeepsTheExportVerb() {
+    let fixture = Self.makeFixture()
+    var registry = CommandRegistry()
+
+    AgentCommandRegistration.register(
+      fixture.target, at: fixture.path, into: &registry, groupsOff: [.clipboard])
+
+    let ids = registry.definitions(at: fixture.path).map(\.id)
+    #expect(ids.contains(AgentCommandVerb.exportMarkdown.id))
   }
 
   @Test func theVerbsOfAGroupThatIsOffAreNotInTheContextMenus() {

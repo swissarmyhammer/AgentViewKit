@@ -91,6 +91,10 @@ import Testing
       menu == MenuPlacement(path: .session, group: copyThread.group, order: copyThread.order + 1))
   }
 
+  @Test func theVerbIsInTheExportGroup() {
+    #expect(AgentCommandVerb.exportMarkdown.group == .export)
+  }
+
   @Test func theVerbHasNoKey() {
     #expect(AgentKeymap.defaultChords[.exportMarkdown] == nil)
   }
