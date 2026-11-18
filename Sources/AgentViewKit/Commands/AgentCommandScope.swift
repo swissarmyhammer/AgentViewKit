@@ -28,6 +28,11 @@ import SwiftUI
 /// gives its scroll anchors, ``AgentThreadView`` gives its store of the
 /// expanded items, and ``PromptInputView`` gives its submit and its focus.
 ///
+/// The scope shows the save panel of ``AgentCommandVerb/exportMarkdown``
+/// (``MarkdownExportPresentation``). The name of the agent in the export
+/// comes from the connection model that the thread view gives, or from the
+/// ``SwiftUI/EnvironmentValues/connectionModel`` environment value.
+///
 /// ``AgentThreadView`` applies a scope for its model. To put a composer in
 /// the same scope, apply ``SwiftUI/View/agentCommandScope(session:)`` to a
 /// view that holds both. A thread view in a scope for the same model adds its
@@ -42,7 +47,12 @@ struct AgentCommandScope: ViewModifier {
   /// The calls that show another session, or `nil` outside a thread view.
   var navigation: AgentSessionNavigation?
 
+  /// The connection model that the thread view gives, or `nil`. With no
+  /// value, the scope reads the connection model of the environment.
+  var connection: ConnectionModel?
+
   @Environment(\.commandSystem) private var ambientSystem
+  @Environment(\.connectionModel) private var hostConnection
   @Environment(\.commandScopePath) private var parentPath
   @Environment(\.agentCommandTarget) private var enclosingTarget
   @Environment(\.agentCommandScopeSegment) private var enclosingSegment
@@ -68,13 +78,14 @@ struct AgentCommandScope: ViewModifier {
       content.background(
         AgentCommandMount(
           target: enclosingTarget, scope: nil, anchors: anchors, expandedBlocks: expandedBlocks,
-          navigation: navigation))
+          navigation: navigation, connection: connection))
     } else {
       let path = parentPath?.appending(segment) ?? .root(segment)
       let system = ambientSystem ?? standaloneSystem
       let scope = AgentCommandMount.Scope(
         system: system, path: path, session: session,
-        pasteboard: pasteboard, requestStartReport: reportRequestStart, groupsOff: groupsOff)
+        pasteboard: pasteboard, requestStartReport: reportRequestStart, groupsOff: groupsOff,
+        connection: connection ?? hostConnection)
       content
         .environment(\.agentCommandTarget, ownTarget)
         .environment(\.agentCommandScopeSegment, segment)
@@ -83,6 +94,7 @@ struct AgentCommandScope: ViewModifier {
           AgentCommandMount(
             target: ownTarget, scope: scope, anchors: anchors, expandedBlocks: expandedBlocks,
             navigation: navigation))
+        .modifier(MarkdownExportPresentation(presenter: ownTarget.markdownExports))
         .commandScope(segment: segment, subject: session)
         .commandSystem(system)
     }
@@ -114,11 +126,17 @@ extension View {
   /// - Parameters:
   ///   - session: The session model that the commands act on.
   ///   - anchors: The scroll anchors of the thread list.
+  ///   - navigation: The calls that show another session, or `nil`.
+  ///   - connection: The connection model of the agent, or `nil` for the
+  ///     connection model of the environment.
   /// - Returns: A view in the scope of the commands.
   func agentCommandScope(
-    session: SessionModel, anchors: ScrollAnchorManager, navigation: AgentSessionNavigation? = nil
+    session: SessionModel, anchors: ScrollAnchorManager, navigation: AgentSessionNavigation? = nil,
+    connection: ConnectionModel? = nil
   ) -> some View {
-    modifier(AgentCommandScope(session: session, anchors: anchors, navigation: navigation))
+    modifier(
+      AgentCommandScope(
+        session: session, anchors: anchors, navigation: navigation, connection: connection))
   }
 }
 
@@ -255,6 +273,8 @@ struct AgentCommandMount: NSViewRepresentable {
     let requestStartReport: ObservationReport<String>?
     /// The groups of the commands that the scope does not register.
     let groupsOff: Set<AgentCommandGroup>
+    /// The connection model of the agent, or `nil`.
+    let connection: ConnectionModel?
   }
 
   /// The target to keep current.
@@ -273,6 +293,9 @@ struct AgentCommandMount: NSViewRepresentable {
   /// The calls that show another session, or `nil`.
   var navigation: AgentSessionNavigation?
 
+  /// The connection model to add, or `nil`.
+  var connection: ConnectionModel?
+
   /// The values that the teardown needs.
   final class Coordinator {
     /// The target of the mount.
@@ -285,6 +308,8 @@ struct AgentCommandMount: NSViewRepresentable {
     weak var expandedBlocks: ExpandedBlocksStore?
     /// The session navigation that the mount gave to the target.
     var navigation: AgentSessionNavigation?
+    /// The connection model that the mount added.
+    weak var connection: ConnectionModel?
 
     /// Makes a coordinator for `target`.
     ///
@@ -328,6 +353,9 @@ struct AgentCommandMount: NSViewRepresentable {
     if let navigation = coordinator.navigation, target.navigation === navigation {
       target.navigation = nil
     }
+    if let connection = coordinator.connection, target.connection === connection {
+      target.connection = nil
+    }
   }
 
   /// Registers the owned scope through the ``AgentScopeMount`` of
@@ -357,6 +385,7 @@ struct AgentCommandMount: NSViewRepresentable {
       target.requestStartReport = scope.requestStartReport
       target.system = scope.system
       target.path = scope.path
+      target.connection = scope.connection
     }
     if let anchors {
       target.anchors = anchors
@@ -369,6 +398,10 @@ struct AgentCommandMount: NSViewRepresentable {
     if let navigation {
       target.navigation = navigation
       coordinator.navigation = navigation
+    }
+    if let connection {
+      target.connection = connection
+      coordinator.connection = connection
     }
   }
 }

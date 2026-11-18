@@ -5,8 +5,11 @@ import FoundationModelsACPClient
 /// Writes a session transcript or the content of a message entry as a
 /// Markdown document (plan.md §9 A).
 ///
-/// ``MessageActions`` uses this type for Copy and for Export. The output is
-/// the same for equal entries, so a test can compare it with a golden file.
+/// ``MessageActions`` uses this type for Copy. Export as Markdown…
+/// (``AgentCommandVerb/exportMarkdown``) does not use it: its text comes from
+/// `SessionModel.markdown(options:)` (``SessionMarkdownExport``). The output
+/// is the same for equal entries, so a test can compare it with a golden
+/// file.
 ///
 /// The document of a session transcript has only the message entries (the
 /// transcript form of `markdown(for:)`).

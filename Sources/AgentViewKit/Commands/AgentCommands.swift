@@ -48,6 +48,11 @@ public nonisolated enum AgentCommandVerb: String, CaseIterable, Sendable {
   /// Copies the messages of the thread as plain text.
   case copyThread
 
+  /// Saves the thread as a Markdown file (D202). The save panel shows the
+  /// default file name and the default folder of the session. The text
+  /// comes from `SessionModel.markdown(options:)`, with no thoughts.
+  case exportMarkdown
+
   /// Copies the Markdown of one message: the message of the payload, or the
   /// message of the context menu.
   case copyMessage
@@ -116,6 +121,7 @@ public nonisolated enum AgentCommandVerb: String, CaseIterable, Sendable {
     case .jumpToNext: String(localized: "Next Prompt", bundle: .module)
     case .jumpToPrevious: String(localized: "Previous Prompt", bundle: .module)
     case .copyThread: String(localized: "Copy Thread", bundle: .module)
+    case .exportMarkdown: String(localized: "Export as Markdown…", bundle: .module)
     case .copyMessage: String(localized: "Copy Message", bundle: .module)
     case .copyCodeBlock: String(localized: "Copy Code Block", bundle: .module)
     case .toggleExpandAll: String(localized: "Expand or Collapse All", bundle: .module)

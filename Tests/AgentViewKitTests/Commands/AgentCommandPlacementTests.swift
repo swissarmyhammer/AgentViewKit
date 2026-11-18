@@ -19,7 +19,8 @@ import Testing
 @MainActor struct AgentCommandPlacementTests {
   /// The verbs of the Session menu.
   static let sessionMenuVerbs: Set<AgentCommandVerb> = [
-    .send, .cancel, .focusComposer, .insertMention, .copyThread, .approvePending, .rejectPending,
+    .send, .cancel, .focusComposer, .insertMention, .copyThread, .exportMarkdown, .approvePending,
+    .rejectPending,
   ]
 
   /// The verbs of the View menu.

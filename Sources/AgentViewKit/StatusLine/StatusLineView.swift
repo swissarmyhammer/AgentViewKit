@@ -102,7 +102,7 @@ public struct StatusLineView: View {
     let title = session.parent == nil ? (sessionTitle ?? session.displayTitle) : session.displayTitle
     var input = StatusLineInput(
       cwd: folder(of: session), git: model.git, files: model.files, sessionTitle: title,
-      agentName: info.map { $0.title ?? $0.name }, agentVersion: info?.version,
+      agentName: info?.displayName, agentVersion: info?.version,
       modelName: modelName(of: session.configOptions), contextUsed: usage?.used, contextSize: usage?.size)
     if let homeFolder {
       input.homeFolder = homeFolder.path(percentEncoded: false)

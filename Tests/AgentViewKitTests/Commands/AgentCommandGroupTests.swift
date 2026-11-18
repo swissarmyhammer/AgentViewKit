@@ -21,7 +21,7 @@ import Testing
       .jumpToNext, .jumpToPrevious, .nextRequest, .previousRequest, .scrollToBottom, .toggleExpandAll,
       .goToParent, .openChild, .nextSibling, .previousSibling, .jumpToSession,
     ],
-    .clipboard: [.copyMessage, .copyThread, .copyCodeBlock],
+    .clipboard: [.copyMessage, .copyThread, .copyCodeBlock, .exportMarkdown],
     // The attachment verbs are of their own type; see
     // AgentAttachmentCommandsTests.
     .attachment: [],

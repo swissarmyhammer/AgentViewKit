@@ -811,12 +811,12 @@
         }
       }
     },
-    "Export Thread" : {
+    "Export as Markdown…" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Export Thread"
+            "value" : "Export as Markdown…"
           }
         }
       }
@@ -3299,16 +3299,6 @@
         }
       }
     },
-    "Thread" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Thread"
-          }
-        }
-      }
-    },
     "Thread minimap" : {
       "localizations" : {
         "en" : {
@@ -3820,6 +3810,402 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@: %2$@"
+          }
+        }
+      }
+    },
+    "markdown-export.audio" : {
+      "comment" : "In a Markdown export of a thread: the kind of an audio content block.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio"
+          }
+        }
+      }
+    },
+    "markdown-export.compacted" : {
+      "comment" : "In a Markdown export of a thread: the line of a context compaction.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The context was compacted."
+          }
+        }
+      }
+    },
+    "markdown-export.diff-operation.add" : {
+      "comment" : "In a Markdown export of a thread: the operation of a path that a diff added.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Added"
+          }
+        }
+      }
+    },
+    "markdown-export.diff-operation.copy" : {
+      "comment" : "In a Markdown export of a thread: the operation of a path that a diff copied.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copied"
+          }
+        }
+      }
+    },
+    "markdown-export.diff-operation.delete" : {
+      "comment" : "In a Markdown export of a thread: the operation of a path that a diff deleted.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deleted"
+          }
+        }
+      }
+    },
+    "markdown-export.diff-operation.modify" : {
+      "comment" : "In a Markdown export of a thread: the operation of a path that a diff changed.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modified"
+          }
+        }
+      }
+    },
+    "markdown-export.diff-operation.move" : {
+      "comment" : "In a Markdown export of a thread: the operation of a path that a diff moved.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moved"
+          }
+        }
+      }
+    },
+    "markdown-export.exit-status" : {
+      "comment" : "In a Markdown export of a thread: the start of the line after a terminal, before the exit status.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exit status"
+          }
+        }
+      }
+    },
+    "markdown-export.from" : {
+      "comment" : "In a Markdown export of a thread: the start of the heading of a message from another session, before the title of that session.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From"
+          }
+        }
+      }
+    },
+    "markdown-export.from-user-in" : {
+      "comment" : "In a Markdown export of a thread: the start of the heading of a message that the user sent from another session, before the title of that session.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From the user, in"
+          }
+        }
+      }
+    },
+    "markdown-export.image" : {
+      "comment" : "In a Markdown export of a thread: the kind of an image content block.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image"
+          }
+        }
+      }
+    },
+    "markdown-export.plan" : {
+      "comment" : "In a Markdown export of a thread: the line before the checklist of a plan.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plan"
+          }
+        }
+      }
+    },
+    "markdown-export.plan-item-status.cancelled" : {
+      "comment" : "In a Markdown export of a thread: the words after a plan item that was cancelled.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "cancelled"
+          }
+        }
+      }
+    },
+    "markdown-export.plan-item-status.in-progress" : {
+      "comment" : "In a Markdown export of a thread: the words after a plan item that is in progress.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "in progress"
+          }
+        }
+      }
+    },
+    "markdown-export.resource" : {
+      "comment" : "In a Markdown export of a thread: the kind of a binary resource.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resource"
+          }
+        }
+      }
+    },
+    "markdown-export.terminal" : {
+      "comment" : "In a Markdown export of a thread: the line of a terminal that the transcript does not have.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminal"
+          }
+        }
+      }
+    },
+    "markdown-export.thought" : {
+      "comment" : "In a Markdown export of a thread: the summary of a thought of the agent.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thought"
+          }
+        }
+      }
+    },
+    "markdown-export.to" : {
+      "comment" : "In a Markdown export of a thread: the start of the heading of a message that this session sent, before the name of the recipient.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To"
+          }
+        }
+      }
+    },
+    "markdown-export.tool-call" : {
+      "comment" : "In a Markdown export of a thread: the title of a tool call that has no title.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tool call"
+          }
+        }
+      }
+    },
+    "markdown-export.tool-call-status.cancelled" : {
+      "comment" : "In a Markdown export of a thread: the status of a tool call that was cancelled.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "cancelled"
+          }
+        }
+      }
+    },
+    "markdown-export.tool-call-status.completed" : {
+      "comment" : "In a Markdown export of a thread: the status of a tool call that is complete.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "completed"
+          }
+        }
+      }
+    },
+    "markdown-export.tool-call-status.failed" : {
+      "comment" : "In a Markdown export of a thread: the status of a tool call that failed.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "failed"
+          }
+        }
+      }
+    },
+    "markdown-export.tool-call-status.in-progress" : {
+      "comment" : "In a Markdown export of a thread: the status of a tool call that runs.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "in progress"
+          }
+        }
+      }
+    },
+    "markdown-export.tool-call-status.paused" : {
+      "comment" : "In a Markdown export of a thread: the status of a tool call that is paused.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "paused"
+          }
+        }
+      }
+    },
+    "markdown-export.tool-call-status.pending" : {
+      "comment" : "In a Markdown export of a thread: the status of a tool call that did not start.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "pending"
+          }
+        }
+      }
+    },
+    "markdown-export.tool-kind.delete" : {
+      "comment" : "In a Markdown export of a thread: the kind of a tool call that deletes.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "delete"
+          }
+        }
+      }
+    },
+    "markdown-export.tool-kind.edit" : {
+      "comment" : "In a Markdown export of a thread: the kind of a tool call that edits.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "edit"
+          }
+        }
+      }
+    },
+    "markdown-export.tool-kind.execute" : {
+      "comment" : "In a Markdown export of a thread: the kind of a tool call that runs a command.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "execute"
+          }
+        }
+      }
+    },
+    "markdown-export.tool-kind.fetch" : {
+      "comment" : "In a Markdown export of a thread: the kind of a tool call that fetches.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "fetch"
+          }
+        }
+      }
+    },
+    "markdown-export.tool-kind.move" : {
+      "comment" : "In a Markdown export of a thread: the kind of a tool call that moves.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "move"
+          }
+        }
+      }
+    },
+    "markdown-export.tool-kind.other" : {
+      "comment" : "In a Markdown export of a thread: the kind of a tool call of another kind.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "other"
+          }
+        }
+      }
+    },
+    "markdown-export.tool-kind.read" : {
+      "comment" : "In a Markdown export of a thread: the kind of a tool call that reads.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "read"
+          }
+        }
+      }
+    },
+    "markdown-export.tool-kind.search" : {
+      "comment" : "In a Markdown export of a thread: the kind of a tool call that searches.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "search"
+          }
+        }
+      }
+    },
+    "markdown-export.tool-kind.switch-mode" : {
+      "comment" : "In a Markdown export of a thread: the kind of a tool call that changes the mode of the session.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "switch mode"
+          }
+        }
+      }
+    },
+    "markdown-export.tool-kind.think" : {
+      "comment" : "In a Markdown export of a thread: the kind of a tool call that thinks.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "think"
+          }
+        }
+      }
+    },
+    "markdown-export.unknown-session" : {
+      "comment" : "In a Markdown export of a thread: the name of a session that the export cannot name.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "an unknown session"
           }
         }
       }

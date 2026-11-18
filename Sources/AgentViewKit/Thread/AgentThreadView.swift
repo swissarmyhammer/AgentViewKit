@@ -292,8 +292,7 @@ public struct AgentThreadView<Composer: View>: View {
 
   /// The name of the agent, for the paths of the jump list, or `nil`.
   private var agentName: String? {
-    let info = (connection ?? hostConnection)?.initializeResponse?.info
-    return info.map { $0.title ?? $0.name }
+    (connection ?? hostConnection)?.agentName
   }
 
   /// The manager of the scroll position that the view uses.
@@ -381,7 +380,8 @@ public struct AgentThreadView<Composer: View>: View {
     .environment(\.openSession, OpenSessionAction(run: show))
     .agentCommandScope(
       session: session, anchors: anchors,
-      navigation: AgentSessionNavigation(show: show, presentJump: { isJumpPresented = true })
+      navigation: AgentSessionNavigation(show: show, presentJump: { isJumpPresented = true }),
+      connection: connection
     )
     .sheet(isPresented: $isJumpPresented) {
       SessionJumpList(agent: agentName, entries: session.jumpEntries) { id in

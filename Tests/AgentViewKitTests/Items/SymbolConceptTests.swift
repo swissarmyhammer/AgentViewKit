@@ -23,7 +23,7 @@ import Testing
   enum Concept: String {
     case pending, inProgress, completed, error, cancelled, unknown, warning, information
     case read, edit, delete, move, search, terminal, reasoning, web, switchMode, tool
-    case copy, copyThread, share, reload
+    case copy, copyThread, save, reload
     case addedFile, deletedFile, modifiedFile, renamedFile, copiedFile
     case userAction, maxTokens, maxTurnRequests, refusal
     case truncated, repeated, reasoningLimit, noOutput, stalled
@@ -189,7 +189,7 @@ import Testing
   /// The symbols of the buttons of a message.
   static func messageActionUses() -> [Use] {
     let actions: [(MessageActions.Action, Concept)] = [
-      (.copy, .copy), (.copyThread, .copyThread), (.export, .share), (.retry, .reload), (.edit, .edit),
+      (.copy, .copy), (.copyThread, .copyThread), (.export, .save), (.retry, .reload), (.edit, .edit),
     ]
     return actions.map { Use(concept: $1, place: "message action \($0)", name: $0.systemImage) }
   }

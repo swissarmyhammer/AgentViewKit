@@ -89,10 +89,13 @@ let styleEditorKitProducts: [Target.Dependency] = [
   .product(name: "EditorCommandsUI", package: "EditorKit"),
 ]
 
-/// The ACP products: the wire types and the client connection. The kit
-/// target links them directly (plan.md §11 decision 1).
+/// The ACP products: the wire types, the client connection, and the Markdown
+/// renderer of a session (`SessionMarkdown`, D202), whose options and labels
+/// the Export as Markdown… verb gives to `SessionModel.markdown(options:)`.
+/// The kit target links them directly (plan.md §11 decision 1).
 let acpProducts: [Target.Dependency] = [
   .product(name: "FoundationModelsACP", package: "FoundationModelsACP"),
+  .product(name: "ACPMarkdown", package: "FoundationModelsACP"),
   .product(name: "FoundationModelsACPClient", package: "FoundationModelsACPClient"),
 ]
 

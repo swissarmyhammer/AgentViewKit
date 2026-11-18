@@ -14,7 +14,7 @@ import SwiftUI
 /// | ``compose`` | Send Message, Focus Composer |
 /// | ``control`` | Stop, Approve Request, Reject Request |
 /// | ``navigate`` | Next Prompt, Previous Prompt, Next Request, Previous Request, Scroll to Bottom, Expand or Collapse All, Go to Parent Session, Open Child Session, Next Sibling Session, Previous Sibling Session, Jump to Session |
-/// | ``clipboard`` | Copy Message, Copy Thread |
+/// | ``clipboard`` | Copy Message, Copy Thread, Copy Code Block, Export as Markdown… |
 /// | ``attachment`` | Open, Reveal in Finder, Share, Save, Inspect (``AgentAttachmentVerb``) |
 ///
 /// KanbanViewKit and SnapshotViewKit use the same shape. A group with the same
@@ -31,7 +31,7 @@ public nonisolated enum AgentCommandGroup: String, CaseIterable, Sendable {
   /// its items.
   case navigate
 
-  /// The verbs that copy text.
+  /// The verbs that copy the text of the thread, or save it to a file.
   case clipboard
 
   /// The verbs that act on an attached file (AVK-11). The scope of each
@@ -66,7 +66,7 @@ nonisolated extension AgentCommandVerb {
     case .jumpToNext, .jumpToPrevious, .nextRequest, .previousRequest, .scrollToBottom, .toggleExpandAll,
       .goToParent, .openChild, .nextSibling, .previousSibling, .jumpToSession:
       .navigate
-    case .copyMessage, .copyThread, .copyCodeBlock: .clipboard
+    case .copyMessage, .copyThread, .copyCodeBlock, .exportMarkdown: .clipboard
     }
   }
 }

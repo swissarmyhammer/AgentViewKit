@@ -21,8 +21,10 @@ import UniformTypeIdentifiers
 ///   the agent command scope, whose title, symbol, enabled state and tooltip
 ///   come from the registry. With no scope, the button writes the same text
 ///   to the pasteboard (`AgentCommandTarget.plainText(of:)`).
-/// - Export: saves the message entries of `SessionModel.transcript` as a
-///   Markdown file (the transcript form of `ThreadExporter.markdown(for:)`).
+/// - Export: the command button of ``AgentCommandVerb/exportMarkdown`` in the
+///   agent command scope, which saves the thread as a Markdown file through a
+///   save panel (D202). With no scope, the button makes the same export
+///   (`SessionMarkdownExport`) and shows the same save panel itself.
 /// - Retry, for an agent message only: finds the last `UserMessageEntry`
 ///   before the message in `SessionModel.transcript`, and sends its content
 ///   again with `SessionModel.prompt(_:meta:)`.
@@ -52,7 +54,7 @@ public struct MessageActions: View {
     case copy
     /// Copies the thread.
     case copyThread = "copy-thread"
-    /// Saves the thread as a Markdown file.
+    /// Saves the thread as a Markdown file: Export as Markdown….
     case export
     /// Sends the last user input again.
     case retry
@@ -64,23 +66,34 @@ public struct MessageActions: View {
       "message-\(rawValue)"
     }
 
-    /// The name of the button.
+    /// The agent verb whose command button the button is in an agent
+    /// command scope, or `nil` when the button runs its action here.
+    var verb: AgentCommandVerb? {
+      switch self {
+      case .copyThread: .copyThread
+      case .export: .exportMarkdown
+      case .copy, .retry, .edit: nil
+      }
+    }
+
+    /// The name of the button: the title of its ``verb``, when it has one.
     var title: String {
       switch self {
       case .copy: String(localized: "Copy", bundle: .module)
-      case .copyThread: String(localized: "Copy Thread", bundle: .module)
-      case .export: String(localized: "Export Thread", bundle: .module)
+      case .copyThread: AgentCommandVerb.copyThread.title
+      case .export: AgentCommandVerb.exportMarkdown.title
       case .retry: String(localized: "Retry", bundle: .module)
       case .edit: String(localized: "Edit", bundle: .module)
       }
     }
 
-    /// The SF Symbol of the button.
+    /// The SF Symbol of the button: the icon of its ``verb``, when it has
+    /// one.
     var systemImage: String {
       switch self {
       case .copy: AgentSymbol.copy
-      case .copyThread: AgentSymbol.copyThread
-      case .export: AgentSymbol.share
+      case .copyThread: AgentCommandVerb.copyThread.icon
+      case .export: AgentCommandVerb.exportMarkdown.icon
       case .retry: EditorSymbol.action(.reload).systemImage
       case .edit: EditorSymbol.tool(.edit).systemImage
       }
@@ -101,11 +114,6 @@ public struct MessageActions: View {
   /// `Docs/decisions/text-selection.md`.
   public static let selectionMode = SelectionMode.perMessage
 
-  /// The name of an exported file, with no extension.
-  static var exportFilename: String {
-    String(localized: "Thread", bundle: .module)
-  }
-
   /// The message entry of the row.
   let entry: MessageEntry
 
@@ -113,12 +121,15 @@ public struct MessageActions: View {
   @Environment(\.pasteboard) private var pasteboard
   @Environment(\.promptText) private var promptText
   @Environment(\.agentCommandTarget) private var commandTarget
+  @Environment(\.connectionModel) private var connection
 
   /// The report that gets the method of the prompt that Retry starts, or
   /// `nil`.
   @Environment(\.requestStartReport) private var reportRequestStart
 
-  @State private var exportDocument: MarkdownDocument?
+  /// The export of the Export button with no scope that waits for the
+  /// save panel.
+  @State private var markdownExports = MarkdownExportPresenter()
 
   private let logger = Logger(subsystem: "AgentViewKit", category: "MessageActions")
 
@@ -156,26 +167,19 @@ public struct MessageActions: View {
       }
     }
     .editorButtonCaptions(.hidden)
-    .fileExporter(
-      isPresented: Binding(
-        get: { exportDocument != nil }, set: { if !$0 { exportDocument = nil } }),
-      document: exportDocument,
-      contentType: MarkdownDocument.contentType,
-      defaultFilename: Self.exportFilename,
-      onCompletion: { FileExportLog.record($0, of: Self.exportFilename, to: logger) }
-    )
+    .modifier(MarkdownExportPresentation(presenter: markdownExports))
   }
 
-  /// The button of `action`: the command button of
-  /// ``AgentCommandVerb/copyThread`` for Copy thread in an agent command
-  /// scope, else a button that runs the action here.
+  /// The button of `action`: the command button of the ``Action/verb`` of
+  /// the action in an agent command scope, else a button that runs the
+  /// action here.
   ///
   /// - Parameter action: The action of the button.
   /// - Returns: The button.
   @ViewBuilder
   private func button(for action: Action) -> some View {
-    if action == .copyThread, commandTarget != nil {
-      EditorToolbarButton(command: AgentCommandVerb.copyThread.id)
+    if let verb = action.verb, commandTarget != nil {
+      EditorToolbarButton(command: verb.id)
     } else {
       EditorToolbarButton(action.title, systemImage: action.systemImage) { perform(action) }
     }
@@ -236,19 +240,19 @@ public struct MessageActions: View {
 
   /// Copies the thread directly, with the same text as the command, for a
   /// row in no command scope.
-  ///
-  /// `AgentCommandTarget.plainText(of:)` reads the same session model that
-  /// ``export()`` gives to `ThreadExporter.markdown(for:)`.
   private func copyThread() {
     guard let session else { return }
     pasteboard.copyText(AgentCommandTarget.plainText(of: session))
   }
 
-  /// Shows the file exporter with the Markdown of the message entries of the
-  /// transcript of the session model.
+  /// Shows the save panel with the same export as
+  /// ``AgentCommandVerb/exportMarkdown``, for a row in no command scope. A
+  /// thread with no history gives no export, as the command is then
+  /// unavailable.
   private func export() {
-    guard let session else { return }
-    exportDocument = MarkdownDocument(text: ThreadExporter.markdown(for: session.transcript))
+    guard let session, SessionMarkdownExport.hasHistory(session) else { return }
+    markdownExports.present(
+      SessionMarkdownExport(session: session, agentName: connection?.agentName))
   }
 
   /// Sends the content of the last user message entry before the entry of

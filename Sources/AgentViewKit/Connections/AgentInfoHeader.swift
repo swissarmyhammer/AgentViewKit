@@ -103,7 +103,7 @@ public struct AgentInfoHeader: View {
 
   public var body: some View {
     if let info = connection.initializeResponse?.info {
-      let agent = info.title ?? info.name
+      let agent = info.displayName
       let path = session?.path ?? []
       AgentBreadcrumb(agent: agent, version: info.version, path: path, sessionTitle: sessionTitle, select: select)
         .accessibilityElement(children: path.isEmpty ? .ignore : .contain)

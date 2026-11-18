@@ -239,6 +239,28 @@ import Testing
     }
   }
 
+    /// The Export button in the footer of a thread view is the command button
+    /// of Export as Markdown…: it shows the title of the verb, and it is
+    /// enabled, because the thread has wire entries. The test does not press
+    /// the button, because a press shows the save panel of the system.
+    @Test func exportInTheFooterOfAThreadViewIsTheButtonOfTheExportCommand() async throws {
+      let turn = try await Self.openTurn()
+      defer { turn.session.close() }
+      let export = MessageActions.Action.export.identifier
+      let harness = Self.mount(turn) {
+        AgentThreadView(session: turn.session.model)
+          .messageFooter { entry in
+            if case .user = entry { MessageActions(entry: entry) }
+          }
+      }
+      defer { harness.close() }
+
+      let element = try #require(harness.accessibilityElements().first { $0.identifier == export })
+
+      #expect(element.label == AgentCommandVerb.exportMarkdown.title)
+      #expect(element.isEnabled)
+    }
+
   @Test func editOnAUserEntryPutsTheTextInTheComposerOfTheScope() async throws {
     let turn = try await Self.openTurn()
     defer { turn.session.close() }

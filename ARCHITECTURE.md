@@ -21,7 +21,7 @@ The package has two library products:
 | Product | Target | Links | For |
 | --- | --- | --- | --- |
 | `AgentViewKitStyle` | `Sources/AgentViewKitStyle` | EditorKit only: `EditorStyle`, `EditorTheme`, `EditorSwiftUI`, `EditorDiff`, `EditorCommands`, `EditorCommandsUI` | Each view kit. Its dependency closure holds no ACP package. |
-| `AgentViewKit` | `Sources/AgentViewKit` | `AgentViewKitStyle`, EditorKit, FoundationModelsACP, FoundationModelsACPClient, Stencil | An ACP client app: the agent thread views and the ACP helpers. |
+| `AgentViewKit` | `Sources/AgentViewKit` | `AgentViewKitStyle`, EditorKit, FoundationModelsACP (with its `ACPMarkdown` product), FoundationModelsACPClient, Stencil | An ACP client app: the agent thread views and the ACP helpers. |
 
 Two more library products, `AgentViewKitTestSupport` and `AgentViewKitDemoSupport`, are test support for the nested `IntegrationTests/` and `ScreenshotTests/` packages (see "Tests of this kit"). No host of the kit links them.
 
@@ -68,7 +68,7 @@ The header of the top bar of `AgentThreadView` is the status line (`Sources/Agen
 
 ## Text built from a list
 
-No separator and no order of parts is in code (^3b8m474, `Docs/decisions/text-templates.md`). A text with a layout of its own is a Stencil template of `Sources/AgentViewKit/Resources/Templates`, which `TextTemplates` (`Sources/AgentViewKit/Text/`) renders from a model: the Markdown export and the copy text of a thread, and the plan steps of the inspector. A chain of parts, a path of names or a run of sentences, is a two-part pattern of the string catalog that `ChainText` applies. The words of a template come from the catalog through its model, so no template is localized.
+No separator and no order of parts is in code (^3b8m474, `Docs/decisions/text-templates.md`). A text with a layout of its own is a Stencil template of `Sources/AgentViewKit/Resources/Templates`, which `TextTemplates` (`Sources/AgentViewKit/Text/`) renders from a model: the copy text of a thread, and the plan steps of the inspector. The Markdown export of a thread (Export as Markdown…, D202) is not a template of the kit: `SessionModel.markdown(options:)` of FoundationModelsACPClient renders it with `SessionMarkdown` of ACPMarkdown, and the kit gives the words of its catalog (`MarkdownExportLabels`). A chain of parts, a path of names or a run of sentences, is a two-part pattern of the string catalog that `ChainText` applies. The words of a template come from the catalog through its model, so no template is localized.
 
 ## Style
 

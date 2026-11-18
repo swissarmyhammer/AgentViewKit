@@ -89,6 +89,10 @@ final class AgentSessionNavigation {
 ///   transcript. Jump goes to the next or the previous user message entry.
 ///   Expand all gives each entry to the store, so that the store reads the
 ///   expanded policy for the entry.
+/// - Export as Markdown is available when the transcript has a wire entry
+///   (``SessionMarkdownExport/hasHistory(_:)``). It gives the export of the
+///   session, with the name of the agent of ``connection``, to
+///   ``markdownExports``, and the scope shows the save panel.
 @MainActor
 final class AgentCommandTarget {
   /// The kind of the focus segment of an agent command scope.
@@ -100,6 +104,15 @@ final class AgentCommandTarget {
 
   /// The pasteboard that ``AgentCommandVerb/copyThread`` writes to.
   var pasteboard: any Pasteboard = NSPasteboard.general
+
+  /// The connection model of the agent of the session, or `nil` when the
+  /// scope does not know it. ``AgentCommandVerb/exportMarkdown`` reads the
+  /// name of the agent from it.
+  weak var connection: ConnectionModel?
+
+  /// The export of ``AgentCommandVerb/exportMarkdown`` that waits for the
+  /// save panel of the scope.
+  let markdownExports = MarkdownExportPresenter()
 
   /// The report that gets the method of the request that
   /// ``AgentCommandVerb/cancel``, a ``AgentCommandVerb/send`` with a text
@@ -214,6 +227,7 @@ final class AgentCommandTarget {
     case .jumpToNext: anchors != nil && jumpTarget(forward: true) != nil
     case .jumpToPrevious: anchors != nil && jumpTarget(forward: false) != nil
     case .copyThread: !Self.plainText(of: session).isEmpty
+    case .exportMarkdown: SessionMarkdownExport.hasHistory(session)
     case .copyMessage: messageMarkdown(payload: payload, in: session)?.isEmpty == false
     case .copyCodeBlock: AgentCommandPayload.string(AgentCommandPayload.codeKey, in: payload) != nil
     case .toggleExpandAll: expandedBlocks != nil && !session.transcript.isEmpty
@@ -240,7 +254,8 @@ final class AgentCommandTarget {
     case .nextRequest: String(localized: "No request is after the front request.", bundle: .module)
     case .jumpToNext: String(localized: "No prompt is below.", bundle: .module)
     case .jumpToPrevious: String(localized: "No prompt is above.", bundle: .module)
-    case .copyThread: String(localized: "The thread has no messages.", bundle: .module)
+    case .copyThread, .exportMarkdown:
+      String(localized: "The thread has no messages.", bundle: .module)
     case .copyMessage: String(localized: "The message has no text.", bundle: .module)
     case .copyCodeBlock: String(localized: "The caret is not in a code block.", bundle: .module)
     case .toggleExpandAll: String(localized: "The thread has no items.", bundle: .module)
@@ -327,6 +342,9 @@ final class AgentCommandTarget {
     case .jumpToNext: jump(forward: true)
     case .jumpToPrevious: jump(forward: false)
     case .copyThread: pasteboard.copyText(Self.plainText(of: session))
+    case .exportMarkdown:
+      markdownExports.present(
+        SessionMarkdownExport(session: session, agentName: connection?.agentName))
     case .copyMessage: pasteboard.copyText(messageMarkdown(payload: payload, in: session) ?? "")
     case .copyCodeBlock: pasteboard.copyText(AgentCommandPayload.string(AgentCommandPayload.codeKey, in: payload) ?? "")
     case .toggleExpandAll: toggleExpandAll(session)
@@ -609,9 +627,9 @@ final class AgentCommandTarget {
   /// Each `UserMessageEntry` and `AgentMessageEntry` gives one section: a
   /// role line, then the text blocks that are for the user. The entries come
   /// from ``ThreadExporter/messageTexts(in:)``, the same function as the
-  /// Markdown export, so the adjacent text chunks of an entry join as the
-  /// view shows them. A blank line separates two sections. The text omits
-  /// the other entries.
+  /// transcript form of `ThreadExporter.markdown(for:)`, so the adjacent
+  /// text chunks of an entry join as the view shows them. A blank line
+  /// separates two sections. The text omits the other entries.
   ///
   /// - Parameter session: The session model.
   /// - Returns: The text, or an empty string when the transcript has no

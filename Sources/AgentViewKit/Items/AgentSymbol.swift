@@ -96,8 +96,8 @@ nonisolated enum AgentSymbol {
   /// The symbol of the button that copies the thread.
   static let copyThread = "document.on.clipboard"
 
-  /// The symbol of a button that shares or exports: the Share button of an
-  /// attachment and the Export button of a thread.
+  /// The symbol of a button that shares: the Share button of an
+  /// attachment.
   static let share = "square.and.arrow.up"
 
   /// The symbol of an answer that accepts one time: the allow-once option of
@@ -172,7 +172,8 @@ nonisolated enum AgentSymbol {
   /// The symbol of a file: a row of the `@file` popup.
   static let file = "doc"
 
-  /// The symbol of the button that saves a file.
+  /// The symbol of a button that saves a file: the Save button of an
+  /// attachment and Export as Markdown… of a thread.
   static let save = "square.and.arrow.down"
 
   /// The symbol of the Quick Look button.

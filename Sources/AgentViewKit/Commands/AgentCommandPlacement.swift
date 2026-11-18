@@ -127,7 +127,7 @@ nonisolated extension AgentCommandVerb {
   ///
   /// | Menu | Verbs |
   /// | --- | --- |
-  /// | ``EditorCommands/MenuPath/session`` | Send Message, Stop, Focus Composer, Approve Request, Reject Request, Copy Thread |
+  /// | ``EditorCommands/MenuPath/session`` | Send Message, Stop, Focus Composer, Mention…, Approve Request, Reject Request, Copy Thread, Export as Markdown… |
   /// | View | Next Prompt, Previous Prompt, Next Request, Previous Request, Expand or Collapse All, Scroll to Bottom, Go to Parent Session, Open Child Session, Previous Sibling Session, Next Sibling Session, Jump to Session |
   /// | Edit | Copy Message |
   ///
@@ -142,6 +142,7 @@ nonisolated extension AgentCommandVerb {
     case .approvePending: MenuPlacement(path: .session, group: "agentRequest", order: 0)
     case .rejectPending: MenuPlacement(path: .session, group: "agentRequest", order: 1)
     case .copyThread: MenuPlacement(path: .session, group: "agentThread", order: 0)
+    case .exportMarkdown: MenuPlacement(path: .session, group: "agentThread", order: 1)
     case .jumpToNext: MenuPlacement(path: .view, group: "agentPrompts", order: 0)
     case .jumpToPrevious: MenuPlacement(path: .view, group: "agentPrompts", order: 1)
     case .nextRequest: MenuPlacement(path: .view, group: "agentRequests", order: 0)
@@ -191,6 +192,7 @@ nonisolated extension AgentCommandVerb {
     case .jumpToNext: AgentSymbol.nextPrompt
     case .jumpToPrevious: AgentSymbol.previousPrompt
     case .copyThread: AgentSymbol.copyThread
+    case .exportMarkdown: AgentSymbol.save
     case .copyMessage, .copyCodeBlock: AgentSymbol.copy
     case .toggleExpandAll: AgentSymbol.expandAll
     case .scrollToBottom: AgentSymbol.scrollToBottom
