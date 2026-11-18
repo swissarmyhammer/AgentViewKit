@@ -31,8 +31,24 @@ comments:
     - note: each build prints one SwiftPM message, "missing creator for mutated node ... mlx-swift_Cmlx.bundle/Contents/MacOS". It comes from the mlx-swift dependency bundle, not from the code of this task.
     - next: review
   timestamp: 2026-11-18T13:10:35.466133+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m7qcnz5452en96rhsnz7adf4
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (b31f6a88). 0 findings, 0 confirmed, 1 refuted, 7 attempted, 0 failed. The review engine did not examine 4 .kanban files (ignore rule) and RecordedSessions/README.md (no validator).
+    - next: none. The task is in done.
+  timestamp: 2026-11-18T13:14:02.788280+00:00
+- actor: claude-code
+  id: 01m7qcpa984z24mag9kq0r2ggy
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 5 files (DemoAgent.swift, RecordedSessionsStage.swift, DemoAgentTests.swift, RecordedSessionsStageTests.swift, RecordedSessions/README.md)
+    - test: green — swift test, 1279 tests in 150 suites + 55 tests in 11 suites passed; IntegrationTests and ScreenshotTests compile
+    - commit: b31f6a88
+    - review: clean — 0 findings
+  timestamp: 2026-11-18T13:14:14.184124+00:00
+position_column: done
+position_ordinal: ffffffed80
 title: DemoAgent default profile "tiny" is missing in the new FoundationModelsACPAgent
 ---
 A fresh package resolve gets FoundationModelsACPAgent main 7f2524e (the new `ProfileStore`). Then 12 tests fail in DemoAgentTests and RecordedSessionsAgentTests with `no profile is named "tiny"; the profiles are: large, small`. `DemoAgent.defaultProfileName` is "tiny".
