@@ -34,6 +34,39 @@ comments:
     - note: one SwiftPM warning, "missing creator for mutated node ... mlx-swift_Cmlx.bundle". It is from the mlx dependency bundle, not from this change.
     - next: review.
   timestamp: 2026-11-18T17:50:57.324501+00:00
+- actor: claude-code
+  id: 01m7qwt211ncqg9kavxdrf9xxn
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (7cec658d). 2 findings (2 confirmed, 2 refuted). Sources/AgentViewKit/Commands/AgentCommandPlacement.swift:149, Sources/AgentViewKit/Commands/AgentCommandPlacement.swift:178 (code-hygiene/magic-numbers-swift).
+    - next: Replace the magic numbers in AgentCommandPlacement.swift with named constants. Remove this cause from all of the file. Then run the review again.
+  timestamp: 2026-11-18T17:55:54.017206+00:00
+- actor: claude-code
+  id: 01m7qwtepfy27b03tq39f49cc5
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 18 files (ForkFromHere.swift, fork group, placement, message action, item menu, tests)
+    - test: green — swift test, 1340 tests in 158 suites + 54 tests in 11 suites passed
+    - commit: 7cec658d
+    - review: findings — AgentCommandPlacement.swift:149, AgentCommandPlacement.swift:178 (magic numbers)
+  timestamp: 2026-11-18T17:56:06.991515+00:00
+- actor: claude-code
+  id: 01m7qwzzjy9s4vvjpah3pxwe89
+  text: |-
+    ### implement — changed
+    - evidence: Sources/AgentViewKit/Commands/AgentCommandPlacement.swift. A new private enum `Slot` holds named constants with doc comments: the orders `first` to `fifth` (Double, 0 to 4) and the context menu groups `itemGroup` (0) and `navigationGroup` (1). All the numbers in `menu` and `contextMenu` now use these constants. The values and the behavior did not change. `swift format lint -s` on the file: 0 findings. `swift test`: 1340 tests in 158 suites passed, and 54 tests in 11 suites passed. Both findings are `- [x]`.
+    - note: `MenuPlacement.order` and `ContextMenuPlacement.order` are Double, and `ContextMenuPlacement.group` is Int. The order constants must be Double.
+    - next: review.
+  timestamp: 2026-11-18T17:59:08.126586+00:00
+- actor: claude-code
+  id: 01m7qx2gx1657dhpg9cw8t3cvr
+  text: |-
+    ### test — green
+    - evidence: swift test at package root. Run 1: 1340 tests in 158 suites passed. Run 2: 54 tests in 11 suites passed. 0 failed, 0 skipped. swift format lint -s Sources/AgentViewKit/Commands/AgentCommandPlacement.swift: no findings, exit 0.
+    - note: No compiler warning from package source. One build tool line (missing creator for mutated node, mlx-swift_Cmlx.bundle) and runtime log lines about a skills registry entry. They do not come from this task.
+    - IntegrationTests and ScreenshotTests were not run (they take the screen focus).
+    - next: review
+  timestamp: 2026-11-18T18:00:31.393339+00:00
 position_column: doing
 position_ordinal: '80'
 title: Fork from Here verb, message action and context menu row (D205)
@@ -50,3 +83,17 @@ Do:
 Tests (unit): the verb is in the registry only with a host action; it is disabled with the host reason; it gives the message id and `.after` for an agent message, `.before` and the text for a user message; the action row has the fork button after Export for both message kinds; the context menu of a message shows Fork from Here. Hosted test: compile only, do not run.
 
 Push when `swift test` is green, and send the sha to testudoapp-9a.
+
+## Review Findings (2026-11-18 11:51)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 16 file(s) reviewed, 6 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+> 2 file(s) not reviewed — no validator matched:
+> - `README.md` — no validator matches this file
+> - `Sources/AgentViewKit/Resources/Localizable.xcstrings` — no validator matches this file
+
+- [x] `Sources/AgentViewKit/Commands/AgentCommandPlacement.swift:149` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Sources/AgentViewKit/Commands/AgentCommandPlacement.swift:178` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.

@@ -119,6 +119,25 @@ nonisolated extension AgentScopeKind {
   }
 }
 
+/// The named group and order values of the menu and context menu places of
+/// the verbs. A lower value comes first.
+nonisolated private enum Slot {
+  /// The order of the first row in a group.
+  static let first: Double = 0
+  /// The order of the second row in a group.
+  static let second: Double = 1
+  /// The order of the third row in a group.
+  static let third: Double = 2
+  /// The order of the fourth row in a group.
+  static let fourth: Double = 3
+  /// The order of the fifth row in a group.
+  static let fifth: Double = 4
+  /// The context menu group of the actions on the item, such as Copy Message.
+  static let itemGroup = 0
+  /// The context menu group of the navigation rows, such as Next Prompt.
+  static let navigationGroup = 1
+}
+
 nonisolated extension AgentCommandVerb {
   /// The place of the verb in the menu bar (AVK-1).
   ///
@@ -138,28 +157,28 @@ nonisolated extension AgentCommandVerb {
   /// selected message.
   public var menu: MenuPlacement? {
     switch self {
-    case .send: MenuPlacement(path: .session, group: "agentPrompt", order: 0)
-    case .cancel: MenuPlacement(path: .session, group: "agentPrompt", order: 1)
-    case .focusComposer: MenuPlacement(path: .session, group: "agentComposer", order: 0)
-    case .insertMention: MenuPlacement(path: .session, group: "agentComposer", order: 1)
-    case .approvePending: MenuPlacement(path: .session, group: "agentRequest", order: 0)
-    case .rejectPending: MenuPlacement(path: .session, group: "agentRequest", order: 1)
-    case .copyThread: MenuPlacement(path: .session, group: "agentThread", order: 0)
-    case .exportMarkdown: MenuPlacement(path: .session, group: "agentThread", order: 1)
-    case .forkFromHere: MenuPlacement(path: .session, group: "agentThread", order: 2)
-    case .jumpToNext: MenuPlacement(path: .view, group: "agentPrompts", order: 0)
-    case .jumpToPrevious: MenuPlacement(path: .view, group: "agentPrompts", order: 1)
-    case .nextRequest: MenuPlacement(path: .view, group: "agentRequests", order: 0)
-    case .previousRequest: MenuPlacement(path: .view, group: "agentRequests", order: 1)
-    case .toggleExpandAll: MenuPlacement(path: .view, group: "agentThread", order: 0)
-    case .scrollToBottom: MenuPlacement(path: .view, group: "agentThread", order: 1)
-    case .copyMessage: MenuPlacement(path: .edit, group: "agentClipboard", order: 0)
-    case .copyCodeBlock: MenuPlacement(path: .edit, group: "agentClipboard", order: 1)
-    case .goToParent: MenuPlacement(path: .view, group: "agentSessions", order: 0)
-    case .openChild: MenuPlacement(path: .view, group: "agentSessions", order: 1)
-    case .previousSibling: MenuPlacement(path: .view, group: "agentSessions", order: 2)
-    case .nextSibling: MenuPlacement(path: .view, group: "agentSessions", order: 3)
-    case .jumpToSession: MenuPlacement(path: .view, group: "agentSessions", order: 4)
+    case .send: MenuPlacement(path: .session, group: "agentPrompt", order: Slot.first)
+    case .cancel: MenuPlacement(path: .session, group: "agentPrompt", order: Slot.second)
+    case .focusComposer: MenuPlacement(path: .session, group: "agentComposer", order: Slot.first)
+    case .insertMention: MenuPlacement(path: .session, group: "agentComposer", order: Slot.second)
+    case .approvePending: MenuPlacement(path: .session, group: "agentRequest", order: Slot.first)
+    case .rejectPending: MenuPlacement(path: .session, group: "agentRequest", order: Slot.second)
+    case .copyThread: MenuPlacement(path: .session, group: "agentThread", order: Slot.first)
+    case .exportMarkdown: MenuPlacement(path: .session, group: "agentThread", order: Slot.second)
+    case .forkFromHere: MenuPlacement(path: .session, group: "agentThread", order: Slot.third)
+    case .jumpToNext: MenuPlacement(path: .view, group: "agentPrompts", order: Slot.first)
+    case .jumpToPrevious: MenuPlacement(path: .view, group: "agentPrompts", order: Slot.second)
+    case .nextRequest: MenuPlacement(path: .view, group: "agentRequests", order: Slot.first)
+    case .previousRequest: MenuPlacement(path: .view, group: "agentRequests", order: Slot.second)
+    case .toggleExpandAll: MenuPlacement(path: .view, group: "agentThread", order: Slot.first)
+    case .scrollToBottom: MenuPlacement(path: .view, group: "agentThread", order: Slot.second)
+    case .copyMessage: MenuPlacement(path: .edit, group: "agentClipboard", order: Slot.first)
+    case .copyCodeBlock: MenuPlacement(path: .edit, group: "agentClipboard", order: Slot.second)
+    case .goToParent: MenuPlacement(path: .view, group: "agentSessions", order: Slot.first)
+    case .openChild: MenuPlacement(path: .view, group: "agentSessions", order: Slot.second)
+    case .previousSibling: MenuPlacement(path: .view, group: "agentSessions", order: Slot.third)
+    case .nextSibling: MenuPlacement(path: .view, group: "agentSessions", order: Slot.fourth)
+    case .jumpToSession: MenuPlacement(path: .view, group: "agentSessions", order: Slot.fifth)
     }
   }
 
@@ -173,14 +192,14 @@ nonisolated extension AgentCommandVerb {
   /// Code Block (``isVisible(in:)``).
   public var contextMenu: ContextMenuPlacement? {
     switch self {
-    case .copyMessage: ContextMenuPlacement(group: 0, order: 0)
-    case .copyCodeBlock: ContextMenuPlacement(group: 0, order: 1)
-    case .forkFromHere: ContextMenuPlacement(group: 0, order: 2)
-    case .insertMention: ContextMenuPlacement(group: 0, order: 0)
-    case .jumpToNext: ContextMenuPlacement(group: 1, order: 0)
-    case .jumpToPrevious: ContextMenuPlacement(group: 1, order: 1)
-    case .approvePending: ContextMenuPlacement(group: 0, order: 0)
-    case .rejectPending: ContextMenuPlacement(group: 0, order: 1)
+    case .copyMessage: ContextMenuPlacement(group: Slot.itemGroup, order: Slot.first)
+    case .copyCodeBlock: ContextMenuPlacement(group: Slot.itemGroup, order: Slot.second)
+    case .forkFromHere: ContextMenuPlacement(group: Slot.itemGroup, order: Slot.third)
+    case .insertMention: ContextMenuPlacement(group: Slot.itemGroup, order: Slot.first)
+    case .jumpToNext: ContextMenuPlacement(group: Slot.navigationGroup, order: Slot.first)
+    case .jumpToPrevious: ContextMenuPlacement(group: Slot.navigationGroup, order: Slot.second)
+    case .approvePending: ContextMenuPlacement(group: Slot.itemGroup, order: Slot.first)
+    case .rejectPending: ContextMenuPlacement(group: Slot.itemGroup, order: Slot.second)
     default: nil
     }
   }
