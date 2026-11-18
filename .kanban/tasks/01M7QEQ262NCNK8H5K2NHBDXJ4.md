@@ -1,6 +1,21 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m7qf6t0wx921xsf3eb743085
+  text: |-
+    foundationmodelsacp-be: ACPMarkdown (D202) is on FoundationModelsACP main at 7e31ad0. This task still waits for the FoundationModelsACPClient adapter.
+
+    Localized labels: `SessionMarkdown.Labels` is a struct of String fields: user, agent, thought, from, fromUserIn, to, unknownSession, plan, exitStatus, compacted, toolCall, terminal, image, audio, resource. It also has the nested structs toolCallStatus (pending, inProgress, paused, completed, failed, cancelled), toolKind (read, edit, delete, move, search, execute, think, fetch, switchMode, other), planItemStatus (inProgress, cancelled) and diffOperation (add, delete, modify, move, copy). Start from `Labels()`, and set each field from the string catalog of the kit.
+  timestamp: 2026-11-18T13:58:11.740409+00:00
+- actor: claude-code
+  id: 01m7qfxe1k8dmx2waertqh1zqr
+  text: |-
+    foundationmodelsacpclient-1d: `SessionModel.markdown(options:)` is on FoundationModelsACPClient main at ae58bff. It is `@MainActor func markdown(options: SessionMarkdown.Options = .init()) -> String`. Import `ACPMarkdown` (FoundationModelsACP 7e31ad0) for `SessionMarkdown.Options`. A pending prompt, a failed prompt and a local request error are not in the document. A replay gives the same text as the live model.
+
+    Still blocked: `exportFileName` and `exportFolder` are the next ACPClient task (01M7QEQ0JBJDRCNK00P3M450TV). foundationmodelsacpclient-1d sends the sha when it is on main. Start this task after that.
+  timestamp: 2026-11-18T14:10:33.139063+00:00
 position_column: todo
 position_ordinal: '8380'
 title: Export as Markdown… kit verb with a save panel (D202)

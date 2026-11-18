@@ -1,44 +1,23 @@
-import AppKit
 import EditorSwiftUI
 import SwiftUI
 import Testing
 
 @testable import AgentViewKitStyle
 
-/// The text of a ``PlacedLabel``: in content the theme role gives the color,
-/// and on glass and chrome each run with no color of its own gets the system
-/// label color of the role (EditorKit `style.md`, rule 6).
+/// The foreground of a ``PlacedLabel``: in content the theme role gives the
+/// color, and on glass and chrome the label has the vibrant foreground of the
+/// role (EditorKit `style.md`, rule 6, and D110).
 @Suite @MainActor struct PlacedLabelTests {
-  /// The text of the tests.
-  static let words = AttributedString("Run the tests")
-
-  /// The AppKit color of each run of `text`.
-  static func appKitColors(of text: AttributedString) -> [NSColor?] {
-    text.runs.map { $0[AttributeScopes.AppKitAttributes.ForegroundColorAttribute.self] }
+  @Test func onGlassTheSecondaryLabelHasTheVibrantSecondaryForeground() {
+    #expect(PlacedLabel.foreground(of: .secondary, isVibrant: true) == .vibrant(.secondary))
   }
 
-  @Test func inContentTheTextKeepsItsColors() {
-    #expect(PlacedLabel.text(Self.words, textColor: .secondary, isVibrant: false) == Self.words)
+  @Test func onGlassThePrimaryLabelHasTheVibrantPrimaryForeground() {
+    #expect(PlacedLabel.foreground(of: .primary, isVibrant: true) == .vibrant(.primary))
   }
 
-  @Test func onGlassTheSecondaryTextHasTheSecondaryLabelColor() {
-    let text = PlacedLabel.text(Self.words, textColor: .secondary, isVibrant: true)
-
-    #expect(Self.appKitColors(of: text) == [.secondaryLabelColor])
-  }
-
-  @Test func onGlassThePrimaryTextHasTheLabelColor() {
-    let text = PlacedLabel.text(Self.words, textColor: .primary, isVibrant: true)
-
-    #expect(Self.appKitColors(of: text) == [.labelColor])
-  }
-
-  @Test func onGlassARunWithAColorOfItsOwnKeepsIt() {
-    var named = AttributedString("Error")
-    named.foregroundColor = .red
-    let text = PlacedLabel.text(named + Self.words, textColor: .secondary, isVibrant: true)
-
-    #expect(Self.appKitColors(of: text) == [nil, .secondaryLabelColor])
+  @Test func inContentTheLabelKeepsTheThemeForeground() {
+    #expect(PlacedLabel.foreground(of: .secondary, isVibrant: false) == .theme)
   }
 
   @Test func theStatusExplanationIsAPlacedLabel() {

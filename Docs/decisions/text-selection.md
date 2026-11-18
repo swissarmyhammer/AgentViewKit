@@ -164,10 +164,13 @@ thread, in place of Textual.
   block or one label. `MessageActions.selectionMode` stays `perMessage`.
 - The label has no line limit and no truncation: its text wraps at the
   proposed width.
-- On glass and chrome, the text of a `PlacedLabel` draws in the system label
-  colors (`NSColor.labelColor`, `NSColor.secondaryLabelColor`). The label is
-  an AppKit view, so it does not use the SwiftUI hierarchical styles
-  (`.primary`, `.secondary`) of the other text on glass.
+- On glass and chrome, a `PlacedLabel` has the vibrant foreground of its
+  role (EditorKit `editorLabelForeground(.vibrant(_:))`, D110). Its text
+  draws in the system label colors (`NSColor.labelColor`,
+  `NSColor.secondaryLabelColor`) with the vibrancy of the glass behind it.
+  The label is an AppKit view, so it does not use the SwiftUI hierarchical
+  styles (`.primary`, `.secondary`) of the other text on glass. Content text
+  keeps the theme colors.
 - The Textual limits of the 2026-11-15 revision (the probe of the first
   responder, the new identity that clears a selection, and the type name of
   the Textual interaction view) do not apply any more.

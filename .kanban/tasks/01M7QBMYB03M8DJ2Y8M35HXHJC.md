@@ -20,8 +20,34 @@ comments:
 
     Use it where AVK-9.5 now uses the plain NSColor.labelColor or secondaryLabelColor on glass or on a material.
   timestamp: 2026-11-18T13:43:05.124892+00:00
-position_column: todo
-position_ordinal: '8280'
+- actor: claude-code
+  id: 01m7qfq8v8ttdxskwba3vs2zh8
+  text: |-
+    Research:
+    - Package.resolved is in .gitignore, and each Package.swift uses `branch: "main"` for EditorKit. So the pin update is `swift package update EditorKit` in the root, IntegrationTests and ScreenshotTests. Each now resolves EditorKit at 5711323 (newer main, contains adee09b3). No manifest change is necessary.
+    - The only label on glass or on a material is `PlacedLabel` (AgentViewKitStyle). It reads `\.showsVibrantText` (true on chrome and in a FloatingGlassContainer). Its callers: the status-bar explanation (StatusTitleLayout), the request cards (PermissionView, ElicitationView, ElicitationWhoAsks, ElicitationURLConsentView).
+    - The other EditorLabel uses (TaskListView, TerminalView, DiffView, CompactionEntryView, AttachmentPreview, SessionMessageView) are content text in content tiles. They keep the theme colors (D110).
+    - AVK-9.5 colored each run with no color of its own with NSColor.labelColor / secondaryLabelColor in `PlacedLabel.text(_:textColor:isVibrant:)`. That gave the color, but no vibrancy. EditorKit now does the run rule (a run with its own color keeps it) and sets allowsVibrancy.
+  timestamp: 2026-11-18T14:07:11.208150+00:00
+- actor: claude-code
+  id: 01m7qfw5dktz79a2ewsgsr6bkb
+  text: |-
+    ### implement — changed
+    - evidence: `swift test` at the root: 1298 tests in 154 suites passed, and 54 tests in 11 suites passed (AgentViewKitStyleTests, with PlacedLabelTests 4/4). 0 failures. `swift build --build-tests` passed in IntegrationTests and ScreenshotTests (not run, because they take the screen focus). EditorKit resolves at 5711323 (it contains adee09b3) in all three packages. Package.resolved is gitignored, so no manifest changed.
+    - files: Sources/AgentViewKitStyle/Infrastructure/PlacedLabel.swift (the body now sets `.editorLabelForeground(Self.foreground(of:isVibrant:))`; `.vibrant(role)` on glass and chrome, `.theme` in content; the old run coloring `text(_:textColor:isVibrant:)` and the AppKit import are removed), Tests/AgentViewKitStyleTests/PlacedLabelTests.swift (3 new tests for the foreground; the 4 tests of the removed run coloring are removed, because EditorKit owns that rule now), Sources/AgentViewKitStyle/Status/StatusBar.swift (comment), Docs/decisions/text-selection.md (Limits).
+    - note: each build shows `warning: missing creator for mutated node: ... mlx-swift_Cmlx.bundle/Contents/MacOS`. This warning comes from the SwiftPM build of the mlx-swift dependency. It is not from a source of this change.
+    - open: the card says "push, and send the commit to testudoapp-9a". This step must not commit or push. The commit step must do the push and send the commit to testudoapp-9a.
+    - next: /review
+  timestamp: 2026-11-18T14:09:51.539659+00:00
+- actor: claude-code
+  id: 01m7qg0yfv59t38gszjmnc430e
+  text: |-
+    ### test — green
+    - evidence: `swift test` at package root: 1298 tests in 154 suites passed, plus 54 tests in 11 suites passed; 0 failures, 0 skipped tests. `swift format lint -s` on PlacedLabel.swift, StatusBar.swift, PlacedLabelTests.swift: 0 findings. `swift build --build-tests` in IntegrationTests and ScreenshotTests: Build complete. The only build warning is the SwiftPM "missing creator for mutated node" tool message for the mlx bundle. It does not come from this change.
+    - next: review
+  timestamp: 2026-11-18T14:12:28.283842+00:00
+position_column: doing
+position_ordinal: '80'
 title: Vibrant text for each EditorLabel on glass (D110)
 ---
 TestudoApp decision (testudoapp-9a, 2026-11-18): text on glass is "vibrant" (D110: text on glass uses vibrant foreground styles). testudoapp-9a asked editorkit-7a for a vibrant role for `EditorLabel` on glass.

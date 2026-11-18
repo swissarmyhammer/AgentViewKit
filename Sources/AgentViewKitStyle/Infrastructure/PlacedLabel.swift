@@ -1,4 +1,3 @@
-import AppKit
 import EditorStyle
 import EditorSwiftUI
 import SwiftUI
@@ -15,11 +14,12 @@ import SwiftUI
 /// The color of the text follows EditorKit `style.md`, rule 6:
 ///
 /// - In content, the label draws the theme role of `textColor`
-///   (`editorTextColor(_:)`).
-/// - On glass and chrome (`\.showsVibrantText`), each run with no color of
-///   its own draws in the system label color of the role
-///   (`NSColor.labelColor` or `NSColor.secondaryLabelColor`), never in a
-///   theme color.
+///   (`editorTextColor(_:)`). Content text keeps the theme colors (D110).
+/// - On glass and chrome (`\.showsVibrantText`), the label has the vibrant
+///   foreground of the role (`editorLabelForeground(.vibrant(_:))`). Each run
+///   with no color of its own draws in the system label color of the role
+///   (`NSColor.labelColor` or `NSColor.secondaryLabelColor`), with the
+///   vibrancy of the glass behind it, never in a theme color (D110).
 ///
 /// The label draws in the font of its place (`.font(_:)`). VoiceOver sees one
 /// static text element.
@@ -67,40 +67,20 @@ public struct PlacedLabel: View {
 
   /// The `EditorLabel` of the text.
   public var body: some View {
-    EditorLabel(Self.text(text, textColor: textColor, isVibrant: showsVibrantText), accessibilityLabel: accessibilityText)
+    EditorLabel(text, accessibilityLabel: accessibilityText)
       .editorTextColor(textColor)
+      .editorLabelForeground(Self.foreground(of: textColor, isVibrant: showsVibrantText))
   }
 
-  /// The text that the label shows in a place.
+  /// The foreground of the text that has no color of its own, in a place.
   ///
   /// - Parameters:
-  ///   - text: The text, with its attributes.
   ///   - textColor: The text color role of the text that has no color of its
   ///     own.
   ///   - isVibrant: `true` on glass and chrome.
-  /// - Returns: `text` in content. On glass and chrome, `text` with the
-  ///   system label color of `textColor` on each run that has no color of
-  ///   its own.
-  static func text(_ text: AttributedString, textColor: EditorTextColorRole, isVibrant: Bool) -> AttributedString {
-    guard isVibrant else { return text }
-    var result = text
-    let color = systemColor(of: textColor)
-    for run in text.runs where run.foregroundColor == nil && run.appKit.foregroundColor == nil {
-      result[run.range].appKit.foregroundColor = color
-    }
-    return result
-  }
-
-  /// The system label color of a text color role: the color of a text on
-  /// glass and chrome.
-  ///
-  /// - Parameter role: The text color role.
-  /// - Returns: `NSColor.labelColor` for `.primary`, and
-  ///   `NSColor.secondaryLabelColor` for `.secondary`.
-  private static func systemColor(of role: EditorTextColorRole) -> NSColor {
-    switch role {
-    case .primary: .labelColor
-    case .secondary: .secondaryLabelColor
-    }
+  /// - Returns: `.theme` in content. On glass and chrome, the vibrant
+  ///   foreground of `textColor`.
+  static func foreground(of textColor: EditorTextColorRole, isVibrant: Bool) -> EditorLabelForeground {
+    isVibrant ? .vibrant(textColor) : .theme
   }
 }
