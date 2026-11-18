@@ -100,6 +100,14 @@ nonisolated enum AgentSymbol {
   /// of the thread.
   static let fork = "arrow.triangle.branch"
 
+  /// The symbol of Send to Chat of a side card: the question and the answer
+  /// go into the composer of the thread, at the caret (D205).
+  static let sendToChat = "text.insert"
+
+  /// The symbol of Open of a side card: the side question opens as a thread
+  /// of its own (D205).
+  static let openSideQuestion = "arrow.up.forward.square"
+
   /// The symbol of a button that shares: the Share button of an
   /// attachment.
   static let share = "square.and.arrow.up"

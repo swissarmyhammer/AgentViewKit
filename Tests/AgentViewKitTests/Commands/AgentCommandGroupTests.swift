@@ -27,6 +27,8 @@ import Testing
     // The attachment verbs are of their own type; see
     // AgentAttachmentCommandsTests.
     .attachment: [],
+    // The side card verbs are of their own type; see SideCardCommandsTests.
+    .sideCard: [],
   ]
 
   /// The id of a message item in the context menu tests.
@@ -81,7 +83,7 @@ import Testing
     #expect(
       AgentCommandGroup.allCases.map(\.id) == [
         "agent.compose", "agent.control", "agent.navigate", "agent.clipboard", "agent.export",
-        "agent.fork", "agent.attachment",
+        "agent.fork", "agent.attachment", "agent.sideCard",
       ])
   }
 

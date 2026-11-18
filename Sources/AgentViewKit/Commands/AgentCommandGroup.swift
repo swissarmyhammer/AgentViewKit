@@ -18,6 +18,7 @@ import SwiftUI
 /// | ``export`` | Export as Markdown… |
 /// | ``fork`` | Fork from Here |
 /// | ``attachment`` | Open, Reveal in Finder, Share, Save, Inspect (``AgentAttachmentVerb``) |
+/// | ``sideCard`` | Send to Chat, Open, Close (``SideCardVerb``) |
 ///
 /// KanbanViewKit and SnapshotViewKit use the same shape. A group with the same
 /// job in two kits has the same last word in its ``id``, for example
@@ -49,14 +50,19 @@ public nonisolated enum AgentCommandGroup: String, CaseIterable, Sendable {
   /// attachment registers them, and not the scope of the thread.
   case attachment
 
+  /// The verbs of a side card of `/btw` (D205). The scope of each
+  /// ``SideQuestionCard`` registers them, and not the scope of the thread.
+  case sideCard
+
   /// The id of the group, `agent.<group>`. It has the prefix of the command
   /// ids of the kit.
   public var id: String {
     AgentCommandVerb.idPrefix + rawValue
   }
 
-  /// The thread verbs of the group, in the order of the verbs. The group
-  /// ``attachment`` has no thread verb; see ``attachmentVerbs``.
+  /// The thread verbs of the group, in the order of the verbs. The groups
+  /// ``attachment`` and ``sideCard`` have no thread verb; see
+  /// ``attachmentVerbs`` and ``sideCardVerbs``.
   public var verbs: [AgentCommandVerb] {
     AgentCommandVerb.allCases.filter { $0.group == self }
   }
@@ -65,6 +71,12 @@ public nonisolated enum AgentCommandGroup: String, CaseIterable, Sendable {
   /// group ``attachment`` has attachment verbs.
   public var attachmentVerbs: [AgentAttachmentVerb] {
     AgentAttachmentVerb.allCases.filter { $0.group == self }
+  }
+
+  /// The side card verbs of the group, in the order of the verbs. Only the
+  /// group ``sideCard`` has side card verbs.
+  public var sideCardVerbs: [SideCardVerb] {
+    SideCardVerb.allCases.filter { $0.group == self }
   }
 }
 

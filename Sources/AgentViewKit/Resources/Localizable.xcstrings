@@ -289,6 +289,16 @@
         }
       }
     },
+    "Answering" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Answering"
+          }
+        }
+      }
+    },
     "Approve Request" : {
       "localizations" : {
         "en" : {
@@ -417,6 +427,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Changes"
+          }
+        }
+      }
+    },
+    "Close" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close"
           }
         }
       }
@@ -1191,6 +1211,16 @@
         }
       }
     },
+    "Needs input" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needs input"
+          }
+        }
+      }
+    },
     "New Session" : {
       "localizations" : {
         "en" : {
@@ -1957,6 +1987,16 @@
         }
       }
     },
+    "Send to Chat" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send to Chat"
+          }
+        }
+      }
+    },
     "Sending" : {
       "localizations" : {
         "en" : {
@@ -2133,6 +2173,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Shows the source in the list of sources."
+          }
+        }
+      }
+    },
+    "Side question" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Side question"
+          }
+        }
+      }
+    },
+    "Side question: %@\n\nAnswer: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Side question: %1$@\n\nAnswer: %2$@"
           }
         }
       }
@@ -3095,6 +3155,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The sessions of the agent show here."
+          }
+        }
+      }
+    },
+    "The side question has no answer yet." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The side question has no answer yet."
+          }
+        }
+      }
+    },
+    "The side question is not shown." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The side question is not shown."
+          }
+        }
+      }
+    },
+    "The side question needs input. Open it to answer." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The side question needs input. Open it to answer."
           }
         }
       }

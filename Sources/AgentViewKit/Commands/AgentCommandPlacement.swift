@@ -30,6 +30,11 @@ import FoundationModelsACPClient
 /// path, so the attachment verbs work also in an inspector of the host,
 /// outside each thread scope.
 ///
+/// Each ``SideQuestionCard`` adds `agentSideCard:<sessionId>` (D205). The id
+/// is the `sessionId` of the fork that the card shows. The card registers
+/// the ``SideCardVerb`` commands at its own path, and the subject of its
+/// segment is the `SessionModel` of the fork.
+///
 /// Each control in a bar of a thread, such as Send, the permission-mode
 /// picker or the composer editor, adds `agentControl:<identifier>`. The id is
 /// the accessibility identifier of the control, such as `prompt-submit`. The
@@ -47,6 +52,7 @@ import FoundationModelsACPClient
 /// | ``request`` | the `PendingPermissionRequest` |
 /// | ``toolCall`` | the `ToolCallEntry` |
 /// | ``attachment`` | the ``Attachment`` |
+/// | ``sideCard`` | the `SessionModel` of the fork |
 ///
 /// ```swift
 /// @FromTarget(kind: AgentScopeKind.message) var entry: TranscriptEntry?
@@ -69,11 +75,16 @@ nonisolated extension AgentScopeKind {
   /// or the composer editor (`agentControlScope(_:corners:)`).
   public static let control = "agentControl"
 
+  /// The kind of the scope of a side card of `/btw` (``SideQuestionCard``).
+  public static let sideCard = "agentSideCard"
+
   /// The kinds of the item scopes in a thread.
   ///
   /// An attachment is an item, so the context menu of an attachment in a
-  /// message shows the attachment verbs and not the verbs of the message.
-  static let items: Set<String> = [message, request, toolCall, attachment]
+  /// message shows the attachment verbs and not the verbs of the message. A
+  /// side card is an item, so its context menu shows the side card verbs and
+  /// not the verbs of the thread.
+  static let items: Set<String> = [message, request, toolCall, attachment, sideCard]
 
   /// The segment of the scope of a message row.
   ///
@@ -99,6 +110,14 @@ nonisolated extension AgentScopeKind {
     FocusSegment(kind: attachment, id: id.rawValue)
   }
 
+  /// The segment of the scope of a side card.
+  ///
+  /// - Parameter id: The `sessionId` of the fork that the card shows.
+  /// - Returns: The segment `agentSideCard:<sessionId>`.
+  static func sideCard(_ id: SessionId) -> FocusSegment {
+    FocusSegment(kind: sideCard, id: id.rawValue)
+  }
+
   /// The segment of the scope of a control in a bar of a thread.
   ///
   /// - Parameter identifier: The accessibility identifier of the control,
@@ -112,8 +131,8 @@ nonisolated extension AgentScopeKind {
   /// segment.
   ///
   /// - Parameter path: The invocation path of a command.
-  /// - Returns: The segment of the message, the request, the tool call or the
-  ///   attachment.
+  /// - Returns: The segment of the message, the request, the tool call, the
+  ///   attachment or the side card.
   static func item(in path: FocusPath) -> FocusSegment? {
     path.segments.last { items.contains($0.kind) }
   }

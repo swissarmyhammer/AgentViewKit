@@ -32,7 +32,7 @@ import Testing
     case time
     case accept, acceptAlways, reject, rejectAlways
     case details, loadMore, showAll, signIn, signOut, suggestion
-    case send, dismiss, open
+    case send, dismiss, open, sendToChat, openSideQuestion
     case usage, usageFull
     case back, forward, conversation
   }
@@ -312,12 +312,24 @@ import Testing
     ]
   }
 
+  /// The symbols of the buttons of the side card of `/btw`: Send to Chat,
+  /// Open and Close, and the mark of a side question that needs input.
+  static func sideCardUses() -> [Use] {
+    let verbs: [(SideCardVerb, Concept)] = [
+      (.sendSideCardToChat, .sendToChat), (.openSideCard, .openSideQuestion),
+      (.closeSideCard, .dismiss),
+    ]
+    let needsInput = Use(
+      concept: .userAction, place: "side card Needs input", name: SideQuestionCard.needsInputSymbol)
+    return verbs.map { Use(concept: $1, place: "side card \($0)", name: $0.icon) } + [needsInput]
+  }
+
   /// Each use that the tests read.
   static func allUses() throws -> [Use] {
     toolUses() + (try stateBannerUses()) + stopReasonUses() + otherBannerUses() + planUses() + priorityUses()
       + connectionStatusUses() + diffUses() + commandOutputUses() + messageActionUses() + sendStateUses() + cardUses()
       + permissionOptionUses() + actionButtonUses() + requestButtonUses() + usageRingUses() + historyUses()
-      + conversationUses()
+      + conversationUses() + sideCardUses()
   }
 
   // MARK: - The checks

@@ -421,9 +421,6 @@ enum AgentAttachmentRegistration {
   ///   - registry: The registry to remove the commands from.
   static func deregister(at path: FocusPath, from registry: inout CommandRegistry) {
     let ids = AgentAttachmentVerb.allCases.map(\.id) + AgentFileSelectionVerb.allCases.map(\.id)
-    for id in ids {
-      registry.unregister(id, at: path)
-    }
-    registry.tree = registry.tree.removing(.host, at: path)
+    AgentCommandRegistration.deregister(ids, at: path, from: &registry)
   }
 }

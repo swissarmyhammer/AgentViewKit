@@ -162,6 +162,39 @@ import Testing
     try await Self.generate(Self.floatingControls, named: "floating-controls", size: Self.controlsSize)
   }
 
+  /// The size of the image of a side card, in points.
+  static let sideCardSize = CGSize(width: 400, height: 240)
+
+  /// The question of the side card of the snapshots.
+  static let sideQuestion = "What does the parser do?"
+
+  /// The side card of `/btw` (D205) with the question and the answer of its
+  /// fork, at the width of a card of the trailing stack of a thread.
+  ///
+  /// - Parameter fork: The session model of the fork.
+  /// - Returns: The card.
+  static func sideCard(of fork: SessionModel) -> some View {
+    SideQuestionCard(question: sideQuestion, session: fork, onOpen: {}, onClose: {})
+      .frame(width: SideCardLayout.defaultCardWidth)
+  }
+
+  /// The side card with the answer of its fork, and the Send to Chat, Open
+  /// and Close buttons.
+  @Test func theSideCardWithItsAnswer() async throws {
+    let fork = SessionModel.preview(
+      transcript: [.user(Self.sideQuestion), .agent("It reads the **tokens** of each line.")])
+
+    try await Self.generate(Self.sideCard(of: fork), named: "side-card", size: Self.sideCardSize)
+  }
+
+  /// The side card of a fork that waits for a permission (the preview
+  /// sample, with one pending permission request): "Needs input" and the
+  /// Open button only.
+  @Test func theSideCardThatNeedsInput() async throws {
+    try await Self.generate(
+      Self.sideCard(of: .previewSample), named: "side-card-needs-input", size: Self.sideCardSize)
+  }
+
   /// The completion list of the composer, open on a slash over the two
   /// commands of ``SnapshotFixtures/commandsSession``, on its own glass above
   /// the field. Each row is EditorKit's `EditorCompletionRow`, with the name

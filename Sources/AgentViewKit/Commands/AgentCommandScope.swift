@@ -246,8 +246,22 @@ enum AgentCommandRegistration {
   ///   - path: The path of the scope.
   ///   - registry: The registry to remove the verbs and the part from.
   static func deregister(at path: FocusPath, from registry: inout CommandRegistry) {
-    for verb in AgentCommandVerb.allCases {
-      registry.unregister(verb.id, at: path)
+    deregister(AgentCommandVerb.allCases.map(\.id), at: path, from: &registry)
+  }
+
+  /// Removes each command of `ids` at `path`, and the `.host` part of the
+  /// scope node. The thread scope, each attachment scope and each side card
+  /// scope end their registration with this call.
+  ///
+  /// - Parameters:
+  ///   - ids: The command ids that the scope registered.
+  ///   - path: The path of the scope.
+  ///   - registry: The registry to remove the commands and the part from.
+  static func deregister(
+    _ ids: [CommandID], at path: FocusPath, from registry: inout CommandRegistry
+  ) {
+    for id in ids {
+      registry.unregister(id, at: path)
     }
     registry.tree = registry.tree.removing(.host, at: path)
   }

@@ -78,6 +78,11 @@ import SwiftUI
 /// }
 /// ```
 ///
+/// The side cards of `/btw` (``SideQuestionCard``) show at the trailing edge
+/// above the composer with ``sideCards(_:)`` (D205). They float with the
+/// floating controls, so they do not change the transcript or the scroll
+/// position.
+///
 /// A deck next to the view goes in one
 /// ``SwiftUI/View/accessibilityFocusScope()`` with the thread view. The
 /// ``RequestDeck`` documentation shows the full example.
@@ -201,6 +206,9 @@ public struct AgentThreadView<Composer: View>: View {
   @Environment(\.agentAttachmentInspector) private var inspectorMode
   @Environment(\.connectionModel) private var hostConnection
   @Environment(\.editorStyle) private var editorStyle
+
+  /// The side cards of the host (``sideCards(_:)``), or `nil`.
+  @Environment(\.sideCards) private var sideCards
 
   /// The inset of each bar from the edges of the thread, which the host
   /// gives where it mounts the view (`.barInsets()`). The default is zero:
@@ -445,7 +453,8 @@ public struct AgentThreadView<Composer: View>: View {
   /// the order is the pill, the banner, the login prompt when the host gave
   /// the connection model, and the composer. VoiceOver reads them in this
   /// order. The pill is an overlay that floats one small spacing above the
-  /// stack, over the list. It is not in the layout of the stack, so the height
+  /// stack, over the list. The side cards of ``sideCards(_:)`` float in the
+  /// same overlay, under the pill, at the trailing edge (D205). It is not in the layout of the stack, so the height
   /// of the bar, and thus the bottom inset of the list, does not depend on the
   /// pin state. A pill in the stack made each pin change move the inset, and
   /// each move of the inset made the list report a layout with no row in view
@@ -471,11 +480,17 @@ public struct AgentThreadView<Composer: View>: View {
           .environment(\.sessionModel, session)
           .environment(\.connectionModel, connection ?? hostConnection)
       }
-      // The pill floats above the controls and takes no space in their
-      // layout, so its show and its hide keep the bottom inset of the list.
+      // The pill and the side cards float above the controls and take no
+      // space in their layout, so their show and their hide keep the bottom
+      // inset of the list and the scroll position.
       .overlay(alignment: .top) {
-        ConversationPill(anchors: anchors)
-          .alignmentGuide(.top) { $0[.bottom] + spacing }
+        VStack(spacing: spacing) {
+          ConversationPill(anchors: anchors)
+          if let sideCards {
+            SideCardStack(cards: sideCards)
+          }
+        }
+        .alignmentGuide(.top) { $0[.bottom] + spacing }
       }
     }
     .padding(barInsets)
