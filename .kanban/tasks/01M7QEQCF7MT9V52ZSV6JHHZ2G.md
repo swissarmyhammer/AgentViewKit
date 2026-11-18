@@ -23,10 +23,26 @@ comments:
     - evidence: `swift format lint -s` on the 8 changed Swift files: no new finding. Count per file now/HEAD: AgentCommandTarget 10/10, AgentItemScope 1/1, InspectionText 2/2, MessageActions 1/1, ThreadExporter 1/3, TextTemplates 2/2, ThreadExporterTests 0/7, TemplateTextTests 7/11.
     - next: review.
   timestamp: 2026-11-18T15:23:55.871115+00:00
+- actor: claude-code
+  id: 01m7qm6zg6v68d6gy7vvqd4ea6
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (ab3d0a83). 0 findings, 0 confirmed, 0 refuted. 7 validator runs, 0 failed. No validator matched Docs/decisions/text-templates.md, the removed thread-markdown.stencil and comparison.md. The ignore rule excluded the .kanban files.
+    - next: The task is in done. No prior review findings were open.
+  timestamp: 2026-11-18T15:25:40.230260+00:00
+- actor: claude-code
+  id: 01m7qm7a30cap5tv4krvrq9kae
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 11 files (transcript form, thread-markdown template and their tests removed; docs updated)
+    - test: green — swift test, 1317 tests in 156 suites + 54 tests in 11 suites passed
+    - commit: ab3d0a83
+    - review: clean — 0 findings
+  timestamp: 2026-11-18T15:25:51.072055+00:00
 depends_on:
 - 01M7QEQ262NCNK8H5K2NHBDXJ4
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: fffffff180
 title: Remove the transcript form of ThreadExporter and the thread-markdown template (D202)
 ---
 Brief: /Users/wballard/github/swissarmyhammer/.briefs/export-markdown/avk-brief.md, proposed change 4. Do this after the Export as Markdown… verb replaces the Export button.
