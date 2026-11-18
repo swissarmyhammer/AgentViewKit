@@ -31,7 +31,18 @@ import SwiftUI
   ///
   /// - Parameter view: The view to lay out.
   public static func layOut(_ view: some View) {
-    let hosting = NSHostingView(rootView: view)
+    layOut(NSHostingView(rootView: view))
+  }
+
+  /// Gives `hosting` its fitting size, and lays it out once, so that the
+  /// bodies of its root view run.
+  ///
+  /// A test that keeps one hosting view, and changes its root view between
+  /// two layout passes, uses this function. SwiftUI then makes, updates and
+  /// dismantles the views in the same host.
+  ///
+  /// - Parameter hosting: The hosting view to lay out.
+  public static func layOut(_ hosting: NSHostingView<some View>) {
     hosting.frame = NSRect(origin: .zero, size: hosting.fittingSize)
     hosting.layoutSubtreeIfNeeded()
   }

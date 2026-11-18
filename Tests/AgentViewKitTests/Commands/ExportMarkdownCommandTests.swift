@@ -80,7 +80,7 @@ import Testing
     let definition = try #require(
       fixture.system.registry.definition(for: CommandID("agent.exportMarkdown"), at: fixture.path))
 
-    #expect(AgentAttachmentCommandsTests.staticText(of: definition.title) == Self.title)
+    #expect(CommandTestSupport.staticText(of: definition.title) == Self.title)
   }
 
   @Test func theVerbIsInTheThreadGroupOfTheSessionMenuAfterCopyThread() throws {

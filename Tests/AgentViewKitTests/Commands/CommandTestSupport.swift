@@ -12,6 +12,14 @@ import Testing
   /// The prefix of each command id of the kit.
   static let kitPrefix = "agent."
 
+  /// The text of a static title.
+  ///
+  /// - Parameter title: The title of a definition.
+  /// - Returns: The text, or `nil` when the title is not static.
+  static func staticText(of title: CommandTitle) -> String? {
+    if case .static(let text) = title { text } else { nil }
+  }
+
   /// The availability of the command `id` at `path`, as the surfaces of
   /// EditorKit read it.
   ///

@@ -83,6 +83,49 @@ comments:
     - note: the only warning is "missing creator for mutated node" for the mlx-swift_Cmlx bundle. It comes from the build system and not from this change.
     - next: review.
   timestamp: 2026-11-18T23:24:53.997329+00:00
+- actor: claude-code
+  id: 01m7rfw92emcvgp16q8et4a22y
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (497a1d5a); 5 findings (5 confirmed, 3 refuted). Tests/AgentViewKitTests/Commands/AgentCommandPresentationTests.swift:31, Tests/AgentViewKitTests/Commands/AgentCommandPresentationTests.swift:70, Tests/AgentViewKitTests/Commands/AgentScopeAnchorTests.swift:39, Tests/AgentViewKitTests/Commands/AgentScopeAnchorTests.swift:53, Tests/AgentViewKitTests/Commands/AgentScopeAnchorTests.swift:82. The 5 findings of 2026-11-18 12:29 are all checked.
+    - next: implement the 5 open items of the section "Review Findings (2026-11-18 17:25)". The task stays in review.
+  timestamp: 2026-11-18T23:29:09.710345+00:00
+- actor: claude-code
+  id: 01m7rfwt4w7hsn2jvkq89p0gvs
+  text: |-
+    ### finish iteration 2 — findings
+    - implement: changed — 17 files (AgentCommandPresentation, AgentScopeAnchor, docs, CommandTestSupport)
+    - test: green — swift test, 1388 tests in 163 suites + 54 tests in 11 suites passed
+    - commit: 497a1d5a
+    - review: findings — AgentCommandPresentationTests.swift:31, AgentCommandPresentationTests.swift:70, AgentScopeAnchorTests.swift:39, AgentScopeAnchorTests.swift:53, AgentScopeAnchorTests.swift:82
+  timestamp: 2026-11-18T23:29:27.196334+00:00
+- actor: claude-code
+  id: 01m7rgbf19wtgvxdf2d7vm9bv5
+  text: |-
+    Review findings (2026-11-18 17:25) done:
+    1. AgentCommandPresentationTests: `makePresentation` starts from `SideCardVerb.closeSideCard.presentation` and sets only `key` and `buttonTitle`. These two fields of `AgentCommandPresentation` are `var`, so `SideCardVerb.presentation` needs no new parameters. The literal title "Close" is gone; the tests compare with the title of the presentation.
+    2. `staticText(of:)` moved from AgentAttachmentCommandsTests to `CommandTestSupport.staticText(of:)`. All callers use it: AgentCommandPresentationTests, AgentAttachmentCommandsTests, ForkFromHereCommandTests, ExportMarkdownCommandTests.
+    3. AgentScopeAnchorTests shows `SideCardMount` (its body is the `AgentScopeAnchor`), so the anchor uses the production write and register steps. No injected closure is left. The tests assert the question and the session that the production write copies from the values.
+    4. New `StyleViewHost.layOut(_ hosting: NSHostingView<some View>)` in Sources/AgentViewKitTestSupport/StyleViewHost.swift. `StyleViewHost.layOut(_ view:)` calls it, and `Fixture.show` calls it on its one hosting view.
+    5. The removal test expects the registered ids after the mount, before the removal.
+    Discovery: the line of AgentAttachmentCommandsTests with the button title became too long after the move; it is now two lines, so the LineLength count is the same as at HEAD.
+  timestamp: 2026-11-18T23:37:27.337320+00:00
+- actor: claude-code
+  id: 01m7rgbj2x2jed86pm4qqpewcw
+  text: |-
+    ### implement — changed
+    - evidence: `swift test` at the root: 1389 tests in 163 suites passed, and 54 tests in 11 suites passed. `swift build --build-tests` in IntegrationTests/ and ScreenshotTests/: Build complete (not run). `swift format lint -s` on each changed file: no new finding versus HEAD. Files: Sources/AgentViewKitTestSupport/StyleViewHost.swift, Tests/AgentViewKitTests/Commands/{AgentScopeAnchorTests, AgentCommandPresentationTests, CommandTestSupport, AgentAttachmentCommandsTests, ForkFromHereCommandTests, ExportMarkdownCommandTests}.swift. All 5 findings of 2026-11-18 17:25 checked. No test waits, shows a window or takes the focus.
+    - next: review
+  timestamp: 2026-11-18T23:37:30.461956+00:00
+- actor: claude-code
+  id: 01m7rgfwghbnyh55e86q81hj0k
+  text: |-
+    ### test — green
+    - evidence: `swift test` at package root. Log lines: "Test run with 1389 tests in 163 suites passed after 31.057 seconds." and "Test run with 54 tests in 11 suites passed after 0.013 seconds." No failure, no skip, no code warning. The only warning is a build tool note about the mlx bundle (not from this task).
+    - `swift format lint -s` on the 7 changed Swift files: no new finding against HEAD. AgentAttachmentCommandsTests.swift and ForkFromHereCommandTests.swift have 21 findings each, and HEAD has the same 21.
+    - `swift build --build-tests` in IntegrationTests and in ScreenshotTests: both build complete. Not run.
+    - next: review
+  timestamp: 2026-11-18T23:39:52.209432+00:00
 position_column: doing
 position_ordinal: '80'
 title: SideQuestionCard and the .sideCards slot of the thread view for /btw (D205)
@@ -118,3 +161,16 @@ Push when `swift test` is green, and send the sha to testudoapp-9a.
 - [x] `Sources/AgentViewKit/Thread/SideQuestionCard.swift:98` `code-hygiene/missing-docs-swift` — AllPublicDeclarationsHaveDocumentation: add a documentation comment for 'body'.
 - [x] `Tests/AgentViewKitTests/Commands/SideCardCommandsTests.swift:135` `reuse/reuse` — The new `availability(of:in:)` helper repeats the same lookup as `ForkFromHereCommandTests.availability(at:in:)`: find the row by verb id in `eligible(path:)`, then map `isEnabled` to `.available` or `.unavailable(reason:)`. Two copies of one test helper will drift apart. Move one shared helper into a common test file, taking a `CommandRegistry`, a `FocusPath`, and a `CommandID` (not a fixture type), and call it from both suites. Then delete the copy in SideCardCommandsTests.swift.
 - [x] `Tests/AgentViewKitTests/Commands/SideCardCommandsTests.swift:148` `reuse/reuse` — The kit-prefix check repeats in each verb test suite. The test that checks each verb id is `agent.<rawValue>` is a copy of the same assertion in other suites, so the rule for the kit prefix is not kept in one place. Add one helper that takes a sequence of verb ids and their raw values and asserts the `agent.` prefix, then call it from each verb suite. Keep each suite's own title assertion, since the titles differ per verb.
+
+## Review Findings (2026-11-18 17:25)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 16 file(s) reviewed, 4 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+- [x] `Tests/AgentViewKitTests/Commands/AgentCommandPresentationTests.swift:31` `reuse/reuse` — makePresentation rebuilds the presentation of the Close verb field by field. SideCardVerb.presentation already builds it, but it does not take a key or a button title, so the test copies it and adds those two values. Give SideCardVerb.presentation optional buttonTitle and key parameters with nil defaults, then build the test presentation from it with `.closeSideCard.presentation`, changing only the parameters the test sets.
+- [x] `Tests/AgentViewKitTests/Commands/AgentCommandPresentationTests.swift:70` `reuse/reuse` — The same cross-suite call to AgentAttachmentCommandsTests.staticText(of:) appears again to read the button title. The helper should live in the shared test support, not in the attachment suite. Use the moved CommandTestSupport.staticText(of:) helper here, as in the fix for line 62.
+- [x] `Tests/AgentViewKitTests/Commands/AgentScopeAnchorTests.swift:39` `test-integrity/no-hard-code` — The injected `write` closure writes the literal `AgentScopeAnchorTests.question` into the target. The test then asserts that the target holds that same literal, so the assertion matches the stub's constant instead of a value the anchor computes. This is the stub-returns-expected-value pattern that the rule forbids, and it means the test cannot fail for a wrong write. Remove the `write` override so the anchor uses its production write. Assert on the value the production write computes from the target's state. If a seam is needed, make the injected closure compute a value from its input and assert that the output depends on that input.
+- [x] `Tests/AgentViewKitTests/Commands/AgentScopeAnchorTests.swift:53` `reuse/reuse` — Fixture.show re-implements the sizing and layout code that already exists in StyleViewHost.layOut. StyleViewHost's doc comment says the unit tests use that one helper and keep no copy of the sizing code. The new copy sets the frame from fittingSize and calls layoutSubtreeIfNeeded, the same steps as layOut. The copy adds a second place to maintain the same behavior. The helper cannot be called as is, because layOut builds a new NSHostingView each time, and show must reuse one hosting view so the anchor can mount, update and dismantle. So the near-match should be extended, not copied. Add a StyleViewHost function that lays out a given NSHostingView<AnyView> (for example layOut(_ hosting: NSHostingView<AnyView>, with view: some View)), and make StyleViewHost.layOut call it. Then have Fixture.show call the shared function on its persistent hosting view, and import AgentViewKitTestSupport in this file.
+- [x] `Tests/AgentViewKitTests/Commands/AgentScopeAnchorTests.swift:82` `test-integrity/no-test-cheating` — The removal test never checks that the commands were registered before the anchor went away. If the anchor never registers anything, `registeredIDs.isEmpty` still passes, so the test cannot fail for a broken removal path. This makes the assertion trivial. Add `#expect(fixture.registeredIDs == Set(SideCardVerb.allCases.map(\.id)))` after the mount and before the removal. Keep the emptiness check after the removal so the test proves that the removal clears the registered commands.

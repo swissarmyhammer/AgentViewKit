@@ -11,14 +11,12 @@ import Testing
 /// Each test makes a definition with no registry and no view. No test waits,
 /// and no test shows a window.
 @MainActor struct AgentCommandPresentationTests {
-  /// The title of the presentation of the tests.
-  static let title = "Close"
-
   /// The button title of the presentation of the tests.
   static let buttonTitle = "Close Card"
 
-  /// Makes the presentation of the Close verb of a side card, with `key`
-  /// and `buttonTitle`.
+  /// Makes the presentation of the Close verb of a side card
+  /// (``SideCardVerb/presentation``), with `key` and `buttonTitle` in place
+  /// of the key and the button title of the verb.
   ///
   /// - Parameters:
   ///   - key: The key of the presentation, or `nil`.
@@ -27,10 +25,10 @@ import Testing
   static func makePresentation(
     key: KeyChord? = nil, buttonTitle: String? = nil
   ) -> AgentCommandPresentation {
-    let verb = SideCardVerb.closeSideCard
-    return AgentCommandPresentation(
-      id: verb.id, title: title, buttonTitle: buttonTitle, icon: verb.icon, menu: verb.menu,
-      contextMenu: verb.contextMenu, key: key)
+    var presentation = SideCardVerb.closeSideCard.presentation
+    presentation.key = key
+    presentation.buttonTitle = buttonTitle
+    return presentation
   }
 
   /// Makes a definition of `presentation` whose command is a Close command
@@ -56,10 +54,12 @@ import Testing
   }
 
   @Test func theDefinitionHasTheIdAndTheTitleOfThePresentation() {
-    let definition = Self.makeDefinition(Self.makePresentation(), for: SideCardTarget())
+    let presentation = Self.makePresentation()
 
-    #expect(definition.id == SideCardVerb.closeSideCard.id)
-    #expect(AgentAttachmentCommandsTests.staticText(of: definition.title) == Self.title)
+    let definition = Self.makeDefinition(presentation, for: SideCardTarget())
+
+    #expect(definition.id == presentation.id)
+    #expect(CommandTestSupport.staticText(of: definition.title) == presentation.title)
   }
 
   @Test func theDefinitionHasTheButtonTitleOfThePresentation() {
@@ -67,7 +67,7 @@ import Testing
 
     let definition = Self.makeDefinition(presentation, for: SideCardTarget())
 
-    let buttonTitle = definition.buttonTitle.flatMap(AgentAttachmentCommandsTests.staticText(of:))
+    let buttonTitle = definition.buttonTitle.flatMap(CommandTestSupport.staticText(of:))
     #expect(buttonTitle == Self.buttonTitle)
   }
 

@@ -79,14 +79,6 @@ import Testing
     return Fixture(target: target, service: service, registry: registry, path: path, inspected: inspected)
   }
 
-  /// The text of a static title.
-  ///
-  /// - Parameter title: The title of a definition.
-  /// - Returns: The text, or `nil` when the title is not static.
-  static func staticText(of title: CommandTitle) -> String? {
-    if case .static(let text) = title { text } else { nil }
-  }
-
   // MARK: - Verbs
 
   @Test func eachVerbHasTheKitPrefixAndATitle() {
@@ -135,7 +127,7 @@ import Testing
 
     for verb in AgentAttachmentVerb.allCases {
       let definition = try #require(fixture.registry.definition(for: verb.id, at: fixture.path))
-      #expect(Self.staticText(of: definition.title) == verb.title, "\(verb)")
+      #expect(CommandTestSupport.staticText(of: definition.title) == verb.title, "\(verb)")
       #expect(definition.icon == verb.icon, "\(verb)")
       #expect(definition.menu == verb.menu, "\(verb)")
       #expect(definition.contextMenu == verb.contextMenu, "\(verb)")
@@ -152,7 +144,8 @@ import Testing
 
     for verb in AgentAttachmentVerb.allCases {
       let definition = try #require(fixture.registry.definition(for: verb.id, at: fixture.path))
-      #expect(definition.buttonTitle.flatMap(Self.staticText) == verb.buttonTitle, "\(verb)")
+      let buttonTitle = definition.buttonTitle.flatMap(CommandTestSupport.staticText(of:))
+      #expect(buttonTitle == verb.buttonTitle, "\(verb)")
     }
   }
 
