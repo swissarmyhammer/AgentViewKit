@@ -74,8 +74,24 @@ comments:
     - note: the only build warning is "missing creator for mutated node" for the mlx-swift_Cmlx bundle. It comes from the build system, not from this change.
     - next: review
   timestamp: 2026-11-18T17:14:14.604135+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m7qth17200gxhg2e7a2hc7nv
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (9b81ed35): 0 findings, 0 confirmed, 0 refuted. 5 files reviewed. The 2 earlier findings (2026-11-18 11:00) are checked.
+    - next: none. The task is in done.
+  timestamp: 2026-11-18T17:16:01.122773+00:00
+- actor: claude-code
+  id: 01m7qthdgs2h9xnq8c3cdmxn5v
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — RightPress.swift (new), ReadOnlyEditorTextMenuTests.swift, 3 IntegrationTests files
+    - test: green — swift test, 1320 tests in 157 suites passed; IntegrationTests and ScreenshotTests compile
+    - commit: 9b81ed35
+    - review: clean — 0 findings, 2 earlier findings checked
+  timestamp: 2026-11-18T17:16:13.721435+00:00
+position_column: done
+position_ordinal: fffffff380
 title: Right click on answer text shows the item menu, not the AppKit text menu (D108, D193 f)
 ---
 Bug report from testudoapp-9a (IntegrationTests ChatContextMenuHostedTests in TestudoApp, now a known issue there).
