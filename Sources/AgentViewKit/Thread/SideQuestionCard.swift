@@ -28,7 +28,8 @@ import SwiftUI
 ///   card also runs Close.
 ///
 /// When the fork needs input (a pending permission request or a pending
-/// elicitation), the card shows "Needs input" and the Open button only.
+/// elicitation), the card shows "Needs input" and the Open and Close buttons.
+/// The user can always dismiss a side question.
 /// When the host turns off ``AgentCommandGroup/sideCard``, the card shows no
 /// button, as an attachment does with its group off.
 ///
@@ -246,10 +247,10 @@ extension SideQuestionCard {
   /// The verbs whose buttons a card shows, in order.
   ///
   /// - Parameter needsInput: Whether the fork needs input.
-  /// - Returns: Open alone while the fork needs input, else Send to Chat,
-  ///   Open and Close.
+  /// - Returns: Open and Close while the fork needs input, else Send to
+  ///   Chat, Open and Close.
   static func verbs(needsInput: Bool) -> [SideCardVerb] {
-    needsInput ? [.openSideCard] : SideCardVerb.allCases
+    needsInput ? [.openSideCard, .closeSideCard] : SideCardVerb.allCases
   }
 
   /// The id of the model of the response of `entry`, unique in the thread

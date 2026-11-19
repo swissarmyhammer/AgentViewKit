@@ -101,8 +101,8 @@ import Testing
     #expect(SideQuestionCard.needsInputText == "Needs input")
   }
 
-  @Test func aCardThatNeedsInputShowsTheOpenButtonOnly() {
-    #expect(SideQuestionCard.verbs(needsInput: true) == [.openSideCard])
+  @Test func aCardThatNeedsInputShowsOpenAndClose() {
+    #expect(SideQuestionCard.verbs(needsInput: true) == [.openSideCard, .closeSideCard])
   }
 
   @Test func aCardThatNeedsNoInputShowsSendToChatOpenAndClose() {

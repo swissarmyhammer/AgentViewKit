@@ -189,7 +189,7 @@ import Testing
 
   /// The side card of a fork that waits for a permission (the preview
   /// sample, with one pending permission request): "Needs input" and the
-  /// Open button only.
+  /// Open and Close buttons.
   @Test func theSideCardThatNeedsInput() async throws {
     try await Self.generate(
       Self.sideCard(of: .previewSample), named: "side-card-needs-input", size: Self.sideCardSize)

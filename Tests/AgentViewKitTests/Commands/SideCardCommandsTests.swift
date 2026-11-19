@@ -209,6 +209,16 @@ import Testing
     #expect(resolved == .command(SideCardVerb.closeSideCard.id, scope: fixture.path))
   }
 
+  /// Escape closes a focused card also while its fork needs input.
+  @Test func escapeOnAFocusedCardRunsCloseWhileTheForkNeedsInput() throws {
+    let fixture = Self.makeFixture(fork: try Self.forkThatNeedsInput())
+
+    let resolved = fixture.registry.resolveKey(
+      KeyChord.escape.asSequence, mode: .cua, at: fixture.path)
+
+    #expect(resolved == .command(SideCardVerb.closeSideCard.id, scope: fixture.path))
+  }
+
   // MARK: - Runs
 
   @Test func sendToChatInsertsTheTextInTheComposerOfTheThreadWithNoSend() {
@@ -274,22 +284,37 @@ import Testing
         == .unavailable(reason: "The side question has no answer yet."))
   }
 
-  @Test func sendToChatAndCloseAreNotAvailableWhileTheForkNeedsInput() throws {
-    let fork = SessionModel.preview(
-      transcript: [.user(Self.question)],
-      pendingElicitations: [try SideQuestionCardTests.elicitation])
-    let fixture = Self.makeFixture(fork: fork)
-    let reason = Availability.unavailable(
-      reason: "The side question needs input. Open it to answer.")
+  @Test func sendToChatIsNotAvailableWhileTheForkNeedsInput() throws {
+    let fixture = Self.makeFixture(fork: try Self.forkThatNeedsInput())
 
     #expect(
       try CommandTestSupport.availability(
-        of: SideCardVerb.sendSideCardToChat.id, at: fixture.path, in: fixture.registry) == reason)
+        of: SideCardVerb.sendSideCardToChat.id, at: fixture.path, in: fixture.registry)
+        == .unavailable(reason: "The side question needs input. Open it to answer."))
+  }
+
+  /// The user can always dismiss a side question, also while its fork waits
+  /// for an answer.
+  @Test func closeIsAvailableWhileTheForkNeedsInput() throws {
+    let fixture = Self.makeFixture(fork: try Self.forkThatNeedsInput())
+
     #expect(
       try CommandTestSupport.availability(
-        of: SideCardVerb.closeSideCard.id, at: fixture.path, in: fixture.registry) == reason)
+        of: SideCardVerb.closeSideCard.id, at: fixture.path, in: fixture.registry) == .available)
+  }
+
+  @Test func openIsAvailableWhileTheForkNeedsInput() throws {
+    let fixture = Self.makeFixture(fork: try Self.forkThatNeedsInput())
+
     #expect(
       try CommandTestSupport.availability(
         of: SideCardVerb.openSideCard.id, at: fixture.path, in: fixture.registry) == .available)
+  }
+
+  /// A fork with the question and one pending elicitation.
+  static func forkThatNeedsInput() throws -> SessionModel {
+    SessionModel.preview(
+      transcript: [.user(Self.question)],
+      pendingElicitations: [try SideQuestionCardTests.elicitation])
   }
 }

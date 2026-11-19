@@ -16,8 +16,9 @@ import FoundationModelsACPClient
 /// thread, whose Escape stops the agent.
 ///
 /// While the fork needs input (a pending permission request or a pending
-/// elicitation), only Open is available: the user answers the fork in its own
-/// thread.
+/// elicitation), Send to Chat is not available: the user answers the fork in
+/// its own thread. Open and Close stay available, so the user can always
+/// dismiss a side question, and Escape on a focused card runs Close.
 public nonisolated enum SideCardVerb: String, CaseIterable, Sendable {
   /// Puts the question and the answer into the composer of the thread, at
   /// the caret, with no send. A host action of the card can take the text
@@ -201,13 +202,13 @@ final class SideCardTarget {
   /// Tells if `verb` can run now, with the reason when it cannot.
   ///
   /// - Parameter verb: The verb.
-  /// - Returns: `.unavailable` with no fork; for Send to Chat and Close while
-  ///   the fork needs input; for Send to Chat with no answer, or with no
-  ///   host action and no composer. Otherwise `.available`.
+  /// - Returns: `.unavailable` with no fork; for Send to Chat while the fork
+  ///   needs input, with no answer, or with no host action and no composer.
+  ///   Otherwise `.available`.
   func availability(of verb: SideCardVerb) -> Availability {
     guard let session else { return .sideCardNotShown }
-    if verb != .openSideCard, SideQuestionCard.needsInput(session) { return .sideCardNeedsInput }
     guard verb == .sendSideCardToChat else { return .available }
+    guard !SideQuestionCard.needsInput(session) else { return .sideCardNeedsInput }
     guard chatText != nil else { return .sideCardHasNoAnswer }
     guard hostSend != nil || thread?.composer != nil else { return .sideCardHasNoComposer }
     return .available
@@ -257,7 +258,7 @@ nonisolated extension Availability {
     .unavailable(reason: String(localized: "The side question is not shown.", bundle: .module))
   }
 
-  /// The availability of Send to Chat and Close while the fork needs input.
+  /// The availability of Send to Chat while the fork needs input.
   static var sideCardNeedsInput: Availability {
     .unavailable(
       reason: String(
