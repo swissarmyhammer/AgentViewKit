@@ -23,15 +23,17 @@ nonisolated struct TranscriptSearchMark: Hashable {
   /// The find highlight of the mark in a SwiftUI view, such as the title of
   /// a tool call or the background of a whole entry.
   ///
-  /// The color is the same color that EditorKit paints on the find marks
-  /// in an editor (`HighlightStyle`), so all the search marks agree (D110
-  /// (e)). The current hit gets the stronger color.
+  /// The color comes from EditorKit (`HighlightStyle`), which also paints the
+  /// find marks in an editor, so all the search marks agree (D110 (e)). The
+  /// current hit uses `SearchDecorations.currentMatchStyle` and gets the
+  /// stronger color. Each other hit uses `SearchDecorations.matchStyle`.
   ///
   /// - Parameter theme: The EditorKit theme of the view.
-  /// - Returns: `theme.findCurrentMatchBackground` for the current hit, and
-  ///   `theme.findMatchBackground` for each other hit.
+  /// - Returns: The background of the search style of the hit, or `.clear`
+  ///   when EditorKit gives no background for the style.
   func highlight(in theme: any Theme) -> Color {
-    isCurrent ? theme.findCurrentMatchBackground : theme.findMatchBackground
+    let style = isCurrent ? SearchDecorations.currentMatchStyle : SearchDecorations.matchStyle
+    return HighlightStyle.resolvedAttributes(for: style, theme: theme).backgroundColor ?? .clear
   }
 }
 
