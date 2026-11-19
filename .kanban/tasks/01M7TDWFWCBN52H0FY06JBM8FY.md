@@ -19,8 +19,24 @@ comments:
     - not done (by order of the dispatcher): push, and the send of the sha to testudoapp-9a. These come after commit.
     - next: review
   timestamp: 2026-11-19T17:38:24.736716+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m7teamadkxnqnsjbw3fg1hhb
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (90002dfb). 0 findings (findings 0, confirmed 0, refuted 0; 7 attempted, 0 failed). 6 files reviewed. The .kanban files are ignored. No validator matches ARCHITECTURE.md.
+    - next: none. The task is in done.
+  timestamp: 2026-11-19T17:40:31.693453+00:00
+- actor: claude-code
+  id: 01m7teaz41s9y2js7abmrjmk44
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — SideCards.swift, TranscriptSearchHits.swift (now View extensions), doc links, ARCHITECTURE.md, ThreadSlotChainTests.swift (new)
+    - test: green — swift test, 1524 tests in 174 suites + 54 tests in 11 suites passed (run by the implement step after its edits); no lint count above HEAD
+    - commit: 90002dfb
+    - review: clean — 0 findings
+  timestamp: 2026-11-19T17:40:42.753011+00:00
+position_column: done
+position_ordinal: ffffffff8680
 title: sideCards and transcriptSearchHits can chain on one AgentThreadView (D205, D207)
 ---
 Request from testudoapp-9a (2026-11-19).
