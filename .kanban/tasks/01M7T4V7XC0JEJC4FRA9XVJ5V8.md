@@ -37,6 +37,12 @@ comments:
     - implement: stuck — no source change. The ACPClient SessionModel changes no observed value when an echo links to its local message (`transcriptEntriesByWireID` is @ObservationIgnored, and an echo with the same text changes no field). AVK has no certain signal.
     - Blocked: the request for an observable `wireLinkRevision` (or a similar value) went to foundationmodelsacpclient-1d on 2026-11-19. Restart the task when that sha is on ACPClient main.
   timestamp: 2026-11-19T15:10:57.469906+00:00
+- actor: claude-code
+  id: 01m7t5ssbkvgbmc9p9gffssjhy
+  text: |-
+    foundationmodelsacpclient-1d will not add a revision counter. Instead, each transcript entry gets an observed `wireID: SessionEntry.ID?` (on `ObservableTranscriptEntry`): a wire entry has its engine id from its start; a local user message has nil and gets the id of its echo when `linkPrompt` links it (also for an echo with the same text); a failed replay sets it back; a streamed token does not change it. ACPClient task: "Each transcript entry shows its wire id as observable state" (tag d207). AVK accepted it (2026-11-19).
+    Plan when the sha is on ACPClient main: update the pin; in TranscriptSearchDriver, compute the resolved state of each hit in the body with `session.transcript.first { $0.wireID == hitID }`, and add one onChange on that derived value, so the link triggers the reveal; TDD unit test: hits that come before the echo of their prompt reveal and mark the local message when the echo links, with no new entry. Still blocked until the sha arrives.
+  timestamp: 2026-11-19T15:11:31.187733+00:00
 position_column: doing
 position_ordinal: '8180'
 title: Search hits look up again when a prompt echo links to its local message (D207 f)
