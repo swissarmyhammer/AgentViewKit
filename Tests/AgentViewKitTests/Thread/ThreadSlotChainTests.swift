@@ -16,24 +16,33 @@ import Testing
 /// hits. The side card of the order tests also keeps the command target of
 /// the thread, which is unavailable only when the thread took the message.
 @MainActor @Suite struct ThreadSlotChainTests {
-  /// The search of the thread that the probe card sees.
-  @MainActor final class SeenSearch {
+  /// The parts of the thread that the probe card sees.
+  @MainActor final class SeenScope {
     /// The search of the thread, or `nil` before the card shows.
     var search: TranscriptSearch?
+    /// The command target of the thread, or `nil` before the card shows.
+    var target: AgentCommandTarget?
   }
 
-  /// A side card that keeps the search of the thread that shows it.
+  /// A side card that keeps the search and the command target of the
+  /// thread that shows it.
   struct ProbeCard: View {
-    /// The box that gets the search of the thread.
-    let seen: SeenSearch
+    /// The box that gets the parts of the thread.
+    let seen: SeenScope
 
     /// The search of the thread that shows the card.
     @Environment(\.transcriptSearch) private var search
+
+    /// The command target of the thread that shows the card.
+    @Environment(\.agentCommandTarget) private var target
 
     var body: some View {
       Color.clear
         .onChange(of: search.map(ObjectIdentifier.init), initial: true) {
           seen.search = search
+        }
+        .onChange(of: target.map(ObjectIdentifier.init), initial: true) {
+          seen.target = target
         }
     }
   }
@@ -53,7 +62,7 @@ import Testing
   /// a view that does not have the other method, so this test does not
   /// compile, or the thread drops the cards or the hits.
   @Test func aThreadWithTheSideCardsThenTheHitsShowsTheCardsAndTakesTheHits() {
-    let seen = SeenSearch()
+    let seen = SeenScope()
 
     StyleViewHost.layOut(
       AgentThreadView(session: Self.session()) { EmptyView() }
@@ -68,7 +77,7 @@ import Testing
   /// a view that does not have the other method, so this test does not
   /// compile, or the thread drops the cards or the hits.
   @Test func aThreadWithTheHitsThenTheSideCardsShowsTheCardsAndTakesTheHits() {
-    let seen = SeenSearch()
+    let seen = SeenScope()
 
     StyleViewHost.layOut(
       AgentThreadView(session: Self.session()) { EmptyView() }
@@ -91,37 +100,6 @@ import Testing
     case sideCards
     /// ``SwiftUI/View/transcriptSearchHits(_:)``.
     case hits
-  }
-
-  /// The parts of the thread that the probe card of an order test sees.
-  @MainActor final class SeenScope {
-    /// The search of the thread, or `nil` before the card shows.
-    var search: TranscriptSearch?
-    /// The command target of the thread, or `nil` before the card shows.
-    var target: AgentCommandTarget?
-  }
-
-  /// A side card that keeps the search and the command target of the
-  /// thread that shows it.
-  struct ScopeProbeCard: View {
-    /// The box that gets the parts of the thread.
-    let seen: SeenScope
-
-    /// The search of the thread that shows the card.
-    @Environment(\.transcriptSearch) private var search
-
-    /// The command target of the thread that shows the card.
-    @Environment(\.agentCommandTarget) private var target
-
-    var body: some View {
-      Color.clear
-        .onChange(of: search.map(ObjectIdentifier.init), initial: true) {
-          seen.search = search
-        }
-        .onChange(of: target.map(ObjectIdentifier.init), initial: true) {
-          seen.target = target
-        }
-    }
   }
 
   /// The probes of one order test.
@@ -160,7 +138,7 @@ import Testing
     switch slot {
     case .header: AnyView(view.threadHeader { SlotProbe(record: probes.header) })
     case .unavailable: AnyView(view.threadUnavailable(ThreadUnavailableTests.message))
-    case .sideCards: AnyView(view.sideCards { ScopeProbeCard(seen: probes.seen) })
+    case .sideCards: AnyView(view.sideCards { ProbeCard(seen: probes.seen) })
     case .hits: AnyView(view.transcriptSearchHits(.constant(TranscriptSearchHits([]))))
     }
   }

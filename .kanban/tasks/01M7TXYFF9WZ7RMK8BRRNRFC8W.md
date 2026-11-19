@@ -30,6 +30,31 @@ comments:
     - evidence: `swift test`: "Test run with 1547 tests in 177 suites passed" and "Test run with 54 tests in 11 suites passed". `swift build --build-tests` in ScreenshotTests and IntegrationTests: Build complete, no warning. `swift format lint -s`: new files 0 errors; changed files equal to HEAD.
     - next: review
   timestamp: 2026-11-19T23:47:49.389545+00:00
+- actor: claude-code
+  id: 01m7v3jwewtxayfdgmx4k8cpjb
+  text: |-
+    ### review — findings
+    - evidence: `review sha HEAD~1..HEAD` (869873ff). 1 finding, 1 confirmed, 0 refuted. Tests/AgentViewKitTests/Thread/ThreadSlotChainTests.swift:106 (reuse/reuse: ScopeProbeCard is a near-copy of ProbeCard).
+    - next: Implement the finding. Then run `swift test` (unit suite only) and review again. The task stays in review.
+  timestamp: 2026-11-19T23:52:02.268295+00:00
+- actor: claude-code
+  id: 01m7v3kjwkxh1sgpgsrtzrzq16
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — ThreadHeader.swift and ThreadUnavailable.swift (new), AgentThreadView, AgentCommandGroup (readsSessionText), AgentCommandScope, AgentCommandTarget, Localizable.xcstrings, unit tests, ScreenshotTests snapshots (not run), ARCHITECTURE.md
+    - test: green — swift test, 1547 tests in 177 suites + 54 tests in 11 suites passed (run by the implement step after its edits)
+    - commit: 869873ff
+    - review: findings — ThreadSlotChainTests.swift:106 (ScopeProbeCard copies ProbeCard)
+  timestamp: 2026-11-19T23:52:25.235199+00:00
+- actor: claude-code
+  id: 01m7v3r7n36fyzhzcn2dzsg14q
+  text: |-
+    ### implement — changed
+    - The file ThreadSlotChainTests.swift now has one probe. ProbeCard fills a SeenScope with the search and the command target. SeenSearch and ScopeProbeCard are deleted. The search-only tests and the order tests use ProbeCard.
+    - SlotProbe.swift, ThreadHeaderTests.swift and ThreadUnavailableTests.swift have no copy of this probe.
+    - evidence: `swift format lint -s` gives 0 findings. `swift test`: "Test run with 1547 tests in 177 suites passed", "Test run with 54 tests in 11 suites passed".
+    - next: review.
+  timestamp: 2026-11-19T23:54:57.571387+00:00
 depends_on:
 - 01M7TXYBHYBWSSF13012HB20S8
 position_column: doing
@@ -46,3 +71,16 @@ Do:
 Tests (unit, no window): the header slot shows the host view; the unavailable state shows its text and hides the transcript; nil shows the transcript. A screenshot test of the read-only chat with the header, in light and dark (ScreenshotTests: compile only, do not run; give the PNG paths).
 
 Push when `swift test` is green, and send the sha to testudoapp-9a.
+
+## Review Findings (2026-11-19 17:48)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 14 file(s) reviewed, 6 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+> 2 file(s) not reviewed — no validator matched:
+> - `ARCHITECTURE.md` — no validator matches this file
+> - `Sources/AgentViewKit/Resources/Localizable.xcstrings` — no validator matches this file
+
+- [x] `Tests/AgentViewKitTests/Thread/ThreadSlotChainTests.swift:106` `reuse/reuse` — The new struct ScopeProbeCard is a near-copy of the existing ProbeCard (line 26). Both keep the search of the thread with the same onChange body. ScopeProbeCard only adds the command target. The right change was to extend ProbeCard, or to parameterize it, so one probe serves both uses. A second copy can diverge from the first. Give ProbeCard an optional target box, or make one probe that fills a SeenScope with both search and target. Use that one card in the search-only tests and in the order tests. Delete ScopeProbeCard.
