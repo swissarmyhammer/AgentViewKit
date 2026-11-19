@@ -66,8 +66,24 @@ comments:
     - evidence: Sources/AgentViewKit/Thread/TranscriptSearchHits.swift — the slot doc now points to ``TranscriptSearch`` for the lookup rule. The full rule stays only in the TranscriptSearch type doc. No other copy in TranscriptSearch*.swift. swift format lint -s: 0 findings. swift test: 54 tests in 11 suites passed, 0 failures.
     - next: review
   timestamp: 2026-11-19T15:02:30.780638+00:00
-position_column: doing
-position_ordinal: '8180'
+- actor: claude-code
+  id: 01m7t5f00g697m608jzmrmy8q0
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (9133a042). 0 findings, 0 confirmed, 0 refuted, 7 attempted, 0 failed. 1 file reviewed (Sources/AgentViewKit/Thread/TranscriptSearchHits.swift). 2 .kanban files excluded by .reviewignore. The earlier finding (TranscriptSearchHits.swift:62 duplication/duplication) has a check mark.
+    - next: none. The task is in done.
+  timestamp: 2026-11-19T15:05:37.552964+00:00
+- actor: claude-code
+  id: 01m7t5fc2ey80b1ry81kxntjmv
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — TranscriptSearchHits.swift (one statement of the lookup rule)
+    - test: green — swift test, 1500 tests in 171 suites + 54 tests in 11 suites passed (run by the orchestrator)
+    - commit: 9133a042
+    - review: clean — 0 findings, 1 earlier finding checked
+  timestamp: 2026-11-19T15:05:49.902885+00:00
+position_column: done
+position_ordinal: ffffffff8180
 title: Search hits use SessionModel.entry(forWireID:) of ACPClient (D207 f)
 ---
 Follow-up of ^yxxnx1f. FoundationModelsACPClient D207 is on main: 12989da, 4be1081, e8b91e4 (kanban 6159db6), from foundationmodelsacpclient-1d.
