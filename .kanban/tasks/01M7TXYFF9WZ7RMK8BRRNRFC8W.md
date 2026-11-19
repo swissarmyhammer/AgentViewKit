@@ -1,6 +1,11 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m7ty00e64xrtdxec6pwrh1wa
+  text: 'API approved by testudoapp-9a (2026-11-19): `View.threadHeader { }` and `View.threadUnavailable(_ message: String?)`, both environment values that chain with sideCards and transcriptSearchHits. (a) In the unavailable state, the read verbs (Copy Thread, Export as Markdown…, Find Next Hit, Find Previous Hit, Clear Search Hits) are not available, with the reason "The session is not available.". (b) A String is enough; the actions there (for example Remove from Shared with Me) are app commands in the palette and the menus (D108), not buttons in the message. Still waits for the ACPClient D208 sha (through the read-only task).'
+  timestamp: 2026-11-19T22:14:20.870537+00:00
 depends_on:
 - 01M7TXYBHYBWSSF13012HB20S8
 position_column: todo

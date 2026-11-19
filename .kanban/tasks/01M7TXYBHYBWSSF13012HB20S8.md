@@ -1,6 +1,11 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m7ty0228b6drersrrrzn6j57
+  text: 'API approved by testudoapp-9a (2026-11-19): AVK reads `session.isReadOnly`; the change verbs are absent from the registry (no disabled rows); the read verbs stay; a replace keeps the scroll position. Still blocked until foundationmodelsacpclient-1d sends the D208 sha (read-only SessionModel, isReadOnly, replace(with:)).'
+  timestamp: 2026-11-19T22:14:22.536021+00:00
 position_column: todo
 position_ordinal: '80'
 title: 'Read-only thread for a shared session: no composer and no change verbs (D208 i)'
