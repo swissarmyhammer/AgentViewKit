@@ -23,8 +23,24 @@ comments:
     - evidence: `swift test` at package root. "Test run with 1395 tests in 164 suites passed after 28.056 seconds." and "Test run with 54 tests in 11 suites passed after 0.012 seconds." `swift build --build-tests` in ScreenshotTests: Build complete. `swift format lint -s` on the 5 changed Swift files: 0 findings.
     - next: review. IntegrationTests and ScreenshotTests were not run (they take the screen focus).
   timestamp: 2026-11-19T00:21:54.730950+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m7rk17wwdhkqqycxdzge9748
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (a0810719). 0 findings, 0 confirmed, 0 refuted. 7 pairs attempted, 0 failed. The engine reviewed 5 files. It did not review 2 .kanban files (ignore rule) and ARCHITECTURE.md (no validator matched).
+    - next: The task is in done. Push, and send the sha to testudoapp-9a, as the task tells.
+  timestamp: 2026-11-19T00:24:18.076550+00:00
+- actor: claude-code
+  id: 01m7rk1k891hy8dd8wrey8pyrk
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — SideCardCommands.swift, SideQuestionCard.swift, 2 unit test files, GlassSnapshotTests.swift, ARCHITECTURE.md
+    - test: green — swift test, 1395 tests in 164 suites + 54 tests in 11 suites passed
+    - commit: a0810719
+    - review: clean — 0 findings
+  timestamp: 2026-11-19T00:24:29.705139+00:00
+position_column: done
+position_ordinal: fffffff780
 title: 'Side card: Close stays available while the fork needs input'
 ---
 Request from testudoapp-9a (2026-11-18), after task 01M7QV7CE6YS0MPFZY7XF6J8GK (8eab72b1, 497a1d5a, 968473ff).
