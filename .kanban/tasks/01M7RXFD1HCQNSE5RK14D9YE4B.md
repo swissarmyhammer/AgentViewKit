@@ -27,8 +27,24 @@ comments:
     - not run: IntegrationTests, ScreenshotTests (they take the screen focus).
     - next: review.
   timestamp: 2026-11-19T03:32:25.581257+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m7rxwsj0ex4bnz9w6fqtvp5m
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (273d0eaa). 0 findings, 0 confirmed, 0 refuted. 7 validator runs, 0 failed. 3 source files reviewed. 2 `.kanban/` files are excluded by `.reviewignore`.
+    - next: none. The task is in done.
+  timestamp: 2026-11-19T03:34:06.656396+00:00
+- actor: claude-code
+  id: 01m7rxx43aqdqg6nsma59a43dw
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — PromptInputView.swift, ComposerSubmit.swift, ComposerSubmitResultTests.swift
+    - test: green — swift test, 1424 tests in 165 suites + 54 tests in 11 suites passed
+    - commit: 273d0eaa
+    - review: clean — 0 findings
+  timestamp: 2026-11-19T03:34:17.450138+00:00
+position_column: done
+position_ordinal: fffffffb80
 title: Skip onSubmit after a consumed submit, so the thread does not scroll (D205 /btw)
 ---
 Request from testudoapp-9a (2026-11-19), after task 01M7RW67CA7429M4T2X5ZA6YDN (56166863, 36b6fa83).
