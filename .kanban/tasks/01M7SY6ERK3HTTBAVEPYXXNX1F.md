@@ -55,6 +55,38 @@ comments:
     - New tests: no sleep, poll, retry, clock, timeLimit, window, or focus (grep found no match).
     - next: review
   timestamp: 2026-11-19T13:47:26.978464+00:00
+- actor: claude-code
+  id: 01m7t186ze6y8aafm2anmsqcg5
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (bedcdc1c). 3 findings (3 confirmed, 2 refuted). Sources/AgentViewKit/Thread/TranscriptSearch.swift:38, Sources/AgentViewKit/Thread/TranscriptSearch.swift:169, Sources/AgentViewKit/Thread/TranscriptSearch.swift:172 (code-hygiene/dead-code-swift, assign-only properties `serial`, `session`, `count`).
+    - next: remove the cause of each finding in the "Review Findings (2026-11-19 07:48)" section from the whole file, then run the review again. The task stays in review.
+  timestamp: 2026-11-19T13:52:01.006145+00:00
+- actor: claude-code
+  id: 01m7t18ngfjd66c9rjn5t99fxv
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 3 new sources (TranscriptSearchHits, TranscriptSearch, TranscriptSearchMarks), 6 changed views, 2 new test files (34 tests)
+    - test: green — swift test, 1463 tests in 168 suites + 54 tests in 11 suites passed
+    - commit: bedcdc1c
+    - review: findings — TranscriptSearch.swift:38, :169, :172 (dead-code, assign-only properties)
+  timestamp: 2026-11-19T13:52:15.887875+00:00
+- actor: claude-code
+  id: 01m7t1ke4vbsjtrj6w6rj1e0f7
+  text: |-
+    ### implement — changed
+    - Fix of the 3 dead-code findings in TranscriptSearch.swift: `RevealRequest.serial` is now `id`, and `RevealRequest` conforms to `Identifiable`; each request has its own identity, so two reveals of the same row are two changes. `TranscriptShape` (with `session` and `count`) is removed; the driver now has two `onChange` modifiers, one on the identity of the session and one on the count of the transcript. TranscriptSearchHits.swift and TranscriptSearchMarks.swift have no assign-only properties.
+    - ARCHITECTURE.md: new section "Search hits of a thread" after "Models of rows far from view".
+    - evidence: `swift test` 1463 tests in 168 suites + 54 tests in 11 suites pass; IntegrationTests `swift build --build-tests` complete; `swift format lint -s` no findings.
+    - next: review.
+  timestamp: 2026-11-19T13:58:08.795627+00:00
+- actor: claude-code
+  id: 01m7t1pa99qzmv3nr0xbsrxjeb
+  text: |-
+    ### test — green
+    - evidence: swift test at the package root, exit 0. "Test run with 1463 tests in 168 suites passed after 35.459 seconds." and "Test run with 54 tests in 11 suites passed after 0.012 seconds." swift format lint -s Sources/AgentViewKit/Thread/TranscriptSearch.swift: exit 0, no findings. No skipped tests. IntegrationTests and ScreenshotTests were not run.
+    - next: review
+  timestamp: 2026-11-19T13:59:43.145759+00:00
 position_column: doing
 position_ordinal: '80'
 title: 'Transcript search hits: reveal the best hit and mark the matched words (D207 f)'
@@ -72,3 +104,14 @@ Do:
 Tests (unit, no window): reveal goes to the first hit, also on a row that is not loaded yet; the marks of a word with case and diacritics; the whole-entry mark for a hit with no terms; a wire id that the model does not have.
 
 Push when `swift test` is green, and send the sha to testudoapp-9a.
+
+## Review Findings (2026-11-19 07:48)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 11 file(s) reviewed, 6 not reviewed.
+
+> 6 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 6 file(s)
+
+- [x] `Sources/AgentViewKit/Thread/TranscriptSearch.swift:38` `code-hygiene/dead-code-swift` — var.instance `serial` is assignOnlyProperty.
+- [x] `Sources/AgentViewKit/Thread/TranscriptSearch.swift:169` `code-hygiene/dead-code-swift` — var.instance `session` is assignOnlyProperty.
+- [x] `Sources/AgentViewKit/Thread/TranscriptSearch.swift:172` `code-hygiene/dead-code-swift` — var.instance `count` is assignOnlyProperty.

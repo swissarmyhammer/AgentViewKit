@@ -29,13 +29,15 @@ final class TranscriptSearch {
   }
 
   /// A request to scroll the list to the row of a hit.
-  struct RevealRequest: Hashable {
+  ///
+  /// Each request has its own identity. Thus two requests for the same row
+  /// are two different values, and the list sees each one as a change.
+  struct RevealRequest: Hashable, Identifiable {
     /// The row key of the entry of the hit.
     let rowKey: String
 
-    /// The number of the request. Two requests for the same row are two
-    /// different values, so each one is a change.
-    let serial: Int
+    /// The identity of the request: the number of the request.
+    let id: Int
   }
 
   /// The hits whose entries the transcript holds, best first.
@@ -104,7 +106,7 @@ final class TranscriptSearch {
     guard hits.indices.contains(index) else { return }
     currentIndex = index
     revealSerial += 1
-    revealRequest = RevealRequest(rowKey: hits[index].rowKey, serial: revealSerial)
+    revealRequest = RevealRequest(rowKey: hits[index].rowKey, id: revealSerial)
   }
 
   /// Gives the reveal that waits for the list, and clears it, so that a list
@@ -162,16 +164,6 @@ final class TranscriptSearch {
 /// that a change of the hits or of the transcript evaluates only this view.
 /// The view reads the transcript only while the host gives hits.
 struct TranscriptSearchDriver: View {
-  /// The size of a transcript of a session, which changes when the
-  /// transcript gets an entry or when the thread shows another session.
-  private struct TranscriptShape: Hashable {
-    /// The identity of the session model.
-    let session: ObjectIdentifier
-
-    /// The number of entries of the transcript.
-    let count: Int
-  }
-
   /// The session that the thread shows.
   let session: SessionModel
 
@@ -192,17 +184,15 @@ struct TranscriptSearchDriver: View {
       .onChange(of: hits, initial: true) {
         search.show(hits, rowKeys: rowKeys)
       }
-      .onChange(of: hits.map { _ in shape }) {
+      .onChange(of: hits.map { _ in ObjectIdentifier(session) }) {
+        search.transcriptChanged(rowKeys: rowKeys)
+      }
+      .onChange(of: hits.map { _ in session.transcript.count }) {
         search.transcriptChanged(rowKeys: rowKeys)
       }
       .onChange(of: search.currentHit, initial: true) {
         Self.openCurrentHit(of: search, in: session.transcript, store: store)
       }
-  }
-
-  /// The size of the transcript of the session.
-  private var shape: TranscriptShape {
-    TranscriptShape(session: ObjectIdentifier(session), count: session.transcript.count)
   }
 
   /// The row keys of the transcript of the session, in order.
