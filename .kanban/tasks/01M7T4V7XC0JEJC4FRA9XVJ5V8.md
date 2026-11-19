@@ -43,6 +43,24 @@ comments:
     foundationmodelsacpclient-1d will not add a revision counter. Instead, each transcript entry gets an observed `wireID: SessionEntry.ID?` (on `ObservableTranscriptEntry`): a wire entry has its engine id from its start; a local user message has nil and gets the id of its echo when `linkPrompt` links it (also for an echo with the same text); a failed replay sets it back; a streamed token does not change it. ACPClient task: "Each transcript entry shows its wire id as observable state" (tag d207). AVK accepted it (2026-11-19).
     Plan when the sha is on ACPClient main: update the pin; in TranscriptSearchDriver, compute the resolved state of each hit in the body with `session.transcript.first { $0.wireID == hitID }`, and add one onChange on that derived value, so the link triggers the reveal; TDD unit test: hits that come before the echo of their prompt reveal and mark the local message when the echo links, with no new entry. Still blocked until the sha arrives.
   timestamp: 2026-11-19T15:11:31.187733+00:00
+- actor: claude-code
+  id: 01m7t730hmtzbvxhkg7evfb90z
+  text: |-
+    Implementation notes:
+    - The FoundationModelsACPClient pin is 5d89f24 in the root, IntegrationTests and ScreenshotTests (swift package update; Package.resolved is not tracked).
+    - One lookup rule: TranscriptSearch.hits(of:in:) now finds the entry of a hit as the first entry of the transcript whose observed wireID is the wire id of the hit. It no longer calls SessionModel.entry(forWireID:). The doc of TranscriptSearch is the one statement of the rule. ARCHITECTURE.md "Search hits of a thread" now points to that doc.
+    - TranscriptSearchDriver computes foundRowKeys in its body (nil when the host gives no hits, so the body reads no transcript then) and has one more onChange on it that calls transcriptChanged(in:). The onChange on the session identity and on transcript.count stay. When a new entry also gives a new found row key, transcriptChanged runs two times; the second run finds the same hits and makes no second reveal, because waitsForReveal is false after the first.
+    - A streamed token changes the content of an entry, not the transcript array and not wireID (ObservableTranscriptEntry.assign skips an equal value). Thus the lookup in the body does not run again on each token.
+    - Discovery: a window-less NSHostingView runs the onChange actions of TranscriptSearchDriver inside layoutSubtreeIfNeeded. The new test requires hostRemoval != nil after the first layout, which proves that the initial onChange ran before the test asserts.
+    - Tests (TranscriptSearchLookupTests): aHitBeforeTheEchoOfItsPromptRevealsTheLocalMessageWhenTheEchoLinks failed before the change (2 issues: no reveal, no mark) and passes after it. aStreamedTokenDoesNotFireTheReadsOfTheLookup is a guard for check 4 (the lookup that it reads is new in this change, so it had no RED run).
+  timestamp: 2026-11-19T15:34:02.036938+00:00
+- actor: claude-code
+  id: 01m7t733ky3tp540swq04n9121
+  text: |-
+    ### implement — changed
+    - evidence: Sources/AgentViewKit/Thread/TranscriptSearch.swift, Tests/AgentViewKitTests/Thread/TranscriptSearchLookupTests.swift, ARCHITECTURE.md. swift format lint -s: 0 errors on both Swift files (HEAD also 0). swift test: "Test run with 1502 tests in 171 suites passed" and "Test run with 54 tests in 11 suites passed". swift build --build-tests: IntegrationTests and ScreenshotTests build complete. Pin: FoundationModelsACPClient 5d89f24 in all three packages.
+    - next: review. Not committed and not pushed (the order of this run said no commit and no push).
+  timestamp: 2026-11-19T15:34:05.182047+00:00
 position_column: doing
 position_ordinal: '8180'
 title: Search hits look up again when a prompt echo links to its local message (D207 f)

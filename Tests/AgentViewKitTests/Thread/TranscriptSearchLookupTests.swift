@@ -1,19 +1,25 @@
 import AgentViewKitTestSupport
+import AppKit
 import EditorTestSupport
 import FoundationModelsACP
 import FoundationModelsACPClient
+import SwiftUI
+import Synchronization
 import Testing
 
 @testable import AgentViewKit
 
-/// The lookup of the entry of a search hit through the model:
-/// `SessionModel.entry(forWireID:)` (D207 (f)).
+/// The lookup of the entry of a search hit by the `wireID` of each entry
+/// of the transcript (D207 (f)), and the lookup again when the echo of a
+/// prompt links to its local user message.
 ///
-/// The model gives the entry of a wire id, or `nil`. The search skips a hit
-/// with no entry: an unknown wire id (see
+/// ``TranscriptSearch`` states the lookup rule. The search skips a hit with
+/// no entry: an unknown wire id (see
 /// ``TranscriptSearchTests/aWireIDThatTheModelDoesNotHaveIsSkipped()``), the
 /// echo of a prompt that the model holds until the answer of the prompt, and
-/// an entry that a rollback of a failed replay removed.
+/// an entry that a rollback of a failed replay removed. The test of the
+/// driver lays out an `NSHostingView` with no window, so no test shows a
+/// window or takes the focus.
 @MainActor @Suite struct TranscriptSearchLookupTests {
   /// The text of the prompt of these tests.
   static let promptText = "Why does the parser fail?"
@@ -42,6 +48,49 @@ import Testing
     let prompt = Task { _ = try? await session.prompt([.text(TextContent(text: promptText))]) }
     await ObservationWait.until { session.transcript.count == count + 1 }
     return prompt
+  }
+
+  /// Shows the driver of `search` for `session` with the hits of the host,
+  /// in an `NSHostingView` with no window, and lays it out one time.
+  ///
+  /// - Parameters:
+  ///   - search: The search of the thread.
+  ///   - session: The session that the thread shows.
+  ///   - hits: The hits of the host.
+  /// - Returns: The host. Lay it out again with ``layOut(_:)``.
+  static func hostDriver(
+    of search: TranscriptSearch, for session: SessionModel, hits: TranscriptSearchHits
+  ) -> NSHostingView<AnyView> {
+    let hosting = NSHostingView(
+      rootView: AnyView(
+        TranscriptSearchDriver(session: session, search: search, store: ExpandedBlocksStore())
+          .environment(\.transcriptSearchHits, .constant(hits))))
+    layOut(hosting)
+    return hosting
+  }
+
+  /// Tells if a write fires the observation of a read.
+  ///
+  /// - Parameters:
+  ///   - read: The reads that the observation tracks.
+  ///   - write: The write to make after the tracking starts.
+  /// - Returns: `true` when the write fired the observation.
+  static func observationFires(reading read: () -> Void, during write: () -> Void) -> Bool {
+    let fired = Mutex(false)
+    withObservationTracking(read) {
+      fired.withLock { $0 = true }
+    }
+    write()
+    return fired.withLock { $0 }
+  }
+
+  /// Lays out a host with no window, so that SwiftUI evaluates its views
+  /// and runs their change actions.
+  ///
+  /// - Parameter hosting: The host.
+  static func layOut(_ hosting: NSHostingView<AnyView>) {
+    hosting.frame = NSRect(origin: .zero, size: hosting.fittingSize)
+    hosting.layoutSubtreeIfNeeded()
   }
 
   /// A production change that fails this test: the lookup reads the row key
@@ -108,5 +157,51 @@ import Testing
       ]), in: scripted.model)
 
     #expect(search.hits.map(\.position) == [0])
+  }
+
+  /// A production change that fails this test: the driver looks up the
+  /// hits again only when the number of the entries changes. The echo of a
+  /// prompt links to the local user message of the prompt and adds no
+  /// entry, so a hit on the prompt that came before the echo never reveals.
+  @Test func aHitBeforeTheEchoOfItsPromptRevealsTheLocalMessageWhenTheEchoLinks() async throws {
+    let session = SessionModel.preview()
+    let response = try await session.prompt([.text(TextContent(text: Self.promptText))])
+    let entry = try #require(session.transcript.last)
+    let search = TranscriptSearch()
+    let hosting = Self.hostDriver(
+      of: search, for: session,
+      hits: TranscriptSearchTests.hits([.userMessage(response.messageId)]))
+    try #require(search.hostRemoval != nil)
+    try #require(search.hits.isEmpty)
+    let count = session.transcript.count
+    session.apply(
+      .userMessageChunk(
+        TranscriptSearchTests.chunk(Self.promptText, id: response.messageId.rawValue)))
+    try #require(session.transcript.count == count)
+
+    Self.layOut(hosting)
+
+    #expect(search.takeRevealRequest()?.rowKey == entry.rowKey)
+    #expect(search.mark(forRowKey: entry.rowKey)?.isCurrent == true)
+  }
+
+  /// A production change that fails this test: the lookup reads a value
+  /// that each streamed token changes, such as the content of an entry. The
+  /// driver then evaluates the lookup again on each token.
+  @Test func aStreamedTokenDoesNotFireTheReadsOfTheLookup() throws {
+    let session = TranscriptSearchTests.session()
+    let answer: AgentMessageEntry? =
+      if case .agentMessage(let entry) = session.transcript[1] { entry } else { nil }
+    let content = try #require(answer).content
+    let hits = TranscriptSearchTests.hits([TranscriptSearchTests.secondID])
+
+    let fired = Self.observationFires {
+      _ = TranscriptSearch.hits(of: hits, in: session.transcript)
+    } during: {
+      session.apply(.agentMessageChunk(TranscriptSearchTests.chunk(" More.", id: "agent-1")))
+    }
+
+    try #require(answer?.content != content)
+    #expect(!fired)
   }
 }

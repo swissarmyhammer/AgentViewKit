@@ -9,11 +9,16 @@ import SwiftUI
 ///
 /// ``AgentThreadView`` keeps one value. It gives each change of the hits of
 /// the host to ``show(_:in:)``, and each change of the transcript to
-/// ``transcriptChanged(in:)``. The value finds the entry of each hit with
-/// `SessionModel.entry(forWireID:)`, and skips a hit whose entry the model
-/// does not give: an unknown wire id, the wire id of an entry that a
-/// rollback removed, or the echo of a prompt that the model holds until the
-/// answer of the prompt.
+/// ``transcriptChanged(in:)``.
+///
+/// The lookup rule: the entry of a hit is the first entry of the transcript
+/// whose `wireID` is the wire id of the hit (``hits(of:in:)``). The entry of
+/// a linked prompt is the local user message of the prompt: the model gives
+/// that message the wire id of the echo when the echo links. The value skips
+/// a hit with no such entry: an unknown wire id, the wire id of an entry
+/// that a rollback removed, the echo of a prompt that the model holds until
+/// the answer of the prompt, and a linked prompt while a replay of the
+/// history clears the wire id of its local user message.
 ///
 /// ``ConversationView`` takes each reveal with ``takeRevealRequest()`` and
 /// scrolls to its row. Each row reads its mark with ``mark(forRowKey:)``.
@@ -207,26 +212,34 @@ final class TranscriptSearch {
   ///
   /// - Parameter session: The session that the thread shows.
   private func resolve(in session: SessionModel) {
-    hits = Self.hits(of: source, in: session)
+    hits = Self.hits(of: source, in: session.transcript)
     guard waitsForReveal, !hits.isEmpty else { return }
     waitsForReveal = false
     makeCurrent(0)
   }
 
-  /// The hits whose entries the transcript holds.
+  /// The hits whose entries the transcript holds, by the lookup rule of
+  /// this type.
+  ///
+  /// The lookup reads the `wireID` of each entry, which a streamed token
+  /// does not change. Thus a view that reads the result is not evaluated
+  /// again on each token.
   ///
   /// - Parameters:
   ///   - source: The hits of the host, or `nil`.
-  ///   - session: The session that the thread shows.
-  /// - Returns: One hit for each hit of the host whose entry the model
-  ///   gives and the transcript holds, best first.
-  private static func hits(of source: TranscriptSearchHits?, in session: SessionModel) -> [Hit] {
+  ///   - transcript: The transcript of the session that the thread shows.
+  /// - Returns: One hit for each hit of the host whose entry the transcript
+  ///   holds, best first.
+  static func hits(of source: TranscriptSearchHits?, in transcript: [TranscriptEntry]) -> [Hit] {
     guard let source else { return [] }
-    let rowKeys = session.transcript.map(\.rowKey)
-    let positions = Dictionary(rowKeys.enumerated().map { ($1, $0) }) { first, _ in first }
+    let wireIDs = transcript.enumerated().compactMap { position, entry in
+      entry.wireID.map { ($0, position) }
+    }
+    let positions = Dictionary(wireIDs) { first, _ in first }
     return source.hits.compactMap { hit in
-      guard let rowKey = session.entry(forWireID: hit.entryID)?.rowKey else { return nil }
-      return positions[rowKey].map { Hit(rowKey: rowKey, position: $0, terms: hit.terms) }
+      positions[hit.entryID].map {
+        Hit(rowKey: transcript[$0].rowKey, position: $0, terms: hit.terms)
+      }
     }
   }
 }
@@ -234,6 +247,12 @@ final class TranscriptSearch {
 /// Gives the hits of the host and each change of the transcript to the
 /// search of a thread, opens the entry of the current hit, and announces
 /// each new current hit (TestudoApp D207 (f)).
+///
+/// A change of the transcript is a change of the session, of the number of
+/// the entries, or of the row keys of the hits that the lookup rule of
+/// ``TranscriptSearch`` finds. The last one is the link of the echo of a
+/// prompt to its local user message, which adds no entry. A streamed token
+/// changes none of the three.
 ///
 /// The announcement tells the place of the hit and the author of its entry,
 /// such as "Hit 2 of 7, You", through the announcer of the environment.
@@ -263,6 +282,9 @@ struct TranscriptSearchDriver: View {
 
   var body: some View {
     let hits = hostHits?.wrappedValue
+    let foundRowKeys = hits.map {
+      TranscriptSearch.hits(of: $0, in: session.transcript).map(\.rowKey)
+    }
     Color.clear
       .accessibilityHidden(true)
       .onChange(of: hits, initial: true) {
@@ -273,6 +295,9 @@ struct TranscriptSearchDriver: View {
         search.transcriptChanged(in: session)
       }
       .onChange(of: hits.map { _ in session.transcript.count }) {
+        search.transcriptChanged(in: session)
+      }
+      .onChange(of: foundRowKeys) {
         search.transcriptChanged(in: session)
       }
       .onChange(of: search.currentHit, initial: true) {
