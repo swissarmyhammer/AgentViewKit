@@ -22,8 +22,24 @@ comments:
     - evidence: swift format lint -s on the 3 changed Swift files (AgentCommandPlacement.swift, AgentCommands.swift, AgentCommandsTests.swift). 0 findings.
     - next: review.
   timestamp: 2026-11-19T00:31:01.416342+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m7rkjeyvaajk2svxvm1d2s9k
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (493e3238). 0 findings, 0 confirmed, 0 refuted. 7 pairs attempted, 0 failed. 3 files reviewed. 2 .kanban files not reviewed (.reviewignore).
+    - next: none. The task moved to done.
+  timestamp: 2026-11-19T00:33:42.363281+00:00
+- actor: claude-code
+  id: 01m7rkjwdwvtp4arkcdz1v1b4a
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — AgentCommandPlacement.swift, AgentCommands.swift, AgentCommandsTests.swift
+    - test: green — swift test, 1399 tests in 164 suites + 54 tests in 11 suites passed
+    - commit: 493e3238
+    - review: clean — 0 findings
+  timestamp: 2026-11-19T00:33:56.156734+00:00
+position_column: done
+position_ordinal: fffffff880
 title: Build the AgentCommand definition through the shared AgentCommandPresentation helper
 ---
 Origin: review finding of ^xf6j8gk (duplication, SideCardCommands.swift). That task added `AgentCommandPresentation` and `CommandDefinition.init(_:target:isVisible:make:)` in Sources/AgentViewKit/Commands/AgentCommandPresentation.swift. `SideCardCommand.definition(of:for:)` and `AgentAttachmentCommand.definition(of:for:)` now use the helper. The finding said not to edit AgentCommands.swift in that task.
