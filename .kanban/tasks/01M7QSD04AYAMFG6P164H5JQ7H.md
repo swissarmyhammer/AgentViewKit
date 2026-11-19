@@ -81,8 +81,24 @@ comments:
     - note: IntegrationTests and ScreenshotTests were not run (they take the screen focus).
     - next: review
   timestamp: 2026-11-19T00:14:10.949933+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m7rjj1geypdfeb47yn19kcd9
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (40b1b7ea): 0 findings, 0 confirmed, 0 refuted; 2 source files reviewed. All 3 earlier findings are checked.
+    - next: none. The task is in done.
+  timestamp: 2026-11-19T00:16:00.014292+00:00
+- actor: claude-code
+  id: 01m7rjjbdwvmtjbj6havxcs1d4
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — AnswerCodeBlockItemMenuPointerHostedTests.swift, CodeBlockAnswerFixture.swift
+    - test: green — swift test, 1392 tests in 164 suites + 54 tests in 11 suites passed
+    - commit: 40b1b7ea
+    - review: clean — 0 findings, 3 earlier findings checked
+  timestamp: 2026-11-19T00:16:10.172150+00:00
+position_column: done
+position_ordinal: fffffff680
 title: Copy Code Block in the item menu of an answer needs the code block of the caret at the item path (EditorKit hook)
 ---
 Found in ^pgdhrq7.
