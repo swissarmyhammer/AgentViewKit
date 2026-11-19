@@ -74,10 +74,26 @@ comments:
     - evidence: swift test 1497 tests in 170 suites passed, plus 54 in 11 suites. swift format lint -s: 0 errors in FindHitCommandsTests.swift, TranscriptSearchStepTests.swift, TranscriptSearchTests.swift (HEAD 0).
     - next: review
   timestamp: 2026-11-19T14:33:54.598282+00:00
+- actor: claude-code
+  id: 01m7t3rsakb9vr1rwrbrqdtdfc
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (993c94b3). 0 findings, 0 confirmed, 0 refuted. 3 files reviewed. 4 .kanban files not reviewed (ignore rule). The 3 earlier findings are checked.
+    - next: none. The task moved to done.
+  timestamp: 2026-11-19T14:36:01.235647+00:00
+- actor: claude-code
+  id: 01m7t3s5tas5q10zdc089bx73c
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — FindHitCommandsTests.swift, TranscriptSearchStepTests.swift, TranscriptSearchTests.swift (one search helper, Previous availability tests)
+    - test: green — swift test, 1497 tests in 170 suites + 54 tests in 11 suites passed (run by the implement step after its last edit); lint 0 errors on the 3 files (checked by the orchestrator)
+    - commit: 993c94b3
+    - review: clean — 0 findings, 3 earlier findings checked
+  timestamp: 2026-11-19T14:36:14.026052+00:00
 depends_on:
 - 01M7SY6ERK3HTTBAVEPYXXNX1F
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffffffff80
 title: Find Next Hit and Find Previous Hit over the transcript search hits (D207 f)
 ---
 Brief: /Users/wballard/github/swissarmyhammer/.briefs/search/avk-brief.md, items 4 and 5. Do this after the task "Transcript search hits: reveal the best hit and mark the matched words".
