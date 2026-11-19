@@ -84,8 +84,24 @@ comments:
     - evidence: Tests/AgentViewKitTests/Thread/TranscriptSearchLookupTests.swift — the local layOut(_:) is removed; hostDriver and the linked prompt test call StyleViewHost.layOut(_:). swift format lint -s: 0 errors. swift test: "Test run with 1502 tests in 171 suites passed" and "Test run with 54 tests in 11 suites passed".
     - next: review.
   timestamp: 2026-11-19T15:38:19.830130+00:00
-position_column: doing
-position_ordinal: '8180'
+- actor: claude-code
+  id: 01m7t7dy2xhqq8wry3y0wpf0b5
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (adc84bfb). 0 findings (0 confirmed, 0 refuted). 1 file reviewed; 6 .kanban files excluded by .reviewignore. The 1 earlier finding is checked.
+    - next: none. The task is in done.
+  timestamp: 2026-11-19T15:39:59.965899+00:00
+- actor: claude-code
+  id: 01m7t7ea8a2rysewh03et80pe5
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — TranscriptSearchLookupTests.swift (uses StyleViewHost.layOut)
+    - test: green — swift test, 1502 tests in 171 suites + 54 tests in 11 suites passed (run by the implement step after its edit); lint 0 errors
+    - commit: adc84bfb
+    - review: clean — 0 findings, 1 earlier finding checked
+  timestamp: 2026-11-19T15:40:12.426572+00:00
+position_column: done
+position_ordinal: ffffffff8280
 title: Search hits look up again when a prompt echo links to its local message (D207 f)
 ---
 Found in ^de77446 (ACPClient `entry(forWireID:)` adoption).
