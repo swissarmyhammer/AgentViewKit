@@ -98,7 +98,8 @@ public nonisolated struct ComposerSubmitResult: Sendable, Hashable {
     /// Send nothing. The text and the files stay in the composer.
     case cancel
 
-    /// The host took the prompt. Send nothing, and clear the composer.
+    /// The host took the prompt. Send nothing, and clear the composer. The
+    /// host closure `onSubmit` of the composer does not run.
     case consumed
   }
 
@@ -136,6 +137,8 @@ public nonisolated struct ComposerSubmitResult: Sendable, Hashable {
   /// The host took the prompt, for example to answer a side question in a
   /// view of its own. The composer sends nothing to the session of the
   /// thread. It clears the text, the files and the mentions, as a send does.
+  /// The host closure `onSubmit` of the composer does not run, so the thread
+  /// does not scroll.
   public static let consumed = ComposerSubmitResult(disposition: .consumed)
 
   /// Makes a result.
@@ -197,8 +200,10 @@ extension View {
   ///   does.
   ///
   /// A clear removes the text, the files and the mentions, and it empties the
-  /// draft of the session. One undo in the editor gets the text back. After a
-  /// send and after a consume, the host closure of the composer runs.
+  /// draft of the session. One undo in the editor gets the text back. Only
+  /// after a send does the host closure `onSubmit` of the composer run. After
+  /// a consume it does not run, so the thread does not scroll: a consume does
+  /// not change the transcript.
   ///
   /// The hook can take time. For example, Testudo sends a message to each
   /// mentioned session, and then adds one receipt line for each one. While

@@ -35,8 +35,9 @@ import SwiftUI
 /// (``SwiftUI/EnvironmentValues/sessionModel``) and calls its methods
 /// directly (plan.md §3.2 "Prompt helper", §3.8 "Composer"). A submit sends
 /// the text as `session/prompt` with `SessionModel.prompt(_:meta:)`, clears
-/// the text, and then calls `onSubmit`. A submit does nothing while the text
-/// is blank, or while the environment has no session model.
+/// the text, and then calls `onSubmit`. A consume of the submit hook does not
+/// call `onSubmit`. A submit does nothing while the text is blank, or while
+/// the environment has no session model.
 ///
 /// The composer has a list of attachments. While the list is not empty, an
 /// ``AttachmentChips`` row shows above the editor. A dropped file, a dropped
@@ -96,7 +97,9 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   /// The attachments while the host gives no binding.
   @State private var ownAttachments: [Attachment] = []
 
-  /// The host closure that runs after each submit.
+  /// The host closure that runs after each send. It does not run after a
+  /// cancel or a consume of the submit hook, because these do not change the
+  /// transcript.
   let onSubmit: PromptEditorContext.Submit
 
   /// The builder of the editor.
@@ -130,7 +133,8 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   ///   - text: The text of the prompt.
   ///   - attachments: The files to send with the next prompt, or `nil` to
   ///     let the composer keep them.
-  ///   - onSubmit: The host closure that runs after each submit.
+  ///   - onSubmit: The host closure that runs after each send. It does not
+  ///     run after a cancel or a consume of the submit hook.
   ///   - editor: The builder of the editor. It gets the context of the
   ///     composer.
   ///   - accessory: The builder of the accessory row. The row reads the
@@ -343,8 +347,8 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   }
 
   /// Does what the result of the hook of the host tells
-  /// (``apply(_:text:attachments:start:)``), and then calls the host closure
-  /// after a send or a consume.
+  /// (``apply(_:text:attachments:onSubmit:start:)``). The host closure runs
+  /// only after a send.
   ///
   /// - Parameter result: The result of the submit hook, or
   ///   ``ComposerSubmitResult/send``.
@@ -353,32 +357,38 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
       reportSubmit?(.notSent)
       return
     }
-    let outcome = Self.apply(result, text: $text, attachments: attachments) { input in
+    let outcome = Self.apply(
+      result, text: $text, attachments: attachments, onSubmit: onSubmit
+    ) { input in
       session.startPrompt(with: input, accepting: connection?.promptCapabilities, result: result)
     }
     reportSubmit?(outcome)
-    guard outcome != .notSent else { return }
-    onSubmit()
   }
 
   /// Does what the result of the submit hook tells: a cancel keeps the text
   /// and the files; a send and a consume take them and clear the composer;
-  /// a send then starts the prompt.
+  /// a send then starts the prompt and calls the host closure.
   ///
   /// The clear is the same for a send and for a consume. The text binding
   /// gets the empty text, so the editor takes it as one undo entry and drops
   /// its mentions, and the draft of the session becomes empty.
   ///
+  /// Only a send calls the host closure. A consume does not change the
+  /// transcript, so the host closure does not run, and the thread does not
+  /// scroll.
+  ///
   /// - Parameters:
   ///   - result: The result of the submit hook.
   ///   - text: The text of the prompt.
   ///   - attachments: The attachment list of the composer.
+  ///   - onSubmit: The host closure. It runs one time after a send.
   ///   - start: Starts the prompt of an input.
   /// - Returns: The outcome. ``PromptSubmitOutcome/notSent`` for a cancel or
   ///   a blank text, which do not change the text and the files.
   static func apply(
     _ result: ComposerSubmitResult, text: Binding<AttributedString>,
-    attachments: Binding<[Attachment]>, start: (UserInput) -> Void
+    attachments: Binding<[Attachment]>, onSubmit: PromptEditorContext.Submit,
+    start: (UserInput) -> Void
   ) -> PromptSubmitOutcome {
     switch result.disposition {
     case .cancel:
@@ -386,6 +396,7 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
     case .send:
       guard let input = takeInput(text: text, attachments: attachments) else { return .notSent }
       start(input)
+      onSubmit()
       return .sent
     case .consumed:
       guard takeInput(text: text, attachments: attachments) != nil else { return .notSent }
@@ -448,7 +459,8 @@ extension PromptInputView where Editor == EditorKitPromptEditor, Accessory == De
   ///   - text: The text of the prompt.
   ///   - attachments: The files to send with the next prompt, or `nil` to
   ///     let the composer keep them.
-  ///   - onSubmit: The host closure that runs after each submit.
+  ///   - onSubmit: The host closure that runs after each send. It does not
+  ///     run after a cancel or a consume of the submit hook.
   public init(
     text: Binding<AttributedString>,
     attachments: Binding<[Attachment]>? = nil,
@@ -471,7 +483,8 @@ extension PromptInputView where Accessory == DefaultPromptAccessory {
   ///   - text: The text of the prompt.
   ///   - attachments: The files to send with the next prompt, or `nil` to
   ///     let the composer keep them.
-  ///   - onSubmit: The host closure that runs after each submit.
+  ///   - onSubmit: The host closure that runs after each send. It does not
+  ///     run after a cancel or a consume of the submit hook.
   ///   - editor: The builder of the editor. It gets the context of the
   ///     composer.
   public init(

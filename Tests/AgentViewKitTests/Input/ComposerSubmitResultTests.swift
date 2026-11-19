@@ -31,6 +31,9 @@ import Testing
   /// Each input that the composer starts as a prompt, in order.
   private(set) var started: [UserInput] = []
 
+  /// The number of calls of the host closure `onSubmit`.
+  private(set) var hostCalls = 0
+
   /// Makes the state: the draft holds ``prompt``, and the list holds one file.
   ///
   /// - Throws: The error of the write of the file.
@@ -55,8 +58,10 @@ import Testing
     return PromptInputView<EditorKitPromptEditor, DefaultPromptAccessory>.apply(
       result,
       text: Binding(get: { draft.text }, set: { draft.text = $0 }),
-      attachments: Binding(get: { self.attachments }, set: { self.attachments = $0 })
-    ) { self.started.append($0) }
+      attachments: Binding(get: { self.attachments }, set: { self.attachments = $0 }),
+      onSubmit: { self.hostCalls += 1 },
+      start: { self.started.append($0) }
+    )
   }
 }
 
@@ -144,6 +149,14 @@ import Testing
     #expect(model.text == ComposerSubmitFixture.prompt)
   }
 
+  @Test func aConsumedPromptDoesNotCallTheHostClosure() throws {
+    let fixture = try ComposerSubmitFixture()
+
+    _ = fixture.apply(.consumed)
+
+    #expect(fixture.hostCalls == 0)
+  }
+
   @Test func aConsumeOfABlankTextSendsNothing() throws {
     let fixture = try ComposerSubmitFixture()
     fixture.store.draft(for: fixture.session).text = AttributedString(" ")
@@ -176,6 +189,14 @@ import Testing
     #expect(fixture.started.isEmpty)
   }
 
+  @Test func aCancelDoesNotCallTheHostClosure() throws {
+    let fixture = try ComposerSubmitFixture()
+
+    _ = fixture.apply(.cancel)
+
+    #expect(fixture.hostCalls == 0)
+  }
+
   // MARK: - Send
 
   @Test func aSendStartsThePromptWithTheTextAndTheFiles() throws {
@@ -199,6 +220,14 @@ import Testing
     _ = fixture.apply(.send(addingText: ["Sent to planner: delivered"]))
 
     #expect(fixture.text == AttributedString())
+  }
+
+  @Test func aSendCallsTheHostClosureOneTime() throws {
+    let fixture = try ComposerSubmitFixture()
+
+    _ = fixture.apply(.send)
+
+    #expect(fixture.hostCalls == 1)
   }
 
   @Test func aSendClearsTheFiles() throws {
