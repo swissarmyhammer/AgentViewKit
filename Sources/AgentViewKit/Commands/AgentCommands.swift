@@ -344,10 +344,11 @@ nonisolated struct AgentCommand: EditorCommands.Command {
 
   /// The EditorKit definition of `verb` for `target`.
   ///
-  /// The definition carries the first default key of ``AgentKeymap``, so a
-  /// menu shows the key, and the menu, context menu and icon of the verb.
-  /// The menus and the palette show the verb at a path when
-  /// ``AgentCommandVerb/isVisible(at:)`` tells so.
+  /// The definition comes from the presentation of the verb
+  /// (``AgentCommandVerb/presentation``): the id, the title, the icon, the
+  /// menu, the context menu and the first default key of ``AgentKeymap``.
+  /// The menus and the palette show the verb in a context when
+  /// ``AgentCommandVerb/isVisible(in:)`` tells so.
   ///
   /// - Parameters:
   ///   - verb: The verb.
@@ -356,19 +357,9 @@ nonisolated struct AgentCommand: EditorCommands.Command {
   static func definition(
     of verb: AgentCommandVerb, for target: AgentCommandTarget
   ) -> CommandDefinition {
-    var keys: [KeymapMode: KeyChord] = [:]
-    keys[.cua] = AgentKeymap.defaultChords[verb]?.first
-    return CommandDefinition(
-      id: verb.id,
-      title: .static(verb.title),
-      icon: verb.icon,
-      menu: verb.menu,
-      contextMenu: verb.contextMenu,
-      keys: keys,
-      isVisible: { verb.isVisible(in: $0) },
-      make: { [weak target] payload in
-        AgentCommand(verb: verb, target: target, payload: payload)
-      })
+    CommandDefinition(
+      verb.presentation, target: target, isVisible: { verb.isVisible(in: $0) },
+      make: { target, payload in AgentCommand(verb: verb, target: target, payload: payload) })
   }
 
   /// The EditorKit definitions of each verb that `target` registers

@@ -187,6 +187,31 @@ final class CallCounter {
     #expect(focus?.keys.isEmpty == true)
   }
 
+  @Test func theKeyOfThePresentationIsTheFirstDefaultKey() {
+    #expect(AgentCommandVerb.send.presentation.key == StandardChords.submitNow)
+  }
+
+  @Test func aVerbWithNoDefaultKeyHasAPresentationWithNoKey() {
+    #expect(AgentCommandVerb.focusComposer.presentation.key == nil)
+  }
+
+  @Test(arguments: AgentCommandVerb.allCases)
+  func thePresentationHasTheIdAndTheTitleOfTheVerb(_ verb: AgentCommandVerb) {
+    let presentation = verb.presentation
+
+    #expect(presentation.id == verb.id)
+    #expect(presentation.title == verb.title)
+  }
+
+  @Test(arguments: AgentCommandVerb.allCases)
+  func thePresentationHasTheIconAndThePlacesOfTheVerb(_ verb: AgentCommandVerb) {
+    let presentation = verb.presentation
+
+    #expect(presentation.icon == verb.icon)
+    #expect(presentation.menu == verb.menu)
+    #expect(presentation.contextMenu == verb.contextMenu)
+  }
+
   @Test func aSecondRegistrationDoesNotAddTheKeysAgain() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }

@@ -248,6 +248,15 @@ nonisolated extension AgentCommandVerb {
     }
   }
 
+  /// The presentation of the verb in the surfaces of EditorKit: the id, the
+  /// title, the icon, the menu and the context menu of the verb, and the
+  /// first default key of ``AgentKeymap``, so that a menu shows the key.
+  var presentation: AgentCommandPresentation {
+    AgentCommandPresentation(
+      id: id, title: title, icon: icon, menu: menu, contextMenu: contextMenu,
+      key: AgentKeymap.defaultChords[self]?.first)
+  }
+
   /// The kind of the item scope whose context menu shows the verb, or `nil`
   /// when no context menu shows the verb.
   var itemKind: String? {
