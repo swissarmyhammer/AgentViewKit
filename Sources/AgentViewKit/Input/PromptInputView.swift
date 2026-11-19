@@ -380,12 +380,17 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
     _ result: ComposerSubmitResult, text: Binding<AttributedString>,
     attachments: Binding<[Attachment]>, start: (UserInput) -> Void
   ) -> PromptSubmitOutcome {
-    guard !result.isCancelled, let input = takeInput(text: text, attachments: attachments) else {
+    switch result.disposition {
+    case .cancel:
       return .notSent
+    case .send:
+      guard let input = takeInput(text: text, attachments: attachments) else { return .notSent }
+      start(input)
+      return .sent
+    case .consumed:
+      guard takeInput(text: text, attachments: attachments) != nil else { return .notSent }
+      return .consumed
     }
-    guard !result.isConsumed else { return .consumed }
-    start(input)
-    return .sent
   }
 
   /// Replaces the text of the prompt. The attachment list does not change.

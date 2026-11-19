@@ -77,6 +77,30 @@ import Testing
     #expect(!ComposerSubmitResult.send.isConsumed)
   }
 
+  // MARK: - Disposition
+
+  @Test func aConsumeHasOnlyTheConsumedDisposition() {
+    #expect(ComposerSubmitResult.consumed.disposition == .consumed)
+  }
+
+  @Test func aConsumeAddsNoText() {
+    #expect(ComposerSubmitResult.consumed.addedText.isEmpty)
+  }
+
+  @Test func aCancelHasOnlyTheCancelDisposition() {
+    #expect(ComposerSubmitResult.cancel.disposition == .cancel)
+  }
+
+  @Test func aCancelIsNotConsumed() {
+    #expect(!ComposerSubmitResult.cancel.isConsumed)
+  }
+
+  @Test func aSendHasOnlyTheSendDisposition() {
+    let result = ComposerSubmitResult.send(addingText: ["a"])
+
+    #expect(result.disposition == .send(addedText: ["a"], meta: nil))
+  }
+
   @Test func aConsumedPromptStartsNoPrompt() throws {
     let fixture = try ComposerSubmitFixture()
 

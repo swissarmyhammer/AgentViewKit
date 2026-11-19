@@ -85,47 +85,65 @@ public nonisolated struct ComposerSubmission: Sendable {
 /// A clear removes the text, the files and the mentions of the composer, and
 /// it empties the draft of the session. One undo in the editor gets the text
 /// back.
+///
+/// The only stored state is one ``Disposition``. Thus a result is always
+/// exactly one of the three results.
 public nonisolated struct ComposerSubmitResult: Sendable, Hashable {
-  /// Whether the composer sends nothing and keeps the text.
-  public let isCancelled: Bool
+  /// The one thing that the composer does with the prompt.
+  enum Disposition: Sendable, Hashable {
+    /// Send the prompt with the added text blocks and the `_meta`, then clear
+    /// the composer.
+    case send(addedText: [String], meta: [String: JSONValue]?)
+
+    /// Send nothing. The text and the files stay in the composer.
+    case cancel
+
+    /// The host took the prompt. Send nothing, and clear the composer.
+    case consumed
+  }
+
+  /// The one thing that the composer does with the prompt.
+  let disposition: Disposition
+
+  /// Whether the composer sends nothing and keeps the text (``cancel``).
+  public var isCancelled: Bool { disposition == .cancel }
 
   /// Whether the host took the prompt, so the composer sends nothing and
   /// clears the text (``consumed``).
-  public let isConsumed: Bool
+  public var isConsumed: Bool { disposition == .consumed }
 
   /// The texts to add to the prompt. Each one is one text block after the
-  /// text block of the prompt and before the blocks of the files.
-  public let addedText: [String]
+  /// text block of the prompt and before the blocks of the files. Empty for
+  /// ``cancel`` and for ``consumed``.
+  public var addedText: [String] {
+    guard case .send(let addedText, _) = disposition else { return [] }
+    return addedText
+  }
 
-  /// The `_meta` of the prompt request, or `nil`.
-  public let meta: [String: JSONValue]?
+  /// The `_meta` of the prompt request, or `nil`. Always `nil` for ``cancel``
+  /// and for ``consumed``.
+  public var meta: [String: JSONValue]? {
+    guard case .send(_, let meta) = disposition else { return nil }
+    return meta
+  }
 
   /// Sends the prompt as the user wrote it.
-  public static let send = ComposerSubmitResult(isCancelled: false, addedText: [], meta: nil)
+  public static let send = ComposerSubmitResult(disposition: .send(addedText: [], meta: nil))
 
   /// Sends nothing. The text and the files stay in the composer.
-  public static let cancel = ComposerSubmitResult(isCancelled: true, addedText: [], meta: nil)
+  public static let cancel = ComposerSubmitResult(disposition: .cancel)
 
   /// The host took the prompt, for example to answer a side question in a
   /// view of its own. The composer sends nothing to the session of the
   /// thread. It clears the text, the files and the mentions, as a send does.
-  public static let consumed = ComposerSubmitResult(
-    isCancelled: false, isConsumed: true, addedText: [], meta: nil)
+  public static let consumed = ComposerSubmitResult(disposition: .consumed)
 
   /// Makes a result.
   ///
-  /// - Parameters:
-  ///   - isCancelled: Whether the composer sends nothing and keeps the text.
-  ///   - isConsumed: Whether the host took the prompt.
-  ///   - addedText: The texts to add to the prompt.
-  ///   - meta: The `_meta` of the prompt request, or `nil`.
-  private init(
-    isCancelled: Bool, isConsumed: Bool = false, addedText: [String], meta: [String: JSONValue]?
-  ) {
-    self.isCancelled = isCancelled
-    self.isConsumed = isConsumed
-    self.addedText = addedText
-    self.meta = meta
+  /// - Parameter disposition: The one thing that the composer does with the
+  ///   prompt.
+  private init(disposition: Disposition) {
+    self.disposition = disposition
   }
 
   /// Sends the prompt with added text blocks and a `_meta`.
@@ -138,7 +156,7 @@ public nonisolated struct ComposerSubmitResult: Sendable, Hashable {
   public static func send(addingText addedText: [String] = [], meta: [String: JSONValue]? = nil)
     -> ComposerSubmitResult
   {
-    ComposerSubmitResult(isCancelled: false, addedText: addedText, meta: meta)
+    ComposerSubmitResult(disposition: .send(addedText: addedText, meta: meta))
   }
 
   /// The `_meta` value of the prompt request, or `nil`.
