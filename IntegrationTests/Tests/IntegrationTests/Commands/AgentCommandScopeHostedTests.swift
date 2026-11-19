@@ -22,14 +22,11 @@ import Testing
   /// The size of a window that shows a thread and a composer.
   static let windowSize = CGSize(width: 480, height: 480)
 
-  /// The number of verbs that a thread view registers when the host gives no
-  /// fork action: each verb of the kit but Fork from Here (D164, D205).
-  static let verbCount = AgentCommandVerb.allCases.filter { $0 != .forkFromHere }.count
-
   /// The number of commands that a thread view registers at its path when
-  /// the host gives no fork action: the verbs of ``verbCount``, and the
-  /// Cancel (`edit.cancel`) of the search hits.
-  static let definitionCount = verbCount + 1
+  /// the host gives no fork action: each verb of the kit but Fork from Here
+  /// (D164, D205). Clear Search Hits is a verb, so the thread registers no
+  /// EditorKit Cancel (`edit.cancel`) of the search hits.
+  static let definitionCount = AgentCommandVerb.allCases.filter { $0 != .forkFromHere }.count
 
   /// The JSON-RPC id of the permission request that the scripted agent sends.
   static let agentRequestID = 100
@@ -235,7 +232,7 @@ import Testing
     let ids = WindowUndoChecks.kitCommandIDs(at: path, in: system)
 
     let verbs = AgentCommandVerb.allCases.filter { $0.group != .navigate }.map(\.id)
-    #expect(ids == Set(verbs).union([.cancel]))
+    #expect(ids == Set(verbs))
     try WindowUndoChecks.expectUnavailableOnAnEmptyStack(at: path, in: system)
   }
 

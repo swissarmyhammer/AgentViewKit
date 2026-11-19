@@ -167,12 +167,13 @@ nonisolated extension AgentCommandVerb {
   /// | --- | --- |
   /// | ``EditorCommands/MenuPath/session`` | Send Message, Stop, Focus Composer, Mention…, Approve Request, Reject Request, Copy Thread, Export as Markdown…, Fork from Here |
   /// | View | Next Prompt, Previous Prompt, Next Request, Previous Request, Expand or Collapse All, Scroll to Bottom, Go to Parent Session, Open Child Session, Previous Sibling Session, Next Sibling Session, Jump to Session |
-  /// | Edit | Copy Message, Copy Code Block, Find Next Hit, Find Previous Hit |
+  /// | Edit | Copy Message, Copy Code Block, Find Next Hit, Find Previous Hit, Clear Search Hits |
   ///
   /// EditorKit puts the rows of the Edit path right after the Cut, Copy and
   /// Paste rows of the system Edit menu, so Copy Message is next to Copy.
-  /// Find Next Hit and Find Previous Hit are in a find group of their own in
-  /// the Edit menu, as the Find rows of a Mac app (TestudoApp D207 (f)).
+  /// Find Next Hit, Find Previous Hit and Clear Search Hits are in a find
+  /// group of their own in the Edit menu, as the Find rows of a Mac app
+  /// (TestudoApp D207 (f)).
   /// Fork from Here is after Export as Markdown…, in the same order as the
   /// buttons of ``MessageActions``. In the Session menu, it acts on the
   /// selected message.
@@ -202,6 +203,7 @@ nonisolated extension AgentCommandVerb {
     case .jumpToSession: MenuPlacement(path: .view, group: "agentSessions", order: Slot.fifth)
     case .findNextHit: MenuPlacement(path: .edit, group: "agentFind", order: Slot.first)
     case .findPreviousHit: MenuPlacement(path: .edit, group: "agentFind", order: Slot.second)
+    case .clearSearchHits: MenuPlacement(path: .edit, group: "agentFind", order: Slot.third)
     }
   }
 
@@ -251,6 +253,7 @@ nonisolated extension AgentCommandVerb {
     case .jumpToSession: AgentSymbol.jumpToSession
     case .findNextHit: AgentSymbol.nextHit
     case .findPreviousHit: AgentSymbol.previousHit
+    case .clearSearchHits: AgentSymbol.clearHits
     }
   }
 
@@ -320,5 +323,17 @@ nonisolated extension AgentCommandVerb {
   func isVisible(in context: CommandContext) -> Bool {
     guard self != .copyCodeBlock else { return EditorCodeBlockScope.isInside(context) }
     return isVisible(at: context.path)
+  }
+
+  /// Tells if the menus, the context menus and the palette show the verb
+  /// only while it is available.
+  ///
+  /// ``clearSearchHits`` is available only while the thread has hits and no
+  /// text input has the focus. A disabled row of it gives no help, so the
+  /// Edit menu and the palette show it only while it can run (TestudoApp
+  /// D207 (f)). Each other verb also shows when it is not available, with
+  /// its reason.
+  var isShownOnlyWhenAvailable: Bool {
+    self == .clearSearchHits
   }
 }

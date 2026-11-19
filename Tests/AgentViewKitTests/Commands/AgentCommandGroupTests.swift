@@ -24,7 +24,7 @@ import Testing
     .clipboard: [.copyMessage, .copyThread, .copyCodeBlock],
     .export: [.exportMarkdown],
     .fork: [.forkFromHere],
-    .find: [.findNextHit, .findPreviousHit],
+    .find: [.findNextHit, .findPreviousHit, .clearSearchHits],
     // The attachment verbs are of their own type; see
     // AgentAttachmentCommandsTests.
     .attachment: [],
@@ -60,16 +60,14 @@ import Testing
   }
 
   /// The ids of the definitions that the target of ``makeFixture()``
-  /// registers when `groups` are off: each verb that is not in `groups`,
-  /// and the Cancel of the search hits while ``AgentCommandGroup/find`` is
-  /// on. The target has no fork action of the host, so Fork from Here is not
-  /// in the registry.
+  /// registers when `groups` are off: each verb that is not in `groups`.
+  /// The target has no fork action of the host, so Fork from Here is not in
+  /// the registry.
   ///
   /// - Parameter groups: The groups that are off.
   /// - Returns: The command ids.
   static func ids(notIn groups: Set<AgentCommandGroup>) -> Set<CommandID> {
-    let verbs = Set(AgentCommandVerb.allCases.filter { !groups.contains($0.group) && $0 != .forkFromHere }.map(\.id))
-    return groups.contains(.find) ? verbs : verbs.union([.cancel])
+    Set(AgentCommandVerb.allCases.filter { !groups.contains($0.group) && $0 != .forkFromHere }.map(\.id))
   }
 
   // MARK: - Groups

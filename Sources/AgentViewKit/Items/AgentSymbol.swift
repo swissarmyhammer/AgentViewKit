@@ -147,6 +147,9 @@ nonisolated enum AgentSymbol {
   /// thread.
   static let previousHit = "chevron.up.circle"
 
+  /// The symbol of the command that removes the search hits of the thread.
+  static let clearHits = "xmark.circle"
+
   /// The symbol of the command that expands or collapses each item of the
   /// thread.
   static let expandAll = "arrow.up.left.and.arrow.down.right"

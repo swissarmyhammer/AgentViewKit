@@ -31,7 +31,7 @@ import Testing
 
   /// The verbs of the Edit menu.
   static let editMenuVerbs: Set<AgentCommandVerb> = [
-    .copyMessage, .copyCodeBlock, .findNextHit, .findPreviousHit,
+    .copyMessage, .copyCodeBlock, .findNextHit, .findPreviousHit, .clearSearchHits,
   ]
 
   /// The menu of `verb` in the design (AVK-1, D41), or `nil` when the verb

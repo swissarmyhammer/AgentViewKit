@@ -1,13 +1,15 @@
+import AgentViewKitTestSupport
 import AppKit
 import EditorCommands
 import EditorCommandsUI
+import EditorTestSupport
 import FoundationModelsACP
 import FoundationModelsACPClient
 import Testing
 @testable import AgentViewKit
 
-/// Tests for Find Next Hit, Find Previous Hit and the Esc of the search hits
-/// of a thread (D207 (f), D133, D137 (a)).
+/// Tests for Find Next Hit, Find Previous Hit and Clear Search Hits, the Esc
+/// of the search hits of a thread (D207 (f), D133, D137 (a)).
 ///
 /// Each test uses a preview session model and a registry or a harness with
 /// no window. A text input has the focus through the first responder seam
@@ -105,6 +107,15 @@ import Testing
     #expect(verb.presentation.key == "⇧⌘G")
   }
 
+  @Test func clearSearchHitsIsEscapeInTheFindGroup() {
+    let verb = AgentCommandVerb.clearSearchHits
+
+    #expect(verb.id == "agent.clearSearchHits")
+    #expect(verb.title == "Clear Search Hits")
+    #expect(verb.group == .find)
+    #expect(verb.presentation.key == .escape)
+  }
+
   @Test func theFindVerbsAreInTheFindGroupOfTheEditMenu() throws {
     let next = try #require(AgentCommandVerb.findNextHit.menu)
     let previous = try #require(AgentCommandVerb.findPreviousHit.menu)
@@ -112,6 +123,55 @@ import Testing
     #expect(next.path == .edit && previous.path == .edit)
     #expect(next.group == previous.group)
     #expect(next.order < previous.order)
+  }
+
+  /// A production change that fails this test: Clear Search Hits is in
+  /// another menu or group, or before the rows of the steps.
+  @Test func clearSearchHitsIsAfterTheStepsInTheFindGroupOfTheEditMenu() throws {
+    let previous = try #require(AgentCommandVerb.findPreviousHit.menu)
+    let clear = try #require(AgentCommandVerb.clearSearchHits.menu)
+
+    #expect(clear.path == .edit)
+    #expect(clear.group == previous.group)
+    #expect(previous.order < clear.order)
+  }
+
+  // MARK: - Visibility of Clear Search Hits
+
+  /// Tells if the surfaces show Clear Search Hits at the path of the
+  /// thread scope of `fixture`.
+  ///
+  /// - Parameter fixture: The fixture.
+  /// - Returns: `true` when the row of the command is visible, `nil` when
+  ///   the registry has no row of the command.
+  static func showsClearSearchHits(in fixture: Fixture) -> Bool? {
+    Self.registry(of: fixture)
+      .row(of: AgentCommandVerb.clearSearchHits.id, at: fixture.commands.path)?.isVisible
+  }
+
+  /// A production change that fails this test: the Edit menu and the
+  /// palette show a disabled Clear Search Hits row while the thread has no
+  /// hits.
+  @Test func clearSearchHitsWithNoHitsIsHidden() {
+    let fixture = Self.makeFixture(hitsIn: [])
+
+    #expect(Self.showsClearSearchHits(in: fixture) == false)
+  }
+
+  /// A production change that fails this test: the surfaces do not show
+  /// Clear Search Hits while it can run.
+  @Test func clearSearchHitsWithHitsIsShown() {
+    let fixture = Self.makeFixture(hitsIn: [0])
+
+    #expect(Self.showsClearSearchHits(in: fixture) == true)
+  }
+
+  /// A production change that fails this test: the surfaces show Clear
+  /// Search Hits while a text input has the focus, where it cannot run.
+  @Test func clearSearchHitsInATextInputIsHidden() {
+    let fixture = Self.makeFixture(hitsIn: [0]) { Self.focusTextInput(of: $0) }
+
+    #expect(Self.showsClearSearchHits(in: fixture) == false)
   }
 
   // MARK: - Availability
@@ -214,17 +274,17 @@ import Testing
 
   /// A production change that fails this test: Esc in the thread with hits
   /// stops the agent or does nothing, and the hits stay.
-  @Test func escapeWithHitsResolvesToCancel() {
+  @Test func escapeWithHitsResolvesToClearSearchHits() {
     let fixture = Self.makeFixture(hitsIn: [0])
     let registry = Self.registry(of: fixture)
 
     #expect(
       registry.resolveKey(KeyChord.escape.asSequence, mode: .cua, at: fixture.commands.path)
-        == .command(.cancel, scope: fixture.commands.path))
+        == .command(AgentCommandVerb.clearSearchHits.id, scope: fixture.commands.path))
   }
 
-  /// A production change that fails this test: the Cancel of the hits does
-  /// not give the removal to the host.
+  /// A production change that fails this test: Clear Search Hits does not
+  /// give the removal to the host.
   @Test func escapeWithHitsRemovesTheHitsOfTheHost() {
     let fixture = Self.makeFixture(hitsIn: [0])
     let registry = Self.registry(of: fixture)
@@ -245,6 +305,17 @@ import Testing
     #expect(resolution == .unbound)
   }
 
+  /// A production change that fails this test: Esc with no hits gives the
+  /// removal to the host.
+  @Test func escapeWithNoHitsDoesNotRemoveTheHits() {
+    let fixture = Self.makeFixture(hitsIn: [])
+    let registry = Self.registry(of: fixture)
+
+    _ = registry.performKey(KeyChord.escape.asSequence, mode: .cua, at: fixture.commands.path)
+
+    #expect(fixture.removals.count == 0)
+  }
+
   /// A production change that fails this test: Esc in a text input removes
   /// the hits, and the text input does not keep its Esc (D137 (d)).
   @Test func escapeInATextInputDoesNotRemoveTheHits() {
@@ -258,22 +329,56 @@ import Testing
 
   /// A production change that fails this test: with hits, Esc stops the
   /// agent before it removes the hits.
-  @Test func theCancelOfTheHitsComesBeforeStop() {
+  @Test func clearSearchHitsComesBeforeStop() {
     let fixture = Self.makeFixture(hitsIn: [0])
     let registry = Self.registry(of: fixture)
 
     let actions = registry.keymapStack(for: .cua, at: fixture.commands.path)
       .bindings(for: KeyChord.escape.asSequence).map(\.action)
 
-    #expect(actions == [.command(.cancel), .command(AgentCommandVerb.cancel.id)])
+    let verbs: [AgentCommandVerb] = [.clearSearchHits, .cancel]
+    #expect(actions == verbs.map { .command($0.id) })
+  }
+
+  /// A production change that fails this test: with hits while the agent
+  /// runs, the first Esc stops the agent, or the second Esc does not.
+  ///
+  /// The host of the test removes the hits as the binding of a host does,
+  /// and the preview session folds the `running` state at once.
+  @Test func theFirstEscapeClearsTheHitsAndTheSecondStops() throws {
+    let starts = ReportRecorder<String>()
+    let fixture = Self.makeFixture(hitsIn: [0]) { $0.requestStartReport = starts.report }
+    fixture.search.hostRemoval = { [weak search = fixture.search, session = fixture.session] in
+      search?.show(nil, in: session)
+    }
+    fixture.session.apply(.stateUpdate(.running(RunningStateUpdate())))
+    let registry = Self.registry(of: fixture)
+    let escape = KeyChord.escape.asSequence
+
+    _ = registry.performKey(escape, mode: .cua, at: fixture.commands.path)
+    try #require(fixture.search.hits.isEmpty && starts.values.isEmpty)
+    _ = registry.performKey(escape, mode: .cua, at: fixture.commands.path)
+
+    #expect(starts.values == [ScriptedSession.cancelMethod])
+  }
+
+  /// A production change that fails this test: the thread registers the
+  /// EditorKit Cancel, so the Edit menu shows a "Cancel" row.
+  @Test func theThreadRegistersNoEditCancel() {
+    let fixture = Self.makeFixture(hitsIn: [0])
+    let registry = Self.registry(of: fixture)
+
+    #expect(registry.definition(for: .cancel, at: fixture.commands.path) == nil)
   }
 
   /// A production change that fails this test: a host that turns off the
   /// find group still gets the Esc of the hits.
-  @Test func aFindGroupThatIsOffHasNoCancel() {
+  @Test func aFindGroupThatIsOffHasNoClearSearchHits() {
     let fixture = Self.makeFixture(hitsIn: [0])
     let registry = Self.registry(of: fixture, groupsOff: [.find])
 
-    #expect(registry.definition(for: .cancel, at: fixture.commands.path) == nil)
+    let definition = registry.definition(
+      for: AgentCommandVerb.clearSearchHits.id, at: fixture.commands.path)
+    #expect(definition == nil)
   }
 }

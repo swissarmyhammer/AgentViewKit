@@ -19,6 +19,7 @@ import EditorCommands
 /// | Control-Command-O | | ``AgentCommandVerb/jumpToSession`` |
 /// | Command-G | | ``AgentCommandVerb/findNextHit`` |
 /// | Shift-Command-G | | ``AgentCommandVerb/findPreviousHit`` |
+/// | Escape | `leave` | ``AgentCommandVerb/clearSearchHits`` |
 ///
 /// The keys follow the one key table of EditorKit, AgentViewKit and
 /// KanbanViewKit (D137): a Mac key keeps its Mac meaning, and each kit command
@@ -33,6 +34,11 @@ import EditorCommands
 /// a text input has the focus, so there the keys stay the find of the editor
 /// (D133). `StandardChords` has no find key but Command-F, so
 /// ``findNextHit`` and ``findPreviousHit`` are chords of this type.
+///
+/// Escape is the first key of Clear Search Hits and the second key of Stop.
+/// A scope binds the first key of each verb before the other keys, so with
+/// search hits Escape clears the hits, and with no hits it stops the agent
+/// (TestudoApp D207 (f)).
 ///
 /// The definition of each command carries the first key of its verb in
 /// `keys[.cua]`, so a menu shows that key. When an ``AgentCommandScope``
@@ -94,6 +100,7 @@ public nonisolated enum AgentKeymap {
     .jumpToSession: [jumpToSession],
     .findNextHit: [findNextHit],
     .findPreviousHit: [findPreviousHit],
+    .clearSearchHits: [StandardChords.leave],
   ]
 
   /// The default keymap: each chord of ``defaultChords`` bound to the
@@ -106,10 +113,13 @@ public nonisolated enum AgentKeymap {
     return keymap
   }()
 
-  /// The entries of ``defaultChords`` in the order of the verbs, so that the
-  /// bindings have a stable order.
+  /// The entries of ``defaultChords`` in the order that a scope binds them:
+  /// the first chord of each verb in the order of the verbs, then
+  /// ``secondaryChords``. Thus the bindings have a stable order, and Escape
+  /// offers ``AgentCommandVerb/clearSearchHits`` before
+  /// ``AgentCommandVerb/cancel``, as in a scope.
   static var sortedChords: [(verb: AgentCommandVerb, chord: KeyChord)] {
-    chords { $0 }
+    chords { Array($0.prefix(1)) } + secondaryChords
   }
 
   /// The chords of ``defaultChords`` after the first chord of each verb, in

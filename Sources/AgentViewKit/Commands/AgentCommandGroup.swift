@@ -17,7 +17,7 @@ import SwiftUI
 /// | ``clipboard`` | Copy Message, Copy Thread, Copy Code Block |
 /// | ``export`` | Export as Markdown… |
 /// | ``fork`` | Fork from Here |
-/// | ``find`` | Find Next Hit, Find Previous Hit, and the Esc that removes the search hits |
+/// | ``find`` | Find Next Hit, Find Previous Hit, Clear Search Hits |
 /// | ``attachment`` | Open, Reveal in Finder, Share, Save, Inspect (``AgentAttachmentVerb``) |
 /// | ``sideCard`` | Send to Chat, Open, Close (``SideCardVerb``) |
 ///
@@ -47,9 +47,9 @@ public nonisolated enum AgentCommandGroup: String, CaseIterable, Sendable {
   /// its action (``SwiftUI/View/onForkFromHere(unavailableReason:_:)``).
   case fork
 
-  /// The verbs that go through the search hits of the thread (TestudoApp
-  /// D207 (f)). With the group off, the scope also does not register the
-  /// Cancel (`edit.cancel`) that removes the hits on Esc.
+  /// The verbs that go through the search hits of the thread and remove
+  /// them (TestudoApp D207 (f)). With the group off, Esc does not remove the
+  /// hits.
   case find
 
   /// The verbs that act on an attached file (AVK-11). The scope of each
@@ -98,7 +98,7 @@ nonisolated extension AgentCommandVerb {
     case .copyMessage, .copyThread, .copyCodeBlock: .clipboard
     case .exportMarkdown: .export
     case .forkFromHere: .fork
-    case .findNextHit, .findPreviousHit: .find
+    case .findNextHit, .findPreviousHit, .clearSearchHits: .find
     }
   }
 }

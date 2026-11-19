@@ -272,7 +272,8 @@ final class AgentCommandTarget {
         ? Self.composerNotShownReason : nil
     case .goToParent, .openChild, .nextSibling, .previousSibling, .jumpToSession:
       navigation == nil ? Self.noNavigationReason : nil
-    case .findNextHit, .findPreviousHit: transcriptSearch == nil ? Self.listNotShownReason : nil
+    case .findNextHit, .findPreviousHit, .clearSearchHits:
+      transcriptSearch == nil ? Self.listNotShownReason : nil
     case .cancel, .approvePending, .rejectPending, .previousRequest, .nextRequest, .copyThread,
       .exportMarkdown, .forkFromHere, .copyMessage, .copyCodeBlock:
       nil
@@ -349,7 +350,7 @@ final class AgentCommandTarget {
     case .insertMention: !session.isClosed
     case .goToParent, .openChild, .nextSibling, .previousSibling, .jumpToSession:
       canNavigate(verb, payload: payload, in: session)
-    case .findNextHit, .findPreviousHit: hasSearchHits
+    case .findNextHit, .findPreviousHit, .clearSearchHits: hasSearchHits
     }
   }
 
@@ -386,7 +387,7 @@ final class AgentCommandTarget {
     case .nextSibling: String(localized: "No session is after this session.", bundle: .module)
     case .previousSibling: String(localized: "No session is before this session.", bundle: .module)
     case .jumpToSession: String(localized: "No other session is in the tree.", bundle: .module)
-    case .findNextHit, .findPreviousHit:
+    case .findNextHit, .findPreviousHit, .clearSearchHits:
       String(localized: "The thread has no search hits.", bundle: .module)
     }
   }
@@ -484,6 +485,7 @@ final class AgentCommandTarget {
     case .jumpToSession: jumpToSession(payload: payload, in: session)
     case .findNextHit: transcriptSearch?.step(forward: true)
     case .findPreviousHit: transcriptSearch?.step(forward: false)
+    case .clearSearchHits: transcriptSearch?.removeHits()
     }
     return true
   }

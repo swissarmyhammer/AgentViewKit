@@ -213,10 +213,10 @@ enum AgentCommandRegistration {
   /// each key of the verb. Thus a group or a host action that a later call
   /// turns off goes away, and one that a later call turns on comes back.
   ///
-  /// The call also registers the Cancel of the search hits
-  /// (``AgentCommandTarget/searchHitsCancel(for:)``) in the group
-  /// ``AgentCommandGroup/find``. It registers it after the verbs and before
-  /// the secondary chords, so Esc offers the Cancel of the hits before Stop.
+  /// The call registers the verbs before the secondary chords of
+  /// ``AgentKeymap``. Esc is the first chord of
+  /// ``AgentCommandVerb/clearSearchHits`` and a secondary chord of Stop, so
+  /// Esc offers Clear Search Hits before Stop.
   ///
   /// - Parameters:
   ///   - target: The target that the commands act on.
@@ -231,17 +231,15 @@ enum AgentCommandRegistration {
     let definitions = verbs.filter(target.registers).map { verb in
       GroupedDefinition(group: verb.group, definition: AgentCommand.definition(of: verb, for: target))
     }
-    let searchHitsCancel = GroupedDefinition(
-      group: .find, definition: AgentCommandTarget.searchHitsCancel(for: target))
-    register(definitions + [searchHitsCancel], at: path, into: &registry, groupsOff: groupsOff)
+    register(definitions, at: path, into: &registry, groupsOff: groupsOff)
     for verb in verbs where !target.registers(verb) {
       registry.unregister(verb.id, at: path)
     }
     AgentKeymap.bindSecondaryChords(into: &registry, at: path, groupsOff: groupsOff)
   }
 
-  /// Removes each verb and the Cancel of the search hits at `path`, and the
-  /// `.host` part of the scope node, which `register` wrote.
+  /// Removes each verb at `path`, and the `.host` part of the scope node,
+  /// which `register` wrote.
   ///
   /// `CommandRegistry.unregister` also removes each key of a verb, the
   /// secondary chords of ``AgentKeymap`` too. Thus a surface that reads the
@@ -260,7 +258,7 @@ enum AgentCommandRegistration {
   ///   - path: The path of the scope.
   ///   - registry: The registry to remove the verbs and the part from.
   static func deregister(at path: FocusPath, from registry: inout CommandRegistry) {
-    deregister(AgentCommandVerb.allCases.map(\.id) + [.cancel], at: path, from: &registry)
+    deregister(AgentCommandVerb.allCases.map(\.id), at: path, from: &registry)
   }
 
   /// Removes each command of `ids` at `path`, and the `.host` part of the

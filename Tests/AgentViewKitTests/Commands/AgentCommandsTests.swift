@@ -27,12 +27,9 @@ final class CallCounter {
   /// The text that the send tests send.
   static let message = "Hello"
 
-  /// The number of verbs of the kit.
-  static let verbCount = 24
-
-  /// The number of definitions that the registration of a thread scope
-  /// makes: one for each verb, and the Cancel of the search hits.
-  static let definitionCount = verbCount + 1
+  /// The number of verbs of the kit. The registration of a thread scope
+  /// makes one definition for each verb, and no EditorKit Cancel.
+  static let verbCount = 25
 
   /// The number of turns that ``sendTurns(to:)`` sends.
   static let turnCount = 3
@@ -229,7 +226,8 @@ final class CallCounter {
 
     let bindings = registry.keymapStack(for: .cua, at: path).bindings(for: KeySequence(.escape))
     let actions = bindings.map(\.action)
-    #expect(actions == [.command(.cancel), .command(AgentCommandVerb.cancel.id)])
+    let escapeVerbs: [AgentCommandVerb] = [.clearSearchHits, .cancel]
+    #expect(actions == escapeVerbs.map { .command($0.id) })
     #expect(registry.tree.nodes.filter { $0.path == path }.count == 1)
 
     AgentCommandRegistration.deregister(at: path, from: &registry)
@@ -261,7 +259,7 @@ final class CallCounter {
 
     older.unmount()
     #expect(system.registry.tree.nodes.contains { $0.path == path })
-    #expect(system.registry.definitions(at: path).count == Self.definitionCount)
+    #expect(system.registry.definitions(at: path).count == Self.verbCount)
 
     newer.unmount()
     #expect(!system.registry.tree.nodes.contains { $0.path == path })
@@ -428,19 +426,24 @@ final class CallCounter {
         == .command(AgentCommandVerb.cancel.id, scope: fixture.path))
   }
 
+  /// The verbs of each chord are in the order of the bindings: Esc offers
+  /// Clear Search Hits before Stop, as the scope does.
   @Test func theDefaultKeymapBindsTheChordsOfEachVerb() {
-    let expected: [(String, AgentCommandVerb)] = [
-      ("⌘↩", .send), ("⌘.", .cancel), ("⎋", .cancel), ("⌃⌘C", .copyThread), ("⌃⇧⌘C", .copyMessage),
-      ("⌃⌘↑", .jumpToPrevious), ("⌃⌘↓", .jumpToNext), ("⌃⌘[", .previousRequest), ("⌃⌘]", .nextRequest),
-      ("⌃⌘←", .goToParent), ("⌃⌘→", .openChild), ("⌃⌥⌘[", .previousSibling), ("⌃⌥⌘]", .nextSibling),
-      ("⌃⌘O", .jumpToSession), ("⌘G", .findNextHit), ("⇧⌘G", .findPreviousHit),
+    let expected: [(String, [AgentCommandVerb])] = [
+      ("⌘↩", [.send]), ("⌘.", [.cancel]), ("⎋", [.clearSearchHits, .cancel]),
+      ("⌃⌘C", [.copyThread]), ("⌃⇧⌘C", [.copyMessage]),
+      ("⌃⌘↑", [.jumpToPrevious]), ("⌃⌘↓", [.jumpToNext]),
+      ("⌃⌘[", [.previousRequest]), ("⌃⌘]", [.nextRequest]),
+      ("⌃⌘←", [.goToParent]), ("⌃⌘→", [.openChild]),
+      ("⌃⌥⌘[", [.previousSibling]), ("⌃⌥⌘]", [.nextSibling]),
+      ("⌃⌘O", [.jumpToSession]), ("⌘G", [.findNextHit]), ("⇧⌘G", [.findPreviousHit]),
     ]
 
-    #expect(AgentKeymap.sortedChords.count == expected.count)
-    for (chord, verb) in expected {
+    #expect(AgentKeymap.sortedChords.count == expected.flatMap(\.1).count)
+    for (chord, verbs) in expected {
       let actions = AgentKeymap.defaultKeymap.bindings(for: KeySequence(canonical: chord))
         .map(\.action)
-      #expect(actions == [.command(verb.id)], "\(chord)")
+      #expect(actions == verbs.map { .command($0.id) }, "\(chord)")
     }
   }
 
@@ -455,6 +458,7 @@ final class CallCounter {
       .jumpToNext: [StandardChords.nextItem],
       .previousRequest: [StandardChords.previousWaiting],
       .nextRequest: [StandardChords.nextWaiting],
+      .clearSearchHits: [StandardChords.leave],
     ]
 
     for (verb, chords) in expected {

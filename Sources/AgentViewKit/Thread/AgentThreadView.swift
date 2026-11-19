@@ -87,7 +87,7 @@ import SwiftUI
 /// ``transcriptSearchHits(_:)`` (TestudoApp D207 (f)): the thread scrolls to
 /// the best hit, and marks the matched words of each hit. Find Next Hit
 /// (Command-G) and Find Previous Hit (Shift-Command-G) go through the hits
-/// in the order of the transcript, and Esc removes them.
+/// in the order of the transcript, and Clear Search Hits (Esc) removes them.
 ///
 /// A deck next to the view goes in one
 /// ``SwiftUI/View/accessibilityFocusScope()`` with the thread view. The

@@ -123,6 +123,14 @@ public nonisolated enum AgentCommandVerb: String, CaseIterable, Sendable {
   /// the focus.
   case findPreviousHit
 
+  /// Removes the search hits of the thread: it sets the binding of the
+  /// host (``SwiftUI/View/transcriptSearchHits(_:)``) to `nil` (TestudoApp
+  /// D207 (f)). Its key is Esc. It is available only when the thread has
+  /// hits and no text input has the focus. The menus and the palette show it
+  /// only when it is available. Otherwise it does not take Esc, and Esc
+  /// goes on to Stop and then to `nav.drillOut` of the window.
+  case clearSearchHits
+
   /// The start of the id of each verb.
   public static let idPrefix = "agent."
 
@@ -158,6 +166,7 @@ public nonisolated enum AgentCommandVerb: String, CaseIterable, Sendable {
     case .jumpToSession: String(localized: "Jump to Session…", bundle: .module)
     case .findNextHit: String(localized: "Find Next Hit", bundle: .module)
     case .findPreviousHit: String(localized: "Find Previous Hit", bundle: .module)
+    case .clearSearchHits: String(localized: "Clear Search Hits", bundle: .module)
     }
   }
 
@@ -364,7 +373,7 @@ nonisolated struct AgentCommand: EditorCommands.Command {
   /// (``AgentCommandVerb/presentation``): the id, the title, the icon, the
   /// menu, the context menu and the first default key of ``AgentKeymap``.
   /// The menus and the palette show the verb in a context when
-  /// ``AgentCommandVerb/isVisible(in:)`` tells so.
+  /// ``isVisible(_:at:in:)`` tells so.
   ///
   /// - Parameters:
   ///   - verb: The verb.
@@ -374,8 +383,33 @@ nonisolated struct AgentCommand: EditorCommands.Command {
     of verb: AgentCommandVerb, for target: AgentCommandTarget
   ) -> CommandDefinition {
     CommandDefinition(
-      verb.presentation, target: target, isVisible: { verb.isVisible(in: $0) },
+      verb.presentation, target: target,
+      isVisible: { [weak target] context in isVisible(verb, at: target, in: context) },
       make: { target, payload in AgentCommand(verb: verb, target: target, payload: payload) })
+  }
+
+  /// Tells if the menus, the context menus and the palette show `verb` in
+  /// `context`.
+  ///
+  /// The verb shows when ``AgentCommandVerb/isVisible(in:)`` tells so. A
+  /// verb that shows only while it is available
+  /// (``AgentCommandVerb/isShownOnlyWhenAvailable``) also needs the
+  /// availability of its command at `target`, so the Edit menu shows no
+  /// disabled row of Clear Search Hits.
+  ///
+  /// - Parameters:
+  ///   - verb: The verb.
+  ///   - target: The target that the command acts on, or `nil` when it is
+  ///     gone.
+  ///   - context: The folded context of the invocation path.
+  /// - Returns: `true` when the verb shows.
+  static func isVisible(
+    _ verb: AgentCommandVerb, at target: AgentCommandTarget?, in context: CommandContext
+  ) -> Bool {
+    guard verb.isVisible(in: context) else { return false }
+    guard verb.isShownOnlyWhenAvailable else { return true }
+    let command = AgentCommand(verb: verb, target: target, payload: nil)
+    return command.availability(in: context).isAvailable
   }
 
   /// The EditorKit definitions of each verb that `target` registers

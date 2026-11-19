@@ -147,9 +147,13 @@ import Testing
     }
   }
 
-  @Test func noTwoVerbsOfTheKitShareAChord() {
+  /// Escape is the one chord of two verbs: Clear Search Hits takes it while
+  /// the thread has search hits, and Stop takes it when it has none
+  /// (TestudoApp D207 (f)).
+  @Test func noTwoVerbsOfTheKitShareAChordButEscape() {
     let chords = AgentKeymap.defaultChords.values.flatMap { $0 }
 
-    #expect(Set(chords).count == chords.count)
+    let shared = Dictionary(grouping: chords) { $0 }.filter { $0.value.count > 1 }.keys
+    #expect(Set(shared) == [KeyChord.escape])
   }
 }
