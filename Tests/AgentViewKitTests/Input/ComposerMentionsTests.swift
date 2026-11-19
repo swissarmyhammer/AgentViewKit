@@ -43,17 +43,19 @@ nonisolated final class BodyLog: Sendable {
     }
   }
 
-  /// A fixture with the `@` source of the kit over the in-memory files of
-  /// ``FileReferenceSourceTests`` and `sources`.
+  /// A fixture with the `@` source of the kit over `fileSystem` and `sources`.
+  /// The default `fileSystem` is the in-memory files of
+  /// ``FileReferenceSourceTests``.
   static func fixture(
-    _ text: String, files: Bool = true, sources: [ComposerMentionSource]
+    _ text: String, files: Bool = true, sources: [ComposerMentionSource],
+    fileSystem: any FileSystem = FileReferenceSourceTests.fileSystem
   ) -> CompletionFixture {
     CompletionFixture(
       text,
       sources: [
         SlashCommandSource(commands: []),
         AtReferenceSource(
-          files: files ? FileReferenceSource(fileSystem: FileReferenceSourceTests.fileSystem) : nil,
+          files: files ? FileReferenceSource(fileSystem: fileSystem) : nil,
           mentions: ComposerMentionSources(sources)),
       ])
   }
@@ -135,12 +137,7 @@ nonisolated final class BodyLog: Sendable {
     let files = InMemoryFileSystem(directories: [
       "": [FileSystemEntry(name: "my-notes.txt", isDirectory: false)]
     ])
-    let fixture = CompletionFixture(
-      typed,
-      sources: [
-        AtReferenceSource(
-          files: FileReferenceSource(fileSystem: files), mentions: ComposerMentionSources([]))
-      ])
+    let fixture = Self.fixture(typed, sources: [], fileSystem: files)
     _ = await fixture.query()
 
     _ = fixture.accept("my-notes.txt")

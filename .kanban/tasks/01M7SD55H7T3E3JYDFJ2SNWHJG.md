@@ -22,6 +22,37 @@ comments:
     - not run: IntegrationTests and ScreenshotTests (they take the screen focus).
     - next: review.
   timestamp: 2026-11-19T08:05:37.122097+00:00
+- actor: claude-code
+  id: 01m7sdkpfm3j8nfbjntxg1bqvf
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (4a50ce0b). 1 finding (1 confirmed, 1 refuted). Tests/AgentViewKitTests/Input/ComposerMentionsTests.swift:138 (reuse/reuse).
+    - next: implement the finding. Give `fixture(_:files:sources:)` a `fileSystem:` parameter, and use it in the new file-accept test. Then run `swift test` and review again.
+  timestamp: 2026-11-19T08:08:45.812043+00:00
+- actor: claude-code
+  id: 01m7sdm72vpsq3kt847cmahtb8
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — ComposerMentions.swift (@ opening body .nonWhitespace), ComposerMentionsTests.swift
+    - test: green — swift test, 1426 tests in 165 suites + 54 tests in 11 suites passed
+    - commit: 4a50ce0b
+    - review: findings — ComposerMentionsTests.swift:138 (reuse)
+  timestamp: 2026-11-19T08:09:02.811009+00:00
+- actor: claude-code
+  id: 01m7sdsqzyfkgs0cmrgwx80xxh
+  text: |-
+    ### implement — changed
+    - evidence: Tests/AgentViewKitTests/Input/ComposerMentionsTests.swift. `fixture(_:files:sources:fileSystem:)` has an optional `fileSystem:` parameter (default `FileReferenceSourceTests.fileSystem`). The hyphenated file test calls `Self.fixture(typed, sources: [], fileSystem: files)`. No other copy of the wiring is in the new tests of this task. `swift test`: 1426 tests in 165 suites pass, and 54 tests in 11 suites pass. `swift format lint -s`: the same 5 findings as HEAD, no new finding. The one build warning is from the mlx dependency bundle, not from this code.
+    - next: review
+  timestamp: 2026-11-19T08:12:03.966497+00:00
+- actor: claude-code
+  id: 01m7sdvvs2hsdabyem9h8fdz1w
+  text: |-
+    ### test — green
+    - evidence: `swift test` at package root, exit 0. "Test run with 1426 tests in 165 suites passed after 25.137 seconds." "Test run with 54 tests in 11 suites passed after 0.008 seconds." No failures. No skips.
+    - lint: `swift format lint -s Tests/AgentViewKitTests/Input/ComposerMentionsTests.swift` gives 5 errors (LineLength x4, AddLines x1). The same 5 errors are in the HEAD version of the file (checked with `git show HEAD:` into a scratch file). The change of this task adds 0 new lint errors. The 5 lines are old lines that this task did not change.
+    - next: review. A person must decide if the 5 old lint errors need a fix.
+  timestamp: 2026-11-19T08:13:13.378225+00:00
 position_column: doing
 position_ordinal: '80'
 title: '@ mention accept replaces only the part after a hyphen (D199)'
@@ -36,3 +67,12 @@ Do:
 - TDD unit test: accept a mention row for a token with a hyphenated slug (for example `@default-2`, typed as `@default-` and as `@default-2`) gives `@default-2 ` with no copy of the text before the hyphen. Add the same test for a file name with a hyphen.
 
 Run `swift test`. Push, and send the sha to testudoapp-9a.
+
+## Review Findings (2026-11-19 02:06)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 2 file(s) reviewed, 4 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+- [x] `Tests/AgentViewKitTests/Input/ComposerMentionsTests.swift:138` `reuse/reuse` — The new file-accept test builds its own CompletionFixture instead of extending the existing `Self.fixture` helper. The helper is a near-match: it already builds the same `@` source stack, but it hardcodes `FileReferenceSourceTests.fileSystem` and cannot take the in-memory file system this test needs. The parallel construction duplicates the fixture wiring, and the copy already differs from the helper (it drops `SlashCommandSource`). If the helper took a file system parameter, the test would not need its own copy. Give `fixture(_:files:sources:)` an optional `fileSystem:` parameter that defaults to `FileReferenceSourceTests.fileSystem`, then call `Self.fixture(typed, sources: [...], fileSystem: files)` from the new test. Keep it a single fixture path.
