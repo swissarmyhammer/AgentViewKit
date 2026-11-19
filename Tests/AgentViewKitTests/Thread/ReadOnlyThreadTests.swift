@@ -39,16 +39,16 @@ import Testing
   /// The updates of the first snapshot: one user message and one agent
   /// message.
   static let firstUpdates: [SessionUpdate] = [
-    .userMessageChunk(chunk(question, id: "user-1")),
-    .agentMessageChunk(chunk(answer, id: "agent-1")),
+    .userMessageChunk(TranscriptSearchTests.chunk(question, id: "user-1")),
+    .agentMessageChunk(TranscriptSearchTests.chunk(answer, id: "agent-1")),
   ]
 
   /// The updates of the newer snapshot: the first updates, then one more
   /// user message and one more agent message.
   static let newerUpdates: [SessionUpdate] =
     firstUpdates + [
-      .userMessageChunk(chunk("And then?", id: "user-2")),
-      .agentMessageChunk(chunk("Then it ends.", id: "agent-2")),
+      .userMessageChunk(TranscriptSearchTests.chunk("And then?", id: "user-2")),
+      .agentMessageChunk(TranscriptSearchTests.chunk("Then it ends.", id: "agent-2")),
     ]
 
   /// The objects of one registration test.
@@ -59,16 +59,6 @@ import Testing
     let registry: CommandRegistry
     /// The path of the scope.
     let path: FocusPath
-  }
-
-  /// Makes a text chunk of a message.
-  ///
-  /// - Parameters:
-  ///   - text: The text of the chunk.
-  ///   - id: The raw message id.
-  /// - Returns: The chunk.
-  static func chunk(_ text: String, id: String) -> ContentChunk {
-    ContentChunk(content: .text(TextContent(text: text)), messageId: MessageId(rawValue: id))
   }
 
   /// Makes a read-only model that shows a snapshot of `updates`.
@@ -110,8 +100,12 @@ import Testing
   // MARK: - Registry
 
   @Test(arguments: changeVerbs)
-  func aReadOnlyThreadDoesNotRegisterAChangeVerb(_ verb: AgentCommandVerb) {
+  func aReadOnlyThreadDoesNotRegisterAChangeVerb(_ verb: AgentCommandVerb) throws {
     let fixture = Self.makeFixture(session: Self.readOnlyModel())
+    // A read verb is in the registry, so the registration ran at this path.
+    let copyThread = fixture.registry.definition(
+      for: AgentCommandVerb.copyThread.id, at: fixture.path)
+    try #require(copyThread != nil)
 
     #expect(fixture.registry.definition(for: verb.id, at: fixture.path) == nil)
   }
@@ -137,6 +131,8 @@ import Testing
     let entry = try #require(session.transcript.first)
     let messagePath = fixture.path.appending(AgentScopeKind.message(rowKey: entry.rowKey))
     let ids = Set(fixture.registry.contextMenuMirror(at: messagePath).map(\.id))
+    // The menu holds a read verb, so the message path is correct.
+    try #require(ids.contains(AgentCommandVerb.copyMessage.id))
 
     #expect(ids.isDisjoint(with: Self.changeVerbs.map(\.id)))
   }
@@ -164,6 +160,8 @@ import Testing
   @Test func aReplaceKeepsTheRowKeyOfEachEntryThatStays() throws {
     let session = Self.readOnlyModel()
     let keys = session.transcript.map(\.rowKey)
+    // The first snapshot has rows, so the prefix check can fail.
+    try #require(!keys.isEmpty)
 
     try session.replace(with: SessionSnapshot.build(updates: Self.newerUpdates))
 

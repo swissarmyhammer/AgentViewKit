@@ -30,6 +30,32 @@ comments:
     - `swift format lint -s` errors HEAD→now: AgentCommandGroup 1→1, AgentCommandScope 3→3, AgentCommandTarget 11→11, RequestDeck 8→8, MessageActions 2→2, AgentThreadView 9→9, ForkFromHereCommandTests 21→17, ReadOnlyThreadTests (new) 0.
     - next: /review. The task stays in doing. No commit and no push.
   timestamp: 2026-11-19T23:21:07.900263+00:00
+- actor: claude-code
+  id: 01m7v212vxm0mgx55dk971284k
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (542c9a0d). 2 findings, 2 confirmed, 0 refuted. Tests/AgentViewKitTests/Thread/ReadOnlyThreadTests.swift:70, Tests/AgentViewKitTests/Thread/ReadOnlyThreadTests.swift:141. The test file is new in this commit, thus the rule for tests that existed before does not apply.
+    - next: Do the 2 items in the "Review Findings (2026-11-19 17:22)" section. Then do the review again.
+  timestamp: 2026-11-19T23:24:50.429516+00:00
+- actor: claude-code
+  id: 01m7v22ktb1kj7embsghdhdx4f
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — AgentCommandGroup, AgentCommandTarget, AgentCommandScope, MessageActions, AgentThreadView, RequestDeck (doc), ReadOnlyThreadTests (new), ForkFromHereCommandTests, ARCHITECTURE.md; ACPClient 55e7aa7, ACP b4b7abf
+    - test: green — swift test, 1534 tests in 175 suites + 54 tests in 11 suites passed (run by the implement step after its edits)
+    - commit: 542c9a0d
+    - review: findings — ReadOnlyThreadTests.swift:70 (reuse of chunk helper), ReadOnlyThreadTests.swift:141 (test passes on an empty menu)
+    - note: the board read the text of a finding as the tag "expect"; the orchestrator removed that tag.
+  timestamp: 2026-11-19T23:25:40.555355+00:00
+- actor: claude-code
+  id: 01m7v27twwhk24dz78r3w3krv2
+  text: |-
+    ### implement — changed
+    - Finding 1: removed the local chunk(_:id:). The suite now calls TranscriptSearchTests.chunk. That helper is internal, and other suites already call static helpers of other suites (AgentCommandsTests), so no move was necessary.
+    - Finding 2: the context menu test now requires copyMessage in the menu before the isDisjoint check. The same gap was in two more tests: the change verb test now requires that copyThread is in the registry, and the replace row key test now requires that the first transcript is not empty.
+    - evidence: Tests/AgentViewKitTests/Thread/ReadOnlyThreadTests.swift; swift format lint -s: 0 errors (HEAD 0); swift test: "Test run with 1534 tests in 175 suites passed", "Test run with 54 tests in 11 suites passed".
+    - next: review
+  timestamp: 2026-11-19T23:28:31.644810+00:00
 position_column: doing
 position_ordinal: '80'
 title: 'Read-only thread for a shared session: no composer and no change verbs (D208 i)'
@@ -48,3 +74,16 @@ Do:
 Tests (unit, no window): a read-only model has no composer, the change verbs are not in the registry, the read verbs work, and a replace keeps the scroll anchor.
 
 Push when `swift test` is green, and send the sha to testudoapp-9a.
+
+## Review Findings (2026-11-19 17:22)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 8 file(s) reviewed, 3 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+> 1 file(s) not reviewed — no validator matched:
+> - `ARCHITECTURE.md` — no validator matches this file
+
+- [x] `Tests/AgentViewKitTests/Thread/ReadOnlyThreadTests.swift:70` `reuse/reuse` — The new static helper chunk(_:id:) reimplements an existing helper with the same body. A second copy can diverge from the first and must be fixed twice. Call the existing helper instead. Remove the local chunk(_:id:) and call the existing helper, for example TranscriptSearchTests.chunk, if it is reachable from this test target. If it is private to that test type, move it to a shared test support file and have both suites use it.
+- [x] `Tests/AgentViewKitTests/Thread/ReadOnlyThreadTests.swift:141` `test-integrity/no-test-cheating` — The test theContextMenuOfAMessageOfAReadOnlyThreadHasNoChangeVerb passes when the context menu is empty. It checks only that no change verb is present (isDisjoint), and it never checks that the menu holds any verb. If the message path is wrong, or the mirror returns nothing, the assertion still passes. The test can therefore pass without proving that the read-only filter works on a message menu. Add a precondition that the menu is not empty, for example(ids.contains(AgentCommandVerb.copyMessage.id)), before the isDisjoint check. This shows the menu was measured and that the message path is correct, so the disjoint check can fail.
