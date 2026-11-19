@@ -34,8 +34,8 @@ import Testing
   static func markedText(of mark: TranscriptSearchMark, in text: String) throws -> [String] {
     let provider = try #require(TranscriptSearchMatches.decorationProvider(of: mark))
     let context = EditorContext(EditorModel.makeReadOnly(text).state)
-    let utf8 = Array(text.utf8)
-    return provider(context).decorations.map { String(decoding: utf8[$0.byteRange], as: UTF8.self) }
+    let ranges = provider(context).decorations.map(\.byteRange)
+    return AgentViewKitTests.markedText(of: ranges, in: text)
   }
 
   /// The parsed ``patch``.

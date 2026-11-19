@@ -65,6 +65,31 @@ comments:
     - evidence: Sources/AgentViewKit/Thread/TranscriptSearchMarks.swift, Sources/AgentViewKit/Status/TaskListView.swift, Sources/AgentViewKit/Diff/DiffView.swift, ARCHITECTURE.md, Tests/AgentViewKitTests/Status/TaskListViewSearchMarksTests.swift (new), Tests/AgentViewKitTests/Diff/DiffSearchMarksTests.swift (new). `swift test`: "Test run with 1514 tests in 173 suites passed" and "Test run with 54 tests in 11 suites passed". The only warning is the allowed mlx "missing creator" warning. `swift build --build-tests` completes in IntegrationTests and in ScreenshotTests. `swift format lint -s` errors: TranscriptSearchMarks 0 (HEAD 0), TaskListView 5 (HEAD 5), DiffView 4 (HEAD 4), the 2 new test files 0.
     - next: review
   timestamp: 2026-11-19T16:02:17.182006+00:00
+- actor: claude-code
+  id: 01m7t8va156jzasc1zv5qjdgnt
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (f1e849a1). 2 findings, 2 confirmed, 0 refuted. Sources/AgentViewKit/Thread/TranscriptSearchMarks.swift:251, Tests/AgentViewKitTests/Status/TaskListViewSearchMarksTests.swift:20. Both test files are new in this task, thus the test finding stays.
+    - next: implement the 2 open items of the "Review Findings (2026-11-19 10:02)" section. The task stays in review.
+  timestamp: 2026-11-19T16:04:46.757818+00:00
+- actor: claude-code
+  id: 01m7t8vsd6te49jkhs65rvxkc0
+  text: |-
+    ### finish iteration 2 — findings
+    - implement: changed — TranscriptSearchMarks.swift, TaskListView.swift, DiffView.swift, ARCHITECTURE.md, 2 new test files (EditorKit 60d17ff2 hooks)
+    - test: green — swift test, 1514 tests in 173 suites + 54 tests in 11 suites passed (run by the implement step after its edits)
+    - commit: f1e849a1
+    - review: findings — TranscriptSearchMarks.swift:251 (duplication), TaskListViewSearchMarksTests.swift:20 (reuse)
+  timestamp: 2026-11-19T16:05:02.502899+00:00
+- actor: claude-code
+  id: 01m7t91vc4qcb7p12de0qz36wn
+  text: |-
+    ### implement — changed
+    - Finding 1: new generic `TranscriptSearchMatches.marking(_:with:_:)` gets the provider and applies `editorMarks`. `EditorSlotComposing.transcriptSearchMarks` and `PreviewField.transcriptSearchMarks` call it. No other copy of the body is in the file.
+    - Finding 2: new free function `markedText(of:in:)` in Tests/AgentViewKitTests/Helpers/MarkedText.swift turns UTF-8 ranges into text. The two suites call it from one-line wrappers.
+    - evidence: swift test: "Test run with 1514 tests in 173 suites passed", "Test run with 54 tests in 11 suites passed". swift format lint -s: 0 errors on each changed file (HEAD 0) and on the new file.
+    - next: review.
+  timestamp: 2026-11-19T16:08:21.124935+00:00
 position_column: doing
 position_ordinal: '80'
 title: Transcript search marks in plan entries and diffs (D207 f)
@@ -77,3 +102,16 @@ Follow-up of ^yxxnx1f. That task marks the matched words of a search hit in the 
 Use the same match rule (`TranscriptSearchMatches.ranges(of:in:)`: no case, no diacritics, at the start of a word) and the row mark of the environment (`\.transcriptSearchMark`).
 
 Tests (unit, no window): the marks of a plan entry with a matched word.
+
+## Review Findings (2026-11-19 10:02)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 5 file(s) reviewed, 3 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+> 1 file(s) not reviewed — no validator matched:
+> - `ARCHITECTURE.md` — no validator matches this file
+
+- [x] `Sources/AgentViewKit/Thread/TranscriptSearchMarks.swift:251` `duplication/duplication` — The two-line body of PreviewField.transcriptSearchMarks is a verbatim copy of the body of EditorSlotComposing.transcriptSearchMarks. Both fetch the provider with decorationProvider(of:), return self when it is nil, and otherwise call editorMarks(provider). If one copy changes, the other can drift out of sync. Extract one generic helper that takes the view value and the optional mark, and gets the provider and calls editorMarks. Call it from both extensions. If a generic helper is judged too heavy for two lines, keep the copies and state that choice in the review.
+- [x] `Tests/AgentViewKitTests/Status/TaskListViewSearchMarksTests.swift:20` `reuse/reuse` — The new helper `markedText(of:)` repeats the byte-range-to-text extraction that the new `markedText(of:in:)` helper in DiffSearchMarksTests already does. Both turn a mark's UTF-8 range into the marked substring. Two copies of the same test logic can drift apart. Move the range-to-string helper into one shared test support location, for example as an extension on `EditorLabelMark` or a free function in a common test file. Both suites then call it. The per-suite wrappers can stay as one-line calls.

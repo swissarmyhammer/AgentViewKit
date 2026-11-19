@@ -18,8 +18,7 @@ import Testing
   /// - Parameter marks: The marks of the entry.
   /// - Returns: The marked text of each mark, in order.
   static func markedText(of marks: [EditorLabelMark]) -> [String] {
-    let utf8 = Array(entry.content.utf8)
-    return marks.map { String(decoding: utf8[$0.utf8Range], as: UTF8.self) }
+    AgentViewKitTests.markedText(of: marks.map(\.utf8Range), in: entry.content)
   }
 
   /// A production change that fails this test: the marks of a plan entry

@@ -136,6 +136,26 @@ nonisolated enum TranscriptSearchMatches {
     return { context in decorations(of: mark, in: context) }
   }
 
+  /// The view `view` with the find marks of `mark`, or `view` with no change
+  /// when there is no mark with terms (``decorationProvider(of:)``).
+  ///
+  /// Each view type of EditorKit that takes mark decorations calls this
+  /// function with its own `editorMarks(_:)` slot.
+  ///
+  /// - Parameters:
+  ///   - view: The view value that gets the marks.
+  ///   - mark: The search mark of the row, or `nil`.
+  ///   - addMarks: Adds a mark provider to a view value.
+  /// - Returns: The view value, with the marks when there are terms.
+  static func marking<Marked>(
+    _ view: Marked,
+    with mark: TranscriptSearchMark?,
+    _ addMarks: (Marked, @escaping (EditorContext) -> DecorationSet) -> Marked
+  ) -> Marked {
+    guard let provider = decorationProvider(of: mark) else { return view }
+    return addMarks(view, provider)
+  }
+
   /// The ranges of the matches of `terms` in `text`, with each overlap of
   /// two matches made one range (``ranges(of:in:)``).
   ///
@@ -231,8 +251,7 @@ extension EditorSlotComposing {
   /// - Parameter mark: The search mark of the row, or `nil`.
   /// - Returns: The same view value, with the marks when there are terms.
   func transcriptSearchMarks(_ mark: TranscriptSearchMark?) -> Self {
-    guard let provider = TranscriptSearchMatches.decorationProvider(of: mark) else { return self }
-    return editorMarks(provider)
+    TranscriptSearchMatches.marking(self, with: mark) { $0.editorMarks($1) }
   }
 }
 
@@ -248,8 +267,7 @@ extension PreviewField {
   /// - Parameter mark: The search mark of the row, or `nil`.
   /// - Returns: The same field, with the marks when there are terms.
   func transcriptSearchMarks(_ mark: TranscriptSearchMark?) -> PreviewField {
-    guard let provider = TranscriptSearchMatches.decorationProvider(of: mark) else { return self }
-    return editorMarks(provider)
+    TranscriptSearchMatches.marking(self, with: mark) { $0.editorMarks($1) }
   }
 }
 
