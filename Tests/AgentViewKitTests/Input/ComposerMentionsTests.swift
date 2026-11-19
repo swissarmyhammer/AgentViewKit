@@ -115,6 +115,39 @@ nonisolated final class BodyLog: Sendable {
     #expect(fixture.text == "ask @claude-code ")
   }
 
+  /// A source that gives one mention with a hyphenated slug.
+  static let hyphenated = ComposerMentionSource { _ in
+    [ComposerMention(label: "default-2", token: "default-2")]
+  }
+
+  @Test(arguments: ["ask @default-", "ask @default-2"])
+  func anAcceptedHyphenatedMentionReplacesTheWholeToken(typed: String) async {
+    let fixture = Self.fixture(typed, files: false, sources: [Self.hyphenated])
+    _ = await fixture.query()
+
+    _ = fixture.accept("default-2")
+
+    #expect(fixture.text == "ask @default-2 ")
+  }
+
+  @Test(arguments: ["see @my-", "see @my-no"])
+  func anAcceptedHyphenatedFileReplacesTheWholeToken(typed: String) async {
+    let files = InMemoryFileSystem(directories: [
+      "": [FileSystemEntry(name: "my-notes.txt", isDirectory: false)]
+    ])
+    let fixture = CompletionFixture(
+      typed,
+      sources: [
+        AtReferenceSource(
+          files: FileReferenceSource(fileSystem: files), mentions: ComposerMentionSources([]))
+      ])
+    _ = await fixture.query()
+
+    _ = fixture.accept("my-notes.txt")
+
+    #expect(fixture.text == "see @my-notes.txt ")
+  }
+
   @Test func aTokenThatIsNotAtTheCaretAsksNoSource() async {
     let log = BodyLog()
 

@@ -160,9 +160,11 @@ nonisolated struct AtReferenceSource: EditorExtensions.CompletionSource {
   /// The mention sources.
   let mentions: ComposerMentionSources
 
-  /// The `@` opening, so that an accept replaces the whole token.
+  /// The `@` opening, so that an accept replaces the whole token. The body
+  /// holds all characters that are not white space, as ``body(at:)`` does, so
+  /// a token with a `-` such as `@default-2` is one token.
   var tokenOpenings: [CompletionTokenOpening] {
-    [CompletionTokenOpening(text: FileReferenceSource.trigger)]
+    [CompletionTokenOpening(text: FileReferenceSource.trigger, body: .nonWhitespace)]
   }
 
   /// The file rows, then the mention rows, for the token at the caret.
