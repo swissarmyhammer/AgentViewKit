@@ -42,7 +42,10 @@ import UniformTypeIdentifiers
 ///   (``SwiftUI/View/agentCommandScope(session:)``). With no scope, the button
 ///   sets the ``SwiftUI/EnvironmentValues/promptText`` binding.
 ///
-/// With no session model in the environment, the row shows only Copy.
+/// With no session model in the environment, the row shows only Copy. For a
+/// read-only session (`SessionModel.isReadOnly`, the shared session of
+/// TestudoApp D208 (i)), the row shows only Copy, Copy thread and Export:
+/// no Fork, Retry or Edit.
 ///
 /// Each button is an EditorKit `EditorToolbarButton` that shows its symbol
 /// alone, with its name as its accessibility label and its tooltip.
@@ -209,8 +212,9 @@ public struct MessageActions: View {
 
   /// The buttons for the message, in display order.
   private var actionsToShow: [Action] {
-    guard session != nil else { return [.copy] }
-    return Self.actions(for: entry.role, canFork: forkFromHere != nil && !groupsOff.contains(.fork))
+    guard let session else { return [.copy] }
+    let canFork = forkFromHere != nil && !groupsOff.contains(.fork)
+    return Self.actions(for: entry.role, canFork: canFork, isReadOnly: session.isReadOnly)
   }
 
   /// The reason that the button of `action` with no command scope is
@@ -232,16 +236,25 @@ public struct MessageActions: View {
 
   /// The buttons for a message of `role`, in display order.
   ///
+  /// A read-only session (TestudoApp D208 (i)) cannot change, so its row
+  /// shows only the buttons that read: Copy, Copy thread and Export. It
+  /// shows no Fork, Retry or Edit, because the registry of a read-only
+  /// thread has no Fork from Here and the thread has no composer.
+  ///
   /// - Parameters:
   ///   - role: The sender of the message.
   ///   - canFork: Tells if the row shows Fork, after Export: the host gives
   ///     the fork action, so the registry has the verb.
+  ///   - isReadOnly: Tells if the session of the message is read-only
+  ///     (`SessionModel.isReadOnly`).
   /// - Returns: The buttons.
-  static func actions(for role: MessageRole, canFork: Bool) -> [Action] {
+  static func actions(for role: MessageRole, canFork: Bool, isReadOnly: Bool) -> [Action] {
+    let read: [Action] = [.copy, .copyThread, .export]
+    guard !isReadOnly else { return read }
     let fork: [Action] = canFork ? [.fork] : []
     switch role {
-    case .user: return [.copy, .copyThread, .export] + fork + [.edit]
-    case .assistant: return [.copy, .copyThread, .export] + fork + [.retry]
+    case .user: return read + fork + [.edit]
+    case .assistant: return read + fork + [.retry]
     }
   }
 

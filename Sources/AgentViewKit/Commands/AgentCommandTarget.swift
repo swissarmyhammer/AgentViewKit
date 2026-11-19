@@ -93,6 +93,10 @@ final class AgentSessionNavigation {
 ///   (``SessionMarkdownExport/hasHistory(_:)``). It gives the export of the
 ///   session, with the name of the agent of ``connection``, to
 ///   ``markdownExports``, and the scope shows the save panel.
+/// - A read-only session (`SessionModel.isReadOnly`, TestudoApp D208 (i))
+///   has no verb of a group that changes the session in the registry
+///   (``registers(_:)``): no Send, Focus Composer, Mention…, Stop, Approve,
+///   Reject or Fork from Here. The verbs that read stay.
 /// - Fork from Here is in the registry only with the fork action of the host
 ///   (``forkFromHere``). It is disabled with the reason of the host, with no
 ///   message, or for a message with no `MessageId`. It gives the
@@ -194,12 +198,20 @@ final class AgentCommandTarget {
   /// A verb that runs an action of the host is in the registry only when
   /// the host gives that action (TestudoApp D164): the registry has no
   /// command that cannot run. ``AgentCommandVerb/forkFromHere`` needs
-  /// ``forkFromHere``. The scope registers each other verb.
+  /// ``forkFromHere``.
+  ///
+  /// A read-only session (`SessionModel.isReadOnly`, TestudoApp D208 (i))
+  /// cannot change, so the scope does not register a verb of a group that
+  /// changes the session (``AgentCommandGroup/changesSession``): Send
+  /// Message, Focus Composer, Mention…, Stop, Approve Request, Reject
+  /// Request and Fork from Here. The registry then shows no disabled row of
+  /// them. The scope registers each other verb.
   ///
   /// - Parameter verb: The verb.
   /// - Returns: `true` when the scope registers the verb.
   func registers(_ verb: AgentCommandVerb) -> Bool {
-    verb != .forkFromHere || forkFromHere != nil
+    if verb.group.changesSession, session?.isReadOnly == true { return false }
+    return verb != .forkFromHere || forkFromHere != nil
   }
 
   // MARK: - Dispatch

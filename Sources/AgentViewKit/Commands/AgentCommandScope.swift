@@ -21,7 +21,10 @@ import SwiftUI
 /// off with ``SwiftUI/View/agentCommandGroups(off:)`` (see
 /// ``AgentCommandGroup``). It registers ``AgentCommandVerb/forkFromHere``
 /// only when the host gives its fork action with
-/// ``SwiftUI/View/onForkFromHere(unavailableReason:_:)``.
+/// ``SwiftUI/View/onForkFromHere(unavailableReason:_:)``. For a read-only
+/// session (`SessionModel.isReadOnly`, TestudoApp D208 (i)), it registers no
+/// verb of a group that changes the session
+/// (``AgentCommandGroup/changesSession``).
 ///
 /// Each command reads its eligibility from the model directly: the
 /// `agentState`, the `pendingPermissions` and the `transcript` of a

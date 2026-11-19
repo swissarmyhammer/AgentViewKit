@@ -54,6 +54,14 @@ import SwiftUI
 /// ``PromptInputView`` that keeps its own text. Give a custom composer with
 /// ``init(session:connection:sessionTitle:headerContextMenuPath:composer:)``,
 /// or `EmptyView()` for no composer.
+/// For a read-only session (`SessionModel.isReadOnly`, the shared session of
+/// TestudoApp D208 (i)), the view shows no composer slot
+/// (``AgentThreadLayout/showsComposer(for:)``), and its scope registers no
+/// verb that changes the session (``AgentCommandGroup/changesSession``).
+/// The thread keeps the verbs that read it, such as Copy Thread, Export as
+/// Markdown… and the find and navigation verbs. When the model gets a newer
+/// snapshot (`SessionModel.replace(with:)`), each entry that stays keeps its
+/// id and thus its row key, so the list keeps its scroll position.
 /// The scroll-to-bottom pill (``ScrollToBottomPill``) floats over the list,
 /// above the bar, and takes no space in the bar. Thus the bottom inset of the
 /// list does not change when the pill shows or goes away (^66has33). The pill
@@ -493,10 +501,12 @@ public struct AgentThreadView<Composer: View>: View {
         if let connection {
           AgentLoginPrompt(session: session, connection: connection)
         }
-        composer
-          .disabled(!session.canPrompt)
-          .environment(\.sessionModel, session)
-          .environment(\.connectionModel, connection ?? hostConnection)
+        if AgentThreadLayout.showsComposer(for: session) {
+          composer
+            .disabled(!session.canPrompt)
+            .environment(\.sessionModel, session)
+            .environment(\.connectionModel, connection ?? hostConnection)
+        }
       }
       // The pill and the side cards float above the controls and take no
       // space in their layout, so their show and their hide keep the bottom
@@ -604,6 +614,20 @@ public enum AgentThreadLayout {
   /// state banner, the login prompt, the scroll-to-bottom pill and the
   /// composer slot, in one glass container in the bottom bar.
   public static let floatingControlsIdentifier = "thread-floating-controls"
+
+  /// Tells if a thread view of `session` shows its composer slot.
+  ///
+  /// A read-only session (`SessionModel.isReadOnly`, the shared session of
+  /// TestudoApp D208 (i)) cannot get a prompt, so the view shows no
+  /// composer slot: no composer, no request deck in the slot, and no mode
+  /// or model picker of the accessory of the composer. A read-only session
+  /// also has no pending request, so a deck next to the view shows no card.
+  ///
+  /// - Parameter session: The session that the view shows.
+  /// - Returns: `false` when the session is read-only.
+  static func showsComposer(for session: SessionModel) -> Bool {
+    !session.isReadOnly
+  }
 }
 
 extension EnvironmentValues {

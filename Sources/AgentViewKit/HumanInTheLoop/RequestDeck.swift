@@ -167,6 +167,11 @@ import SwiftUI
 ///   The edges and the cards that do not show are hidden from VoiceOver. A
 ///   waiting card gives no announcement and moves no focus.
 ///
+/// A read-only session (`SessionModel.isReadOnly`, the shared session of
+/// TestudoApp D208 (i)) has no pending request, so its deck shows no card:
+/// no permission buttons and no elicitation form. Its thread shows no
+/// composer slot, so a deck in that slot does not show.
+///
 /// The deck applies ``SwiftUI/View/accessibilityFocusScope()``, which does
 /// nothing when the environment already has a mover. The deck tells the
 /// ``SwiftUI/EnvironmentValues/accessibilityFocusMover`` and the

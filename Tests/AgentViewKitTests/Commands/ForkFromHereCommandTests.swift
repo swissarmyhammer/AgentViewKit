@@ -230,15 +230,21 @@ import Testing
   }
 
   @Test func theActionRowOfAUserMessageHasTheForkButtonAfterExport() {
-    #expect(MessageActions.actions(for: .user, canFork: true) == [.copy, .copyThread, .export, .fork, .edit])
+    #expect(
+      MessageActions.actions(for: .user, canFork: true, isReadOnly: false)
+        == [.copy, .copyThread, .export, .fork, .edit])
   }
 
   @Test func theActionRowOfAnAgentMessageHasTheForkButtonAfterExport() {
-    #expect(MessageActions.actions(for: .assistant, canFork: true) == [.copy, .copyThread, .export, .fork, .retry])
+    #expect(
+      MessageActions.actions(for: .assistant, canFork: true, isReadOnly: false)
+        == [.copy, .copyThread, .export, .fork, .retry])
   }
 
   @Test func theActionRowHasNoForkButtonWhenTheVerbIsNotInTheRegistry() {
-    #expect(!MessageActions.actions(for: .assistant, canFork: false).contains(.fork))
+    let actions = MessageActions.actions(for: .assistant, canFork: false, isReadOnly: false)
+
+    #expect(!actions.contains(.fork))
   }
 
   @Test func theForkButtonWithNoScopeIsDisabledWithTheHostReason() throws {

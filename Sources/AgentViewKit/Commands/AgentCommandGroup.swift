@@ -21,6 +21,10 @@ import SwiftUI
 /// | ``attachment`` | Open, Reveal in Finder, Share, Save, Inspect (``AgentAttachmentVerb``) |
 /// | ``sideCard`` | Send to Chat, Open, Close (``SideCardVerb``) |
 ///
+/// A scope of a read-only session (TestudoApp D208 (i)) does not register
+/// the verbs of the groups that change the session (``changesSession``):
+/// ``compose``, ``control`` and ``fork``.
+///
 /// KanbanViewKit and SnapshotViewKit use the same shape. A group with the same
 /// job in two kits has the same last word in its ``id``, for example
 /// `navigate` and `clipboard`.
@@ -83,6 +87,22 @@ public nonisolated enum AgentCommandGroup: String, CaseIterable, Sendable {
   /// group ``sideCard`` has side card verbs.
   public var sideCardVerbs: [SideCardVerb] {
     SideCardVerb.allCases.filter { $0.group == self }
+  }
+
+  /// Tells if the thread verbs of the group change the session, or act on
+  /// the composer that changes it.
+  ///
+  /// The groups ``compose``, ``control`` and ``fork`` change the session. A
+  /// thread scope of a read-only session (`SessionModel.isReadOnly`, the
+  /// shared session of TestudoApp D208 (i)) does not register their verbs
+  /// (``AgentCommandTarget/registers(_:)``). Thus no menu, context menu,
+  /// palette row or key of the thread gives them. The other groups only
+  /// read the thread, so the read-only scope keeps them.
+  public var changesSession: Bool {
+    switch self {
+    case .compose, .control, .fork: true
+    case .navigate, .clipboard, .export, .find, .attachment, .sideCard: false
+    }
   }
 }
 
