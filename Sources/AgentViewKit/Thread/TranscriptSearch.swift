@@ -8,10 +8,12 @@ import SwiftUI
 /// a hit (TestudoApp D207 (f)).
 ///
 /// ``AgentThreadView`` keeps one value. It gives each change of the hits of
-/// the host to ``show(_:rowKeys:)``, and each change of the transcript to
-/// ``transcriptChanged(rowKeys:)``. The value finds the entry of each hit by
-/// the row key of the wire id of the hit (`TranscriptEntry.ID.wire`), and
-/// skips a hit whose entry the transcript does not hold.
+/// the host to ``show(_:in:)``, and each change of the transcript to
+/// ``transcriptChanged(in:)``. The value finds the entry of each hit with
+/// `SessionModel.entry(forWireID:)`, and skips a hit whose entry the model
+/// does not give: an unknown wire id, the wire id of an entry that a
+/// rollback removed, or the echo of a prompt that the model holds until the
+/// answer of the prompt.
 ///
 /// ``ConversationView`` takes each reveal with ``takeRevealRequest()`` and
 /// scrolls to its row. Each row reads its mark with ``mark(forRowKey:)``.
@@ -88,28 +90,27 @@ final class TranscriptSearch {
   /// holds becomes current, and the list reveals it.
   ///
   /// When no hit has an entry yet, the value waits, and
-  /// ``transcriptChanged(rowKeys:)`` reveals the first hit when its entry
-  /// comes.
+  /// ``transcriptChanged(in:)`` reveals the first hit when its entry comes.
   ///
   /// - Parameters:
   ///   - newHits: The hits, best first, or `nil` for no hits.
-  ///   - rowKeys: The row keys of the transcript, in order.
-  func show(_ newHits: TranscriptSearchHits?, rowKeys: [String]) {
+  ///   - session: The session that the thread shows.
+  func show(_ newHits: TranscriptSearchHits?, in session: SessionModel) {
     source = newHits
     waitsForReveal = newHits != nil
     currentIndex = nil
     revealRequest = nil
-    resolve(rowKeys: rowKeys)
+    resolve(in: session)
   }
 
   /// Finds the entries of the hits again after a change of the transcript,
   /// and reveals the first hit when the hits wait for it.
   ///
-  /// - Parameter rowKeys: The row keys of the transcript, in order.
-  func transcriptChanged(rowKeys: [String]) {
+  /// - Parameter session: The session that the thread shows.
+  func transcriptChanged(in session: SessionModel) {
     guard source != nil else { return }
     let current = currentHit?.rowKey
-    resolve(rowKeys: rowKeys)
+    resolve(in: session)
     if let current, !waitsForReveal {
       currentIndex = hits.firstIndex { $0.rowKey == current }
     }
@@ -204,9 +205,9 @@ final class TranscriptSearch {
   /// Finds the entry of each hit of the host, and reveals the first hit
   /// when the hits wait for it.
   ///
-  /// - Parameter rowKeys: The row keys of the transcript, in order.
-  private func resolve(rowKeys: [String]) {
-    hits = Self.hits(of: source, rowKeys: rowKeys)
+  /// - Parameter session: The session that the thread shows.
+  private func resolve(in session: SessionModel) {
+    hits = Self.hits(of: source, in: session)
     guard waitsForReveal, !hits.isEmpty else { return }
     waitsForReveal = false
     makeCurrent(0)
@@ -216,14 +217,15 @@ final class TranscriptSearch {
   ///
   /// - Parameters:
   ///   - source: The hits of the host, or `nil`.
-  ///   - rowKeys: The row keys of the transcript, in order.
-  /// - Returns: One hit for each hit of the host whose wire id names an
-  ///   entry of the transcript, best first.
-  private static func hits(of source: TranscriptSearchHits?, rowKeys: [String]) -> [Hit] {
+  ///   - session: The session that the thread shows.
+  /// - Returns: One hit for each hit of the host whose entry the model
+  ///   gives and the transcript holds, best first.
+  private static func hits(of source: TranscriptSearchHits?, in session: SessionModel) -> [Hit] {
     guard let source else { return [] }
+    let rowKeys = session.transcript.map(\.rowKey)
     let positions = Dictionary(rowKeys.enumerated().map { ($1, $0) }) { first, _ in first }
     return source.hits.compactMap { hit in
-      let rowKey = TranscriptEntry.ID.wire(hit.entryID).rowKey
+      guard let rowKey = session.entry(forWireID: hit.entryID)?.rowKey else { return nil }
       return positions[rowKey].map { Hit(rowKey: rowKey, position: $0, terms: hit.terms) }
     }
   }
@@ -265,13 +267,13 @@ struct TranscriptSearchDriver: View {
       .accessibilityHidden(true)
       .onChange(of: hits, initial: true) {
         search.hostRemoval = hostHits.map(Self.removal(of:))
-        search.show(hits, rowKeys: rowKeys)
+        search.show(hits, in: session)
       }
       .onChange(of: hits.map { _ in ObjectIdentifier(session) }) {
-        search.transcriptChanged(rowKeys: rowKeys)
+        search.transcriptChanged(in: session)
       }
       .onChange(of: hits.map { _ in session.transcript.count }) {
-        search.transcriptChanged(rowKeys: rowKeys)
+        search.transcriptChanged(in: session)
       }
       .onChange(of: search.currentHit, initial: true) {
         Self.openCurrentHit(of: search, in: session.transcript, store: store)
@@ -287,11 +289,6 @@ struct TranscriptSearchDriver: View {
   /// - Returns: The removal.
   private static func removal(of binding: Binding<TranscriptSearchHits?>) -> @MainActor () -> Void {
     { binding.wrappedValue = nil }
-  }
-
-  /// The row keys of the transcript of the session, in order.
-  private var rowKeys: [String] {
-    session.transcript.map(\.rowKey)
   }
 
   /// Opens the entry of the current hit when it is a tool call or a

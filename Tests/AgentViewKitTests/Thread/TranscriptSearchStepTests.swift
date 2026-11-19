@@ -18,9 +18,6 @@ import Testing
   /// The wire id of the third entry.
   static let thirdID = TranscriptSearchTests.thirdID
 
-  /// The row keys of a transcript of the three entries, in order.
-  static let rowKeys = TranscriptSearchTests.rowKeys
-
   /// A search with hits in `ids`, best first, that counts its beeps in
   /// `beeps`.
   ///
@@ -43,7 +40,7 @@ import Testing
   static func search(
     _ hits: TranscriptSearchHits, beeps: CallCounter = CallCounter()
   ) -> TranscriptSearch {
-    TranscriptSearchTests.search(showing: hits, rowKeys: rowKeys, beeps: beeps)
+    TranscriptSearchTests.search(showing: hits, beeps: beeps)
   }
 
   /// The row key of the entry with a wire id.
@@ -215,8 +212,7 @@ import Testing
     let session = SessionModel.preview(transcript: [.user("Why?"), .agent("The parser fails.")])
     let ids = session.transcript.compactMap(TranscriptSearchTests.wireID)
     let search = TranscriptSearchTests.search(
-      showing: TranscriptSearchTests.hits(ids.reversed()),
-      rowKeys: session.transcript.map(\.rowKey))
+      showing: TranscriptSearchTests.hits(ids.reversed()), in: session)
     let announcer = RecordingAnnouncer()
 
     TranscriptSearchDriver.announceCurrentHit(

@@ -22,6 +22,36 @@ import Testing
   /// The row keys of a transcript of the three entries, in order.
   static let rowKeys = [firstID, secondID, thirdID].map(rowKey)
 
+  /// The updates of the agent that add the three entries, in order.
+  static let updates: [SessionUpdate] = [
+    .userMessageChunk(chunk("Why does the parser fail?", id: "user-1")),
+    .agentMessageChunk(chunk("The parser fails.", id: "agent-1")),
+    .toolCallUpdate(
+      ToolCallUpdate(
+        toolCallId: ToolCallId(rawValue: "tool-1"), kind: .value(.execute),
+        status: .value(.completed), title: .value("Run the parser"))),
+  ]
+
+  /// A content chunk of one text block.
+  ///
+  /// - Parameters:
+  ///   - text: The text of the block.
+  ///   - id: The raw message id.
+  /// - Returns: The chunk.
+  static func chunk(_ text: String, id: String) -> ContentChunk {
+    ContentChunk(content: .text(TextContent(text: text)), messageId: MessageId(rawValue: id))
+  }
+
+  /// A new session model whose transcript holds the three entries.
+  ///
+  /// - Parameter requestSender: The sender of the requests of the model.
+  /// - Returns: The model.
+  static func session(
+    requestSender: PreviewSessionRequestSender = PreviewSessionRequestSender()
+  ) -> SessionModel {
+    .preview(transcript: updates.map(PreviewTranscriptItem.update), requestSender: requestSender)
+  }
+
   /// The row key of the entry with a wire id.
   ///
   /// - Parameter id: The wire id.
@@ -50,15 +80,17 @@ import Testing
   ///
   /// - Parameters:
   ///   - hits: The hits, best first.
-  ///   - rowKeys: The row keys of the transcript, in order.
+  ///   - session: The session that the thread shows. The default is a new
+  ///     ``session()``.
   ///   - beeps: The count of the beeps of the search.
   /// - Returns: The search, with the first hit current.
   static func search(
-    showing hits: TranscriptSearchHits, rowKeys: [String], beeps: CallCounter = CallCounter()
+    showing hits: TranscriptSearchHits, in session: SessionModel = session(),
+    beeps: CallCounter = CallCounter()
   ) -> TranscriptSearch {
     let search = TranscriptSearch()
     search.beep = { beeps.count += 1 }
-    search.show(hits, rowKeys: rowKeys)
+    search.show(hits, in: session)
     return search
   }
 
@@ -69,19 +101,19 @@ import Testing
   @Test func theLookupFindsTheRowOfEachHitBestFirst() {
     let search = TranscriptSearch()
 
-    search.show(Self.hits([Self.thirdID, Self.firstID]), rowKeys: Self.rowKeys)
+    search.show(Self.hits([Self.thirdID, Self.firstID]), in: Self.session())
 
     #expect(search.hits.map(\.position) == [2, 0])
   }
 
-  /// A production change that fails this test: the lookup does not use the
-  /// row key of the wire id, so no entry of a model is found.
+  /// A production change that fails this test: the lookup does not ask the
+  /// model for the entry of the wire id, so no entry of a model is found.
   @Test func theLookupFindsAnEntryOfASessionModel() throws {
     let session = SessionModel.preview(transcript: [.user("Why?"), .agent("The parser fails.")])
     let id = try #require(session.transcript.last.flatMap(Self.wireID))
     let search = TranscriptSearch()
 
-    search.show(Self.hits([id]), rowKeys: session.transcript.map(\.rowKey))
+    search.show(Self.hits([id]), in: session)
 
     #expect(search.hits.map(\.position) == [1])
   }
@@ -91,7 +123,7 @@ import Testing
   @Test func aWireIDThatTheModelDoesNotHaveIsSkipped() {
     let search = TranscriptSearch()
 
-    search.show(Self.hits([Self.missingID, Self.secondID]), rowKeys: Self.rowKeys)
+    search.show(Self.hits([Self.missingID, Self.secondID]), in: Self.session())
 
     #expect(search.hits.map(\.rowKey) == [Self.rowKey(Self.secondID)])
   }
@@ -103,7 +135,7 @@ import Testing
   @Test func theRevealGoesToTheFirstHit() {
     let search = TranscriptSearch()
 
-    search.show(Self.hits([Self.thirdID, Self.firstID]), rowKeys: Self.rowKeys)
+    search.show(Self.hits([Self.thirdID, Self.firstID]), in: Self.session())
 
     #expect(search.takeRevealRequest()?.rowKey == Self.rowKey(Self.thirdID))
   }
@@ -113,7 +145,7 @@ import Testing
   @Test func theFirstHitBecomesCurrent() {
     let search = TranscriptSearch()
 
-    search.show(Self.hits([Self.thirdID, Self.firstID]), rowKeys: Self.rowKeys)
+    search.show(Self.hits([Self.thirdID, Self.firstID]), in: Self.session())
 
     #expect(search.currentIndex == 0)
   }
@@ -123,7 +155,7 @@ import Testing
   @Test func theRevealSkipsAWireIDThatTheModelDoesNotHave() {
     let search = TranscriptSearch()
 
-    search.show(Self.hits([Self.missingID, Self.secondID]), rowKeys: Self.rowKeys)
+    search.show(Self.hits([Self.missingID, Self.secondID]), in: Self.session())
 
     #expect(search.takeRevealRequest()?.rowKey == Self.rowKey(Self.secondID))
   }
@@ -133,7 +165,7 @@ import Testing
   /// user.
   @Test func theRevealGoesOutOneTime() {
     let search = TranscriptSearch()
-    search.show(Self.hits([Self.secondID]), rowKeys: Self.rowKeys)
+    search.show(Self.hits([Self.secondID]), in: Self.session())
     _ = search.takeRevealRequest()
 
     #expect(search.takeRevealRequest() == nil)
@@ -142,10 +174,12 @@ import Testing
   /// A production change that fails this test: hits that come before the
   /// transcript of the session never reveal.
   @Test func theRevealWaitsForTheEntryOfAHit() {
+    let session = SessionModel.preview()
     let search = TranscriptSearch()
-    search.show(Self.hits([Self.thirdID]), rowKeys: [])
+    search.show(Self.hits([Self.thirdID]), in: session)
+    Self.updates.forEach(session.apply)
 
-    search.transcriptChanged(rowKeys: Self.rowKeys)
+    search.transcriptChanged(in: session)
 
     #expect(search.takeRevealRequest()?.rowKey == Self.rowKey(Self.thirdID))
   }
@@ -153,11 +187,13 @@ import Testing
   /// A production change that fails this test: each new entry of the
   /// transcript reveals the hit again.
   @Test func aNewEntryAfterTheRevealDoesNotRevealAgain() {
+    let session = Self.session()
     let search = TranscriptSearch()
-    search.show(Self.hits([Self.firstID]), rowKeys: Self.rowKeys)
+    search.show(Self.hits([Self.firstID]), in: session)
     _ = search.takeRevealRequest()
+    session.apply(.agentMessageChunk(Self.chunk("Another answer.", id: "agent-2")))
 
-    search.transcriptChanged(rowKeys: Self.rowKeys + [Self.rowKey(Self.missingID)])
+    search.transcriptChanged(in: session)
 
     #expect(search.takeRevealRequest() == nil)
   }
@@ -168,7 +204,7 @@ import Testing
   @Test func theRevealOfARowThatIsNotLoadedLoadsItsPage() throws {
     let pageSize = 1
     let search = TranscriptSearch()
-    search.show(Self.hits([Self.firstID]), rowKeys: Self.rowKeys)
+    search.show(Self.hits([Self.firstID]), in: Self.session())
     let target = try #require(search.takeRevealRequest())
 
     let pages = ConversationLayout.pageCount(
@@ -203,7 +239,7 @@ import Testing
   @Test func theMarkOfTheCurrentHitIsCurrent() {
     let search = TranscriptSearch()
 
-    search.show(Self.hits([Self.thirdID, Self.firstID]), rowKeys: Self.rowKeys)
+    search.show(Self.hits([Self.thirdID, Self.firstID]), in: Self.session())
 
     #expect(
       search.mark(forRowKey: Self.rowKey(Self.thirdID))
@@ -215,7 +251,7 @@ import Testing
   @Test func theMarkOfAnotherHitIsNotCurrent() {
     let search = TranscriptSearch()
 
-    search.show(Self.hits([Self.thirdID, Self.firstID]), rowKeys: Self.rowKeys)
+    search.show(Self.hits([Self.thirdID, Self.firstID]), in: Self.session())
 
     #expect(
       search.mark(forRowKey: Self.rowKey(Self.firstID))
@@ -227,7 +263,7 @@ import Testing
   @Test func aRowWithNoHitHasNoMark() {
     let search = TranscriptSearch()
 
-    search.show(Self.hits([Self.thirdID]), rowKeys: Self.rowKeys)
+    search.show(Self.hits([Self.thirdID]), in: Self.session())
 
     #expect(search.mark(forRowKey: Self.rowKey(Self.secondID)) == nil)
   }
@@ -236,9 +272,9 @@ import Testing
   /// host removes them.
   @Test func noHitsRemoveTheMarks() {
     let search = TranscriptSearch()
-    search.show(Self.hits([Self.thirdID]), rowKeys: Self.rowKeys)
+    search.show(Self.hits([Self.thirdID]), in: Self.session())
 
-    search.show(nil, rowKeys: Self.rowKeys)
+    search.show(nil, in: Self.session())
 
     #expect(search.mark(forRowKey: Self.rowKey(Self.thirdID)) == nil)
   }
@@ -247,7 +283,7 @@ import Testing
   /// reveal, so the next task cannot go to the next hit.
   @Test func aNewCurrentHitIsRevealed() {
     let search = TranscriptSearch()
-    search.show(Self.hits([Self.thirdID, Self.firstID]), rowKeys: Self.rowKeys)
+    search.show(Self.hits([Self.thirdID, Self.firstID]), in: Self.session())
     _ = search.takeRevealRequest()
 
     search.makeCurrent(1)
@@ -266,8 +302,7 @@ import Testing
     let entry = try #require(session.transcript.first)
     let search = TranscriptSearch()
     let store = ExpandedBlocksStore()
-    search.show(
-      Self.hits([try #require(Self.wireID(of: entry))]), rowKeys: session.transcript.map(\.rowKey))
+    search.show(Self.hits([try #require(Self.wireID(of: entry))]), in: session)
 
     TranscriptSearchDriver.openCurrentHit(of: search, in: session.transcript, store: store)
 
@@ -285,8 +320,7 @@ import Testing
     let answer = try #require(session.transcript.last)
     let search = TranscriptSearch()
     let store = ExpandedBlocksStore()
-    search.show(
-      Self.hits([try #require(Self.wireID(of: answer))]), rowKeys: session.transcript.map(\.rowKey))
+    search.show(Self.hits([try #require(Self.wireID(of: answer))]), in: session)
 
     TranscriptSearchDriver.openCurrentHit(of: search, in: session.transcript, store: store)
 

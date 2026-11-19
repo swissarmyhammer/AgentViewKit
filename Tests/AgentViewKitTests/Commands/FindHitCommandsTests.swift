@@ -40,8 +40,7 @@ import Testing
     ])
     let ids = session.transcript.compactMap(TranscriptSearchTests.wireID)
     let search = TranscriptSearchTests.search(
-      showing: TranscriptSearchTests.hits(entries.map { ids[$0] }),
-      rowKeys: session.transcript.map(\.rowKey))
+      showing: TranscriptSearchTests.hits(entries.map { ids[$0] }), in: session)
     let removals = CallCounter()
     search.hostRemoval = { removals.count += 1 }
     let commands = AgentCommandsTests.makeFixture(session: session) { target in
