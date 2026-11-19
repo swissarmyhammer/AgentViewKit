@@ -33,13 +33,18 @@ public enum CodeBlockAnswerFixture {
 
     """
 
+  /// The number of equal bands of the height of the text. The point in the
+  /// paragraph is at the end of the top band, and the point in the code
+  /// block is at the start of the bottom band.
+  static let heightBandCount: CGFloat = 8
+
   /// The fraction of the height of the text, from the top, of a point in
   /// the paragraph.
-  public static let paragraphFraction: CGFloat = 1 / 8
+  public static let paragraphFraction: CGFloat = 1 / heightBandCount
 
   /// The fraction of the height of the text, from the top, of a point in
   /// the code block.
-  public static let codeFraction: CGFloat = 7 / 8
+  public static let codeFraction: CGFloat = 1 - paragraphFraction
 
   /// The point at the horizontal center of `frame`, at `fraction` of its
   /// height from the top.

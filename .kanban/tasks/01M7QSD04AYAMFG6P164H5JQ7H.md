@@ -46,6 +46,41 @@ comments:
     - AnswerCodeBlockItemMenuTests: no sleep, poll, retry or clock. It awaits ensureParsed(upTo:) only. It uses no window and no focus.
     - next: review
   timestamp: 2026-11-19T00:03:08.214731+00:00
+- actor: claude-code
+  id: 01m7rhzb2s4w5ayg637g19jegr
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (d38f69b2): 3 findings — IntegrationTests/Tests/IntegrationTests/Content/AnswerCodeBlockItemMenuPointerHostedTests.swift:115, Sources/AgentViewKitTestSupport/CodeBlockAnswerFixture.swift:38, Sources/AgentViewKitTestSupport/CodeBlockAnswerFixture.swift:42. This commit added the two files, thus the rule for old tests does not drop a finding.
+    - next: implement the 3 findings in the dated Review Findings section. Remove the cause from the full file. Then run the review again.
+  timestamp: 2026-11-19T00:05:47.225535+00:00
+- actor: claude-code
+  id: 01m7rhzvrfkxg6dj21ek29fdzs
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — EditorKit pin 8a5d8bae; CodeBlockAnswerFixture, RightPress, AnswerCodeBlockItemMenuTests, hosted test, mountThread cache
+    - test: green — swift test, 1392 tests in 164 suites + 54 tests in 11 suites passed
+    - commit: d38f69b2
+    - review: findings — AnswerCodeBlockItemMenuPointerHostedTests.swift:115, CodeBlockAnswerFixture.swift:38, CodeBlockAnswerFixture.swift:42
+  timestamp: 2026-11-19T00:06:04.303253+00:00
+- actor: claude-code
+  id: 01m7rjb3tb64ag0nj6c8svaasc
+  text: |-
+    ### implement — changed
+    - Hosted test: the code block right click now reads its titles into `codeTitles`, and `try #require` makes sure that they contain Copy Code Block before the paragraph right click. The final assertion stays. No other test in the file throws away a result with `_ =`.
+    - Fixture: new constant `heightBandCount` (8), with a doc comment. `paragraphFraction = 1 / heightBandCount`. `codeFraction = 1 - paragraphFraction`.
+    - evidence: `swift test` 1392 tests in 164 suites passed, and 54 tests in 11 suites passed. IntegrationTests and ScreenshotTests `swift build --build-tests` complete. `swift format lint -s` has 0 findings.
+    - next: review
+  timestamp: 2026-11-19T00:12:13.003490+00:00
+- actor: claude-code
+  id: 01m7rjeq05c33w2t3zqfh696gs
+  text: |-
+    ### test - green
+    - evidence: swift test at package root: "Test run with 1392 tests in 164 suites passed after 34.916 seconds." and "Test run with 54 tests in 11 suites passed after 0.014 seconds."
+    - evidence: swift format lint -s on the 2 changed Swift files: no findings.
+    - evidence: swift build --build-tests in IntegrationTests: Build complete.
+    - note: IntegrationTests and ScreenshotTests were not run (they take the screen focus).
+    - next: review
+  timestamp: 2026-11-19T00:14:10.949933+00:00
 position_column: doing
 position_ordinal: '80'
 title: Copy Code Block in the item menu of an answer needs the code block of the caret at the item path (EditorKit hook)
@@ -60,3 +95,14 @@ Do:
 - Ask editorkit-7a for a hook. For example: under `.editorTextMenu(.ancestor)`, an `EditorView` writes the code block of its caret into the context of its enclosing command scope; or a public `EditorModel` method gives the `EditorCodeBlockContextValue` of the caret.
 - Use the hook, so a right click in a code block of an answer shows Copy Code Block in the item menu.
 - Add a hosted test (compile only) and a unit test if the hook gives a headless check.
+
+## Review Findings (2026-11-18 18:03)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 5 file(s) reviewed, 6 not reviewed.
+
+> 6 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 6 file(s)
+
+- [x] `IntegrationTests/Tests/IntegrationTests/Content/AnswerCodeBlockItemMenuPointerHostedTests.swift:115` `test-integrity/no-test-cheating` — The first right click in the code block is run but its result is discarded (`_ =`), with no check that Copy Code Block shows there. The later assertion that Copy Code Block is absent after the paragraph click can then pass even when the code-block right click never shows the item. The test does not prove the state that it claims to test. The unit test with the same name guards this step with `try #require`, but this hosted test does not. Read the titles of the code-block right click into a constant, and assert that they contain Copy Code Block with `#expect` or `#require` before the paragraph right click. Keep the final assertion that Copy Code Block is absent after the paragraph right click.
+- [x] `Sources/AgentViewKitTestSupport/CodeBlockAnswerFixture.swift:38` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Sources/AgentViewKitTestSupport/CodeBlockAnswerFixture.swift:42` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.

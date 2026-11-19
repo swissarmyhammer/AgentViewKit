@@ -112,7 +112,9 @@ import Testing
   @Test func aRightClickInAParagraphAfterACodeBlockShowsNoCopyCodeBlock() async throws {
     let harness = try await Self.mountAnswer()
     defer { harness.close() }
-    _ = try Self.menuTitles(atFraction: CodeBlockAnswerFixture.codeFraction, in: harness)
+    let codeTitles = try Self.menuTitles(
+      atFraction: CodeBlockAnswerFixture.codeFraction, in: harness)
+    try #require(codeTitles.contains(AgentCommandVerb.copyCodeBlock.title))
 
     let titles = try Self.menuTitles(
       atFraction: CodeBlockAnswerFixture.paragraphFraction, in: harness)
