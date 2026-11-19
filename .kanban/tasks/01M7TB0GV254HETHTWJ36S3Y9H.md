@@ -29,8 +29,24 @@ comments:
     - evidence: 18 files. `swift test`: "Test run with 1522 tests in 173 suites passed after 26.018 seconds." and "Test run with 54 tests in 11 suites passed after 0.008 seconds." IntegrationTests and ScreenshotTests: `swift build --build-tests` complete, 0 errors, 0 warnings. `swift format lint -s` (now/HEAD): AgentFindCommands 0/0, AgentCommandPlacement 0/0, AgentSymbol 0/0, FindHitCommandsTests 0/0, AgentCommands 2/2, AgentCommandsTests 34/35, AgentKeymap 2/2, AgentCommandScope 3/3, AgentCommandTarget 11/11, AgentCommandGroup 1/1, AgentThreadView 9/9, AgentCommandGroupTests 15/15, AgentCommandPlacementTests 19/19, SessionCommandsTests 6/6, AgentCommandScopeHostedTests 24/24.
     - next: /review
   timestamp: 2026-11-19T16:58:14.125474+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m7tc22098ns58pfgrkcpfsqy
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (cfd868cb): 0 findings, 0 confirmed, 0 refuted, 14 attempted, 0 failed. ARCHITECTURE.md, README.md and Localizable.xcstrings have no matching validator.
+    - next: none. The task moved to done.
+  timestamp: 2026-11-19T17:00:53.641239+00:00
+- actor: claude-code
+  id: 01m7tc2daax9y1zjy2k9ecd6ge
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 18 files (agent.clearSearchHits on Esc, isShownOnlyWhenAvailable, no edit.cancel, keymap order, docs, tests)
+    - test: green — swift test, 1522 tests in 173 suites + 54 tests in 11 suites passed (run by the implement step after its edits); no lint count above HEAD
+    - commit: cfd868cb
+    - review: clean — 0 findings
+  timestamp: 2026-11-19T17:01:05.226892+00:00
+position_column: done
+position_ordinal: ffffffff8580
 title: 'Clear Search Hits: a custom Esc command, not the EditorKit Cancel row (D207 f)'
 ---
 Request from testudoapp-9a (2026-11-19), after task 01M7SY6JVREKFKFE8JVJ04C0Z9 (ee9fb3fa, 993c94b3).
