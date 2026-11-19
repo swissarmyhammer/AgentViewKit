@@ -31,6 +31,16 @@ final class AgentRowListTarget: NavScroller {
   /// shows.
   var proxy: ScrollViewProxy?
 
+  /// The zero-size view of the mount of the list, or `nil` before the mount
+  /// makes it. The view is in the window of the list.
+  weak var mountView: NSView?
+
+  /// The first responder of the window of the list, or `nil` when the list
+  /// is in no window.
+  var firstResponder: NSResponder? {
+    mountView?.window?.firstResponder
+  }
+
   /// The id of the row on `path`.
   ///
   /// - Parameter path: The invocation path of a command.
@@ -281,7 +291,9 @@ struct AgentRowListMount: NSViewRepresentable {
 
   func makeNSView(context: Context) -> NSView {
     apply(to: context.coordinator)
-    return NSView(frame: .zero)
+    let view = NSView(frame: .zero)
+    target.mountView = view
+    return view
   }
 
   func updateNSView(_ nsView: NSView, context: Context) {
@@ -326,6 +338,11 @@ struct AgentRowListMount: NSViewRepresentable {
 /// Esc reach the `nav.*` commands and the open command of the list. A key
 /// that the registry does not take goes on, so Space still presses a focused
 /// button, and a key with the focus outside the list goes on to the host.
+///
+/// While a text field is in edit, the list does not take a key
+/// (``takesKeys(withFirstResponder:)``). Thus Return commits a rename field
+/// in a row, and Esc cancels it, in place of `agentRowList.open` and
+/// `nav.drillOut`. When the edit ends, the list takes its keys again.
 struct AgentRowListKeys: ViewModifier {
   /// The path of the scope of the list.
   let listPath: FocusPath
@@ -333,6 +350,10 @@ struct AgentRowListKeys: ViewModifier {
   /// The path of the leaf-most focused command scope of the window, or `nil`
   /// when no scope has the focus.
   let focusedPath: FocusPath?
+
+  /// The target of the list, which gives the first responder of the window
+  /// of the list.
+  let target: AgentRowListTarget
 
   @Environment(\.commandSystem) private var system
 
@@ -346,10 +367,50 @@ struct AgentRowListKeys: ViewModifier {
   /// - Parameter press: The key press.
   /// - Returns: `.handled` when the registry took the key.
   private func route(_ press: KeyPress) -> KeyPress.Result {
-    guard let system, let focusedPath, listPath.isAncestor(of: focusedPath),
-      let chord = KeyChordTranslator.chord(for: press)
-    else { return .ignored }
-    return system.registry.performKey(chord.asSequence, at: focusedPath) ? .handled : .ignored
+    guard let system, let chord = KeyChordTranslator.chord(for: press) else { return .ignored }
+    let handled = Self.perform(
+      chord, listPath: listPath, focusedPath: focusedPath, firstResponder: target.firstResponder,
+      in: system)
+    return handled ? .handled : .ignored
+  }
+
+  /// Performs `chord` at the focused path when the list encloses that path
+  /// and no text field is in edit.
+  ///
+  /// - Parameters:
+  ///   - chord: The chord of the key.
+  ///   - listPath: The path of the scope of the list.
+  ///   - focusedPath: The path of the focused scope of the window, or `nil`.
+  ///   - firstResponder: The first responder of the window of the list, or
+  ///     `nil`.
+  ///   - system: The system whose registry runs the key.
+  /// - Returns: `true` when the registry took the key.
+  static func perform(
+    _ chord: KeyChord, listPath: FocusPath, focusedPath: FocusPath?, firstResponder: NSResponder?,
+    in system: CommandSystem
+  ) -> Bool {
+    guard let focusedPath, listPath.isAncestor(of: focusedPath),
+      takesKeys(withFirstResponder: firstResponder)
+    else { return false }
+    return system.registry.performKey(chord.asSequence, at: focusedPath)
+  }
+
+  /// Tells if the list takes the keys while `responder` is the first
+  /// responder of its window.
+  ///
+  /// A text field in edit, such as a rename field in a row, has an editable
+  /// text view as the first responder: the field editor of an `NSTextField`,
+  /// or the input text view of an EditorKit field. That text view must get
+  /// Return, Esc, the arrow keys and the typed characters, so the list does
+  /// not take them. A text view that does not edit, such as a selectable
+  /// label, leaves the keys to the list.
+  ///
+  /// - Parameter responder: The first responder of the window of the list,
+  ///   or `nil`.
+  /// - Returns: `false` when `responder` is a text view that edits.
+  static func takesKeys(withFirstResponder responder: NSResponder?) -> Bool {
+    guard let text = responder as? NSText else { return true }
+    return !text.isEditable
   }
 }
 
@@ -360,9 +421,12 @@ extension View {
   /// - Parameters:
   ///   - listPath: The path of the scope of the list.
   ///   - focusedPath: The path of the focused scope of the window, or `nil`.
+  ///   - target: The target of the list.
   /// - Returns: A view whose key presses run the commands of the focused
   ///   scope of the list.
-  func agentRowListKeys(listPath: FocusPath, focusedPath: FocusPath?) -> some View {
-    modifier(AgentRowListKeys(listPath: listPath, focusedPath: focusedPath))
+  func agentRowListKeys(listPath: FocusPath, focusedPath: FocusPath?, target: AgentRowListTarget)
+    -> some View
+  {
+    modifier(AgentRowListKeys(listPath: listPath, focusedPath: focusedPath, target: target))
   }
 }

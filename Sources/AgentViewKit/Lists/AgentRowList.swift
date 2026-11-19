@@ -160,7 +160,10 @@ public enum AgentRowDensity: Hashable, Sendable {
 /// stack made scrolls to the next row. Return opens the focused row with
 /// `onOpen`, and the mouse opens a row too (``AgentRowOpenTrigger``). The list routes
 /// each key that reaches it at the focused scope, when that scope is the list
-/// or a scope in it (``SwiftUI/View/agentRowListKeys(listPath:focusedPath:)``).
+/// or a scope in it (``SwiftUI/View/agentRowListKeys(listPath:focusedPath:target:)``).
+/// While a text field is in edit, such as a rename field in a row, the list
+/// takes no key, so Return, Esc, the arrow keys and the typed characters go to
+/// the field.
 /// When no ancestor installs a command system, the list uses one of its own.
 ///
 /// Each row is one accessibility element that contains the elements of its
@@ -331,7 +334,7 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
     }
     .commandScope(segment: scope.list)
     .scopeFocusRing(radius: AgentRowListLayout.radius)
-    .agentRowListKeys(listPath: path, focusedPath: focusedPath)
+    .agentRowListKeys(listPath: path, focusedPath: focusedPath, target: target)
     .commandSystem(system)
   }
 
