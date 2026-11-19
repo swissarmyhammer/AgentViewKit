@@ -43,8 +43,24 @@ comments:
     - The only warning in the log is the toolchain warning "missing creator for mutated node" for the mlx bundle.
     - next: review
   timestamp: 2026-11-19T08:26:50.330849+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m7setjvwfh1fss1zt57hq6ax
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (6b2b7364). 0 findings, 0 confirmed, 1 refuted, 7 attempted, 0 failed. 4 files reviewed. 2 .kanban files are not reviewed because of .reviewignore.
+    - next: The task moves to done.
+  timestamp: 2026-11-19T08:30:00.060217+00:00
+- actor: claude-code
+  id: 01m7setz75phg2b8mm4d7728da
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — AgentRowListCommands.swift, AgentRowList.swift, AgentRowListKeysTests.swift (new), AgentRowListRenameHostedTests.swift (new, compile only)
+    - test: green — swift test, 1431 tests in 166 suites + 54 tests in 11 suites passed; IntegrationTests compiles
+    - commit: 6b2b7364
+    - review: clean — 0 findings
+  timestamp: 2026-11-19T08:30:12.709820+00:00
+position_column: done
+position_ordinal: fffffffd80
 title: AgentRowList takes Return and Escape from a text field in a row (rename, D197 b)
 ---
 Bug report from testudoapp-9a (2026-11-19, TestudoApp UI test run; result bundles /Users/wballard/github/swissarmyhammer/TestudoApp/.build/app/OpenTestudo-sel2.xcresult and OpenTestudo-dbg.xcresult).
