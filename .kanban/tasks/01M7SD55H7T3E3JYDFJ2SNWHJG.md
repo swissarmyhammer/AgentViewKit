@@ -53,8 +53,24 @@ comments:
     - lint: `swift format lint -s Tests/AgentViewKitTests/Input/ComposerMentionsTests.swift` gives 5 errors (LineLength x4, AddLines x1). The same 5 errors are in the HEAD version of the file (checked with `git show HEAD:` into a scratch file). The change of this task adds 0 new lint errors. The 5 lines are old lines that this task did not change.
     - next: review. A person must decide if the 5 old lint errors need a fix.
   timestamp: 2026-11-19T08:13:13.378225+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m7sdzg8n9krphb0w3abv0yj0
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (d188dd3c). 0 findings, 0 confirmed, 0 refuted. 7 validator runs, 0 failed. 1 file reviewed. The earlier finding at ComposerMentionsTests.swift:138 is checked.
+    - next: none. The task is in done.
+  timestamp: 2026-11-19T08:15:12.661217+00:00
+- actor: claude-code
+  id: 01m7sdzxbnmnhkxrttrnwsvrfa
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — ComposerMentionsTests.swift (one fixture path)
+    - test: green — swift test, 1426 tests in 165 suites + 54 tests in 11 suites passed
+    - commit: d188dd3c
+    - review: clean — 0 findings, 1 earlier finding checked
+  timestamp: 2026-11-19T08:15:26.069067+00:00
+position_column: done
+position_ordinal: fffffffc80
 title: '@ mention accept replaces only the part after a hyphen (D199)'
 ---
 Bug report from testudoapp-9a (2026-11-19, TestudoApp UI test run; result bundle /Users/wballard/github/swissarmyhammer/TestudoApp/.build/app/OpenTestudo-sel.xcresult).
