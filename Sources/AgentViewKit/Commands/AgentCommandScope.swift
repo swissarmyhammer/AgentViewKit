@@ -31,7 +31,8 @@ import SwiftUI
 /// `SessionModel` (see ``AgentCommandTarget``). The views in the scope give the
 /// parts that only they have: ``ConversationView`` in an ``AgentThreadView``
 /// gives its scroll anchors, ``AgentThreadView`` gives its store of the
-/// expanded items and its search hits, and ``PromptInputView`` gives its
+/// expanded items, its search hits and its unavailable state
+/// (``SwiftUI/View/threadUnavailable(_:)``), and ``PromptInputView`` gives its
 /// submit and its focus. The mount gives the first responder of its window,
 /// so that the find verbs know when a text input has the focus.
 ///
@@ -60,6 +61,10 @@ struct AgentCommandScope: ViewModifier {
 
   /// The search hits of the thread view, or `nil` outside a thread view.
   var search: TranscriptSearch?
+
+  /// Whether the thread view shows the unavailable message of the host in
+  /// place of the transcript, or `nil` outside a thread view.
+  var isUnavailable: Bool?
 
   @Environment(\.commandSystem) private var ambientSystem
   @Environment(\.connectionModel) private var hostConnection
@@ -91,7 +96,8 @@ struct AgentCommandScope: ViewModifier {
       content.background(
         AgentCommandMount(
           target: enclosingTarget, scope: nil, anchors: anchors, expandedBlocks: expandedBlocks,
-          navigation: navigation, connection: connection, search: search))
+          navigation: navigation, connection: connection, search: search,
+          isUnavailable: isUnavailable))
     } else {
       let path = parentPath?.appending(segment) ?? .root(segment)
       let system = ambientSystem ?? standaloneSystem
@@ -106,7 +112,7 @@ struct AgentCommandScope: ViewModifier {
         .background(
           AgentCommandMount(
             target: ownTarget, scope: scope, anchors: anchors, expandedBlocks: expandedBlocks,
-            navigation: navigation, search: search))
+            navigation: navigation, search: search, isUnavailable: isUnavailable))
         .modifier(MarkdownExportPresentation(presenter: ownTarget.markdownExports))
         .commandScope(segment: segment, subject: session)
         .commandSystem(system)
@@ -143,15 +149,18 @@ extension View {
   ///   - connection: The connection model of the agent, or `nil` for the
   ///     connection model of the environment.
   ///   - search: The search hits of the thread view, or `nil`.
+  ///   - isUnavailable: Whether the thread view shows the unavailable
+  ///     message of the host in place of the transcript, or `nil` outside a
+  ///     thread view.
   /// - Returns: A view in the scope of the commands.
   func agentCommandScope(
     session: SessionModel, anchors: ScrollAnchorManager, navigation: AgentSessionNavigation? = nil,
-    connection: ConnectionModel? = nil, search: TranscriptSearch? = nil
+    connection: ConnectionModel? = nil, search: TranscriptSearch? = nil, isUnavailable: Bool? = nil
   ) -> some View {
     modifier(
       AgentCommandScope(
         session: session, anchors: anchors, navigation: navigation, connection: connection,
-        search: search))
+        search: search, isUnavailable: isUnavailable))
   }
 }
 
@@ -340,6 +349,10 @@ struct AgentCommandMount: NSViewRepresentable {
   /// The search hits to add, or `nil`.
   var search: TranscriptSearch?
 
+  /// The unavailable state of the thread view to add, or `nil` outside a
+  /// thread view.
+  var isUnavailable: Bool?
+
   /// The values that the teardown needs.
   final class Coordinator {
     /// The target of the mount.
@@ -356,6 +369,9 @@ struct AgentCommandMount: NSViewRepresentable {
     weak var connection: ConnectionModel?
     /// The search hits that the mount added.
     weak var search: TranscriptSearch?
+    /// Whether the mount gave the unavailable state of a thread view to the
+    /// target.
+    var gaveUnavailableState = false
 
     /// Makes a coordinator for `target`.
     ///
@@ -408,6 +424,9 @@ struct AgentCommandMount: NSViewRepresentable {
     if let search = coordinator.search, target.transcriptSearch === search {
       target.transcriptSearch = nil
     }
+    if coordinator.gaveUnavailableState {
+      target.isSessionUnavailable = false
+    }
   }
 
   /// Registers the owned scope through the ``AgentScopeMount`` of
@@ -459,6 +478,10 @@ struct AgentCommandMount: NSViewRepresentable {
     if let search {
       target.transcriptSearch = search
       coordinator.search = search
+    }
+    if let isUnavailable {
+      target.isSessionUnavailable = isUnavailable
+      coordinator.gaveUnavailableState = true
     }
   }
 }

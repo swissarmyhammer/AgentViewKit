@@ -3200,6 +3200,16 @@
         }
       }
     },
+    "The session is not available." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The session is not available."
+          }
+        }
+      }
+    },
     "The sessions of the agent show here." : {
       "localizations" : {
         "en" : {

@@ -35,6 +35,8 @@
       let hosted = HostedSnapshotTests()
       try await hosted.theThread()
       try await hosted.theThreadWithTheTimeOfEachRow()
+      try await hosted.theSharedThreadWithItsHeader()
+      try await hosted.theSharedThreadThatIsNotAvailable()
       try await hosted.theButtonsOfTheBottomBarBelowTheTranscript()
       try await hosted.theSignInCardWhileSigningIn()
       try await hosted.theIdleComposer()

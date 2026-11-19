@@ -24,6 +24,9 @@ import SwiftUI
 /// A scope of a read-only session (TestudoApp D208 (i)) does not register
 /// the verbs of the groups that change the session (``changesSession``):
 /// ``compose``, ``control`` and ``fork``.
+/// While a thread view shows the unavailable message of the host, the verbs
+/// of the groups that read the text of the session (``readsSessionText``)
+/// are not available: ``clipboard``, ``export`` and ``find``.
 ///
 /// KanbanViewKit and SnapshotViewKit use the same shape. A group with the same
 /// job in two kits has the same last word in its ``id``, for example
@@ -102,6 +105,21 @@ public nonisolated enum AgentCommandGroup: String, CaseIterable, Sendable {
     switch self {
     case .compose, .control, .fork: true
     case .navigate, .clipboard, .export, .find, .attachment, .sideCard: false
+    }
+  }
+
+  /// Tells if the thread verbs of the group read the text of the session.
+  ///
+  /// The groups ``clipboard``, ``export`` and ``find`` read the text of the
+  /// session: Copy Message, Copy Thread, Copy Code Block, Export as
+  /// Markdown…, Find Next Hit, Find Previous Hit and Clear Search Hits.
+  /// While a thread view shows the unavailable message of the host
+  /// (``SwiftUI/View/threadUnavailable(_:)``), these verbs are not available
+  /// (``AgentCommandTarget/isSessionUnavailable``).
+  public var readsSessionText: Bool {
+    switch self {
+    case .clipboard, .export, .find: true
+    case .compose, .control, .navigate, .fork, .attachment, .sideCard: false
     }
   }
 }

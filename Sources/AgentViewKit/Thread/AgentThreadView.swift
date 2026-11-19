@@ -91,6 +91,14 @@ import SwiftUI
 /// floating controls, so they do not change the transcript or the scroll
 /// position.
 ///
+/// A host fills the header slot above the transcript with
+/// ``SwiftUI/View/threadHeader(_:)``, such as "Shared by Ann · Updated
+/// today" for a shared session, and shows a message in place of the
+/// transcript with ``SwiftUI/View/threadUnavailable(_:)``, such as "The owner
+/// stopped sharing this session." (TestudoApp D208 (i)). The two are content
+/// with no glass (D110). While the message shows, the header stays, and the
+/// verbs that read the text of the session are not available.
+///
 /// The hits of a search of the session transcripts show in the thread with
 /// ``SwiftUI/View/transcriptSearchHits(_:)`` (TestudoApp D207 (f)): the thread scrolls to
 /// the best hit, and marks the matched words of each hit. Find Next Hit
@@ -227,6 +235,13 @@ public struct AgentThreadView<Composer: View>: View {
 
   /// The side cards of the host (``SwiftUI/View/sideCards(_:)``), or `nil`.
   @Environment(\.sideCards) private var sideCards
+
+  /// The header of the host (``SwiftUI/View/threadHeader(_:)``), or `nil`.
+  @Environment(\.threadHeader) private var threadHeader
+
+  /// The message that the host shows in place of the transcript
+  /// (``SwiftUI/View/threadUnavailable(_:)``), or `nil`.
+  @Environment(\.threadUnavailable) private var unavailableMessage
 
   /// The inset of each bar from the edges of the thread, which the host
   /// gives where it mounts the view (`.barInsets()`). The default is zero:
@@ -383,12 +398,14 @@ public struct AgentThreadView<Composer: View>: View {
   /// reads the top bar, the list and then the bottom bar.
   private var content: some View {
     VStack(spacing: 0) {
-      ConversationView(session: session, anchors: anchors)
-        .id(session.sessionId)
-        // The state banner and the pill are in the floating controls, in the
-        // bottom bar with the composer.
-        .environment(\.conversationShowsPill, false)
-        .environment(\.conversationShowsStateBanner, false)
+      ThreadTranscriptSlot(message: unavailableMessage) {
+        ConversationView(session: session, anchors: anchors)
+          .id(session.sessionId)
+          // The state banner and the pill are in the floating controls, in
+          // the bottom bar with the composer.
+          .environment(\.conversationShowsPill, false)
+          .environment(\.conversationShowsStateBanner, false)
+      }
     }
     .safeAreaBar(edge: .top) {
       // The bar stands the header and the banners one tile margin apart. The
@@ -415,7 +432,7 @@ public struct AgentThreadView<Composer: View>: View {
     .agentCommandScope(
       session: session, anchors: anchors,
       navigation: AgentSessionNavigation(show: show, presentJump: { isJumpPresented = true }),
-      connection: connection, search: search
+      connection: connection, search: search, isUnavailable: unavailableMessage != nil
     )
     .sheet(isPresented: $isJumpPresented) {
       SessionJumpList(agent: agentName, entries: session.jumpEntries) { id in
@@ -426,13 +443,15 @@ public struct AgentThreadView<Composer: View>: View {
     .onDisappear(perform: closeWhenSupported)
   }
 
-  /// The parts of the top bar, from the top: the header when the host gave
-  /// the connection model, then the ``banners``.
+  /// The parts of the top bar, from the top: the status line when the host
+  /// gave the connection model, the header of the host
+  /// (``SwiftUI/View/threadHeader(_:)``), then the ``banners``.
   ///
-  /// The header floats on glass in its own container. The banners are out of
-  /// the container, so their buttons keep the place of content. The header
-  /// has no padding of its own (^rgsq3k4): the bar insets it in its glass
-  /// with the steps of the style (``headerInset``).
+  /// The status line floats on glass in its own container. The header of the
+  /// host and the banners are out of the container, so they are content with
+  /// no glass (D110), and their buttons keep the place of content. The
+  /// status line has no padding of its own (^rgsq3k4): the bar insets it in
+  /// its glass with the steps of the style (``headerInset``).
   @ViewBuilder private var topBarParts: some View {
     if let connection {
       FloatingGlassContainer(spacing: editorStyle.spacing.s) {
@@ -440,6 +459,9 @@ public struct AgentThreadView<Composer: View>: View {
           .padding(headerInset).floatingGlass()
           .hostPathContextMenu(headerContextMenuPath)
       }
+    }
+    if let threadHeader {
+      ThreadHeaderSlot(header: threadHeader)
     }
     banners
   }
@@ -513,7 +535,9 @@ public struct AgentThreadView<Composer: View>: View {
       // inset of the list and the scroll position.
       .overlay(alignment: .top) {
         VStack(spacing: spacing) {
-          ConversationPill(anchors: anchors)
+          if AgentThreadLayout.showsPill(unavailableMessage: unavailableMessage) {
+            ConversationPill(anchors: anchors)
+          }
           if let sideCards {
             SideCardStack(cards: sideCards)
           }
@@ -615,6 +639,15 @@ public enum AgentThreadLayout {
   /// composer slot, in one glass container in the bottom bar.
   public static let floatingControlsIdentifier = "thread-floating-controls"
 
+  /// The accessibility identifier of the group of the header of the host
+  /// (``SwiftUI/View/threadHeader(_:)``) in the top bar of a thread.
+  public static let headerIdentifier = "thread-header"
+
+  /// The accessibility identifier of the static text of the unavailable
+  /// message of the host (``SwiftUI/View/threadUnavailable(_:)``) in place
+  /// of the transcript of a thread.
+  public static let unavailableIdentifier = "thread-unavailable"
+
   /// Tells if a thread view of `session` shows its composer slot.
   ///
   /// A read-only session (`SessionModel.isReadOnly`, the shared session of
@@ -627,6 +660,18 @@ public enum AgentThreadLayout {
   /// - Returns: `false` when the session is read-only.
   static func showsComposer(for session: SessionModel) -> Bool {
     !session.isReadOnly
+  }
+
+  /// Tells if a thread view shows its scroll-to-bottom pill.
+  ///
+  /// While the view shows the unavailable message of the host in place of
+  /// the transcript (``SwiftUI/View/threadUnavailable(_:)``), no list shows,
+  /// so the pill has no list to scroll.
+  ///
+  /// - Parameter message: The unavailable message of the host, or `nil`.
+  /// - Returns: `true` when the host gave no message.
+  static func showsPill(unavailableMessage message: String?) -> Bool {
+    message == nil
   }
 }
 

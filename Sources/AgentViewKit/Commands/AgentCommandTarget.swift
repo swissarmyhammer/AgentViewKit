@@ -105,6 +105,11 @@ final class AgentSessionNavigation {
 ///   view (``transcriptSearch``). They are disabled while a text input has
 ///   the focus (``firstResponder``), so that Command-G stays the find of the
 ///   editor (D133), and when the thread has no hits.
+/// - While the thread view shows the unavailable message of the host
+///   (``isSessionUnavailable``), the verbs that read the text of the session
+///   are not available, with the reason "The session is not available.":
+///   Copy Message, Copy Thread, Copy Code Block, Export as Markdown…, Find
+///   Next Hit, Find Previous Hit and Clear Search Hits.
 @MainActor
 final class AgentCommandTarget {
   /// The kind of the focus segment of an agent command scope.
@@ -148,6 +153,13 @@ final class AgentCommandTarget {
   /// The search hits of the thread view, or `nil` when no thread view gave
   /// them.
   var transcriptSearch: TranscriptSearch?
+
+  /// Whether the thread view shows the unavailable message of the host in
+  /// place of the transcript (``SwiftUI/View/threadUnavailable(_:)``). While
+  /// it is `true`, the verbs that read the text of the session
+  /// (``AgentCommandGroup/readsSessionText``) are not available. The thread
+  /// view gives the value through the mount of the scope.
+  var isSessionUnavailable = false
 
   /// Gives the first responder of the window of the scope, or `nil`. The
   /// mount of the scope gives it, and a test gives its own. The find verbs
@@ -248,7 +260,8 @@ final class AgentCommandTarget {
     guard let session else {
       return .unavailable(reason: String(localized: "The thread is not shown.", bundle: .module))
     }
-    if let reason = missingPartReason(of: verb, payload: payload)
+    if let reason = unavailableSessionReason(of: verb)
+      ?? missingPartReason(of: verb, payload: payload)
       ?? hostReason(of: verb, payload: payload, in: session)
       ?? textInputReason(of: verb)
     {
@@ -258,6 +271,21 @@ final class AgentCommandTarget {
       return .unavailable(reason: Self.reason(for: verb))
     }
     return .available
+  }
+
+  /// The reason when the thread view shows the unavailable message of the
+  /// host and `verb` reads the text of the session, or `nil`.
+  ///
+  /// The check comes first: no message, no transcript and no hit shows, so
+  /// the state of the session is the reason, and not a missing part.
+  ///
+  /// - Parameter verb: The verb.
+  /// - Returns: The reason for a verb of a group that reads the text of the
+  ///   session (``AgentCommandGroup/readsSessionText``) while
+  ///   ``isSessionUnavailable`` is `true`, else `nil`.
+  private func unavailableSessionReason(of verb: AgentCommandVerb) -> String? {
+    guard isSessionUnavailable, verb.group.readsSessionText else { return nil }
+    return String(localized: "The session is not available.", bundle: .module)
   }
 
   /// The reason when a part of the view that `verb` needs is not in the

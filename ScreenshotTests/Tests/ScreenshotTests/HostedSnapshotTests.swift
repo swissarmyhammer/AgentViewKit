@@ -68,6 +68,23 @@ import Testing
     try await Self.generate(thread, named: "thread-timing", size: SnapshotFixtures.threadSize)
   }
 
+  /// The read-only chat of a shared session (TestudoApp D208 (i)) with the
+  /// header of the host in the top bar: no composer, and the header as
+  /// content with no glass (D110) above the transcript.
+  @Test func theSharedThreadWithItsHeader() async throws {
+    try await Self.generate(
+      SharedThreadFixtures.sharedThread, named: "thread-shared", size: SnapshotFixtures.threadSize)
+  }
+
+  /// The read-only chat of a shared session that the owner stopped sharing:
+  /// the header of the host stays, and the unavailable message of the host
+  /// shows in the center, in place of the transcript, with no glass (D110).
+  @Test func theSharedThreadThatIsNotAvailable() async throws {
+    try await Self.generate(
+      SharedThreadFixtures.unavailableThread, named: "thread-shared-unavailable",
+      size: SnapshotFixtures.threadSize)
+  }
+
   /// The state banner with its Show Error button and the login card with its
   /// Sign In button, in the bottom bar of a thread at rest, below the
   /// transcript. The bar has no glass surface, so the buttons use the glass
