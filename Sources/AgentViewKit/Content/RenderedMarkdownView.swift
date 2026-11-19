@@ -22,6 +22,9 @@ import SwiftUI
 /// element is the Markdown text, with the source of each formula at its
 /// place.
 ///
+/// In the row of an entry with a search hit, the view draws the find marks
+/// of the matched words of the hit (``TranscriptSearchMatches``).
+///
 /// The view shows a citation chip at the offset of each ``EditorCitation``.
 /// A press on a chip selects its source in the ``CitationSelection`` of the
 /// environment, as a press on an ``InlineCitation`` pill does.
@@ -47,6 +50,9 @@ struct RenderedMarkdownView: View {
   @State private var ownModel = OwnModelSlot()
   @Environment(\.sessionModel) private var session
   @Environment(\.citationSelection) private var citationSelection
+
+  /// The search mark of the row around the view, or `nil`.
+  @Environment(\.transcriptSearchMark) private var searchMark
 
   /// Makes the view of Markdown text.
   ///
@@ -80,6 +86,7 @@ struct RenderedMarkdownView: View {
         }
       }
       .citing(citations) { citation in selection?.select(citation.number) }
+      .transcriptSearchMarks(searchMark)
       .editorTextAccessibilityIdentifier(identifier)
       .editorImageSource(FileImageSource(), relativeTo: Self.imageFolder(of: session))
       .sizedToContent()

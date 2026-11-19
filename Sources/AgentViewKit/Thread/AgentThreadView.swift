@@ -83,6 +83,10 @@ import SwiftUI
 /// floating controls, so they do not change the transcript or the scroll
 /// position.
 ///
+/// The hits of a search of the session transcripts show in the thread with
+/// ``transcriptSearchHits(_:)`` (TestudoApp D207 (f)): the thread scrolls to
+/// the best hit, and marks the matched words of each hit.
+///
 /// A deck next to the view goes in one
 /// ``SwiftUI/View/accessibilityFocusScope()`` with the thread view. The
 /// ``RequestDeck`` documentation shows the full example.
@@ -200,6 +204,10 @@ public struct AgentThreadView<Composer: View>: View {
   /// none.
   @State private var ownInspectorSelection = InspectorSelection()
 
+  /// The search hits of the host (``transcriptSearchHits(_:)``), the current
+  /// hit and its reveal.
+  @State private var search = TranscriptSearch()
+
 
   @Environment(\.expandedBlocksStore) private var hostExpandedBlocks
   @Environment(\.inspectorSelection) private var hostInspectorSelection
@@ -314,7 +322,7 @@ public struct AgentThreadView<Composer: View>: View {
       // them.
       .accessibilityReadingScope()
       .accessibilityFocusScope()
-      .environment(\.expandedBlocksStore, hostExpandedBlocks ?? ownExpandedBlocks)
+      .environment(\.expandedBlocksStore, expandedBlocks)
       .modifier(
         ThreadAttachmentInspector(
           mode: inspectorMode, sessionId: session.sessionId,
@@ -323,6 +331,12 @@ public struct AgentThreadView<Composer: View>: View {
       // The thread has one text selection: the transcript, the prompts, the
       // bars and the inspector (Docs/decisions/text-selection.md).
       .threadTextSelection()
+  }
+
+  /// The store of the expanded rows that the view gives to its rows: the
+  /// store of the environment, or the store of the view.
+  private var expandedBlocks: ExpandedBlocksStore {
+    hostExpandedBlocks ?? ownExpandedBlocks
   }
 
   /// The selection that the view gives to its inspector.
@@ -381,6 +395,8 @@ public struct AgentThreadView<Composer: View>: View {
     }
     .safeAreaBar(edge: .bottom) { floatingControls }
     .background { SessionAnnouncementObserver(session: session) }
+    .background { TranscriptSearchDriver(session: session, search: search, store: expandedBlocks) }
+    .environment(\.transcriptSearch, search)
     // After a resume the view shows the root: a child that needs the user
     // shows through its mark and the jump of the banner.
     .onChange(of: root.replayEndCount) { focus.resumeEnded() }

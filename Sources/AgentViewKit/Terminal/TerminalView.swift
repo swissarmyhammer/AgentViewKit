@@ -28,6 +28,9 @@ import SwiftUI
 /// The colors come from the terminal palette of the EditorKit theme
 /// (`Theme.terminalPalette`): the 16 ANSI colors, the text color of output
 /// with no SGR color, and the fill of the block.
+///
+/// In the row of an entry with a search hit, the output has the find marks
+/// of the matched words of the hit (``TranscriptSearchMatches``).
 public struct TerminalView: View {
   /// The accessibility identifier of the view.
   public static let identifier = "terminal"
@@ -124,6 +127,9 @@ public struct TerminalView: View {
   @Environment(\.editorTheme) private var editorTheme
   @Environment(\.themeSecondary) private var themeSecondary
 
+  /// The search mark of the row around the view, or `nil`.
+  @Environment(\.transcriptSearchMark) private var searchMark
+
   /// Makes the view of a terminal entry of a `SessionModel` (plan.md §3.8
   /// "Terminal view").
   ///
@@ -177,6 +183,7 @@ public struct TerminalView: View {
       EditorView(model: model)
         .editorTextMenu(.ancestor)
         .sizedToContent()
+        .transcriptSearchMarks(searchMark)
       footer
     }
     .contentTile()

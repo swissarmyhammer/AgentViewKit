@@ -1,0 +1,217 @@
+import EditorCore
+import EditorDecorations
+import EditorStyle
+import EditorSwiftUI
+import EditorText
+import EditorTheme
+import Foundation
+import SwiftUI
+
+/// The mark of one entry that has a search hit (TestudoApp D207 (f)).
+nonisolated struct TranscriptSearchMark: Hashable {
+  /// The opacity of the find highlight of the theme on a whole entry whose
+  /// hit has no terms.
+  static let wholeEntryOpacity = 0.2
+
+  /// The opacity of the find highlight of the theme on a whole entry whose
+  /// hit has no terms, when that hit is current: the stronger mark.
+  static let currentWholeEntryOpacity = 0.4
+
+  /// The matched words of the hit, or an empty list for a hit that only the
+  /// cosine search found.
+  let terms: [String]
+
+  /// Whether the hit is the current hit.
+  let isCurrent: Bool
+
+  /// The opacity of the find highlight on the whole entry, or `nil` when the
+  /// hit has terms and marks only their matches.
+  var wholeEntryOpacity: Double? {
+    guard terms.isEmpty else { return nil }
+    return isCurrent ? Self.currentWholeEntryOpacity : Self.wholeEntryOpacity
+  }
+}
+
+/// The matches of the words of a search hit in a text, and the find marks of
+/// EditorKit on them (TestudoApp D207 (f)).
+nonisolated enum TranscriptSearchMatches {
+  /// The UTF-8 ranges of the matches of `terms` in `text`.
+  ///
+  /// A match has no case and no diacritics, and starts at the start of a
+  /// word: the character before it is not a letter or a number. The match
+  /// can end in the word, so "pars" matches the start of "parser". The
+  /// matches of two terms that overlap become one range.
+  ///
+  /// - Parameters:
+  ///   - terms: The matched words of the hit. An empty term matches nothing.
+  ///   - text: The text to scan.
+  /// - Returns: The ranges, in text order, with no overlap.
+  static func ranges(of terms: [String], in text: String) -> [Range<Int>] {
+    wordRanges(of: terms, in: text).map { utf8Range(of: $0, in: text) }
+  }
+
+  /// A plain text, such as the title of a tool call, with the find highlight
+  /// as the background of each match of `terms` (``ranges(of:in:)``).
+  ///
+  /// - Parameters:
+  ///   - text: The text.
+  ///   - terms: The matched words of the hit.
+  ///   - highlight: The find highlight of the theme.
+  /// - Returns: The text, with the highlight on each match.
+  static func highlighted(_ text: String, terms: [String], highlight: Color) -> AttributedString {
+    wordRanges(of: terms, in: text).reduce(into: AttributedString(text)) { attributed, range in
+      guard let marked = Range(range, in: attributed) else { return }
+      attributed[marked].backgroundColor = highlight
+    }
+  }
+
+  /// The find marks of a hit over the text of an editor: the decorations of
+  /// EditorKit's find session (`SearchDecorations`) for the matches of the
+  /// terms of the hit. When the hit is current, its first match is the
+  /// current match of the session.
+  ///
+  /// - Parameters:
+  ///   - mark: The mark of the hit.
+  ///   - context: The context of the editor.
+  /// - Returns: The marks.
+  static func decorations(of mark: TranscriptSearchMark, in context: EditorContext) -> DecorationSet
+  {
+    let document = context.state.document
+    let matches = ranges(of: mark.terms, in: document.string).map { range in
+      EditorRange(
+        document.position(utf8Offset: range.lowerBound),
+        document.position(utf8Offset: range.upperBound))
+    }
+    let session = SearchState(
+      query: mark.terms.joined(separator: " "), matches: matches,
+      currentMatchIndex: mark.isCurrent && !matches.isEmpty ? 0 : nil)
+    return DecorationSet(SearchDecorations.decorations(for: session))
+  }
+
+  /// The ranges of the matches of `terms` in `text`, with each overlap of
+  /// two matches made one range (``ranges(of:in:)``).
+  ///
+  /// - Parameters:
+  ///   - terms: The matched words of the hit. An empty term matches nothing.
+  ///   - text: The text to scan.
+  /// - Returns: The ranges, in text order, with no overlap.
+  private static func wordRanges(of terms: [String], in text: String) -> [Range<String.Index>] {
+    merged(terms.filter { !$0.isEmpty }.flatMap { matches(of: $0, in: text) })
+  }
+
+  /// The ranges of the matches of one term at the start of a word.
+  ///
+  /// The scan goes on one character after a match that is not at the start
+  /// of a word, so such a match does not hide a match at a word start in
+  /// its range.
+  ///
+  /// - Parameters:
+  ///   - term: The term, not empty.
+  ///   - text: The text to scan.
+  /// - Returns: The ranges, in text order.
+  private static func matches(of term: String, in text: String) -> [Range<String.Index>] {
+    let candidates = sequence(state: text.startIndex) {
+      start -> (range: Range<String.Index>, isWordStart: Bool)? in
+      guard
+        let range = text.range(
+          of: term, options: [.caseInsensitive, .diacriticInsensitive], range: start..<text.endIndex
+        )
+      else { return nil }
+      let isWordStart = isWordStart(range.lowerBound, in: text)
+      start = isWordStart ? range.upperBound : text.index(after: range.lowerBound)
+      return (range, isWordStart)
+    }
+    return candidates.filter(\.isWordStart).map(\.range)
+  }
+
+  /// Whether a word starts at an index.
+  ///
+  /// - Parameters:
+  ///   - index: An index of `text`.
+  ///   - text: The text.
+  /// - Returns: `true` at the start of the text, or after a character that
+  ///   is not a letter or a number.
+  private static func isWordStart(_ index: String.Index, in text: String) -> Bool {
+    guard index > text.startIndex else { return true }
+    let before = text[text.index(before: index)]
+    return !(before.isLetter || before.isNumber)
+  }
+
+  /// The UTF-8 range of a range of a text.
+  ///
+  /// - Parameters:
+  ///   - range: The range of `text`.
+  ///   - text: The text.
+  /// - Returns: The UTF-8 offsets of the range.
+  private static func utf8Range(of range: Range<String.Index>, in text: String) -> Range<Int> {
+    let utf8 = text.utf8
+    return utf8.distance(
+      from: utf8.startIndex, to: range.lowerBound)..<utf8.distance(
+        from: utf8.startIndex, to: range.upperBound)
+  }
+
+  /// The ranges with each overlap of two ranges made one range.
+  ///
+  /// - Parameter ranges: The ranges, in any order.
+  /// - Returns: The ranges in order, with no overlap.
+  private static func merged(_ ranges: [Range<String.Index>]) -> [Range<String.Index>] {
+    ranges.sorted { $0.lowerBound < $1.lowerBound }.reduce(into: []) { result, range in
+      if let last = result.last, range.lowerBound < last.upperBound {
+        result[result.count - 1] = last.lowerBound..<max(last.upperBound, range.upperBound)
+      } else {
+        result.append(range)
+      }
+    }
+  }
+}
+
+extension EnvironmentValues {
+  /// The search mark of the row around this view, or `nil` when the entry of
+  /// the row has no search hit.
+  @Entry var transcriptSearchMark: TranscriptSearchMark? = nil
+}
+
+extension EditorSlotComposing {
+  /// Draws the find marks of the matched words of a search hit on the text
+  /// of this editor, or adds nothing when there is no mark with terms.
+  ///
+  /// The marks are EditorKit mark decorations (`.editorMarks(_:)`). The
+  /// editor asks for them on each refresh, so an editor that is made again,
+  /// such as the editor of a row that comes back near the rows in view
+  /// (``LiveRowRange``), draws them again.
+  ///
+  /// - Parameter mark: The search mark of the row, or `nil`.
+  /// - Returns: The same view value, with the marks when there are terms.
+  func transcriptSearchMarks(_ mark: TranscriptSearchMark?) -> Self {
+    guard let mark, !mark.terms.isEmpty else { return self }
+    return editorMarks { context in TranscriptSearchMatches.decorations(of: mark, in: context) }
+  }
+}
+
+/// The search mark of one row of a thread: the mark of the row in the
+/// environment of the row, and the find highlight of the theme on the whole
+/// row when the hit has no terms (TestudoApp D207 (f)).
+///
+/// A row with no hit gets no environment value and no background, so its
+/// look and its accessibility do not change.
+struct TranscriptSearchRowMark: ViewModifier {
+  /// The row key of the entry of the row.
+  let rowKey: String
+
+  @Environment(\.transcriptSearch) private var search
+  @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.editorStyle) private var editorStyle
+
+  func body(content: Content) -> some View {
+    let mark = search?.mark(forRowKey: rowKey)
+    content
+      .environment(\.transcriptSearchMark, mark)
+      .background {
+        if let opacity = mark?.wholeEntryOpacity {
+          EditorSurface.shape(radius: SurfaceCorners.card.radius(in: editorStyle))
+            .fill(editorTheme.selection.opacity(opacity))
+            .accessibilityHidden(true)
+        }
+      }
+  }
+}

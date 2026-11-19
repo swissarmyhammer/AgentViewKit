@@ -70,6 +70,27 @@ public enum ConversationLayout {
     return (fromEnd + size - 1) / size
   }
 
+  /// The number of pages that the list shows after a scroll to an item.
+  ///
+  /// The list loads the earlier pages that the item needs, and keeps the
+  /// pages that it already shows.
+  ///
+  /// - Parameters:
+  ///   - position: The position of the item in the thread, or `nil` when
+  ///     the thread does not hold the item.
+  ///   - count: The number of items in the thread.
+  ///   - pageSize: The number of items on one page. A value less than one
+  ///     counts as one.
+  ///   - shownPages: The number of pages that the list shows now.
+  /// - Returns: The larger of `shownPages` and the page count that shows the
+  ///   item, or `shownPages` when the thread does not hold the item.
+  public static func pageCount(
+    forScrollTo position: Int?, count: Int, pageSize: Int, shownPages: Int
+  ) -> Int {
+    guard let position else { return shownPages }
+    return max(shownPages, pageCount(toShow: position, count: count, pageSize: pageSize))
+  }
+
   /// The accessibility value of the list.
   ///
   /// - Parameters:
@@ -229,6 +250,11 @@ public struct ConversationView<EmptyState: View>: View {
   /// (``SwiftUI/EnvironmentValues/conversationShowsStateBanner``).
   @Environment(\.conversationShowsStateBanner) private var showsStateBanner
 
+  /// The search hits of the thread around the view, or `nil` outside an
+  /// ``AgentThreadView``. The view reveals the row of each hit that the
+  /// search asks for, and marks the rows of the hits (TestudoApp D207 (f)).
+  @Environment(\.transcriptSearch) private var search
+
   /// Makes the list of the transcript of a session model with a custom empty
   /// state.
   ///
@@ -284,6 +310,9 @@ public struct ConversationView<EmptyState: View>: View {
     }
     .onChange(of: pageCount) {
       anchors.restoreAnchor()
+    }
+    .onChange(of: search?.revealRequest, initial: true) {
+      revealSearchHit()
     }
   }
 
@@ -393,6 +422,9 @@ public struct ConversationView<EmptyState: View>: View {
   /// to the file views in it, which place their files in the
   /// ``TranscriptFileOrder`` of the thread (card ^4138tmp).
   ///
+  /// Each row gets the search mark of its entry
+  /// (``TranscriptSearchRowMark``). A row with no search hit gets nothing.
+  ///
   /// - Parameter shownCount: The number of rows that the list shows.
   /// - Returns: One row for each shown entry.
   private func rows(shownCount: Int) -> some View {
@@ -401,6 +433,7 @@ public struct ConversationView<EmptyState: View>: View {
     return ForEach(Array(transcript.suffix(shownCount).enumerated()), id: \.element.id) { offset, entry in
       let row = ItemRow(entry: entry)
       readingRow(row)
+        .modifier(TranscriptSearchRowMark(rowKey: row.id))
         .environment(\.transcriptRowPosition, firstPosition + offset)
         .coordinateSpace(.named(TranscriptFileOrder.rowSpace))
         .id(row.id)
@@ -452,6 +485,17 @@ public struct ConversationView<EmptyState: View>: View {
     scroll(to: .item(id))
   }
 
+  /// Scrolls the list to the row of the search hit that the search of the
+  /// thread asks for, and takes the request, so that a list that mounts
+  /// again does not move to the hit again.
+  ///
+  /// The scroll loads the earlier pages when the row is not loaded
+  /// (``scroll(to:)``).
+  private func revealSearchHit() {
+    guard let request = search?.takeRevealRequest() else { return }
+    showItem(request.rowKey)
+  }
+
   /// Applies a scroll target of the manager to the list.
   ///
   /// A scroll to the bottom goes to the end of the content, and not to the
@@ -474,11 +518,10 @@ public struct ConversationView<EmptyState: View>: View {
       unsettledItemID = nil
       scrollToBottom()
     case .item(let id):
-      if let itemPosition = session.transcript.position(ofRowKey: id) {
-        let needed = ConversationLayout.pageCount(
-          toShow: itemPosition, count: session.transcript.count, pageSize: pageSize)
-        pageCount = max(pageCount, needed)
-      }
+      let transcript = session.transcript
+      pageCount = ConversationLayout.pageCount(
+        forScrollTo: transcript.position(ofRowKey: id), count: transcript.count, pageSize: pageSize,
+        shownPages: pageCount)
       unsettledItemID = id
       position.scrollTo(id: id, anchor: .top)
     }

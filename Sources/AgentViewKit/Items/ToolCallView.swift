@@ -421,6 +421,10 @@ private struct ToolCallHeader: View {
 
   @Environment(\.toolCallConnectionState) private var connectionState
   @Environment(\.editorStyle) private var editorStyle
+  @Environment(\.editorTheme) private var editorTheme
+
+  /// The search mark of the row of the call, or `nil`.
+  @Environment(\.transcriptSearchMark) private var searchMark
 
   var body: some View {
     let id = entry.id.rowKey
@@ -458,7 +462,7 @@ private struct ToolCallHeader: View {
     HStack(spacing: editorStyle.spacing.s) {
       EditorSymbolImage(.tool(.init(entry.shownKind)))
         .symbolColumn()
-      Text(ToolCallView.displayTitle(entry.shownTitle))
+      title
         .lineLimit(1)
         .truncationMode(.middle)
       Spacer(minLength: editorStyle.spacing.s)
@@ -467,6 +471,17 @@ private struct ToolCallHeader: View {
         .rotationEffect(expanded ? ReasoningView.expandedChevronAngle : .zero)
     }
     .contentShape(Rectangle())
+  }
+
+  /// The title of the call. In the row of a search hit with terms, each
+  /// match of a term has the find highlight of the theme (TestudoApp D207
+  /// (f)).
+  private var title: Text {
+    let shown = ToolCallView.displayTitle(entry.shownTitle)
+    guard let terms = searchMark?.terms, !terms.isEmpty else { return Text(shown) }
+    let highlighted = TranscriptSearchMatches.highlighted(
+      shown, terms: terms, highlight: editorTheme.selection)
+    return Text(highlighted)
   }
 
   /// The status symbol, with the symbol effects of the row. The live symbol

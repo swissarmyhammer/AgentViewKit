@@ -27,6 +27,9 @@ import SwiftUI
 /// Command output is terminal output, so the colors come from the terminal
 /// palette of the EditorKit theme (`Theme.terminalPalette`), as in
 /// ``TerminalView``.
+///
+/// In the row of an entry with a search hit, the output has the find marks
+/// of the matched words of the hit (``TranscriptSearchMatches``).
 public struct CommandOutputView: View {
   /// The accessibility identifier of the view.
   public static let identifier = "command-output"
@@ -149,6 +152,9 @@ public struct CommandOutputView: View {
   @Environment(\.themeSecondary) private var themeSecondary
   @Environment(\.pasteboard) private var pasteboard
 
+  /// The search mark of the row around the view, or `nil`.
+  @Environment(\.transcriptSearchMark) private var searchMark
+
   /// Makes the view.
   ///
   /// - Parameters:
@@ -192,6 +198,7 @@ public struct CommandOutputView: View {
       EditorView(model: model)
         .editorTextMenu(.ancestor)
         .sizedToContent()
+        .transcriptSearchMarks(searchMark)
       if let exitCode, let outcome = ExitOutcome(exitCode: exitCode) {
         footer(exitCode: exitCode, outcome: outcome)
       }
