@@ -66,14 +66,16 @@ import Testing
   /// The model is in a ``CodeBlockModelCache`` of the test, so the test can
   /// wait for its parse. The answer is the first text block of its message.
   ///
-  /// - Parameter pasteboard: The pasteboard of the copy commands.
+  /// - Parameters:
+  ///   - markdown: The Markdown of the answer.
+  ///   - pasteboard: The pasteboard of the copy commands.
   /// - Returns: The fixture.
   /// - Throws: An error when the transcript has no agent message, the model
   ///   has no grammar, or the view tree has no text view.
-  static func mount(pasteboard: any AgentViewKit.Pasteboard = NSPasteboard.general) async throws
-    -> Fixture
-  {
-    let markdown = CodeBlockAnswerFixture.markdown
+  static func mount(
+    markdown: String = CodeBlockAnswerFixture.markdown,
+    pasteboard: any AgentViewKit.Pasteboard = NSPasteboard.general
+  ) async throws -> Fixture {
     let session = SessionModel.preview(transcript: [.agent(markdown)])
     let entry = try #require(PreviewFixtures.firstEntry(in: session, as: AgentMessageEntry.self))
     let rowKey = try #require(session.transcript.first?.rowKey)
@@ -130,6 +132,23 @@ import Testing
       try fixture.rightClick(atFraction: CodeBlockAnswerFixture.codeFraction)
 
       #expect(
+        fixture.system.registry.perform(
+          AgentCommandVerb.copyCodeBlock.id, at: fixture.itemPath, clicked: fixture.itemPath))
+
+      #expect(pasteboard.string(forType: .string) == CodeBlockAnswerFixture.code)
+    }
+  }
+
+  /// A production change that fails this test: the code block of an answer
+  /// that ends with its closing fence, with no line break after it, holds
+  /// the fence line, so Copy Code Block copies "```" after the code.
+  @Test func copyCodeBlockOfAnAnswerThatEndsWithItsFenceCopiesNoFence() async throws {
+    try await NSPasteboard.withIsolatedAsync { pasteboard in
+      let fixture = try await Self.mount(
+        markdown: CodeBlockAnswerFixture.fenceEndingMarkdown, pasteboard: pasteboard)
+      try fixture.rightClick(atFraction: CodeBlockAnswerFixture.codeFraction)
+
+      try #require(
         fixture.system.registry.perform(
           AgentCommandVerb.copyCodeBlock.id, at: fixture.itemPath, clicked: fixture.itemPath))
 

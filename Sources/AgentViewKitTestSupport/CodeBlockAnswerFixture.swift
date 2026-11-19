@@ -16,13 +16,20 @@ public enum CodeBlockAnswerFixture {
   public static let code = (1...codeLineCount).map { "let value\($0) = \($0)" }
     .joined(separator: "\n")
 
-  /// The Markdown of the answer: a paragraph, then a code block.
+  /// The Markdown of the answer: a paragraph, then a code block, with a
+  /// line break after the closing fence.
   ///
   /// The paragraph wraps to more lines than the top eighth of the text, and
-  /// the code block holds more lines than the bottom eighth. A line break
-  /// follows the closing fence: with no line break there, EditorKit gives
-  /// the closing fence as a part of the code (task ^dbh2sda).
-  public static let markdown = """
+  /// the code block holds more lines than the bottom eighth.
+  public static let markdown = fenceEndingMarkdown + "\n"
+
+  /// The Markdown of an answer that ends with its closing fence: the same
+  /// paragraph and code block as ``markdown``, with no line break after the
+  /// closing fence.
+  ///
+  /// An agent answer often ends in this form. The code of the block is
+  /// ``code`` also, with no fence line.
+  public static let fenceEndingMarkdown = """
     The parser reads each line of the file. It keeps the name of each value, \
     and it skips each empty line. Then it gives the values to the caller, in \
     the order of the file, with no change. The code below shows the values.
@@ -30,7 +37,6 @@ public enum CodeBlockAnswerFixture {
     ```swift
     \(code)
     ```
-
     """
 
   /// The number of equal bands of the height of the text. The point in the
