@@ -39,6 +39,14 @@ comments:
     - (b) EditorKit task 01M7T3XNB4JN9SVKEVGDT7JEHA: DiffView and PreviewField(.value(.diff(...))) pass marks to the inner EditorView in both layouts. The docs will give the range rule for each layout.
     The find colors (EditorKit ^qx78088, commit ae2ebbee) are in review. Still blocked until editorkit-7a sends the commits.
   timestamp: 2026-11-19T14:39:01.292761+00:00
+- actor: claude-code
+  id: 01m7t76q7jmv9w7x80p5egeggc
+  text: |-
+    Not blocked now. EditorKit origin/main 60d17ff2.
+    (a) EditorLabel marks (^x12jpt3, e03a0142): `public struct EditorLabelMark { utf8Range: Range<Int>; style: String; init(utf8Range:style:); init(_ range: Range<String.Index>, in text: String, style: String) }` and `EditorLabel.editorMarks(_ marks: [EditorLabelMark]) -> EditorLabel`. A mark paints only a background through the HighlightStyle path; the text color (also vibrant) does not change; copy writes plain text; a label with no marks looks the same.
+    (b) DiffView and PreviewField marks (^dt7jeha, 809fa381 and c7ae8d0d): `DiffView.editorMarks(_ provider: @escaping (EditorContext) -> DecorationSet)` and the same on `PreviewField`. Each provider gets the EditorContext of the editor that it marks; its ranges are in `context.state.document.string`. Inline layout: one call on the inline document (file and hunk headers, and each line with no +/-/space marker). Side by side: one call for the old column and one for the new column; a filler row is an empty line. PreviewField: a diff follows these rules; code, text and Markdown get the provider on their read-only editor (ranges in the source text); a file, an image, the placeholder and the failure state ignore marks. Several editorMarks calls run in call order.
+    Use the existing AVK match rule (TranscriptSearchMatches) on the given text, with SearchDecorations.matchStyle and currentMatchStyle.
+  timestamp: 2026-11-19T15:36:03.570422+00:00
 position_column: doing
 position_ordinal: '80'
 title: Transcript search marks in plan entries and diffs (D207 f)

@@ -61,6 +61,29 @@ comments:
     - evidence: Sources/AgentViewKit/Thread/TranscriptSearch.swift, Tests/AgentViewKitTests/Thread/TranscriptSearchLookupTests.swift, ARCHITECTURE.md. swift format lint -s: 0 errors on both Swift files (HEAD also 0). swift test: "Test run with 1502 tests in 171 suites passed" and "Test run with 54 tests in 11 suites passed". swift build --build-tests: IntegrationTests and ScreenshotTests build complete. Pin: FoundationModelsACPClient 5d89f24 in all three packages.
     - next: review. Not committed and not pushed (the order of this run said no commit and no push).
   timestamp: 2026-11-19T15:34:05.182047+00:00
+- actor: claude-code
+  id: 01m7t77y86fk0j2mqkby0ta0ng
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (418bd3c9). 1 finding (1 confirmed, 1 refuted). Tests/AgentViewKitTests/Thread/TranscriptSearchLookupTests.swift:91 (reuse/reuse).
+    - next: Delete the local layOut(_:) in TranscriptSearchLookupTests. Call StyleViewHost.layOut(_:) at each call site. Then run swift test and review again.
+  timestamp: 2026-11-19T15:36:43.526966+00:00
+- actor: claude-code
+  id: 01m7t78cxc19m19gf28zr60mw1
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — TranscriptSearch.swift, TranscriptSearchLookupTests.swift, ARCHITECTURE.md; ACPClient 5d89f24
+    - test: green — swift test, 1502 tests in 171 suites + 54 tests in 11 suites passed (run by the implement step after its last edit); lint 0 errors (checked by the orchestrator)
+    - commit: 418bd3c9
+    - review: findings — TranscriptSearchLookupTests.swift:91 (reuse of StyleViewHost.layOut)
+  timestamp: 2026-11-19T15:36:58.540165+00:00
+- actor: claude-code
+  id: 01m7t7aw9p8bepjw0tqy4kc2y0
+  text: |-
+    ### implement — changed
+    - evidence: Tests/AgentViewKitTests/Thread/TranscriptSearchLookupTests.swift — the local layOut(_:) is removed; hostDriver and the linked prompt test call StyleViewHost.layOut(_:). swift format lint -s: 0 errors. swift test: "Test run with 1502 tests in 171 suites passed" and "Test run with 54 tests in 11 suites passed".
+    - next: review.
+  timestamp: 2026-11-19T15:38:19.830130+00:00
 position_column: doing
 position_ordinal: '8180'
 title: Search hits look up again when a prompt echo links to its local message (D207 f)
@@ -74,3 +97,15 @@ Do:
 - TDD unit test: hits that come before the echo of their prompt reveal and mark the local message when the echo links, with no new entry.
 
 Run `swift test`. Push, and send the sha to testudoapp-9a.
+
+## Review Findings (2026-11-19 09:34)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 2 file(s) reviewed, 3 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+> 1 file(s) not reviewed — no validator matched:
+> - `ARCHITECTURE.md` — no validator matches this file
+
+- [x] `Tests/AgentViewKitTests/Thread/TranscriptSearchLookupTests.swift:91` `reuse/reuse` — The new static func layOut(_:) reimplements StyleViewHost.layOut(_:). It sets the frame to the fitting size and calls layoutSubtreeIfNeeded(). The shared helper has the same body for NSHostingView. Two copies can drift apart, and the header of StyleViewHost says the unit tests keep no copy of the sizing code. Delete the local layOut(_:) at lines 87-94. Call StyleViewHost.layOut(_:) at line 68 (inside hostDriver) and at line 182 instead. The shared overload takes NSHostingView<some View>, so it accepts the AnyView host.

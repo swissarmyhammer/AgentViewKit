@@ -57,7 +57,7 @@ import Testing
   ///   - search: The search of the thread.
   ///   - session: The session that the thread shows.
   ///   - hits: The hits of the host.
-  /// - Returns: The host. Lay it out again with ``layOut(_:)``.
+  /// - Returns: The host. Lay it out again with `StyleViewHost.layOut(_:)`.
   static func hostDriver(
     of search: TranscriptSearch, for session: SessionModel, hits: TranscriptSearchHits
   ) -> NSHostingView<AnyView> {
@@ -65,7 +65,7 @@ import Testing
       rootView: AnyView(
         TranscriptSearchDriver(session: session, search: search, store: ExpandedBlocksStore())
           .environment(\.transcriptSearchHits, .constant(hits))))
-    layOut(hosting)
+    StyleViewHost.layOut(hosting)
     return hosting
   }
 
@@ -82,15 +82,6 @@ import Testing
     }
     write()
     return fired.withLock { $0 }
-  }
-
-  /// Lays out a host with no window, so that SwiftUI evaluates its views
-  /// and runs their change actions.
-  ///
-  /// - Parameter hosting: The host.
-  static func layOut(_ hosting: NSHostingView<AnyView>) {
-    hosting.frame = NSRect(origin: .zero, size: hosting.fittingSize)
-    hosting.layoutSubtreeIfNeeded()
   }
 
   /// A production change that fails this test: the lookup reads the row key
@@ -179,7 +170,7 @@ import Testing
         TranscriptSearchTests.chunk(Self.promptText, id: response.messageId.rawValue)))
     try #require(session.transcript.count == count)
 
-    Self.layOut(hosting)
+    StyleViewHost.layOut(hosting)
 
     #expect(search.takeRevealRequest()?.rowKey == entry.rowKey)
     #expect(search.mark(forRowKey: entry.rowKey)?.isCurrent == true)
