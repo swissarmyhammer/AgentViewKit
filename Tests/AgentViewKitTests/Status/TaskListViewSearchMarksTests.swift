@@ -18,7 +18,7 @@ import Testing
   /// - Parameter marks: The marks of the entry.
   /// - Returns: The marked text of each mark, in order.
   static func markedText(of marks: [EditorLabelMark]) -> [String] {
-    AgentViewKitTests.markedText(of: marks.map(\.utf8Range), in: entry.content)
+    MarkedText.of(marks.map(\.utf8Range), in: entry.content)
   }
 
   /// A production change that fails this test: the marks of a plan entry

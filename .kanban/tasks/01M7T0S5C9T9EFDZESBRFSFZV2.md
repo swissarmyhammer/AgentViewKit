@@ -90,6 +90,29 @@ comments:
     - evidence: swift test: "Test run with 1514 tests in 173 suites passed", "Test run with 54 tests in 11 suites passed". swift format lint -s: 0 errors on each changed file (HEAD 0) and on the new file.
     - next: review.
   timestamp: 2026-11-19T16:08:21.124935+00:00
+- actor: claude-code
+  id: 01m7t95bm8yvvzrrzrzq4e8mcf
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (0317fc61); 1 finding, 1 confirmed, 0 refuted — Tests/AgentViewKitTests/Helpers/MarkedText.swift:10 (swift/immutability). The 2 findings of the 2026-11-19 10:02 section are checked.
+    - next: implement the finding of the 2026-11-19 10:08 section. Move `markedText(of:in:)` onto a type that owns it, and update the two call sites. The task stays in review.
+  timestamp: 2026-11-19T16:10:16.072735+00:00
+- actor: claude-code
+  id: 01m7t95wbvm6ep320pvr64rt3n
+  text: |-
+    ### finish iteration 3 — findings
+    - implement: changed — TranscriptSearchMarks.swift (one marking helper), MarkedText.swift (new shared test helper), 2 test files
+    - test: green — swift test, 1514 tests in 173 suites + 54 tests in 11 suites passed (run by the implement step after its edits)
+    - commit: 0317fc61
+    - review: findings — Tests/AgentViewKitTests/Helpers/MarkedText.swift:10 (top-level function; put it on a type)
+  timestamp: 2026-11-19T16:10:33.211744+00:00
+- actor: claude-code
+  id: 01m7t9836bcnbw5rqbcdcr1cbv
+  text: |-
+    ### implement — changed
+    - evidence: The helper is now `MarkedText.of(_:in:)` in a namespace enum in Tests/AgentViewKitTests/Helpers/MarkedText.swift. The two call sites in DiffSearchMarksTests.swift and TaskListViewSearchMarksTests.swift use `MarkedText.of` and do not use the module prefix. The file has no other top-level function. `swift format lint -s`: 0 errors on 3 files. `swift test`: "Test run with 1514 tests in 173 suites passed" and "Test run with 54 tests in 11 suites passed".
+    - next: review. The task stays in doing.
+  timestamp: 2026-11-19T16:11:45.739638+00:00
 position_column: doing
 position_ordinal: '80'
 title: Transcript search marks in plan entries and diffs (D207 f)
@@ -115,3 +138,12 @@ Tests (unit, no window): the marks of a plan entry with a matched word.
 
 - [x] `Sources/AgentViewKit/Thread/TranscriptSearchMarks.swift:251` `duplication/duplication` — The two-line body of PreviewField.transcriptSearchMarks is a verbatim copy of the body of EditorSlotComposing.transcriptSearchMarks. Both fetch the provider with decorationProvider(of:), return self when it is nil, and otherwise call editorMarks(provider). If one copy changes, the other can drift out of sync. Extract one generic helper that takes the view value and the optional mark, and gets the provider and calls editorMarks. Call it from both extensions. If a generic helper is judged too heavy for two lines, keep the copies and state that choice in the review.
 - [x] `Tests/AgentViewKitTests/Status/TaskListViewSearchMarksTests.swift:20` `reuse/reuse` — The new helper `markedText(of:)` repeats the byte-range-to-text extraction that the new `markedText(of:in:)` helper in DiffSearchMarksTests already does. Both turn a mark's UTF-8 range into the marked substring. Two copies of the same test logic can drift apart. Move the range-to-string helper into one shared test support location, for example as an extension on `EditorLabelMark` or a free function in a common test file. Both suites then call it. The per-suite wrappers can stay as one-line calls.
+
+## Review Findings (2026-11-19 10:08)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 4 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Tests/AgentViewKitTests/Helpers/MarkedText.swift:10` `swift/immutability` — The new `markedText(of:in:)` is a top-level `func`. A top-level function has no namespace, so its name must carry the whole context, and every file in the test module sees it. This matches the rule's own DON'T example, `func formatDuration(_ seconds: Int) -> String`. The helper is also not scoped to the type that uses it: the diff tests and the plan tests each call it through the module name `AgentViewKitTests.markedText`. Move the helper onto a type that owns it, for example `enum MarkedText { static func of(_ ranges: [Range<Int>], in text: String) -> [String] }` in a namespace enum, or an `extension Array where Element == Range<Int>`, and update the two call sites to match.

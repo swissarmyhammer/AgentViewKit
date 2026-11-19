@@ -35,7 +35,7 @@ import Testing
     let provider = try #require(TranscriptSearchMatches.decorationProvider(of: mark))
     let context = EditorContext(EditorModel.makeReadOnly(text).state)
     let ranges = provider(context).decorations.map(\.byteRange)
-    return AgentViewKitTests.markedText(of: ranges, in: text)
+    return MarkedText.of(ranges, in: text)
   }
 
   /// The parsed ``patch``.
