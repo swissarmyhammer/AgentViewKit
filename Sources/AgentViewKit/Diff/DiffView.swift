@@ -26,7 +26,9 @@ import SwiftUI
 ///   content, which grows as the patch grows, so the thread or the inspector
 ///   around it scrolls and the diff has no scroll view of its own. A patch
 ///   that EditorKit cannot read shows the failure of the preview, with the
-///   line where the parse stopped (``UnreadablePatch``). The kit does not
+///   line where the parse stopped (``UnreadablePatch``). When the row of the
+///   diff has a search hit with terms, the preview marks each match of the
+///   terms in its text (TestudoApp D207 (f)). The kit does not
 ///   render diffs itself. A host replaces the renderer with
 ///   ``SwiftUI/View/diffRenderer(_:)``.
 /// - An Accept and a Reject button for each hunk of the selected file.
@@ -95,6 +97,7 @@ public struct DiffView: View {
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
   @Environment(\.themeSecondary) private var themeSecondary
+  @Environment(\.transcriptSearchMark) private var searchMark
 
   /// Makes a diff view.
   ///
@@ -306,6 +309,7 @@ public struct DiffView: View {
       renderer(patch, file?.path)
     } else {
       PreviewField(Self.previewSource(of: patch, file: file?.path))
+        .transcriptSearchMarks(searchMark)
         .accessibilityLabel(String(localized: "Changes", bundle: .module))
         .accessibilityIdentifier(Self.previewIdentifier)
     }

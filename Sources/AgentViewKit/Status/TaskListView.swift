@@ -126,6 +126,23 @@ public struct TaskListView: View {
     return text
   }
 
+  /// The find marks of a search hit on the text of an ACP plan entry
+  /// (TestudoApp D207 (f)): the label marks of the matches of the terms of
+  /// the hit in the content of the entry
+  /// (``TranscriptSearchMatches/labelMarks(of:in:)``).
+  ///
+  /// - Parameters:
+  ///   - entry: The entry, as the plan entry of a `SessionModel` holds it.
+  ///   - mark: The search mark of the row of the plan, or `nil` when the
+  ///     plan has no hit.
+  /// - Returns: The marks, or an empty list when the plan has no hit or the
+  ///   hit has no terms.
+  static func entryMarks(
+    _ entry: FoundationModelsACP.PlanEntry, mark: TranscriptSearchMark?
+  ) -> [EditorLabelMark] {
+    TranscriptSearchMatches.labelMarks(of: mark, in: entry.content)
+  }
+
   /// The accessibility label of an ACP plan entry.
   ///
   /// - Parameter entry: The entry, as the plan entry of a `SessionModel`
@@ -188,6 +205,7 @@ private struct PlanEntryRow: View {
   let entry: FoundationModelsACP.PlanEntry
 
   @Environment(\.editorStyle) private var editorStyle
+  @Environment(\.transcriptSearchMark) private var searchMark
 
   var body: some View {
     HStack(spacing: editorStyle.spacing.s) {
@@ -198,6 +216,7 @@ private struct PlanEntryRow: View {
         .help(EditorStatus(entry.status).summary)
       EditorLabel(TaskListView.entryText(entry))
         .editorTextColor(entry.status == .cancelled ? .secondary : .primary)
+        .editorMarks(TaskListView.entryMarks(entry, mark: searchMark))
       Spacer(minLength: editorStyle.spacing.s)
       EditorSymbolImage(systemName: TaskListView.prioritySymbol(entry.priority), tone: .init(entry.priority))
         .help(TaskListView.priorityLabel(entry.priority))

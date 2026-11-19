@@ -93,6 +93,49 @@ nonisolated enum TranscriptSearchMatches {
     return DecorationSet(SearchDecorations.decorations(for: session))
   }
 
+  /// The find marks of a hit over the text of an EditorKit label
+  /// (`EditorLabel.editorMarks(_:)`): one mark for each match of the terms
+  /// of the hit (``ranges(of:in:)``). When the hit is current, its first
+  /// match has `SearchDecorations.currentMatchStyle`, as in an editor
+  /// (``decorations(of:in:)``). Each other match has
+  /// `SearchDecorations.matchStyle`.
+  ///
+  /// The function is on the main actor, as the initializer of
+  /// `EditorLabelMark` is.
+  ///
+  /// - Parameters:
+  ///   - mark: The search mark of the row, or `nil` when the entry of the
+  ///     row has no hit.
+  ///   - text: The text of the label.
+  /// - Returns: The marks, or an empty list when there is no mark or the
+  ///   hit has no terms.
+  @MainActor static func labelMarks(
+    of mark: TranscriptSearchMark?, in text: String
+  ) -> [EditorLabelMark] {
+    guard let mark else { return [] }
+    return ranges(of: mark.terms, in: text).enumerated().map { index, range in
+      let isCurrentMatch = mark.isCurrent && index == 0
+      return EditorLabelMark(
+        utf8Range: range,
+        style: isCurrentMatch ? SearchDecorations.currentMatchStyle : SearchDecorations.matchStyle)
+    }
+  }
+
+  /// The mark provider of an EditorKit editor (`.editorMarks(_:)`) for a
+  /// hit: it gives the find marks of the hit (``decorations(of:in:)``) over
+  /// the text of each editor that it marks.
+  ///
+  /// - Parameter mark: The search mark of the row, or `nil` when the entry
+  ///   of the row has no hit.
+  /// - Returns: The provider, or `nil` when there is no mark or the hit has
+  ///   no terms, so that the editor gets no provider.
+  static func decorationProvider(
+    of mark: TranscriptSearchMark?
+  ) -> ((EditorContext) -> DecorationSet)? {
+    guard let mark, !mark.terms.isEmpty else { return nil }
+    return { context in decorations(of: mark, in: context) }
+  }
+
   /// The ranges of the matches of `terms` in `text`, with each overlap of
   /// two matches made one range (``ranges(of:in:)``).
   ///
@@ -188,8 +231,25 @@ extension EditorSlotComposing {
   /// - Parameter mark: The search mark of the row, or `nil`.
   /// - Returns: The same view value, with the marks when there are terms.
   func transcriptSearchMarks(_ mark: TranscriptSearchMark?) -> Self {
-    guard let mark, !mark.terms.isEmpty else { return self }
-    return editorMarks { context in TranscriptSearchMatches.decorations(of: mark, in: context) }
+    guard let provider = TranscriptSearchMatches.decorationProvider(of: mark) else { return self }
+    return editorMarks(provider)
+  }
+}
+
+extension PreviewField {
+  /// Draws the find marks of the matched words of a search hit on the text
+  /// of the editors of this preview, or adds nothing when there is no mark
+  /// with terms.
+  ///
+  /// The marks are EditorKit mark decorations (`PreviewField.editorMarks(_:)`).
+  /// For a diff, EditorKit gives the provider the text of each editor: the
+  /// inline document, or each column of the side-by-side layout.
+  ///
+  /// - Parameter mark: The search mark of the row, or `nil`.
+  /// - Returns: The same field, with the marks when there are terms.
+  func transcriptSearchMarks(_ mark: TranscriptSearchMark?) -> PreviewField {
+    guard let provider = TranscriptSearchMatches.decorationProvider(of: mark) else { return self }
+    return editorMarks(provider)
   }
 }
 

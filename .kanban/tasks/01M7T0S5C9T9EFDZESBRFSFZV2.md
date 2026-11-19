@@ -47,6 +47,24 @@ comments:
     (b) DiffView and PreviewField marks (^dt7jeha, 809fa381 and c7ae8d0d): `DiffView.editorMarks(_ provider: @escaping (EditorContext) -> DecorationSet)` and the same on `PreviewField`. Each provider gets the EditorContext of the editor that it marks; its ranges are in `context.state.document.string`. Inline layout: one call on the inline document (file and hunk headers, and each line with no +/-/space marker). Side by side: one call for the old column and one for the new column; a filler row is an empty line. PreviewField: a diff follows these rules; code, text and Markdown get the provider on their read-only editor (ranges in the source text); a file, an image, the placeholder and the failure state ignore marks. Several editorMarks calls run in call order.
     Use the existing AVK match rule (TranscriptSearchMatches) on the given text, with SearchDecorations.matchStyle and currentMatchStyle.
   timestamp: 2026-11-19T15:36:03.570422+00:00
+- actor: claude-code
+  id: 01m7t8pmerhsz0z96smh579d53
+  text: |-
+    Implementation (2026-11-19, EditorKit pin 60d17ff2):
+    - `TranscriptSearchMatches.labelMarks(of:in:)`: one `EditorLabelMark` for each match (`ranges(of:in:)`). The first match of the current hit has `SearchDecorations.currentMatchStyle`. Each other match has `matchStyle`. No mark or no terms gives an empty list. It is `@MainActor`, because the initializer of `EditorLabelMark` is on the main actor (the nonisolated version did not compile).
+    - `TranscriptSearchMatches.decorationProvider(of:)`: the provider for `.editorMarks(_:)`. It calls the existing `decorations(of:in:)` on `context.state.document.string`. No mark or no terms gives `nil`. `EditorSlotComposing.transcriptSearchMarks(_:)` now uses it. The new `PreviewField.transcriptSearchMarks(_:)` uses it too.
+    - `TaskListView.entryMarks(_:mark:)` gives the marks of the content of an entry. `PlanEntryRow` reads `\.transcriptSearchMark` and calls `.editorMarks(...)`. When there is no hit, the list is empty, and EditorKit says that a label with no marks looks the same.
+    - AVK `DiffView` reads `\.transcriptSearchMark` and calls `.transcriptSearchMarks(searchMark)` on the default `PreviewField`. A renderer from the host gets no marks.
+    - Tests: `Status/TaskListViewSearchMarksTests` (5) and `Diff/DiffSearchMarksTests` (5). The diff tests run the provider on `DiffDocument(inline:)` and on both columns of `DiffDocument.sideBySide`, with no window. RED: 6 tests failed on stubs. The 4 no-hit tests passed on the stubs too, because the stubs gave the no-hit result.
+    - ARCHITECTURE.md "Search hits of a thread" and the DiffView doc now name the plan entry and diff marks.
+  timestamp: 2026-11-19T16:02:13.592552+00:00
+- actor: claude-code
+  id: 01m7t8pqyy80z13a2kcbjst08m
+  text: |-
+    ### implement — changed
+    - evidence: Sources/AgentViewKit/Thread/TranscriptSearchMarks.swift, Sources/AgentViewKit/Status/TaskListView.swift, Sources/AgentViewKit/Diff/DiffView.swift, ARCHITECTURE.md, Tests/AgentViewKitTests/Status/TaskListViewSearchMarksTests.swift (new), Tests/AgentViewKitTests/Diff/DiffSearchMarksTests.swift (new). `swift test`: "Test run with 1514 tests in 173 suites passed" and "Test run with 54 tests in 11 suites passed". The only warning is the allowed mlx "missing creator" warning. `swift build --build-tests` completes in IntegrationTests and in ScreenshotTests. `swift format lint -s` errors: TranscriptSearchMarks 0 (HEAD 0), TaskListView 5 (HEAD 5), DiffView 4 (HEAD 4), the 2 new test files 0.
+    - next: review
+  timestamp: 2026-11-19T16:02:17.182006+00:00
 position_column: doing
 position_ordinal: '80'
 title: Transcript search marks in plan entries and diffs (D207 f)
