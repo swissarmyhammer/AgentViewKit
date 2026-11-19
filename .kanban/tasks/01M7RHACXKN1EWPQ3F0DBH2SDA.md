@@ -20,8 +20,24 @@ comments:
     - evidence: swift test at package root. "Test run with 1400 tests in 164 suites passed after 30.734 seconds." and "Test run with 54 tests in 11 suites passed after 0.011 seconds." swift format lint -s on the 2 changed Swift files: no findings. swift build --build-tests in IntegrationTests: Build complete. IntegrationTests and ScreenshotTests were not run.
     - next: review
   timestamp: 2026-11-19T00:56:34.554296+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m7rmzcwrhf03h63key881mmm
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (68bbbfb2) gave 0 findings (attempted 7, confirmed 0, refuted 0, failed 0). The engine did not review 2 files in .kanban/ because of an ignore rule.
+    - next: none. The task is in done.
+  timestamp: 2026-11-19T00:58:14.808448+00:00
+- actor: claude-code
+  id: 01m7rmzran7qafvx3s6f3hgxrs
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — EditorKit pin 8a5a1c2f; CodeBlockAnswerFixture.swift, AnswerCodeBlockItemMenuTests.swift
+    - test: green — swift test, 1400 tests in 164 suites + 54 tests in 11 suites passed
+    - commit: 68bbbfb2
+    - review: clean — 0 findings
+  timestamp: 2026-11-19T00:58:26.517869+00:00
+position_column: done
+position_ordinal: fffffff980
 title: Copy Code Block copies the closing fence when the answer ends with the fence and no line break (EditorKit)
 ---
 Found in ^4h5jq7h.
