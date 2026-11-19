@@ -106,14 +106,19 @@ import Testing
   ///     transcript.
   ///   - path: The path of the host scope, or `nil` for no context menu.
   ///   - system: The ambient command system of the thread.
+  ///   - cache: The cache of the models of the answers, or `nil` for a
+  ///     model in the state of each answer. A test that waits for the parse
+  ///     of the model of an answer gives a cache.
   /// - Returns: The harness, after one render pass.
   static func mountThread(
-    _ session: SessionModel = .preview(), path: FocusPath?, system: CommandSystem
+    _ session: SessionModel = .preview(), path: FocusPath?, system: CommandSystem,
+    cache: CodeBlockModelCache? = nil
   ) -> HostedViewHarness<some View> {
     let harness = HostedViewHarness(size: size) {
       AgentThreadView(
         session: session, connection: connection, sessionTitle: "AgentViewKit", headerContextMenuPath: path
       )
+      .environment(\.codeBlockModelCache, cache)
       .commandSystem(system)
       .transaction { $0.disablesAnimations = true }
     }

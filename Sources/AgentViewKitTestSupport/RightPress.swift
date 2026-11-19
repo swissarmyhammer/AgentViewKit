@@ -32,10 +32,24 @@ public enum RightPress {
   /// - Returns: The press, in the coordinates of the window of `view`.
   /// - Throws: An error when AppKit makes no event.
   public static func makeEvent(atCenterOf view: NSView) throws -> NSEvent {
-    let center = view.convert(NSPoint(x: view.bounds.midX, y: view.bounds.midY), to: nil)
+    try makeEvent(at: NSPoint(x: view.bounds.midX, y: view.bounds.midY), in: view)
+  }
+
+  /// Makes a right press at `point` of `view`.
+  ///
+  /// The press has the window number of the window of `view`. A view with no
+  /// window gets a press with no window.
+  ///
+  /// - Parameters:
+  ///   - point: The point of the press, in the coordinates of `view`.
+  ///   - view: The view under the press.
+  /// - Returns: The press, in the coordinates of the window of `view`.
+  /// - Throws: An error when AppKit makes no event.
+  public static func makeEvent(at point: NSPoint, in view: NSView) throws -> NSEvent {
+    let location = view.convert(point, to: nil)
     return try #require(
       NSEvent.mouseEvent(
-        with: .rightMouseDown, location: center, modifierFlags: [], timestamp: timestamp,
+        with: .rightMouseDown, location: location, modifierFlags: [], timestamp: timestamp,
         windowNumber: view.window?.windowNumber ?? noWindowNumber, context: nil,
         eventNumber: eventNumber, clickCount: clickCount, pressure: pressure))
   }
