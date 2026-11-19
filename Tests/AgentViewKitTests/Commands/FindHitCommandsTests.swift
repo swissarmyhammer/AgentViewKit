@@ -39,13 +39,11 @@ import Testing
       .user("Why does the parser fail?"), .agent("The parser fails."),
     ])
     let ids = session.transcript.compactMap(TranscriptSearchTests.wireID)
-    let search = TranscriptSearch()
-    let removals = CallCounter()
-    search.beep = {}
-    search.hostRemoval = { removals.count += 1 }
-    search.show(
-      TranscriptSearchTests.hits(entries.map { ids[$0] }),
+    let search = TranscriptSearchTests.search(
+      showing: TranscriptSearchTests.hits(entries.map { ids[$0] }),
       rowKeys: session.transcript.map(\.rowKey))
+    let removals = CallCounter()
+    search.hostRemoval = { removals.count += 1 }
     let commands = AgentCommandsTests.makeFixture(session: session) { target in
       target.transcriptSearch = search
       configure(target)
@@ -127,6 +125,14 @@ import Testing
     #expect(Self.reason(of: .findNextHit, in: fixture) == "The thread has no search hits.")
   }
 
+  /// A production change that fails this test: Find Previous Hit runs
+  /// with no hits.
+  @Test func findPreviousHitWithNoHitsIsNotAvailable() {
+    let fixture = Self.makeFixture(hitsIn: [])
+
+    #expect(Self.reason(of: .findPreviousHit, in: fixture) == "The thread has no search hits.")
+  }
+
   /// A production change that fails this test: ⌘G in a text input goes to
   /// the hits, and not to the find of the editor (D133).
   @Test func findNextHitInATextInputIsNotAvailable() {
@@ -155,12 +161,32 @@ import Testing
     #expect(Self.reason(of: .findNextHit, in: fixture) == nil)
   }
 
+  /// A production change that fails this test: a text view that does not
+  /// edit stops Find Previous Hit.
+  @Test func findPreviousHitInATextThatDoesNotEditIsAvailable() {
+    let fixture = Self.makeFixture(hitsIn: [0, 1]) { target in
+      let label = NSTextView()
+      label.isEditable = false
+      target.firstResponder = { label }
+    }
+
+    #expect(Self.reason(of: .findPreviousHit, in: fixture) == nil)
+  }
+
   /// A production change that fails this test: the command runs with no
   /// thread list in the scope.
   @Test func findNextHitWithNoThreadListIsNotAvailable() {
     let fixture = Self.makeFixture(hitsIn: [0]) { $0.transcriptSearch = nil }
 
     #expect(Self.reason(of: .findNextHit, in: fixture) == UnavailableReasonTests.listNotShown)
+  }
+
+  /// A production change that fails this test: Find Previous Hit runs with
+  /// no thread list in the scope.
+  @Test func findPreviousHitWithNoThreadListIsNotAvailable() {
+    let fixture = Self.makeFixture(hitsIn: [0]) { $0.transcriptSearch = nil }
+
+    #expect(Self.reason(of: .findPreviousHit, in: fixture) == UnavailableReasonTests.listNotShown)
   }
 
   // MARK: - Run

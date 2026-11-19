@@ -46,6 +46,22 @@ import Testing
     TranscriptSearchHits(ids.map { TranscriptSearchHit(entryID: $0, terms: ["parser"]) })
   }
 
+  /// A search that shows `hits`, and that counts its beeps in `beeps`.
+  ///
+  /// - Parameters:
+  ///   - hits: The hits, best first.
+  ///   - rowKeys: The row keys of the transcript, in order.
+  ///   - beeps: The count of the beeps of the search.
+  /// - Returns: The search, with the first hit current.
+  static func search(
+    showing hits: TranscriptSearchHits, rowKeys: [String], beeps: CallCounter = CallCounter()
+  ) -> TranscriptSearch {
+    let search = TranscriptSearch()
+    search.beep = { beeps.count += 1 }
+    search.show(hits, rowKeys: rowKeys)
+    return search
+  }
+
   // MARK: - Lookup
 
   /// A production change that fails this test: the lookup reads the hits in

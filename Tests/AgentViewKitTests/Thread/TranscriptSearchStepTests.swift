@@ -31,10 +31,19 @@ import Testing
   static func search(
     _ ids: [SessionEntry.ID], beeps: CallCounter = CallCounter()
   ) -> TranscriptSearch {
-    let search = TranscriptSearch()
-    search.beep = { beeps.count += 1 }
-    search.show(TranscriptSearchTests.hits(ids), rowKeys: rowKeys)
-    return search
+    search(TranscriptSearchTests.hits(ids), beeps: beeps)
+  }
+
+  /// A search that shows `hits`, and that counts its beeps in `beeps`.
+  ///
+  /// - Parameters:
+  ///   - hits: The hits, best first.
+  ///   - beeps: The count of the beeps of the search.
+  /// - Returns: The search, with the first hit current.
+  static func search(
+    _ hits: TranscriptSearchHits, beeps: CallCounter = CallCounter()
+  ) -> TranscriptSearch {
+    TranscriptSearchTests.search(showing: hits, rowKeys: rowKeys, beeps: beeps)
   }
 
   /// The row key of the entry with a wire id.
@@ -81,14 +90,12 @@ import Testing
   /// A production change that fails this test: two hits in one entry are
   /// two stops, so Next stays on the same entry.
   @Test func twoHitsInOneEntryAreOneStop() {
-    let search = TranscriptSearch()
-    search.beep = {}
-    search.show(
+    let search = Self.search(
       TranscriptSearchHits([
         TranscriptSearchHit(entryID: Self.firstID, terms: ["parser"]),
         TranscriptSearchHit(entryID: Self.firstID, terms: ["lexer"]),
         TranscriptSearchHit(entryID: Self.secondID, terms: ["parser"]),
-      ]), rowKeys: Self.rowKeys)
+      ]))
 
     search.step(forward: true)
 
@@ -161,13 +168,12 @@ import Testing
   /// A production change that fails this test: two hits in one entry count
   /// as two places.
   @Test func theHitCountCountsTheEntriesWithHits() {
-    let search = TranscriptSearch()
-    search.show(
+    let search = Self.search(
       TranscriptSearchHits([
         TranscriptSearchHit(entryID: Self.firstID, terms: ["parser"]),
         TranscriptSearchHit(entryID: Self.firstID, terms: ["lexer"]),
         TranscriptSearchHit(entryID: Self.thirdID, terms: []),
-      ]), rowKeys: Self.rowKeys)
+      ]))
 
     #expect(search.hitCount == 2)
   }
@@ -208,9 +214,9 @@ import Testing
   @Test func theCurrentHitPostsItsAnnouncement() throws {
     let session = SessionModel.preview(transcript: [.user("Why?"), .agent("The parser fails.")])
     let ids = session.transcript.compactMap(TranscriptSearchTests.wireID)
-    let search = TranscriptSearch()
-    search.show(
-      TranscriptSearchTests.hits(ids.reversed()), rowKeys: session.transcript.map(\.rowKey))
+    let search = TranscriptSearchTests.search(
+      showing: TranscriptSearchTests.hits(ids.reversed()),
+      rowKeys: session.transcript.map(\.rowKey))
     let announcer = RecordingAnnouncer()
 
     TranscriptSearchDriver.announceCurrentHit(

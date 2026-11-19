@@ -49,6 +49,31 @@ comments:
     - evidence: `swift format lint -s` shows 0 errors on each new file. The changed files show no error count above HEAD. `swift test`: 1494 tests in 170 suites passed, and 54 tests in 11 suites passed. `swift build --build-tests` in IntegrationTests: build complete, no warning from project code.
     - next: review.
   timestamp: 2026-11-19T14:24:55.407996+00:00
+- actor: claude-code
+  id: 01m7t3fjvyxd1ph2fk9q5gmsns
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (ee9fb3fa): 3 findings (3 confirmed, 4 refuted) — Tests/AgentViewKitTests/Commands/FindHitCommandsTests.swift:42, Tests/AgentViewKitTests/Commands/FindHitCommandsTests.swift:124, Tests/AgentViewKitTests/Thread/TranscriptSearchStepTests.swift:84. The two test files are new in this task, thus the rule for old tests does not apply.
+    - next: Do the 3 items in the "Review Findings (2026-11-19 08:25)" section. The task stays in review.
+  timestamp: 2026-11-19T14:30:59.710135+00:00
+- actor: claude-code
+  id: 01m7t3g4zww0s7awcaysm8wrfj
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — AgentFindCommands.swift, TextInputFocus.swift (new), commands, keymap, thread search, README, ARCHITECTURE, 2 new unit test files, 1 new hosted test; lint fix pass on the new files
+    - test: green — swift test, 1494 tests in 170 suites + 54 tests in 11 suites passed (run by the lint fix step after its last edit); the first test step missed new lint errors, which the orchestrator found and sent back
+    - commit: ee9fb3fa
+    - review: findings — FindHitCommandsTests.swift:42, FindHitCommandsTests.swift:124, TranscriptSearchStepTests.swift:84
+  timestamp: 2026-11-19T14:31:18.268182+00:00
+- actor: claude-code
+  id: 01m7t3mxn6yq88cn91wpky33qg
+  text: |-
+    ### implement — changed
+    - Added the shared helper TranscriptSearchTests.search(showing:rowKeys:beeps:). FindHitCommandsTests.makeFixture uses it and keeps the hostRemoval setup. TranscriptSearchStepTests has an overload search(_: TranscriptSearchHits, beeps:). twoHitsInOneEntryAreOneStop, theHitCountCountsTheEntriesWithHits and theCurrentHitPostsItsAnnouncement use the helpers.
+    - Added tests: findPreviousHitWithNoHitsIsNotAvailable, findPreviousHitWithNoThreadListIsNotAvailable, findPreviousHitInATextThatDoesNotEditIsAvailable.
+    - evidence: swift test 1497 tests in 170 suites passed, plus 54 in 11 suites. swift format lint -s: 0 errors in FindHitCommandsTests.swift, TranscriptSearchStepTests.swift, TranscriptSearchTests.swift (HEAD 0).
+    - next: review
+  timestamp: 2026-11-19T14:33:54.598282+00:00
 depends_on:
 - 01M7SY6ERK3HTTBAVEPYXXNX1F
 position_column: doing
@@ -67,3 +92,19 @@ Do:
 Tests (unit): Next and Previous, the wrap, no command in a text input, Esc removes the hits, the announcement text. A hosted test: compile only, do not run.
 
 Push when `swift test` is green, and send the sha to testudoapp-9a.
+
+## Review Findings (2026-11-19 08:25)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 20 file(s) reviewed, 5 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+> 3 file(s) not reviewed — no validator matched:
+> - `ARCHITECTURE.md` — no validator matches this file
+> - `README.md` — no validator matches this file
+> - `Sources/AgentViewKit/Resources/Localizable.xcstrings` — no validator matches this file
+
+- [x] `Tests/AgentViewKitTests/Commands/FindHitCommandsTests.swift:42` `reuse/reuse` — The makeFixture helper builds a TranscriptSearch by hand: it sets the beep closure, then calls show with the hits. TranscriptSearchStepTests.search(_:beeps:) in the same change does the same setup. The two copies can drift apart when TranscriptSearch setup changes. This is a minor duplication, not a behavior defect. Move the search construction into one shared helper (for example, on TranscriptSearchTests or a common test support file) that takes the hits, row keys, and an optional beep counter. Have both makeFixture and TranscriptSearchStepTests.search call it. Keep the hostRemoval setup in makeFixture, since only that fixture needs it.
+- [x] `Tests/AgentViewKitTests/Commands/FindHitCommandsTests.swift:124` `completeness/inverse-operation-coverage` — The no-hits availability is tested only for Find Next Hit. Find Previous Hit is the inverse verb and must also be disabled with no hits, but no test checks it. A change that enables Previous with no hits would pass the suite. Add a test like findNextHitWithNoHitsIsNotAvailable that uses .findPreviousHit and expects the reason 'The thread has no search hits.'.
+- [x] `Tests/AgentViewKitTests/Thread/TranscriptSearchStepTests.swift:84` `reuse/reuse` — twoHitsInOneEntryAreOneStop builds a TranscriptSearch by hand: it creates the search, sets the beep closure, and calls show with a TranscriptSearchHits list. The same file already has a helper, search(_:beeps:), that does this setup. The test repeats the setup instead of extending the helper to accept hits. Add an overload of search that takes TranscriptSearchHits, or change the helper to take hits. Use it in twoHitsInOneEntryAreOneStop so the setup is in one place.
