@@ -1,6 +1,7 @@
 import EditorCore
 import EditorSwiftUI
 import EditorText
+import EditorTheme
 import SwiftUI
 import Testing
 
@@ -81,20 +82,28 @@ import Testing
     #expect(styles == [SearchDecorations.matchStyle, SearchDecorations.matchStyle])
   }
 
+  /// A production change that fails this test: the editor paints the
+  /// current match of the current hit with the selection or the match
+  /// color, so it does not look stronger than each other match. The color
+  /// comes from EditorKit (`HighlightStyle`) for the style key of AVK.
+  @Test func theCurrentMatchOfTheCurrentHitHasTheCurrentMatchColorInAnEditor() {
+    let theme = DefaultTheme.light
+    let context = EditorContext(EditorModel.makeReadOnly("Parser parser").state)
+    let mark = TranscriptSearchMark(terms: ["parser"], isCurrent: true)
+
+    let backgrounds = TranscriptSearchMatches.decorations(of: mark, in: context).decorations.map {
+      HighlightStyle.resolvedAttributes(for: $0.style, theme: theme).backgroundColor
+    }
+
+    #expect(backgrounds.contains(theme.findCurrentMatchBackground))
+  }
+
   /// A production change that fails this test: a hit with no terms gets no
   /// mark on its entry.
   @Test func aHitWithNoTermsMarksTheWholeEntry() {
     let mark = TranscriptSearchMark(terms: [], isCurrent: false)
 
-    #expect(mark.wholeEntryOpacity == TranscriptSearchMark.wholeEntryOpacity)
-  }
-
-  /// A production change that fails this test: the current hit with no
-  /// terms has the same mark as each other hit.
-  @Test func theCurrentHitWithNoTermsHasTheStrongerMark() {
-    let mark = TranscriptSearchMark(terms: [], isCurrent: true)
-
-    #expect(mark.wholeEntryOpacity == TranscriptSearchMark.currentWholeEntryOpacity)
+    #expect(mark.marksWholeEntry)
   }
 
   /// A production change that fails this test: a hit with terms also marks
@@ -102,7 +111,29 @@ import Testing
   @Test func aHitWithTermsDoesNotMarkTheWholeEntry() {
     let mark = TranscriptSearchMark(terms: ["parser"], isCurrent: true)
 
-    #expect(mark.wholeEntryOpacity == nil)
+    #expect(!mark.marksWholeEntry)
+  }
+
+  // MARK: - Highlight color
+
+  /// A production change that fails this test: the SwiftUI mark of the
+  /// current hit has the match color or the selection color, so it does not
+  /// look stronger and does not agree with the editor marks (D110 (e)).
+  @Test func theHighlightOfTheCurrentHitIsTheCurrentMatchColor() {
+    let theme = DefaultTheme.light
+    let mark = TranscriptSearchMark(terms: [], isCurrent: true)
+
+    #expect(mark.highlight(in: theme) == theme.findCurrentMatchBackground)
+  }
+
+  /// A production change that fails this test: the SwiftUI mark of a hit
+  /// that is not current has the current-match color or the selection
+  /// color (D110 (e)).
+  @Test func theHighlightOfAnotherHitIsTheMatchColor() {
+    let theme = DefaultTheme.light
+    let mark = TranscriptSearchMark(terms: ["parser"], isCurrent: false)
+
+    #expect(mark.highlight(in: theme) == theme.findMatchBackground)
   }
 
   // MARK: - Plain text

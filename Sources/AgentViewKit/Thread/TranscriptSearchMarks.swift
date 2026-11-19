@@ -9,14 +9,6 @@ import SwiftUI
 
 /// The mark of one entry that has a search hit (TestudoApp D207 (f)).
 nonisolated struct TranscriptSearchMark: Hashable {
-  /// The opacity of the find highlight of the theme on a whole entry whose
-  /// hit has no terms.
-  static let wholeEntryOpacity = 0.2
-
-  /// The opacity of the find highlight of the theme on a whole entry whose
-  /// hit has no terms, when that hit is current: the stronger mark.
-  static let currentWholeEntryOpacity = 0.4
-
   /// The matched words of the hit, or an empty list for a hit that only the
   /// cosine search found.
   let terms: [String]
@@ -24,11 +16,22 @@ nonisolated struct TranscriptSearchMark: Hashable {
   /// Whether the hit is the current hit.
   let isCurrent: Bool
 
-  /// The opacity of the find highlight on the whole entry, or `nil` when the
-  /// hit has terms and marks only their matches.
-  var wholeEntryOpacity: Double? {
-    guard terms.isEmpty else { return nil }
-    return isCurrent ? Self.currentWholeEntryOpacity : Self.wholeEntryOpacity
+  /// Whether the mark is on the whole entry: `true` when the hit has no
+  /// terms, and `false` when the hit marks only the matches of its terms.
+  var marksWholeEntry: Bool { terms.isEmpty }
+
+  /// The find highlight of the mark in a SwiftUI view, such as the title of
+  /// a tool call or the background of a whole entry.
+  ///
+  /// The color is the same color that EditorKit paints on the find marks
+  /// in an editor (`HighlightStyle`), so all the search marks agree (D110
+  /// (e)). The current hit gets the stronger color.
+  ///
+  /// - Parameter theme: The EditorKit theme of the view.
+  /// - Returns: `theme.findCurrentMatchBackground` for the current hit, and
+  ///   `theme.findMatchBackground` for each other hit.
+  func highlight(in theme: any Theme) -> Color {
+    isCurrent ? theme.findCurrentMatchBackground : theme.findMatchBackground
   }
 }
 
@@ -192,6 +195,10 @@ extension EditorSlotComposing {
 /// environment of the row, and the find highlight of the theme on the whole
 /// row when the hit has no terms (TestudoApp D207 (f)).
 ///
+/// The highlight is the find color of the theme with no added opacity. The
+/// find colors of EditorKit are weak tints that keep a contrast of at least
+/// 4.5:1 with the text, so the text of the row stays legible on them.
+///
 /// A row with no hit gets no environment value and no background, so its
 /// look and its accessibility do not change.
 struct TranscriptSearchRowMark: ViewModifier {
@@ -207,9 +214,9 @@ struct TranscriptSearchRowMark: ViewModifier {
     content
       .environment(\.transcriptSearchMark, mark)
       .background {
-        if let opacity = mark?.wholeEntryOpacity {
+        if let mark, mark.marksWholeEntry {
           EditorSurface.shape(radius: SurfaceCorners.card.radius(in: editorStyle))
-            .fill(editorTheme.selection.opacity(opacity))
+            .fill(mark.highlight(in: editorTheme))
             .accessibilityHidden(true)
         }
       }

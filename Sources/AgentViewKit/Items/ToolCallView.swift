@@ -474,13 +474,13 @@ private struct ToolCallHeader: View {
   }
 
   /// The title of the call. In the row of a search hit with terms, each
-  /// match of a term has the find highlight of the theme (TestudoApp D207
-  /// (f)).
+  /// match of a term has the find highlight of the theme, the stronger one
+  /// when the hit is current (TestudoApp D207 (f)).
   private var title: Text {
     let shown = ToolCallView.displayTitle(entry.shownTitle)
-    guard let terms = searchMark?.terms, !terms.isEmpty else { return Text(shown) }
+    guard let searchMark, !searchMark.terms.isEmpty else { return Text(shown) }
     let highlighted = TranscriptSearchMatches.highlighted(
-      shown, terms: terms, highlight: editorTheme.selection)
+      shown, terms: searchMark.terms, highlight: searchMark.highlight(in: editorTheme))
     return Text(highlighted)
   }
 
