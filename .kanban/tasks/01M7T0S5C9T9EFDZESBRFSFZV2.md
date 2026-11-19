@@ -113,8 +113,24 @@ comments:
     - evidence: The helper is now `MarkedText.of(_:in:)` in a namespace enum in Tests/AgentViewKitTests/Helpers/MarkedText.swift. The two call sites in DiffSearchMarksTests.swift and TaskListViewSearchMarksTests.swift use `MarkedText.of` and do not use the module prefix. The file has no other top-level function. `swift format lint -s`: 0 errors on 3 files. `swift test`: "Test run with 1514 tests in 173 suites passed" and "Test run with 54 tests in 11 suites passed".
     - next: review. The task stays in doing.
   timestamp: 2026-11-19T16:11:45.739638+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m7t9b8c0fxhkf9y3ah5rmc27
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (6cf98fbb). 0 findings (7 attempted, 0 confirmed, 0 refuted, 0 failed). 3 files reviewed. 2 `.kanban/` files are excluded by `.reviewignore`. All 3 earlier findings are checked.
+    - next: The task moves to done.
+  timestamp: 2026-11-19T16:13:29.344512+00:00
+- actor: claude-code
+  id: 01m7t9bp9vmcyhxjz8taq7zeyc
+  text: |-
+    ### finish iteration 4 — clean
+    - implement: changed — MarkedText.swift (MarkedText.of in a namespace enum), 2 test files
+    - test: green — swift test, 1514 tests in 173 suites + 54 tests in 11 suites passed (run by the implement step after its edit); lint 0 errors
+    - commit: 6cf98fbb
+    - review: clean — 0 findings, 3 earlier findings checked
+  timestamp: 2026-11-19T16:13:43.611880+00:00
+position_column: done
+position_ordinal: ffffffff8480
 title: Transcript search marks in plan entries and diffs (D207 f)
 ---
 Follow-up of ^yxxnx1f. That task marks the matched words of a search hit in the EditorKit editors of a row (`RenderedMarkdownView`, `CommandOutputView`, `TerminalView`) and in the title of a tool call (`TranscriptSearchMatches.highlighted`). Two text parts of an entry have no marks yet:
