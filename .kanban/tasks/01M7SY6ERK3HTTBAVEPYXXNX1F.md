@@ -87,8 +87,24 @@ comments:
     - evidence: swift test at the package root, exit 0. "Test run with 1463 tests in 168 suites passed after 35.459 seconds." and "Test run with 54 tests in 11 suites passed after 0.012 seconds." swift format lint -s Sources/AgentViewKit/Thread/TranscriptSearch.swift: exit 0, no findings. No skipped tests. IntegrationTests and ScreenshotTests were not run.
     - next: review
   timestamp: 2026-11-19T13:59:43.145759+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m7t1sdw1x9h6mt2d8xjsba73
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (c2268b5c); 0 findings, 0 confirmed, 0 refuted, 7 attempted, 0 failed. The 3 earlier findings are all checked.
+    - next: none. The task is in done.
+  timestamp: 2026-11-19T14:01:25.121903+00:00
+- actor: claude-code
+  id: 01m7t1srse5zmjt3y7p0v40zvq
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — TranscriptSearch.swift (no assign-only state), ARCHITECTURE.md (Search hits of a thread)
+    - test: green — swift test, 1463 tests in 168 suites + 54 tests in 11 suites passed
+    - commit: c2268b5c
+    - review: clean — 0 findings, 3 earlier findings checked
+  timestamp: 2026-11-19T14:01:36.302053+00:00
+position_column: done
+position_ordinal: fffffffe80
 title: 'Transcript search hits: reveal the best hit and mark the matched words (D207 f)'
 ---
 Brief: /Users/wballard/github/swissarmyhammer/.briefs/search/avk-brief.md and overview.md (testudoapp-9a, D207, TestudoApp commit ba585e0). Read D207, D108, D110, D133, D137 and D193 in TestudoApp/features/decisions.md.
