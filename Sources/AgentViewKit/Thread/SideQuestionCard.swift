@@ -35,7 +35,7 @@ import SwiftUI
 ///
 /// The card floats on the glass of the floating controls (D110), and its
 /// text uses the vibrant label role (`PlacedLabel`). Show the cards of a
-/// thread with ``AgentThreadView/sideCards(_:)``:
+/// thread with ``SwiftUI/View/sideCards(_:)``:
 ///
 /// ```swift
 /// AgentThreadView(session: session)

@@ -6,7 +6,7 @@ import SwiftUI
 ///
 /// The host gets the hits from the search of the server
 /// (`searchSessions(session:)`), and gives them to the thread with
-/// ``AgentThreadView/transcriptSearchHits(_:)``.
+/// ``SwiftUI/View/transcriptSearchHits(_:)``.
 public struct TranscriptSearchHit: Sendable, Hashable {
   /// The wire id of the entry of the hit.
   public let entryID: SessionEntry.ID
@@ -46,14 +46,19 @@ public struct TranscriptSearchHits: Sendable, Hashable {
 extension EnvironmentValues {
   /// The binding of the search hits that the host gave to the nearest
   /// ``AgentThreadView``, or `nil`. Set it with
-  /// ``AgentThreadView/transcriptSearchHits(_:)``.
+  /// ``SwiftUI/View/transcriptSearchHits(_:)``.
   @Entry var transcriptSearchHits: Binding<TranscriptSearchHits?>? = nil
 }
 
 /// The search hit slot of the thread view.
-extension AgentThreadView {
+extension View {
   /// Shows the hits of a search of the session transcripts in the thread
-  /// (TestudoApp D207 (f)).
+  /// views in this view (TestudoApp D207 (f)).
+  ///
+  /// The modifier sets an environment value that ``AgentThreadView`` reads.
+  /// Thus it chains with the other modifiers of the thread, such as
+  /// ``SwiftUI/View/sideCards(_:)``, in each order. Apply it on the thread
+  /// view: each thread view in this view takes the hits.
   ///
   /// When the hits change, the thread scrolls to the entry of the first hit
   /// (the best hit). It loads the earlier pages when the row of that entry
@@ -83,7 +88,7 @@ extension AgentThreadView {
   ///
   /// - Parameter hits: The hits, or `nil` for no hits. The thread can set
   ///   the binding to `nil` to remove the hits.
-  /// - Returns: The thread view with the hits.
+  /// - Returns: A view whose thread views show the hits.
   public func transcriptSearchHits(_ hits: Binding<TranscriptSearchHits?>) -> some View {
     environment(\.transcriptSearchHits, hits)
   }

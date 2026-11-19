@@ -79,12 +79,12 @@ import SwiftUI
 /// ```
 ///
 /// The side cards of `/btw` (``SideQuestionCard``) show at the trailing edge
-/// above the composer with ``sideCards(_:)`` (D205). They float with the
+/// above the composer with ``SwiftUI/View/sideCards(_:)`` (D205). They float with the
 /// floating controls, so they do not change the transcript or the scroll
 /// position.
 ///
 /// The hits of a search of the session transcripts show in the thread with
-/// ``transcriptSearchHits(_:)`` (TestudoApp D207 (f)): the thread scrolls to
+/// ``SwiftUI/View/transcriptSearchHits(_:)`` (TestudoApp D207 (f)): the thread scrolls to
 /// the best hit, and marks the matched words of each hit. Find Next Hit
 /// (Command-G) and Find Previous Hit (Shift-Command-G) go through the hits
 /// in the order of the transcript, and Clear Search Hits (Esc) removes them.
@@ -206,7 +206,7 @@ public struct AgentThreadView<Composer: View>: View {
   /// none.
   @State private var ownInspectorSelection = InspectorSelection()
 
-  /// The search hits of the host (``transcriptSearchHits(_:)``), the current
+  /// The search hits of the host (``SwiftUI/View/transcriptSearchHits(_:)``), the current
   /// hit and its reveal.
   @State private var search = TranscriptSearch()
 
@@ -217,7 +217,7 @@ public struct AgentThreadView<Composer: View>: View {
   @Environment(\.connectionModel) private var hostConnection
   @Environment(\.editorStyle) private var editorStyle
 
-  /// The side cards of the host (``sideCards(_:)``), or `nil`.
+  /// The side cards of the host (``SwiftUI/View/sideCards(_:)``), or `nil`.
   @Environment(\.sideCards) private var sideCards
 
   /// The inset of each bar from the edges of the thread, which the host
@@ -471,7 +471,7 @@ public struct AgentThreadView<Composer: View>: View {
   /// the order is the pill, the banner, the login prompt when the host gave
   /// the connection model, and the composer. VoiceOver reads them in this
   /// order. The pill is an overlay that floats one small spacing above the
-  /// stack, over the list. The side cards of ``sideCards(_:)`` float in the
+  /// stack, over the list. The side cards of ``SwiftUI/View/sideCards(_:)`` float in the
   /// same overlay, under the pill, at the trailing edge (D205). It is not in the layout of the stack, so the height
   /// of the bar, and thus the bottom inset of the list, does not depend on the
   /// pin state. A pill in the stack made each pin change move the inset, and

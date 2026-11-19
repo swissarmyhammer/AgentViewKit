@@ -269,7 +269,7 @@ struct TranscriptSearchDriver: View {
   /// The store of the expanded rows of the thread.
   let store: ExpandedBlocksStore
 
-  /// The hits of the host (``AgentThreadView/transcriptSearchHits(_:)``), or
+  /// The hits of the host (``SwiftUI/View/transcriptSearchHits(_:)``), or
   /// `nil`.
   @Environment(\.transcriptSearchHits) private var hostHits
 

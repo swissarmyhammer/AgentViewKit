@@ -129,14 +129,19 @@ struct SideCardStack: View {
 /// The environment value that carries the side cards of a thread.
 extension EnvironmentValues {
   /// The side cards that the nearest ``AgentThreadView`` shows above its
-  /// composer, or `nil`. Set it with ``AgentThreadView/sideCards(_:)``.
+  /// composer, or `nil`. Set it with ``SwiftUI/View/sideCards(_:)``.
   @Entry var sideCards: AnyView? = nil
 }
 
 /// The side card slot of the thread view.
-extension AgentThreadView {
+extension View {
   /// Shows side cards, such as ``SideQuestionCard`` views, next to the chat
-  /// (D205).
+  /// of the thread views in this view (D205).
+  ///
+  /// The modifier sets an environment value that ``AgentThreadView`` reads.
+  /// Thus it chains with the other modifiers of the thread, such as
+  /// ``SwiftUI/View/transcriptSearchHits(_:)``, in each order. Apply it on
+  /// the thread view: each thread view in this view shows the cards.
   ///
   /// The cards stand in a vertical stack at the trailing edge of the thread,
   /// above the composer, in the order that the host gives: give the newest
@@ -160,7 +165,7 @@ extension AgentThreadView {
   /// ```
   ///
   /// - Parameter cards: The cards, newest first.
-  /// - Returns: The thread view with the cards.
+  /// - Returns: A view whose thread views show the cards.
   public func sideCards<Cards: View>(@ViewBuilder _ cards: () -> Cards) -> some View {
     environment(\.sideCards, AnyView(cards()))
   }
