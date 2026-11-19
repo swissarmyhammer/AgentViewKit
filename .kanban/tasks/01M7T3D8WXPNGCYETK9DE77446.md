@@ -43,6 +43,29 @@ comments:
     - TranscriptSearchLookupTests: no sleep, poll, retry, clock, window or focus.
     - next: review
   timestamp: 2026-11-19T14:57:09.910884+00:00
+- actor: claude-code
+  id: 01m7t543s8g12jwaw0ecmq6wjy
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (1f3627b9); 1 finding, 1 confirmed, 0 refuted — Sources/AgentViewKit/Thread/TranscriptSearchHits.swift:62 (duplication/duplication)
+    - next: keep the full lookup rule only in the TranscriptSearch type doc. Change the doc comment on the search hit slot to one sentence that points to it. Then run the review again.
+  timestamp: 2026-11-19T14:59:40.968443+00:00
+- actor: claude-code
+  id: 01m7t54hvwrdt7p7q46a0he8yq
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — TranscriptSearch.swift, TranscriptSearchHits.swift, 3 changed test files, TranscriptSearchLookupTests.swift (new), ARCHITECTURE.md; ACPClient 6159db6, ACP dd3a981
+    - test: green — swift test, 1500 tests in 171 suites + 54 tests in 11 suites passed
+    - commit: 1f3627b9
+    - review: findings — TranscriptSearchHits.swift:62 (duplicated doc rule)
+  timestamp: 2026-11-19T14:59:55.388915+00:00
+- actor: claude-code
+  id: 01m7t599kwv9vzhxbcfcy7sh8a
+  text: |-
+    ### implement — changed
+    - evidence: Sources/AgentViewKit/Thread/TranscriptSearchHits.swift — the slot doc now points to ``TranscriptSearch`` for the lookup rule. The full rule stays only in the TranscriptSearch type doc. No other copy in TranscriptSearch*.swift. swift format lint -s: 0 findings. swift test: 54 tests in 11 suites passed, 0 failures.
+    - next: review
+  timestamp: 2026-11-19T15:02:30.780638+00:00
 position_column: doing
 position_ordinal: '8180'
 title: Search hits use SessionModel.entry(forWireID:) of ACPClient (D207 f)
@@ -63,3 +86,15 @@ Do:
 - Unit tests: a hit for an id that a rollback removed, and for a held echo, is skipped.
 
 Run `swift test`. Push, and send the sha to testudoapp-9a.
+
+## Review Findings (2026-11-19 08:57)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 6 file(s) reviewed, 7 not reviewed.
+
+> 6 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 6 file(s)
+
+> 1 file(s) not reviewed — no validator matched:
+> - `ARCHITECTURE.md` — no validator matches this file
+
+- [x] `Sources/AgentViewKit/Thread/TranscriptSearchHits.swift:62` `duplication/duplication` — The doc comment on the search hit slot repeats the lookup rule that the doc comment of TranscriptSearch also states: the entry is found with SessionModel.entry(forWireID:), and a hit is skipped when the model gives no entry (unknown wire id, rolled-back entry, or held echo). The two copies must change together. If one copy is edited and the other is not, the docs disagree about what the code does. Keep the full rule in one place, the TranscriptSearch type doc, and shorten the AgentThreadView doc to one sentence that points to it (for example, "Each hit is resolved as described on TranscriptSearch."). Apply the same change to the TranscriptSearch copy, so that only one full statement of the rule remains.

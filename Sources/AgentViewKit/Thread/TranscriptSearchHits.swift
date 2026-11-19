@@ -58,11 +58,8 @@ extension AgentThreadView {
   /// When the hits change, the thread scrolls to the entry of the first hit
   /// (the best hit). It loads the earlier pages when the row of that entry
   /// is not loaded, and it opens a collapsed tool call of that entry. The
-  /// first hit becomes the current hit. The thread finds the entry of each
-  /// hit with `SessionModel.entry(forWireID:)`. It skips a hit whose entry
-  /// the model does not give: an unknown wire id, the wire id of an entry
-  /// that a rollback removed, or the echo of a prompt that the model holds
-  /// until the answer of the prompt. When the hits come before the entries,
+  /// first hit becomes the current hit. Each hit is resolved as described on
+  /// ``TranscriptSearch``. When the hits come before the entries,
   /// the thread reveals the first hit when its entry comes.
   ///
   /// In the entry of each hit, each match of a word of the
