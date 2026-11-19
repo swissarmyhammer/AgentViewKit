@@ -17,6 +17,8 @@ import EditorCommands
 /// | Control-Option-Command-[ | | ``AgentCommandVerb/previousSibling`` |
 /// | Control-Option-Command-] | | ``AgentCommandVerb/nextSibling`` |
 /// | Control-Command-O | | ``AgentCommandVerb/jumpToSession`` |
+/// | Command-G | | ``AgentCommandVerb/findNextHit`` |
+/// | Shift-Command-G | | ``AgentCommandVerb/findPreviousHit`` |
 ///
 /// The keys follow the one key table of EditorKit, AgentViewKit and
 /// KanbanViewKit (D137): a Mac key keeps its Mac meaning, and each kit command
@@ -24,6 +26,13 @@ import EditorCommands
 /// Message is a `StandardChords` constant, so this type holds no chord text
 /// of its own for it. The shared table names no chord for Copy Message, so
 /// ``controlShiftCommandC`` is the one chord of this type.
+///
+/// Find Next Hit and Find Previous Hit do not use Control-Command. Command-G
+/// and Shift-Command-G are the find keys of the Mac, so they keep their Mac
+/// meaning (D137 (a), TestudoApp D207 (f)). The verbs are not available while
+/// a text input has the focus, so there the keys stay the find of the editor
+/// (D133). `StandardChords` has no find key but Command-F, so
+/// ``findNextHit`` and ``findPreviousHit`` are chords of this type.
 ///
 /// The definition of each command carries the first key of its verb in
 /// `keys[.cua]`, so a menu shows that key. When an ``AgentCommandScope``
@@ -59,6 +68,14 @@ public nonisolated enum AgentKeymap {
   /// EditorKit jump keeps Control-Command-J.
   public static let jumpToSession: KeyChord = "⌃⌘O"
 
+  /// The chord of Find Next Hit: Command-G, the Find Next key of the Mac
+  /// (D137 (a)).
+  public static let findNextHit: KeyChord = "⌘G"
+
+  /// The chord of Find Previous Hit: Shift-Command-G, the Find Previous key
+  /// of the Mac (D137 (a)).
+  public static let findPreviousHit: KeyChord = "⇧⌘G"
+
   /// The default chords of each verb that has keys. The first chord is the
   /// chord that a menu shows.
   public static let defaultChords: [AgentCommandVerb: [KeyChord]] = [
@@ -75,6 +92,8 @@ public nonisolated enum AgentKeymap {
     .previousSibling: [previousSibling],
     .nextSibling: [nextSibling],
     .jumpToSession: [jumpToSession],
+    .findNextHit: [findNextHit],
+    .findPreviousHit: [findPreviousHit],
   ]
 
   /// The default keymap: each chord of ``defaultChords`` bound to the

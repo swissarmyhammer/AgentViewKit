@@ -97,6 +97,10 @@ final class AgentSessionNavigation {
 ///   (``forkFromHere``). It is disabled with the reason of the host, with no
 ///   message, or for a message with no `MessageId`. It gives the
 ///   ``ForkFromHereRequest`` of the message to the action.
+/// - Find Next Hit and Find Previous Hit step the search hits of the thread
+///   view (``transcriptSearch``). They are disabled while a text input has
+///   the focus (``firstResponder``), so that Command-G stays the find of the
+///   editor (D133), and when the thread has no hits.
 @MainActor
 final class AgentCommandTarget {
   /// The kind of the focus segment of an agent command scope.
@@ -136,6 +140,15 @@ final class AgentCommandTarget {
   /// The calls of the thread view that show another session, or `nil` when no
   /// thread view gave them.
   var navigation: AgentSessionNavigation?
+
+  /// The search hits of the thread view, or `nil` when no thread view gave
+  /// them.
+  var transcriptSearch: TranscriptSearch?
+
+  /// Gives the first responder of the window of the scope, or `nil`. The
+  /// mount of the scope gives it, and a test gives its own. The find verbs
+  /// read it to learn if a text input has the focus (``TextInputFocus``).
+  var firstResponder: @MainActor () -> NSResponder? = { nil }
 
   /// The fork action of the host, or `nil` when the host gives none. With
   /// no action, the scope does not register ``AgentCommandVerb/forkFromHere``
@@ -223,7 +236,10 @@ final class AgentCommandTarget {
     guard let session else {
       return .unavailable(reason: String(localized: "The thread is not shown.", bundle: .module))
     }
-    if let reason = missingPartReason(of: verb, payload: payload) ?? hostReason(of: verb, payload: payload, in: session) {
+    if let reason = missingPartReason(of: verb, payload: payload)
+      ?? hostReason(of: verb, payload: payload, in: session)
+      ?? textInputReason(of: verb)
+    {
       return .unavailable(reason: reason)
     }
     guard isAvailable(verb, payload: payload, in: session) else {
@@ -256,6 +272,7 @@ final class AgentCommandTarget {
         ? Self.composerNotShownReason : nil
     case .goToParent, .openChild, .nextSibling, .previousSibling, .jumpToSession:
       navigation == nil ? Self.noNavigationReason : nil
+    case .findNextHit, .findPreviousHit: transcriptSearch == nil ? Self.listNotShownReason : nil
     case .cancel, .approvePending, .rejectPending, .previousRequest, .nextRequest, .copyThread,
       .exportMarkdown, .forkFromHere, .copyMessage, .copyCodeBlock:
       nil
@@ -332,6 +349,7 @@ final class AgentCommandTarget {
     case .insertMention: !session.isClosed
     case .goToParent, .openChild, .nextSibling, .previousSibling, .jumpToSession:
       canNavigate(verb, payload: payload, in: session)
+    case .findNextHit, .findPreviousHit: hasSearchHits
     }
   }
 
@@ -368,6 +386,8 @@ final class AgentCommandTarget {
     case .nextSibling: String(localized: "No session is after this session.", bundle: .module)
     case .previousSibling: String(localized: "No session is before this session.", bundle: .module)
     case .jumpToSession: String(localized: "No other session is in the tree.", bundle: .module)
+    case .findNextHit, .findPreviousHit:
+      String(localized: "The thread has no search hits.", bundle: .module)
     }
   }
 
@@ -462,6 +482,8 @@ final class AgentCommandTarget {
     case .nextSibling: show(sibling(offset: 1, of: session)?.sessionId)
     case .previousSibling: show(sibling(offset: -1, of: session)?.sessionId)
     case .jumpToSession: jumpToSession(payload: payload, in: session)
+    case .findNextHit: transcriptSearch?.step(forward: true)
+    case .findPreviousHit: transcriptSearch?.step(forward: false)
     }
     return true
   }

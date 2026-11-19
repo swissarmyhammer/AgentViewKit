@@ -109,6 +109,20 @@ public nonisolated enum AgentCommandVerb: String, CaseIterable, Sendable {
   /// session of the payload, it shows that session at once.
   case jumpToSession
 
+  /// Makes the next search hit of the thread current, in the order of the
+  /// transcript, and scrolls to it (TestudoApp D207 (f)). After the last
+  /// hit, it goes to the first hit and plays the system beep. It is not
+  /// available when the thread has no hits, or when a text input has the
+  /// focus: there, Command-G stays the find of the editor (D133).
+  case findNextHit
+
+  /// Makes the previous search hit of the thread current, in the order of
+  /// the transcript, and scrolls to it (TestudoApp D207 (f)). Before the
+  /// first hit, it goes to the last hit and plays the system beep. It is
+  /// not available when the thread has no hits, or when a text input has
+  /// the focus.
+  case findPreviousHit
+
   /// The start of the id of each verb.
   public static let idPrefix = "agent."
 
@@ -142,6 +156,8 @@ public nonisolated enum AgentCommandVerb: String, CaseIterable, Sendable {
     case .nextSibling: String(localized: "Next Sibling Session", bundle: .module)
     case .previousSibling: String(localized: "Previous Sibling Session", bundle: .module)
     case .jumpToSession: String(localized: "Jump to Session…", bundle: .module)
+    case .findNextHit: String(localized: "Find Next Hit", bundle: .module)
+    case .findPreviousHit: String(localized: "Find Previous Hit", bundle: .module)
     }
   }
 

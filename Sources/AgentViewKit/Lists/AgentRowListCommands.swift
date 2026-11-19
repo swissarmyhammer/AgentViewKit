@@ -398,19 +398,16 @@ struct AgentRowListKeys: ViewModifier {
   /// Tells if the list takes the keys while `responder` is the first
   /// responder of its window.
   ///
-  /// A text field in edit, such as a rename field in a row, has an editable
-  /// text view as the first responder: the field editor of an `NSTextField`,
-  /// or the input text view of an EditorKit field. That text view must get
-  /// Return, Esc, the arrow keys and the typed characters, so the list does
-  /// not take them. A text view that does not edit, such as a selectable
-  /// label, leaves the keys to the list.
+  /// A text field in edit, such as a rename field in a row, must get Return,
+  /// Esc, the arrow keys and the typed characters, so the list does not take
+  /// them (``TextInputFocus``). A text view that does not edit, such as a
+  /// selectable label, leaves the keys to the list.
   ///
   /// - Parameter responder: The first responder of the window of the list,
   ///   or `nil`.
   /// - Returns: `false` when `responder` is a text view that edits.
   static func takesKeys(withFirstResponder responder: NSResponder?) -> Bool {
-    guard let text = responder as? NSText else { return true }
-    return !text.isEditable
+    !TextInputFocus.isEditing(responder)
   }
 }
 

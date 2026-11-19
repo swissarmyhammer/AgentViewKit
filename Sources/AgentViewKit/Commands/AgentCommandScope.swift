@@ -28,7 +28,9 @@ import SwiftUI
 /// `SessionModel` (see ``AgentCommandTarget``). The views in the scope give the
 /// parts that only they have: ``ConversationView`` in an ``AgentThreadView``
 /// gives its scroll anchors, ``AgentThreadView`` gives its store of the
-/// expanded items, and ``PromptInputView`` gives its submit and its focus.
+/// expanded items and its search hits, and ``PromptInputView`` gives its
+/// submit and its focus. The mount gives the first responder of its window,
+/// so that the find verbs know when a text input has the focus.
 ///
 /// The scope shows the save panel of ``AgentCommandVerb/exportMarkdown``
 /// (``MarkdownExportPresentation``). The name of the agent in the export
@@ -52,6 +54,9 @@ struct AgentCommandScope: ViewModifier {
   /// The connection model that the thread view gives, or `nil`. With no
   /// value, the scope reads the connection model of the environment.
   var connection: ConnectionModel?
+
+  /// The search hits of the thread view, or `nil` outside a thread view.
+  var search: TranscriptSearch?
 
   @Environment(\.commandSystem) private var ambientSystem
   @Environment(\.connectionModel) private var hostConnection
@@ -83,7 +88,7 @@ struct AgentCommandScope: ViewModifier {
       content.background(
         AgentCommandMount(
           target: enclosingTarget, scope: nil, anchors: anchors, expandedBlocks: expandedBlocks,
-          navigation: navigation, connection: connection))
+          navigation: navigation, connection: connection, search: search))
     } else {
       let path = parentPath?.appending(segment) ?? .root(segment)
       let system = ambientSystem ?? standaloneSystem
@@ -98,7 +103,7 @@ struct AgentCommandScope: ViewModifier {
         .background(
           AgentCommandMount(
             target: ownTarget, scope: scope, anchors: anchors, expandedBlocks: expandedBlocks,
-            navigation: navigation))
+            navigation: navigation, search: search))
         .modifier(MarkdownExportPresentation(presenter: ownTarget.markdownExports))
         .commandScope(segment: segment, subject: session)
         .commandSystem(system)
@@ -134,14 +139,16 @@ extension View {
   ///   - navigation: The calls that show another session, or `nil`.
   ///   - connection: The connection model of the agent, or `nil` for the
   ///     connection model of the environment.
+  ///   - search: The search hits of the thread view, or `nil`.
   /// - Returns: A view in the scope of the commands.
   func agentCommandScope(
     session: SessionModel, anchors: ScrollAnchorManager, navigation: AgentSessionNavigation? = nil,
-    connection: ConnectionModel? = nil
+    connection: ConnectionModel? = nil, search: TranscriptSearch? = nil
   ) -> some View {
     modifier(
       AgentCommandScope(
-        session: session, anchors: anchors, navigation: navigation, connection: connection))
+        session: session, anchors: anchors, navigation: navigation, connection: connection,
+        search: search))
   }
 }
 
@@ -206,6 +213,11 @@ enum AgentCommandRegistration {
   /// each key of the verb. Thus a group or a host action that a later call
   /// turns off goes away, and one that a later call turns on comes back.
   ///
+  /// The call also registers the Cancel of the search hits
+  /// (``AgentCommandTarget/searchHitsCancel(for:)``) in the group
+  /// ``AgentCommandGroup/find``. It registers it after the verbs and before
+  /// the secondary chords, so Esc offers the Cancel of the hits before Stop.
+  ///
   /// - Parameters:
   ///   - target: The target that the commands act on.
   ///   - path: The path of the scope.
@@ -219,15 +231,17 @@ enum AgentCommandRegistration {
     let definitions = verbs.filter(target.registers).map { verb in
       GroupedDefinition(group: verb.group, definition: AgentCommand.definition(of: verb, for: target))
     }
-    register(definitions, at: path, into: &registry, groupsOff: groupsOff)
+    let searchHitsCancel = GroupedDefinition(
+      group: .find, definition: AgentCommandTarget.searchHitsCancel(for: target))
+    register(definitions + [searchHitsCancel], at: path, into: &registry, groupsOff: groupsOff)
     for verb in verbs where !target.registers(verb) {
       registry.unregister(verb.id, at: path)
     }
     AgentKeymap.bindSecondaryChords(into: &registry, at: path, groupsOff: groupsOff)
   }
 
-  /// Removes each verb at `path`, and the `.host` part of the scope node,
-  /// which `register` wrote.
+  /// Removes each verb and the Cancel of the search hits at `path`, and the
+  /// `.host` part of the scope node, which `register` wrote.
   ///
   /// `CommandRegistry.unregister` also removes each key of a verb, the
   /// secondary chords of ``AgentKeymap`` too. Thus a surface that reads the
@@ -246,7 +260,7 @@ enum AgentCommandRegistration {
   ///   - path: The path of the scope.
   ///   - registry: The registry to remove the verbs and the part from.
   static func deregister(at path: FocusPath, from registry: inout CommandRegistry) {
-    deregister(AgentCommandVerb.allCases.map(\.id), at: path, from: &registry)
+    deregister(AgentCommandVerb.allCases.map(\.id) + [.cancel], at: path, from: &registry)
   }
 
   /// Removes each command of `ids` at `path`, and the `.host` part of the
@@ -322,6 +336,9 @@ struct AgentCommandMount: NSViewRepresentable {
   /// The connection model to add, or `nil`.
   var connection: ConnectionModel?
 
+  /// The search hits to add, or `nil`.
+  var search: TranscriptSearch?
+
   /// The values that the teardown needs.
   final class Coordinator {
     /// The target of the mount.
@@ -336,6 +353,8 @@ struct AgentCommandMount: NSViewRepresentable {
     var navigation: AgentSessionNavigation?
     /// The connection model that the mount added.
     weak var connection: ConnectionModel?
+    /// The search hits that the mount added.
+    weak var search: TranscriptSearch?
 
     /// Makes a coordinator for `target`.
     ///
@@ -350,11 +369,14 @@ struct AgentCommandMount: NSViewRepresentable {
   }
 
   /// Writes the values to the target, and registers the owned scope. The
-  /// newest mount of a path registers.
+  /// newest mount of a path registers. The target reads the first responder
+  /// of the window of the view.
   func makeNSView(context: Context) -> NSView {
+    let view = NSView(frame: .zero)
+    target.firstResponder = { [weak view] in view?.window?.firstResponder }
     apply(to: context.coordinator)
     register(heldBy: context.coordinator)
-    return NSView(frame: .zero)
+    return view
   }
 
   /// Writes the values to the target, and registers the owned scope again.
@@ -381,6 +403,9 @@ struct AgentCommandMount: NSViewRepresentable {
     }
     if let connection = coordinator.connection, target.connection === connection {
       target.connection = nil
+    }
+    if let search = coordinator.search, target.transcriptSearch === search {
+      target.transcriptSearch = nil
     }
   }
 
@@ -429,6 +454,10 @@ struct AgentCommandMount: NSViewRepresentable {
     if let connection {
       target.connection = connection
       coordinator.connection = connection
+    }
+    if let search {
+      target.transcriptSearch = search
+      coordinator.search = search
     }
   }
 }

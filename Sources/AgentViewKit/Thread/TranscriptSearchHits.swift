@@ -68,6 +68,14 @@ extension AgentThreadView {
   /// whole entry with the same color at a low opacity. The current hit has
   /// the stronger mark.
   ///
+  /// Find Next Hit (Command-G) and Find Previous Hit (Shift-Command-G) make
+  /// the next or the previous entry with a hit current, in the order of the
+  /// transcript, and reveal it. After the last hit they wrap, with the
+  /// system beep. VoiceOver announces each current hit with its place and
+  /// the author of its entry, such as "Hit 2 of 7, You". Esc in the thread
+  /// sets the binding to `nil`. While a text input has the focus, these keys
+  /// stay the keys of the text input.
+  ///
   /// ```swift
   /// AgentThreadView(session: session)
   ///   .transcriptSearchHits($hits)

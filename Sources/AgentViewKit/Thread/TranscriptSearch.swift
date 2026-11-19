@@ -1,3 +1,5 @@
+import AppKit
+import EditorCommandsUI
 import FoundationModelsACPClient
 import Observation
 import SwiftUI
@@ -13,6 +15,11 @@ import SwiftUI
 ///
 /// ``ConversationView`` takes each reveal with ``takeRevealRequest()`` and
 /// scrolls to its row. Each row reads its mark with ``mark(forRowKey:)``.
+///
+/// Find Next Hit and Find Previous Hit call ``step(forward:)``. A step goes
+/// through the entries with a hit in the order of the transcript, and an
+/// entry with two hits is one stop. At the end, the step wraps and plays
+/// the system beep (``beep``).
 @MainActor @Observable
 final class TranscriptSearch {
   /// One hit whose entry the transcript holds.
@@ -50,14 +57,24 @@ final class TranscriptSearch {
   /// The reveal that waits for the list, or `nil`.
   private(set) var revealRequest: RevealRequest?
 
+  /// The number of the last reveal request. Each hit that becomes current
+  /// adds one, so a view that reads the number sees each reveal, also a
+  /// reveal of the same hit again.
+  private(set) var revealSerial = 0
+
+  /// Plays the sound of a step that wraps. The default plays the system
+  /// beep. A test gives its own, so that no test makes a sound.
+  @ObservationIgnored var beep: @MainActor () -> Void = { NSSound.beep() }
+
+  /// Sets the hits of the host to `nil`, or `nil` when no host gave hits.
+  /// ``TranscriptSearchDriver`` gives it from the binding of the host.
+  @ObservationIgnored var hostRemoval: (@MainActor () -> Void)?
+
   /// The hits of the host, or `nil` for no hits.
   @ObservationIgnored private var source: TranscriptSearchHits?
 
   /// `true` while the hits of the host wait for the first entry of a hit.
   @ObservationIgnored private var waitsForReveal = false
-
-  /// The number of the last reveal request.
-  @ObservationIgnored private var revealSerial = 0
 
   /// Makes a value with no hits.
   init() {}
@@ -109,6 +126,62 @@ final class TranscriptSearch {
     revealRequest = RevealRequest(rowKey: hits[index].rowKey, id: revealSerial)
   }
 
+  /// The number of the entries with a hit. Two hits in one entry count as
+  /// one.
+  var hitCount: Int {
+    stops.count
+  }
+
+  /// The place of the current hit in the order of the transcript, from 1,
+  /// or `nil` when there is no current hit.
+  var currentHitNumber: Int? {
+    guard let current = currentHit else { return nil }
+    return stops.firstIndex { hits[$0].position == current.position }.map { $0 + 1 }
+  }
+
+  /// Makes the next or the previous entry with a hit current, in the order
+  /// of the transcript, and asks the list to reveal it.
+  ///
+  /// The step starts at the current hit. After the last entry, it goes to
+  /// the first entry, and before the first entry, to the last entry. A step
+  /// that wraps plays the ``beep``. With no current hit, the step goes to
+  /// the first or the last entry with no beep. With no hits, it does
+  /// nothing.
+  ///
+  /// - Parameter forward: `true` for the next hit, `false` for the previous
+  ///   hit.
+  func step(forward: Bool) {
+    let stops = stops
+    guard let first = stops.first, let last = stops.last else { return }
+    let end = forward ? first : last
+    guard let current = currentHit?.position else {
+      makeCurrent(end)
+      return
+    }
+    let neighbor =
+      forward
+      ? stops.first { hits[$0].position > current }
+      : stops.last { hits[$0].position < current }
+    if neighbor == nil {
+      beep()
+    }
+    makeCurrent(neighbor ?? end)
+  }
+
+  /// Asks the host to remove its hits: Esc in the thread (TestudoApp
+  /// D207 (f)). The host sets its binding to `nil`, and the change of the
+  /// binding removes the hits of this value.
+  func removeHits() {
+    hostRemoval?()
+  }
+
+  /// The index in ``hits`` of the best hit of each entry with a hit, in the
+  /// order of the transcript.
+  private var stops: [Int] {
+    let best = Dictionary(hits.indices.map { (hits[$0].position, $0) }, uniquingKeysWith: min)
+    return best.keys.sorted().compactMap { best[$0] }
+  }
+
   /// Gives the reveal that waits for the list, and clears it, so that a list
   /// that mounts again does not reveal the hit again.
   ///
@@ -157,9 +230,11 @@ final class TranscriptSearch {
 }
 
 /// Gives the hits of the host and each change of the transcript to the
-/// search of a thread, and opens the entry of the current hit
-/// (TestudoApp D207 (f)).
+/// search of a thread, opens the entry of the current hit, and announces
+/// each new current hit (TestudoApp D207 (f)).
 ///
+/// The announcement tells the place of the hit and the author of its entry,
+/// such as "Hit 2 of 7, You", through the announcer of the environment.
 /// The view draws nothing. ``AgentThreadView`` puts it in its background, so
 /// that a change of the hits or of the transcript evaluates only this view.
 /// The view reads the transcript only while the host gives hits.
@@ -177,11 +252,19 @@ struct TranscriptSearchDriver: View {
   /// `nil`.
   @Environment(\.transcriptSearchHits) private var hostHits
 
+  /// The announcer that speaks each new current hit.
+  @Environment(\.announcer) private var announcer
+
+  /// The titles of the sessions that the host gives, for the author of a
+  /// message from another session.
+  @Environment(\.sessionTitles) private var titles
+
   var body: some View {
     let hits = hostHits?.wrappedValue
     Color.clear
       .accessibilityHidden(true)
       .onChange(of: hits, initial: true) {
+        search.hostRemoval = hostHits.map(Self.removal(of:))
         search.show(hits, rowKeys: rowKeys)
       }
       .onChange(of: hits.map { _ in ObjectIdentifier(session) }) {
@@ -193,6 +276,17 @@ struct TranscriptSearchDriver: View {
       .onChange(of: search.currentHit, initial: true) {
         Self.openCurrentHit(of: search, in: session.transcript, store: store)
       }
+      .onChange(of: search.revealSerial) {
+        Self.announceCurrentHit(of: search, in: session.transcript, titles: titles, to: announcer)
+      }
+  }
+
+  /// The removal of the hits of the host: it sets the binding to `nil`.
+  ///
+  /// - Parameter binding: The binding of the hits of the host.
+  /// - Returns: The removal.
+  private static func removal(of binding: Binding<TranscriptSearchHits?>) -> @MainActor () -> Void {
+    { binding.wrappedValue = nil }
   }
 
   /// The row keys of the transcript of the session, in order.
@@ -214,6 +308,59 @@ struct TranscriptSearchDriver: View {
     let entry = transcript[hit.position]
     guard entry.rowKey == hit.rowKey, opensForHit(entry) else { return }
     store.expand(entry: entry)
+  }
+
+  /// Announces the current hit: its place in the order of the transcript
+  /// and the author of its entry.
+  ///
+  /// - Parameters:
+  ///   - search: The search of the thread.
+  ///   - transcript: The transcript of the session.
+  ///   - titles: The titles of the sessions that the host gives.
+  ///   - announcer: The announcer that speaks the text.
+  static func announceCurrentHit(
+    of search: TranscriptSearch, in transcript: [TranscriptEntry], titles: SessionTitles,
+    to announcer: any Announcer
+  ) {
+    guard let hit = search.currentHit, let number = search.currentHitNumber,
+      transcript.indices.contains(hit.position)
+    else { return }
+    let author = author(of: transcript[hit.position], titles: titles)
+    let text = announcement(number: number, count: search.hitCount, author: author)
+    announcer.announce(text, priority: .medium)
+  }
+
+  /// The announcement of a current hit, such as "Hit 2 of 7, You".
+  ///
+  /// - Parameters:
+  ///   - number: The place of the hit in the order of the transcript, from 1.
+  ///   - count: The number of the entries with a hit.
+  ///   - author: The author of the entry of the hit.
+  /// - Returns: The text.
+  static func announcement(number: Int, count: Int, author: String) -> String {
+    String(
+      localized: "Hit \(number) of \(count), \(author)", bundle: .module,
+      comment: "VoiceOver announcement of the current search hit: its place, then its author.")
+  }
+
+  /// The author of an entry, as the thread names it: the user for a user
+  /// message, the sender line for a message from another session, and the
+  /// agent for each other entry.
+  ///
+  /// - Parameters:
+  ///   - entry: The entry.
+  ///   - titles: The titles of the sessions that the host gives.
+  /// - Returns: The author.
+  static func author(of entry: TranscriptEntry, titles: SessionTitles) -> String {
+    switch entry {
+    case .userMessage: MessageRole.user.title
+    case .sessionMessage(let message):
+      SessionMessageView.participantsText(
+        sender: message.senderSessionId, recipient: message.recipientSessionId,
+        message: SessionMessageView.sender(in: message.meta), titles: titles)
+    case .agentMessage, .thought, .toolCall, .terminal, .plan, .unknown, .error, .compaction:
+      MessageRole.assistant.title
+    }
   }
 
   /// Whether a row of an entry can show collapsed, and thus opens when its

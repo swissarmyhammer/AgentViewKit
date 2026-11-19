@@ -139,6 +139,14 @@ nonisolated enum AgentSymbol {
   /// prompt.
   static let previousPrompt = "chevron.up"
 
+  /// The symbol of the command that goes to the next search hit of the
+  /// thread.
+  static let nextHit = "chevron.down.circle"
+
+  /// The symbol of the command that goes to the previous search hit of the
+  /// thread.
+  static let previousHit = "chevron.up.circle"
+
   /// The symbol of the command that expands or collapses each item of the
   /// thread.
   static let expandAll = "arrow.up.left.and.arrow.down.right"

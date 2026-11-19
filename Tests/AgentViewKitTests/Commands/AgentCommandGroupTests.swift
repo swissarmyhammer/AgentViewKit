@@ -24,6 +24,7 @@ import Testing
     .clipboard: [.copyMessage, .copyThread, .copyCodeBlock],
     .export: [.exportMarkdown],
     .fork: [.forkFromHere],
+    .find: [.findNextHit, .findPreviousHit],
     // The attachment verbs are of their own type; see
     // AgentAttachmentCommandsTests.
     .attachment: [],
@@ -58,14 +59,17 @@ import Testing
     return Fixture(target: target, model: model, path: path)
   }
 
-  /// The ids of the verbs that are not in `groups`, and that the target of
-  /// ``makeFixture()`` registers: the target has no fork action of the host,
-  /// so Fork from Here is not in the registry.
+  /// The ids of the definitions that the target of ``makeFixture()``
+  /// registers when `groups` are off: each verb that is not in `groups`,
+  /// and the Cancel of the search hits while ``AgentCommandGroup/find`` is
+  /// on. The target has no fork action of the host, so Fork from Here is not
+  /// in the registry.
   ///
   /// - Parameter groups: The groups that are off.
-  /// - Returns: The command ids of each other verb.
+  /// - Returns: The command ids.
   static func ids(notIn groups: Set<AgentCommandGroup>) -> Set<CommandID> {
-    Set(AgentCommandVerb.allCases.filter { !groups.contains($0.group) && $0 != .forkFromHere }.map(\.id))
+    let verbs = Set(AgentCommandVerb.allCases.filter { !groups.contains($0.group) && $0 != .forkFromHere }.map(\.id))
+    return groups.contains(.find) ? verbs : verbs.union([.cancel])
   }
 
   // MARK: - Groups
@@ -83,7 +87,7 @@ import Testing
     #expect(
       AgentCommandGroup.allCases.map(\.id) == [
         "agent.compose", "agent.control", "agent.navigate", "agent.clipboard", "agent.export",
-        "agent.fork", "agent.attachment", "agent.sideCard",
+        "agent.fork", "agent.find", "agent.attachment", "agent.sideCard",
       ])
   }
 

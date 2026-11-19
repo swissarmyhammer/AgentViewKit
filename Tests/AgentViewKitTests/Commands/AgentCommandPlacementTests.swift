@@ -30,7 +30,9 @@ import Testing
   ]
 
   /// The verbs of the Edit menu.
-  static let editMenuVerbs: Set<AgentCommandVerb> = [.copyMessage, .copyCodeBlock]
+  static let editMenuVerbs: Set<AgentCommandVerb> = [
+    .copyMessage, .copyCodeBlock, .findNextHit, .findPreviousHit,
+  ]
 
   /// The menu of `verb` in the design (AVK-1, D41), or `nil` when the verb
   /// is in none of the three menu tables.
@@ -122,7 +124,7 @@ import Testing
 
     for chord in [StandardChords.stop, KeyChord.escape] {
       let actions = registry.keymapStack(for: .cua, at: path).bindings(for: chord.asSequence).map(\.action)
-      #expect(actions == [.command(AgentCommandVerb.cancel.id)], "\(chord)")
+      #expect(actions.filter { $0 == .command(AgentCommandVerb.cancel.id) }.count == 1, "\(chord)")
     }
   }
 

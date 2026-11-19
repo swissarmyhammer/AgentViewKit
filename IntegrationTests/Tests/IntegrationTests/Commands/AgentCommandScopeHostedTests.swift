@@ -26,6 +26,11 @@ import Testing
   /// fork action: each verb of the kit but Fork from Here (D164, D205).
   static let verbCount = AgentCommandVerb.allCases.filter { $0 != .forkFromHere }.count
 
+  /// The number of commands that a thread view registers at its path when
+  /// the host gives no fork action: the verbs of ``verbCount``, and the
+  /// Cancel (`edit.cancel`) of the search hits.
+  static let definitionCount = verbCount + 1
+
   /// The JSON-RPC id of the permission request that the scripted agent sends.
   static let agentRequestID = 100
 
@@ -203,7 +208,7 @@ import Testing
 
     let path = Self.path(of: session.model)
     let ids = WindowUndoChecks.kitCommandIDs(at: path, in: system)
-    #expect(ids.count == Self.verbCount)
+    #expect(ids.count == Self.definitionCount)
     try WindowUndoChecks.expectUnavailableOnAnEmptyStack(at: path, in: system)
     #expect(system.registry.tree.nodes.contains { $0.path == path })
     #expect(system.registry.perform(AgentCommandVerb.scrollToBottom.id, at: path))
@@ -229,7 +234,8 @@ import Testing
 
     let ids = WindowUndoChecks.kitCommandIDs(at: path, in: system)
 
-    #expect(ids == Set(AgentCommandVerb.allCases.filter { $0.group != .navigate }.map(\.id)))
+    let verbs = AgentCommandVerb.allCases.filter { $0.group != .navigate }.map(\.id)
+    #expect(ids == Set(verbs).union([.cancel]))
     try WindowUndoChecks.expectUnavailableOnAnEmptyStack(at: path, in: system)
   }
 
@@ -388,7 +394,7 @@ import Testing
 
     await newer.close()
 
-    #expect(WindowUndoChecks.kitCommandIDs(at: path, in: system).count == Self.verbCount)
+    #expect(WindowUndoChecks.kitCommandIDs(at: path, in: system).count == Self.definitionCount)
     let eligible = Set(system.registry.eligible(path: path).map(\.id))
     #expect(eligible.isSuperset(of: [AgentCommandVerb.send.id, AgentCommandVerb.focusComposer.id]))
     #expect(system.registry.perform(AgentCommandVerb.toggleExpandAll.id, at: path))
@@ -429,14 +435,14 @@ import Testing
     harness.render()
     let thread = AgentCommandTarget.segment(for: session.model)
     let oldPath = FocusPath.root(ScopeMoveModel.firstOuterSegment).appending(thread)
-    try #require(system.registry.definitions(at: oldPath).count == Self.verbCount)
+    try #require(system.registry.definitions(at: oldPath).count == Self.definitionCount)
 
     model.outerSegment = ScopeMoveModel.secondOuterSegment
     harness.render()
 
     #expect(system.registry.definitions(at: oldPath).isEmpty)
     let newPath = FocusPath.root(ScopeMoveModel.secondOuterSegment).appending(thread)
-    #expect(system.registry.definitions(at: newPath).count == Self.verbCount)
+    #expect(system.registry.definitions(at: newPath).count == Self.definitionCount)
   }
 
   // MARK: - Session model

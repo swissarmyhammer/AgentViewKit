@@ -167,10 +167,12 @@ nonisolated extension AgentCommandVerb {
   /// | --- | --- |
   /// | ``EditorCommands/MenuPath/session`` | Send Message, Stop, Focus Composer, Mention…, Approve Request, Reject Request, Copy Thread, Export as Markdown…, Fork from Here |
   /// | View | Next Prompt, Previous Prompt, Next Request, Previous Request, Expand or Collapse All, Scroll to Bottom, Go to Parent Session, Open Child Session, Previous Sibling Session, Next Sibling Session, Jump to Session |
-  /// | Edit | Copy Message |
+  /// | Edit | Copy Message, Copy Code Block, Find Next Hit, Find Previous Hit |
   ///
   /// EditorKit puts the rows of the Edit path right after the Cut, Copy and
   /// Paste rows of the system Edit menu, so Copy Message is next to Copy.
+  /// Find Next Hit and Find Previous Hit are in a find group of their own in
+  /// the Edit menu, as the Find rows of a Mac app (TestudoApp D207 (f)).
   /// Fork from Here is after Export as Markdown…, in the same order as the
   /// buttons of ``MessageActions``. In the Session menu, it acts on the
   /// selected message.
@@ -198,6 +200,8 @@ nonisolated extension AgentCommandVerb {
     case .previousSibling: MenuPlacement(path: .view, group: "agentSessions", order: Slot.third)
     case .nextSibling: MenuPlacement(path: .view, group: "agentSessions", order: Slot.fourth)
     case .jumpToSession: MenuPlacement(path: .view, group: "agentSessions", order: Slot.fifth)
+    case .findNextHit: MenuPlacement(path: .edit, group: "agentFind", order: Slot.first)
+    case .findPreviousHit: MenuPlacement(path: .edit, group: "agentFind", order: Slot.second)
     }
   }
 
@@ -245,6 +249,8 @@ nonisolated extension AgentCommandVerb {
     case .goToParent: AgentSymbol.parentSession
     case .openChild: AgentSymbol.childSession
     case .jumpToSession: AgentSymbol.jumpToSession
+    case .findNextHit: AgentSymbol.nextHit
+    case .findPreviousHit: AgentSymbol.previousHit
     }
   }
 

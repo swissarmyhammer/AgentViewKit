@@ -28,7 +28,11 @@ final class CallCounter {
   static let message = "Hello"
 
   /// The number of verbs of the kit.
-  static let verbCount = 22
+  static let verbCount = 24
+
+  /// The number of definitions that the registration of a thread scope
+  /// makes: one for each verb, and the Cancel of the search hits.
+  static let definitionCount = verbCount + 1
 
   /// The number of turns that ``sendTurns(to:)`` sends.
   static let turnCount = 3
@@ -224,7 +228,8 @@ final class CallCounter {
     AgentCommandRegistration.register(target, at: path, into: &registry)
 
     let bindings = registry.keymapStack(for: .cua, at: path).bindings(for: KeySequence(.escape))
-    #expect(bindings.count == 1)
+    let actions = bindings.map(\.action)
+    #expect(actions == [.command(.cancel), .command(AgentCommandVerb.cancel.id)])
     #expect(registry.tree.nodes.filter { $0.path == path }.count == 1)
 
     AgentCommandRegistration.deregister(at: path, from: &registry)
@@ -256,7 +261,7 @@ final class CallCounter {
 
     older.unmount()
     #expect(system.registry.tree.nodes.contains { $0.path == path })
-    #expect(system.registry.definitions(at: path).count == Self.verbCount)
+    #expect(system.registry.definitions(at: path).count == Self.definitionCount)
 
     newer.unmount()
     #expect(!system.registry.tree.nodes.contains { $0.path == path })
@@ -428,7 +433,7 @@ final class CallCounter {
       ("⌘↩", .send), ("⌘.", .cancel), ("⎋", .cancel), ("⌃⌘C", .copyThread), ("⌃⇧⌘C", .copyMessage),
       ("⌃⌘↑", .jumpToPrevious), ("⌃⌘↓", .jumpToNext), ("⌃⌘[", .previousRequest), ("⌃⌘]", .nextRequest),
       ("⌃⌘←", .goToParent), ("⌃⌘→", .openChild), ("⌃⌥⌘[", .previousSibling), ("⌃⌥⌘]", .nextSibling),
-      ("⌃⌘O", .jumpToSession),
+      ("⌃⌘O", .jumpToSession), ("⌘G", .findNextHit), ("⇧⌘G", .findPreviousHit),
     ]
 
     #expect(AgentKeymap.sortedChords.count == expected.count)

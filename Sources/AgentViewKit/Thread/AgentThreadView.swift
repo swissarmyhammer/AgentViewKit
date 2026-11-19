@@ -85,7 +85,9 @@ import SwiftUI
 ///
 /// The hits of a search of the session transcripts show in the thread with
 /// ``transcriptSearchHits(_:)`` (TestudoApp D207 (f)): the thread scrolls to
-/// the best hit, and marks the matched words of each hit.
+/// the best hit, and marks the matched words of each hit. Find Next Hit
+/// (Command-G) and Find Previous Hit (Shift-Command-G) go through the hits
+/// in the order of the transcript, and Esc removes them.
 ///
 /// A deck next to the view goes in one
 /// ``SwiftUI/View/accessibilityFocusScope()`` with the thread view. The
@@ -405,7 +407,7 @@ public struct AgentThreadView<Composer: View>: View {
     .agentCommandScope(
       session: session, anchors: anchors,
       navigation: AgentSessionNavigation(show: show, presentJump: { isJumpPresented = true }),
-      connection: connection
+      connection: connection, search: search
     )
     .sheet(isPresented: $isJumpPresented) {
       SessionJumpList(agent: agentName, entries: session.jumpEntries) { id in
