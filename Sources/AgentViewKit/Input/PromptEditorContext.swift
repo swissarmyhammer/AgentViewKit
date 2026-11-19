@@ -150,6 +150,11 @@ enum PromptSubmitOutcome: Equatable {
   /// The composer started no prompt, for example because the text is blank.
   case notSent
 
+  /// The submit hook of the host took the prompt
+  /// (``ComposerSubmitResult/consumed``). The composer cleared the text and
+  /// started no prompt.
+  case consumed
+
   /// The press held Shift, so the editor inserted a newline and the composer
   /// did not submit.
   case newline

@@ -70,10 +70,28 @@ public nonisolated struct ComposerSubmission: Sendable {
   }
 }
 
-/// What the submit hook of the host tells the composer to do (D199).
+/// What the submit hook of the host tells the composer to do (D199, D205).
+///
+/// There are three results:
+///
+/// - ``send`` and ``send(addingText:meta:)``: the composer sends the prompt
+///   to the session of the thread, with the added text blocks and the
+///   `_meta`. Then it clears the composer.
+/// - ``cancel``: the composer sends nothing. The text and the files stay in
+///   the composer.
+/// - ``consumed``: the host took the prompt. The composer sends nothing to
+///   the session of the thread, and it clears the composer as a send does.
+///
+/// A clear removes the text, the files and the mentions of the composer, and
+/// it empties the draft of the session. One undo in the editor gets the text
+/// back.
 public nonisolated struct ComposerSubmitResult: Sendable, Hashable {
   /// Whether the composer sends nothing and keeps the text.
   public let isCancelled: Bool
+
+  /// Whether the host took the prompt, so the composer sends nothing and
+  /// clears the text (``consumed``).
+  public let isConsumed: Bool
 
   /// The texts to add to the prompt. Each one is one text block after the
   /// text block of the prompt and before the blocks of the files.
@@ -87,6 +105,28 @@ public nonisolated struct ComposerSubmitResult: Sendable, Hashable {
 
   /// Sends nothing. The text and the files stay in the composer.
   public static let cancel = ComposerSubmitResult(isCancelled: true, addedText: [], meta: nil)
+
+  /// The host took the prompt, for example to answer a side question in a
+  /// view of its own. The composer sends nothing to the session of the
+  /// thread. It clears the text, the files and the mentions, as a send does.
+  public static let consumed = ComposerSubmitResult(
+    isCancelled: false, isConsumed: true, addedText: [], meta: nil)
+
+  /// Makes a result.
+  ///
+  /// - Parameters:
+  ///   - isCancelled: Whether the composer sends nothing and keeps the text.
+  ///   - isConsumed: Whether the host took the prompt.
+  ///   - addedText: The texts to add to the prompt.
+  ///   - meta: The `_meta` of the prompt request, or `nil`.
+  private init(
+    isCancelled: Bool, isConsumed: Bool = false, addedText: [String], meta: [String: JSONValue]?
+  ) {
+    self.isCancelled = isCancelled
+    self.isConsumed = isConsumed
+    self.addedText = addedText
+    self.meta = meta
+  }
 
   /// Sends the prompt with added text blocks and a `_meta`.
   ///
@@ -125,9 +165,22 @@ extension View {
   /// composer clears the text and sends the prompt (D199).
   ///
   /// The hook gets the text and each `@` token with its link
-  /// (``ComposerSubmission``). It returns what to send
-  /// (``ComposerSubmitResult``): the prompt as the user wrote it, the prompt
-  /// with added text blocks and a `_meta`, or nothing.
+  /// (``ComposerSubmission``). It returns what to do
+  /// (``ComposerSubmitResult``):
+  ///
+  /// - ``ComposerSubmitResult/send`` or
+  ///   ``ComposerSubmitResult/send(addingText:meta:)``: send the prompt to
+  ///   the session of the thread, as the user wrote it or with added text
+  ///   blocks and a `_meta`. Then clear the composer.
+  /// - ``ComposerSubmitResult/cancel``: send nothing. The text and the files
+  ///   stay in the composer.
+  /// - ``ComposerSubmitResult/consumed``: the host took the prompt. Send
+  ///   nothing to the session of the thread, and clear the composer as a send
+  ///   does.
+  ///
+  /// A clear removes the text, the files and the mentions, and it empties the
+  /// draft of the session. One undo in the editor gets the text back. After a
+  /// send and after a consume, the host closure of the composer runs.
   ///
   /// The hook can take time. For example, Testudo sends a message to each
   /// mentioned session, and then adds one receipt line for each one. While

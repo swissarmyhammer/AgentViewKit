@@ -317,8 +317,9 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   /// With a submit hook of the host (``SwiftUI/View/onComposerSubmit(_:)``),
   /// the hook runs first, while the text stays. Until it returns, the
   /// composer takes no second submit and shows that a send is in progress.
-  /// A cancel of the hook sends nothing and keeps the text. With no hook,
-  /// the text goes out at once.
+  /// A cancel of the hook sends nothing and keeps the text. A consume of the
+  /// hook sends nothing and clears the text. With no hook, the text goes out
+  /// at once.
   ///
   /// The prompt blocks follow the prompt capabilities of the connection
   /// model, read at the time of the send. The composer reports the outcome
@@ -337,27 +338,54 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
     Task { @MainActor in
       let result = await submitHook(submission)
       isSubmitting = false
-      guard !result.isCancelled else {
-        reportSubmit?(.notSent)
-        return
-      }
       send(result)
     }
   }
 
-  /// Takes the text and the files, and sends them with what the hook of the
-  /// host adds.
+  /// Does what the result of the hook of the host tells
+  /// (``apply(_:text:attachments:start:)``), and then calls the host closure
+  /// after a send or a consume.
   ///
   /// - Parameter result: The result of the submit hook, or
   ///   ``ComposerSubmitResult/send``.
   private func send(_ result: ComposerSubmitResult) {
-    guard let session, !session.isClosed, let input = takeInput() else {
+    guard let session, !session.isClosed else {
       reportSubmit?(.notSent)
       return
     }
-    session.startPrompt(with: input, accepting: connection?.promptCapabilities, result: result)
-    reportSubmit?(.sent)
+    let outcome = Self.apply(result, text: $text, attachments: attachments) { input in
+      session.startPrompt(with: input, accepting: connection?.promptCapabilities, result: result)
+    }
+    reportSubmit?(outcome)
+    guard outcome != .notSent else { return }
     onSubmit()
+  }
+
+  /// Does what the result of the submit hook tells: a cancel keeps the text
+  /// and the files; a send and a consume take them and clear the composer;
+  /// a send then starts the prompt.
+  ///
+  /// The clear is the same for a send and for a consume. The text binding
+  /// gets the empty text, so the editor takes it as one undo entry and drops
+  /// its mentions, and the draft of the session becomes empty.
+  ///
+  /// - Parameters:
+  ///   - result: The result of the submit hook.
+  ///   - text: The text of the prompt.
+  ///   - attachments: The attachment list of the composer.
+  ///   - start: Starts the prompt of an input.
+  /// - Returns: The outcome. ``PromptSubmitOutcome/notSent`` for a cancel or
+  ///   a blank text, which do not change the text and the files.
+  static func apply(
+    _ result: ComposerSubmitResult, text: Binding<AttributedString>,
+    attachments: Binding<[Attachment]>, start: (UserInput) -> Void
+  ) -> PromptSubmitOutcome {
+    guard !result.isCancelled, let input = takeInput(text: text, attachments: attachments) else {
+      return .notSent
+    }
+    guard !result.isConsumed else { return .consumed }
+    start(input)
+    return .sent
   }
 
   /// Replaces the text of the prompt. The attachment list does not change.
@@ -391,12 +419,17 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
 
   /// Clears the text and the attachment list, and returns them as an input.
   ///
+  /// - Parameters:
+  ///   - text: The text of the prompt.
+  ///   - attachments: The attachment list of the composer.
   /// - Returns: The input, or `nil` when the text is blank. A blank text and
   ///   its attachment list do not change.
-  private func takeInput() -> UserInput? {
-    guard let message = Self.message(from: text) else { return nil }
-    let urls = Self.attachmentURLs(attachments.wrappedValue, in: text)
-    text = AttributedString()
+  private static func takeInput(
+    text: Binding<AttributedString>, attachments: Binding<[Attachment]>
+  ) -> UserInput? {
+    guard let message = message(from: text.wrappedValue) else { return nil }
+    let urls = attachmentURLs(attachments.wrappedValue, in: text.wrappedValue)
+    text.wrappedValue = AttributedString()
     attachments.wrappedValue = []
     return UserInput(text: message, attachments: urls)
   }
