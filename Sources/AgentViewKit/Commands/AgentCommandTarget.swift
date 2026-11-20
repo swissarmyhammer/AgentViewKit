@@ -156,8 +156,8 @@ final class AgentCommandTarget {
 
   /// Whether the thread view shows the unavailable message of the host in
   /// place of the transcript (``SwiftUI/View/threadUnavailable(_:)``). While
-  /// it is `true`, the verbs that read the text of the session
-  /// (``AgentCommandGroup/readsSessionText``) are not available. The thread
+  /// it is `true`, the verbs that need the transcript
+  /// (``AgentCommandVerb/needsTranscript``) are not available. The thread
   /// view gives the value through the mount of the scope.
   var isSessionUnavailable = false
 
@@ -274,17 +274,18 @@ final class AgentCommandTarget {
   }
 
   /// The reason when the thread view shows the unavailable message of the
-  /// host and `verb` reads the text of the session, or `nil`.
+  /// host and `verb` needs the transcript, or `nil`.
   ///
-  /// The check comes first: no message, no transcript and no hit shows, so
-  /// the state of the session is the reason, and not a missing part.
+  /// The check comes first: no message, no transcript, no list and no hit
+  /// shows, so the state of the session is the reason, and not a missing
+  /// part.
   ///
   /// - Parameter verb: The verb.
-  /// - Returns: The reason for a verb of a group that reads the text of the
-  ///   session (``AgentCommandGroup/readsSessionText``) while
+  /// - Returns: The reason for a verb that needs the transcript
+  ///   (``AgentCommandVerb/needsTranscript``) while
   ///   ``isSessionUnavailable`` is `true`, else `nil`.
   private func unavailableSessionReason(of verb: AgentCommandVerb) -> String? {
-    guard isSessionUnavailable, verb.group.readsSessionText else { return nil }
+    guard isSessionUnavailable, verb.needsTranscript else { return nil }
     return String(localized: "The session is not available.", bundle: .module)
   }
 

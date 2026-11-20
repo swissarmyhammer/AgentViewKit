@@ -26,6 +26,32 @@ import Testing
     .copyCodeBlock,
   ]
 
+  /// The navigation verbs that act on the list of the transcript. The
+  /// unavailable state stops them, because no list shows.
+  nonisolated static let listVerbs: [AgentCommandVerb] = [
+    .jumpToNext, .jumpToPrevious, .scrollToBottom, .toggleExpandAll,
+  ]
+
+  /// The navigation verbs that act on the session tree. The unavailable
+  /// state does not stop them.
+  nonisolated static let sessionVerbs: [AgentCommandVerb] = [.goToParent, .openChild]
+
+  /// Makes a fixture of a read-only thread of two turns, with the scroll
+  /// anchors and the expanded items of a list. The first answer is in view,
+  /// so a prompt is above it and a prompt is below it.
+  ///
+  /// - Returns: The fixture.
+  static func makeListFixture() -> ReadOnlyThreadTests.Fixture {
+    let model = ReadOnlyThreadTests.readOnlyModel(ReadOnlyThreadTests.newerUpdates)
+    let fixture = ReadOnlyThreadTests.makeFixture(session: model)
+    let anchors = ScrollAnchorManager()
+    let firstAnswer = model.transcript.map(\.rowKey)[1]
+    anchors.noteVisible(ids: [firstAnswer], distanceFromBottom: .greatestFiniteMagnitude)
+    fixture.target.anchors = anchors
+    fixture.target.expandedBlocks = ExpandedBlocksStore()
+    return fixture
+  }
+
   /// The records of the two probes of one slot test.
   struct Records {
     /// The record of the probe in the place of the transcript.
@@ -121,5 +147,38 @@ import Testing
     let fixture = ReadOnlyThreadTests.makeFixture(session: ReadOnlyThreadTests.readOnlyModel())
 
     #expect(fixture.target.availability(of: .copyThread, payload: nil) == .available)
+  }
+
+  /// A production change that fails this test: the target does not stop
+  /// the list verb in the unavailable state, or gives a different reason.
+  @Test(arguments: listVerbs)
+  func aListVerbOfAnUnavailableThreadHasTheReason(_ verb: AgentCommandVerb) {
+    let fixture = Self.makeListFixture()
+    fixture.target.isSessionUnavailable = true
+
+    let availability = fixture.target.availability(of: verb, payload: nil)
+
+    #expect(availability == .unavailable(reason: Self.reason))
+  }
+
+  /// A production change that fails this test: the target stops the list
+  /// verb with no unavailable state.
+  @Test(arguments: listVerbs)
+  func aListVerbOfAThreadThatIsNotUnavailableIsAvailable(_ verb: AgentCommandVerb) {
+    let fixture = Self.makeListFixture()
+
+    #expect(fixture.target.availability(of: verb, payload: nil) == .available)
+  }
+
+  /// A production change that fails this test: the target stops a verb of
+  /// the session tree in the unavailable state.
+  @Test(arguments: sessionVerbs)
+  func aSessionVerbOfAnUnavailableThreadIsAvailable(_ verb: AgentCommandVerb) async throws {
+    let (session, fixture, _) = try await SessionCommandsTests.open(
+      shown: SessionCommandsTests.first)
+    defer { session.close() }
+    fixture.target.isSessionUnavailable = true
+
+    #expect(fixture.target.availability(of: verb, payload: nil) == .available)
   }
 }

@@ -29,11 +29,13 @@ extension View {
   /// controls stay. The scroll-to-bottom pill does not show, because no list
   /// shows.
   ///
-  /// While the message shows, the verbs that read the text of the session
-  /// are not available, with the reason "The session is not available.":
-  /// Copy Message, Copy Thread, Copy Code Block, Export as Markdown…, Find
-  /// Next Hit, Find Previous Hit and Clear Search Hits
-  /// (``AgentCommandGroup/readsSessionText``).
+  /// While the message shows, the verbs that need the transcript are not
+  /// available, with the reason "The session is not available.": Copy
+  /// Message, Copy Thread, Copy Code Block, Export as Markdown…, Find Next
+  /// Hit, Find Previous Hit, Clear Search Hits, Next Prompt, Previous
+  /// Prompt, Scroll to Bottom and Expand or Collapse All
+  /// (``AgentCommandVerb/needsTranscript``). The verbs of the session tree
+  /// stay.
   ///
   /// ```swift
   /// AgentThreadView(session: shared) { EmptyView() }

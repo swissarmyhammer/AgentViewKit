@@ -25,8 +25,9 @@ import SwiftUI
 /// the verbs of the groups that change the session (``changesSession``):
 /// ``compose``, ``control`` and ``fork``.
 /// While a thread view shows the unavailable message of the host, the verbs
-/// of the groups that read the text of the session (``readsSessionText``)
-/// are not available: ``clipboard``, ``export`` and ``find``.
+/// that need the transcript (``AgentCommandVerb/needsTranscript``) are not
+/// available: the verbs of ``clipboard``, ``export`` and ``find``, and the
+/// verbs of ``navigate`` that act on the list.
 ///
 /// KanbanViewKit and SnapshotViewKit use the same shape. A group with the same
 /// job in two kits has the same last word in its ``id``, for example
@@ -107,24 +108,36 @@ public nonisolated enum AgentCommandGroup: String, CaseIterable, Sendable {
     case .navigate, .clipboard, .export, .find, .attachment, .sideCard: false
     }
   }
-
-  /// Tells if the thread verbs of the group read the text of the session.
-  ///
-  /// The groups ``clipboard``, ``export`` and ``find`` read the text of the
-  /// session: Copy Message, Copy Thread, Copy Code Block, Export as
-  /// Markdown…, Find Next Hit, Find Previous Hit and Clear Search Hits.
-  /// While a thread view shows the unavailable message of the host
-  /// (``SwiftUI/View/threadUnavailable(_:)``), these verbs are not available
-  /// (``AgentCommandTarget/isSessionUnavailable``).
-  public var readsSessionText: Bool {
-    switch self {
-    case .clipboard, .export, .find: true
-    case .compose, .control, .navigate, .fork, .attachment, .sideCard: false
-    }
-  }
 }
 
 nonisolated extension AgentCommandVerb {
+  /// Tells if the verb needs the transcript: it reads the text of the
+  /// session, or it acts on the list of the transcript.
+  ///
+  /// The verbs of the groups ``AgentCommandGroup/clipboard``,
+  /// ``AgentCommandGroup/export`` and ``AgentCommandGroup/find`` read the
+  /// text of the session. Next Prompt, Previous Prompt, Scroll to Bottom and
+  /// Expand or Collapse All of ``AgentCommandGroup/navigate`` act on the
+  /// list. While a thread view shows the unavailable message of the host
+  /// (``SwiftUI/View/threadUnavailable(_:)``), no list shows, and these verbs
+  /// are not available (``AgentCommandTarget/isSessionUnavailable``).
+  ///
+  /// The other verbs of ``AgentCommandGroup/navigate`` stay: Next Request
+  /// and Previous Request act on the request deck, and Go to Parent Session,
+  /// Open Child Session, Next Sibling Session, Previous Sibling Session and
+  /// Jump to Session act on the session tree.
+  public var needsTranscript: Bool {
+    switch self {
+    case .copyMessage, .copyThread, .copyCodeBlock, .exportMarkdown, .findNextHit, .findPreviousHit,
+      .clearSearchHits, .jumpToNext, .jumpToPrevious, .scrollToBottom, .toggleExpandAll:
+      true
+    case .send, .focusComposer, .insertMention, .cancel, .approvePending, .rejectPending,
+      .nextRequest, .previousRequest, .goToParent, .openChild, .nextSibling, .previousSibling,
+      .jumpToSession, .forkFromHere:
+      false
+    }
+  }
+
   /// The group of the verb.
   public var group: AgentCommandGroup {
     switch self {
