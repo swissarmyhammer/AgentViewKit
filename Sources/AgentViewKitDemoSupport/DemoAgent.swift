@@ -59,13 +59,13 @@ public final class DemoAgent {
 
   /// The model of the `standard` and the `flash` slot of
   /// ``defaultProfileName``. Its MTP drafter is ``defaultProfileDrafter``.
-  nonisolated public static let defaultProfileModel = "mlx-community/Qwen3.8-27B-4bit"
+  nonisolated public static let defaultProfileModel = "mlx-community/Qwen3.5-9B-4bit"
 
   /// The MTP drafter of ``defaultProfileModel`` in ``defaultProfileName``.
   /// The drafter is a part of the identity of the model: the agent restores
   /// a session only when the recorded model and its drafter are the
   /// resident model of the slot.
-  nonisolated public static let defaultProfileDrafter = "mlx-community/Qwen3.8-27B-MTP-4bit"
+  nonisolated public static let defaultProfileDrafter = "mlx-community/Qwen3.5-9B-MTP-4bit"
 
   /// The `model` key of the index file of a session that runs on the
   /// `standard` slot of ``defaultProfileName``. A model with a drafter is a
@@ -140,7 +140,9 @@ public final class DemoAgent {
   ///   - connection: The connected model.
   ///   - workingDirectory: The working directory of each new session.
   ///   - waitForTeardown: The wait of ``stop()``, or `nil`.
-  private init(connection: ConnectionModel, workingDirectory: AbsolutePath, waitForTeardown: TeardownWait?) {
+  private init(
+    connection: ConnectionModel, workingDirectory: AbsolutePath, waitForTeardown: TeardownWait?
+  ) {
     self.connection = connection
     self.workingDirectory = workingDirectory
     self.waitForTeardown = waitForTeardown
@@ -227,9 +229,12 @@ public final class DemoAgent {
   /// - Returns: The agent, with a connected and initialized model.
   /// - Throws: The error of the composition of the agent, or the error of
   ///   `initialize`.
-  public static func makeInProcess(recordedSessions stage: RecordedSessionsStage) async throws -> DemoAgent {
+  public static func makeInProcess(recordedSessions stage: RecordedSessionsStage) async throws
+    -> DemoAgent
+  {
     try await makeInProcess(
-      foundationModelsIn: AbsolutePath(rawValue: stage.workingDirectory.path(percentEncoded: false)),
+      foundationModelsIn: AbsolutePath(
+        rawValue: stage.workingDirectory.path(percentEncoded: false)),
       modelSource: .stub,
       environment: stage.agentEnvironment
     )
@@ -424,7 +429,9 @@ public final class DemoAgent {
   ///
   /// - Throws: The error of the retried operation.
   public func retryFailedOperation() async throws {
-    guard case .authenticated = connection.authState, let operation = takeFailedOperation() else { return }
+    guard case .authenticated = connection.authState, let operation = takeFailedOperation() else {
+      return
+    }
     try await perform(operation)
   }
 
