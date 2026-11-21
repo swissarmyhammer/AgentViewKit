@@ -54,6 +54,10 @@ import SwiftUI
 /// ``PromptInputView`` that keeps its own text. Give a custom composer with
 /// ``init(session:connection:sessionTitle:headerContextMenuPath:composer:)``,
 /// or `EmptyView()` for no composer.
+/// In a thread with no transcript entry, the editor of the composer takes the
+/// first responder when the thread shows, and when the scope of the thread
+/// gets the focus, for example from a click on the empty space of the thread
+/// (``EmptyThreadComposerFocus``, Testudo, 2026-11-20).
 /// For a read-only session (`SessionModel.isReadOnly`, the shared session of
 /// TestudoApp D208 (i)), the view shows no composer slot
 /// (``AgentThreadLayout/showsComposer(for:)``), and its scope registers no
@@ -177,7 +181,9 @@ import SwiftUI
 ///   one mover to the three.
 public struct AgentThreadView<Composer: View>: View {
   /// The log of the view.
-  private static var logger: Logger { Logger(subsystem: "AgentViewKit", category: "AgentThreadView") }
+  private static var logger: Logger {
+    Logger(subsystem: "AgentViewKit", category: "AgentThreadView")
+  }
 
   /// The session model that the host gave: the root of the tree that the
   /// view can show. The view shows this session at first, and again after a
@@ -225,7 +231,6 @@ public struct AgentThreadView<Composer: View>: View {
   /// The search hits of the host (``SwiftUI/View/transcriptSearchHits(_:)``), the current
   /// hit and its reveal.
   @State private var search = TranscriptSearch()
-
 
   @Environment(\.expandedBlocksStore) private var hostExpandedBlocks
   @Environment(\.inspectorSelection) private var hostInspectorSelection
@@ -302,7 +307,8 @@ public struct AgentThreadView<Composer: View>: View {
   ///   - composer: The builder of the view in the composer slot.
   init(
     session: SessionModel, connection: ConnectionModel? = nil, anchors: ScrollAnchorManager?,
-    sessionTitle: String? = nil, headerContextMenuPath: FocusPath? = nil, @ViewBuilder composer: () -> Composer
+    sessionTitle: String? = nil, headerContextMenuPath: FocusPath? = nil,
+    @ViewBuilder composer: () -> Composer
   ) {
     self.root = session
     self.connection = connection
@@ -325,7 +331,9 @@ public struct AgentThreadView<Composer: View>: View {
   ///   changes nothing.
   private func show(_ id: SessionId) {
     guard let found = root.session(withId: id), !found.isClosed else {
-      Self.logger.info("A request to show the session \(id.rawValue, privacy: .public) found no open session in the tree.")
+      Self.logger.info(
+        "A request to show the session \(id.rawValue, privacy: .public) found no open session in the tree."
+      )
       return
     }
     focus.choose(found)
@@ -352,7 +360,8 @@ public struct AgentThreadView<Composer: View>: View {
         ThreadAttachmentInspector(
           mode: inspectorMode, sessionId: session.sessionId,
           selection: Self.inspectorSelection(
-            host: hostInspectorSelection, own: ownInspectorSelection)))
+            host: hostInspectorSelection, own: ownInspectorSelection))
+      )
       // The thread has one text selection: the transcript, the prompts, the
       // bars and the inspector (Docs/decisions/text-selection.md).
       .threadTextSelection()
@@ -423,6 +432,9 @@ public struct AgentThreadView<Composer: View>: View {
     .safeAreaBar(edge: .bottom) { floatingControls }
     .background { SessionAnnouncementObserver(session: session) }
     .background { TranscriptSearchDriver(session: session, search: search, store: expandedBlocks) }
+    // In a thread with no message, the composer takes the focus when the
+    // thread shows and when its scope gets the focus (Testudo, 2026-11-20).
+    .background { EmptyThreadComposerFocus(session: session) }
     .environment(\.transcriptSearch, search)
     // After a resume the view shows the root: a child that needs the user
     // shows through its mark and the jump of the banner.
@@ -455,9 +467,11 @@ public struct AgentThreadView<Composer: View>: View {
   @ViewBuilder private var topBarParts: some View {
     if let connection {
       FloatingGlassContainer(spacing: editorStyle.spacing.s) {
-        StatusLineView(session: session, connection: connection, sessionTitle: sessionTitle, select: show)
-          .padding(headerInset).floatingGlass()
-          .hostPathContextMenu(headerContextMenuPath)
+        StatusLineView(
+          session: session, connection: connection, sessionTitle: sessionTitle, select: show
+        )
+        .padding(headerInset).floatingGlass()
+        .hostPathContextMenu(headerContextMenuPath)
       }
     }
     if let threadHeader {

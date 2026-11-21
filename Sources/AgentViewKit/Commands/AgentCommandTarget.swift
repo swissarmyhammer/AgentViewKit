@@ -201,7 +201,8 @@ final class AgentCommandTarget {
   ///   - session: The session model of the scope.
   ///   - request: The pending permission request of the card.
   /// - Returns: The path `agentThread:<sessionId>/agentRequest:<uuidString>`.
-  static func requestPath(in session: SessionModel, request: PendingPermissionRequest) -> FocusPath {
+  static func requestPath(in session: SessionModel, request: PendingPermissionRequest) -> FocusPath
+  {
     FocusPath.root(segment(for: session)).appending(AgentScopeKind.request(request.id))
   }
 
@@ -246,6 +247,30 @@ final class AgentCommandTarget {
   func removeComposer(owner: ObjectIdentifier) {
     guard composer?.owner == owner else { return }
     composer = nil
+  }
+
+  /// Gives the first responder to the composer when the session has no
+  /// transcript entry, and the thread shows or its scope got the focus
+  /// (Testudo, 2026-11-20).
+  ///
+  /// EditorKit gives the focus of a scope to the content of the scope, and
+  /// never to a view that a nested scope wraps. A host can put the composer
+  /// in a scope of its own, so a focus on the thread scope lands on the
+  /// beacon of the scope. In a thread with no message, the composer is the
+  /// one place to work, so the hook of the composer takes the focus. The
+  /// hook focuses the editor directly, so it records no new focus move. A
+  /// move to a scope in the thread, such as an item, keeps its focus.
+  ///
+  /// - Parameter move: The newest focus move of ``system``, or `nil` when
+  ///   the thread shows.
+  /// - Returns: `true` when the composer took the focus.
+  @discardableResult
+  func focusComposerInEmptyThread(after move: FocusMove?) -> Bool {
+    guard let session, session.transcript.isEmpty, let composer else { return false }
+    if let move {
+      guard move.path == path else { return false }
+    }
+    return composer.focus()
   }
 
   // MARK: - Availability
@@ -506,19 +531,26 @@ final class AgentCommandTarget {
     case .jumpToNext: jump(forward: true)
     case .jumpToPrevious: jump(forward: false)
     case .copyThread: pasteboard.copyText(Self.plainText(of: session))
-    case .exportMarkdown: markdownExports.presentExport(of: session, agentName: connection?.agentName)
+    case .exportMarkdown:
+      markdownExports.presentExport(of: session, agentName: connection?.agentName)
     case .forkFromHere:
-      guard let forkFromHere, let request = forkRequest(payload: payload, in: session) else { return false }
+      guard let forkFromHere, let request = forkRequest(payload: payload, in: session) else {
+        return false
+      }
       forkFromHere.perform(request)
     case .copyMessage: pasteboard.copyText(messageMarkdown(payload: payload, in: session) ?? "")
-    case .copyCodeBlock: pasteboard.copyText(AgentCommandPayload.string(AgentCommandPayload.codeKey, in: payload) ?? "")
+    case .copyCodeBlock:
+      pasteboard.copyText(
+        AgentCommandPayload.string(AgentCommandPayload.codeKey, in: payload) ?? "")
     case .toggleExpandAll: toggleExpandAll(session)
     case .scrollToBottom: anchors?.pinToBottom()
     case .focusComposer: return composer?.focus() ?? false
     case .insertMention:
       guard let composer else { return false }
       _ = composer.focus()
-      composer.insert(AgentCommandPayload.string(AgentCommandPayload.textKey, in: payload) ?? FileReferenceSource.trigger)
+      composer.insert(
+        AgentCommandPayload.string(AgentCommandPayload.textKey, in: payload)
+          ?? FileReferenceSource.trigger)
     case .goToParent: show(session.parent?.sessionId)
     case .openChild: show(childToShow(payload: payload, in: session)?.sessionId)
     case .nextSibling: show(sibling(offset: 1, of: session)?.sessionId)
@@ -534,7 +566,9 @@ final class AgentCommandTarget {
   // MARK: - Sessions
 
   /// Tells if a session verb has a session to show.
-  private func canNavigate(_ verb: AgentCommandVerb, payload: CommandPayload?, in session: SessionModel) -> Bool {
+  private func canNavigate(
+    _ verb: AgentCommandVerb, payload: CommandPayload?, in session: SessionModel
+  ) -> Bool {
     switch verb {
     case .goToParent: session.parent != nil
     case .openChild: childToShow(payload: payload, in: session) != nil
@@ -754,7 +788,8 @@ final class AgentCommandTarget {
   ///
   /// - Parameter transcript: The entries of `SessionModel.transcript`.
   /// - Returns: One row for each `UserMessageEntry` of the transcript.
-  private static func promptRows(of transcript: [TranscriptEntry]) -> [(position: Int, key: String)] {
+  private static func promptRows(of transcript: [TranscriptEntry]) -> [(position: Int, key: String)]
+  {
     transcript.enumerated().compactMap { position, entry in
       if case .userMessage = entry { (position, entry.rowKey) } else { nil }
     }
@@ -802,7 +837,9 @@ final class AgentCommandTarget {
   /// - Returns: The text, or an empty string when the transcript has no
   ///   message text.
   static func plainText(of session: SessionModel) -> String {
-    plainText(of: ThreadExporter.messageTexts(in: session.transcript), templates: .bundled, locale: .autoupdatingCurrent)
+    plainText(
+      of: ThreadExporter.messageTexts(in: session.transcript), templates: .bundled,
+      locale: .autoupdatingCurrent)
   }
 
   /// The copy text of some messages: the `copy-text` template over the
@@ -814,8 +851,11 @@ final class AgentCommandTarget {
   ///   - templates: The templates of the text.
   ///   - locale: The locale of the role lines.
   /// - Returns: The text, or an empty string when `messages` is empty.
-  static func plainText(of messages: [ThreadExporter.MessageText], templates: TextTemplates, locale: Locale) -> String {
-    templates.render(.copyText, model: ThreadExporter.sections(of: messages) { roleLine(of: $0, locale: locale) })
+  static func plainText(
+    of messages: [ThreadExporter.MessageText], templates: TextTemplates, locale: Locale
+  ) -> String {
+    templates.render(
+      .copyText, model: ThreadExporter.sections(of: messages) { roleLine(of: $0, locale: locale) })
   }
 
   /// The role line of a message in the copy text: the name of its sender,
@@ -829,7 +869,8 @@ final class AgentCommandTarget {
     let sender = ThreadExporter.senderName(of: role, locale: locale)
     return String(
       localized: "copy-text.role-line", defaultValue: "\(sender):", bundle: .module, locale: locale,
-      comment: "The first line of a message in the copied text of a thread: the name of its sender.")
+      comment: "The first line of a message in the copied text of a thread: the name of its sender."
+    )
   }
 }
 

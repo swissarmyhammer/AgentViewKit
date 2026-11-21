@@ -13,7 +13,27 @@ comments:
     - evidence: swift test: 1553 tests in 177 suites and 54 tests in 11 suites passed. swift format lint -s: 0 findings.
     - next: commit and push.
   timestamp: 2026-11-21T03:53:04.986874+00:00
-position_column: todo
+- actor: claude-code
+  id: 01m7yxarrdv2zvasx5jdsa5295
+  text: |-
+    ### research
+    - da74534b meets the hosted test item and the click item, but not the item "the composer becomes the first responder". After the click, the first responder is the beacon of the thread (the hosted test expects `GeometryProbeView`), not the editor of the composer.
+    - EditorKit `requestFocus(at:)` gives the focus to the content of the scope, and never to a view that a nested scope wraps. In Testudo the composer has a scope of its own (`composer`), so a focus on the thread scope lands on the beacon. Thus AgentViewKit must move the focus to the composer itself.
+    - Plan: `AgentCommandTarget.focusComposerOfEmptyThread(after:)` calls the composer hook when the transcript is empty, and the move is nil (the thread shows) or its path is the thread path. A driver view in `AgentThreadView` calls it when the thread shows (`.task(id:)` of the session) and on each change of `GeometryRegistry.lastFocusMove`. The composer hook focuses the editor directly, so it records no new focus move, and the last focus move stays the thread path.
+  timestamp: 2026-11-21T11:19:42.605577+00:00
+- actor: claude-code
+  id: 01m7yxzny0y4fy7k8p1m8678y5
+  text: |-
+    ### implement — changed
+    - gap: da74534b did not meet "the composer becomes the first responder". The focus of the thread scope landed on the beacon of the thread.
+    - fix: `AgentCommandTarget.focusComposerInEmptyThread(after:)` calls the composer hook when the transcript is empty and the move is `nil` (the thread shows) or goes to the thread path. A new view, `EmptyThreadComposerFocus` (Sources/AgentViewKit/Thread/), in the background of `AgentThreadView`, calls it when the thread shows (after `GeometryRegistry.focusable(at:)` of the thread scope) and at each change of `GeometryRegistry.lastFocusMove`. The hook focuses the editor directly, so it records no new focus move. The new environment value `emptyThreadFocusReport` gives each result to the tests.
+    - unit tests: EmptyThreadComposerFocusTests (5 tests). RED: the 2 positive tests failed with `log.focuses == 0`. GREEN after the fix.
+    - hosted tests: EmptyThreadClickFocusHostedTests now has 3 tests (show focuses the composer; a click on an empty thread focuses the composer; a click on a thread with a message keeps the beacon). Compile only: `cd IntegrationTests && swift build --build-tests` passed. NOT run (no hosted run allowed).
+    - risk for CI: each hosted test that shows an empty `AgentThreadView` with a composer now has the editor as the first responder after the show. A scan of the hosted tests found no test that expects another first responder in an empty thread, but only a hosted run can prove it.
+    - not done here, by the order of the caller: push, and the sha to testudoapp-9a.
+    - evidence: swift test: 1561 tests in 179 suites and 54 tests in 11 suites passed. swift format lint -s: 0 findings in the new files, and no new findings in AgentThreadView.swift and AgentCommandTarget.swift (same counts as HEAD).
+  timestamp: 2026-11-21T11:31:07.840389+00:00
+position_column: doing
 position_ordinal: '80'
 title: The composer takes the focus in an empty thread (Testudo)
 ---
