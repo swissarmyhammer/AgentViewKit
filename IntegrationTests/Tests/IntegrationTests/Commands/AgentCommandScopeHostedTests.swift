@@ -231,7 +231,9 @@ import Testing
 
     let ids = WindowUndoChecks.kitCommandIDs(at: path, in: system)
 
-    let verbs = AgentCommandVerb.allCases.filter { $0.group != .navigate }.map(\.id)
+    // Fork from Here is in the registry only with the action of a host
+    // (`.onForkFromHere`), and this host gives none (D164).
+    let verbs = AgentCommandVerb.allCases.filter { $0.group != .navigate && $0 != .forkFromHere }.map(\.id)
     #expect(ids == Set(verbs))
     try WindowUndoChecks.expectUnavailableOnAnEmptyStack(at: path, in: system)
   }
