@@ -1,4 +1,3 @@
-@testable import AgentViewKit
 import AgentViewKitTestSupport
 import EditorStyle
 import EditorSwiftUI
@@ -6,6 +5,8 @@ import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 import Testing
+
+@testable import AgentViewKit
 
 /// The fixed data of the snapshot images (AVK-13).
 ///
@@ -27,6 +28,23 @@ enum SnapshotFixtures {
     \(shellFence)
 
     The filter matches the name of each test class of the module.
+    """
+
+  /// The id of the response of the image of a response with a code block.
+  static let responseID = "snapshot-response"
+
+  /// The text of the image of a response with a code block: prose, one
+  /// Swift fence, and prose.
+  static let swiftResponse = """
+    The function adds the two values and gives the sum:
+
+    ```swift
+    func add(_ a: Int, _ b: Int) -> Int {
+      a + b
+    }
+    ```
+
+    Call it with two integers, such as `add(2, 3)`.
     """
 
   /// The command of the terminal image: the short status of a working tree.
@@ -57,6 +75,9 @@ enum SnapshotFixtures {
 
   /// The height of the image of the code block, in points.
   static let codeBlockHeight: CGFloat = 150
+
+  /// The height of the image of a response with a code block, in points.
+  static let responseHeight: CGFloat = 260
 
   /// The height of the image of the terminal output, in points.
   static let terminalHeight: CGFloat = 200
@@ -96,6 +117,9 @@ enum SnapshotFixtures {
 
   /// The size of the image of the code block, in points.
   static let codeBlockSize = CGSize(width: narrowWidth, height: codeBlockHeight)
+
+  /// The size of the image of a response with a code block, in points.
+  static let responseSize = CGSize(width: narrowWidth, height: responseHeight)
 
   /// The size of the image of the terminal output, in points.
   static let terminalSize = CGSize(width: narrowWidth, height: terminalHeight)
@@ -149,7 +173,8 @@ enum SnapshotFixtures {
   /// points: the height of the composer image, and above it the room of the
   /// tallest completion list of the editor, so the list of the commands of
   /// ``commandsSession`` fits above the field.
-  static let completionListHeight = composerHeight + EditorKitPromptEditor.completionListMaximumHeight
+  static let completionListHeight =
+    composerHeight + EditorKitPromptEditor.completionListMaximumHeight
 
   /// The size of the image of the completion list of the composer, in points.
   static let completionListSize = CGSize(width: wideWidth, height: completionListHeight)
@@ -185,8 +210,10 @@ enum SnapshotFixtures {
     SessionModel.preview(pendingPermissions: [
       RequestPermissionRequest(
         options: [
-          PermissionOption(kind: .allowOnce, name: "Allow", optionId: PermissionOptionId(rawValue: "allow")),
-          PermissionOption(kind: .rejectOnce, name: "Reject", optionId: PermissionOptionId(rawValue: "reject")),
+          PermissionOption(
+            kind: .allowOnce, name: "Allow", optionId: PermissionOptionId(rawValue: "allow")),
+          PermissionOption(
+            kind: .rejectOnce, name: "Reject", optionId: PermissionOptionId(rawValue: "reject")),
         ],
         sessionId: SessionModel.previewSessionId,
         title: "Run the database migration?"
@@ -272,7 +299,8 @@ enum SnapshotFixtures {
   /// card of ``FailedTurnFixtures/signInConnection`` and the default composer.
   static var bottomBarThread: some View {
     AgentThreadView(
-      session: FailedTurnFixtures.failedTurnSession(), connection: FailedTurnFixtures.signInConnection
+      session: FailedTurnFixtures.failedTurnSession(),
+      connection: FailedTurnFixtures.signInConnection
     ) {
       DefaultThreadComposer()
     }
@@ -289,24 +317,46 @@ enum SnapshotFixtures {
     DefaultThreadComposer().environment(\.sessionModel, session)
   }
 
-  /// The model of the text of the agent message of `session` with the code
-  /// block, in `cache`.
+  /// The index of the code block in the segments of ``agentMessage``: the
+  /// segment after the first paragraph (``MarkdownCodeFences``).
+  static let codeSegmentIndex = 1
+
+  /// The model of the code block of the agent message of `session` with the
+  /// code block, in `cache`.
   ///
-  /// The thread makes the model in its first render pass. The text of the
-  /// message, with its code block, is one EditorKit model, keyed by the id
-  /// of the text block of the message (``ResponseView``).
+  /// The thread makes the model in its first render pass. The message shows
+  /// its code block in a ``CodeBlockView``, whose model is keyed by the id
+  /// of the text block of the message and the index of the code segment
+  /// (``ResponseView/segmentModelID(for:index:isCode:)``).
   ///
   /// - Parameters:
   ///   - cache: The cache that the thread uses.
   ///   - session: The session of ``threadSession``.
   /// - Returns: The model.
   /// - Throws: An issue when the session has no agent message with the code
-  ///   block, or the cache has no model for its text.
-  static func codeMessageModel(in cache: CodeBlockModelCache, session: SessionModel) throws -> EditorModel {
+  ///   block, or the cache has no model for its code block.
+  static func codeMessageModel(in cache: CodeBlockModelCache, session: SessionModel) throws
+    -> EditorModel
+  {
     let entry = try #require(session.transcript.first(where: isCodeMessage))
-    let id = ResponseView.modelID(for: EntryContentView.blockID(entryID: entry.id.rowKey, index: 0))
+    let id = ResponseView.segmentModelID(
+      for: EntryContentView.blockID(entryID: entry.id.rowKey, index: 0), index: codeSegmentIndex,
+      isCode: true)
     try #require(cache.contains(id))
-    return cache.model(for: id, code: agentMessage)
+    return cache.model(for: id, code: shellCode)
+  }
+
+  /// The model of the code block of ``swiftResponse`` in `cache`.
+  ///
+  /// The response makes the model in its first render pass.
+  ///
+  /// - Parameter cache: The cache that the response uses.
+  /// - Returns: The model.
+  /// - Throws: An issue when the cache has no model for the code block.
+  static func responseCodeModel(in cache: CodeBlockModelCache) throws -> EditorModel {
+    let id = ResponseView.segmentModelID(for: responseID, index: codeSegmentIndex, isCode: true)
+    try #require(cache.contains(id))
+    return cache.model(for: id, code: "")
   }
 
   /// Whether `entry` is the agent message with the code block.

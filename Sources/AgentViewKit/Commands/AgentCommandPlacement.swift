@@ -35,6 +35,12 @@ import FoundationModelsACPClient
 /// the ``SideCardVerb`` commands at its own path, and the subject of its
 /// segment is the `SessionModel` of the fork.
 ///
+/// Each ``CodeBlockView`` of an answer adds `agentCodeBlock:<id>/<index>`
+/// in the scope of its message. The id is the id of the ``ResponseView``,
+/// and the index is the index of the segment of the block. The scope gives
+/// the code of the block to the context of the commands, and it is no item:
+/// its context menu shows the verbs of the message and Copy Code Block.
+///
 /// Each control in a bar of a thread, such as Send, the permission-mode
 /// picker or the composer editor, adds `agentControl:<identifier>`. The id is
 /// the accessibility identifier of the control, such as `prompt-submit`. The
@@ -116,6 +122,22 @@ nonisolated extension AgentScopeKind {
   /// - Returns: The segment `agentSideCard:<sessionId>`.
   static func sideCard(_ id: SessionId) -> FocusSegment {
     FocusSegment(kind: sideCard, id: id.rawValue)
+  }
+
+  /// The kind of the scope of a ``CodeBlockView`` of an answer
+  /// (``AgentCodeBlockScope``).
+  static let codeBlock = "agentCodeBlock"
+
+  /// The segment of the scope of a ``CodeBlockView`` of an answer.
+  ///
+  /// - Parameters:
+  ///   - responseID: The id of the ``ResponseView`` of the block, unique in
+  ///     the thread.
+  ///   - index: The index of the segment of the block in the text of the
+  ///     response (``MarkdownCodeFences``).
+  /// - Returns: The segment `agentCodeBlock:<responseID>/<index>`.
+  static func codeBlock(responseID: String, index: Int) -> FocusSegment {
+    FocusSegment(kind: codeBlock, id: "\(responseID)/\(index)")
   }
 
   /// The segment of the scope of a control in a bar of a thread.
@@ -313,15 +335,18 @@ nonisolated extension AgentCommandVerb {
   /// `context`.
   ///
   /// ``copyCodeBlock`` shows only in a fenced code block: the context has
-  /// the code block of EditorKit (`EditorCodeBlockScope.isInside(_:)`). The
-  /// gate also matches the caret in a block, which a structural gate does
-  /// not. Each other verb shows as ``isVisible(at:)`` tells for the path of
-  /// the context.
+  /// the code of a ``CodeBlockView`` of an answer
+  /// (`CommandContext.codeBlockCode`), or the code block of EditorKit
+  /// (`EditorCodeBlockScope.isInside(_:)`). The gate also matches the caret
+  /// in a block, which a structural gate does not. Each other verb shows as
+  /// ``isVisible(at:)`` tells for the path of the context.
   ///
   /// - Parameter context: The folded context of the invocation path.
   /// - Returns: `true` when the verb shows.
   func isVisible(in context: CommandContext) -> Bool {
-    guard self != .copyCodeBlock else { return EditorCodeBlockScope.isInside(context) }
+    guard self != .copyCodeBlock else {
+      return context.codeBlockCode != nil || EditorCodeBlockScope.isInside(context)
+    }
     return isVisible(at: context.path)
   }
 

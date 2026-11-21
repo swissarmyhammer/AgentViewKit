@@ -1,10 +1,11 @@
-@testable import AgentViewKit
 import AgentViewKitTestSupport
 import EditorSwiftUI
 import EditorTestSupport
 import Foundation
 import SwiftUI
 import Testing
+
+@testable import AgentViewKit
 
 /// Hosted tests of ``ResponseView``: the text of an answer in the rendered
 /// form of EditorKit (AVK-9.7, D185).
@@ -29,14 +30,17 @@ import Testing
     #expect(ResponseTextChecks.texts(in: harness) == [Self.fourParagraphText])
   }
 
-  @Test func aFencedBlockIsPartOfTheTextOfTheResponse() {
+  /// A production change that fails this test: the response shows the
+  /// fence in its Markdown editor, and not in a code block view (task
+  /// ^4g2xbx1).
+  @Test func aFencedBlockShowsInACodeBlockViewAfterItsProse() {
     let harness = HostedViewHarness(
       ResponseView(id: "response-fence", markdown: Self.fencedText), size: Self.hostSize)
     defer { harness.close() }
     harness.render()
 
-    #expect(ResponseTextChecks.texts(in: harness) == [Self.fencedText])
-    #expect(harness.element(identifier: CodeBlockView.identifier) == nil)
+    #expect(ResponseTextChecks.texts(in: harness) == ["Some code:"])
+    #expect(harness.element(identifier: CodeBlockView.identifier) != nil)
   }
 
   @Test func twoResponsesShowTwoTextElements() {
@@ -57,7 +61,8 @@ import Testing
   @Test func theModelOfAResponseIsInTheCacheOfTheEnvironment() throws {
     let cache = CodeBlockModelCache()
     let harness = HostedViewHarness(
-      ResponseView(id: "response-cached", markdown: "Cached.").environment(\.codeBlockModelCache, cache),
+      ResponseView(id: "response-cached", markdown: "Cached.").environment(
+        \.codeBlockModelCache, cache),
       size: Self.hostSize)
     defer { harness.close() }
     harness.render()
@@ -71,7 +76,8 @@ import Testing
     let cache = CodeBlockModelCache()
     let model = ResponseView.model(in: cache, id: "response-older", markdown: "Old")
     let harness = HostedViewHarness(
-      ResponseView(id: "response-older", markdown: "Old and new.").environment(\.codeBlockModelCache, cache),
+      ResponseView(id: "response-older", markdown: "Old and new.").environment(
+        \.codeBlockModelCache, cache),
       size: Self.hostSize)
     defer { harness.close() }
     harness.render()

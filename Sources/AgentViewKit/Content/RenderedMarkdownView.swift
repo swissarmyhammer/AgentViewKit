@@ -14,7 +14,7 @@ import SwiftUI
 /// gives. A new text goes into that model with `syncStreaming(to:)`: a text
 /// that starts with the old text adds only its new end, as a stream does, and
 /// another text replaces the text of the model. The Markdown of an
-/// attachment, the empty state of a conversation and the text of an agent
+/// attachment, the empty state of a conversation and the prose of an agent
 /// answer (``ResponseView``) show in it.
 ///
 /// EditorKit shows math (`$…$`, `$$…$$`) with iosMath. Each formula is an
@@ -64,7 +64,8 @@ struct RenderedMarkdownView: View {
   ///     a model in the state of the view. The view gives the text to the
   ///     model.
   init(
-    _ markdown: String, identifier: String = RenderedMarkdownView.identifier, citations: [EditorCitation] = [],
+    _ markdown: String, identifier: String = RenderedMarkdownView.identifier,
+    citations: [EditorCitation] = [],
     model: EditorModel? = nil
   ) {
     self.markdown = markdown
@@ -100,8 +101,11 @@ struct RenderedMarkdownView: View {
   }
 
   /// The title of the header of a fenced code block: a borderless label
-  /// with no controls (D193 (f)). Copy Code Block is a command of the code
-  /// block scope (``AgentCommandVerb/copyCodeBlock``), not a button.
+  /// with no controls. Copy Code Block is a command of the code block scope
+  /// (``AgentCommandVerb/copyCodeBlock``), not a button. An answer does not
+  /// show its fences here: ``ResponseView`` shows each fence in a
+  /// ``CodeBlockView``, with a Copy button (task ^4g2xbx1, which replaces
+  /// D193 (f) for an answer).
   ///
   /// - Parameter block: The block.
   /// - Returns: The file name of the info string, else its language, else
@@ -121,7 +125,9 @@ struct RenderedMarkdownView: View {
   /// - Parameter session: The session of the view, or `nil`.
   /// - Returns: The folder, or `nil` when the session has no working folder.
   static func imageFolder(of session: SessionModel?) -> URL? {
-    session.flatMap(StatusLineView.folder(of:)).map { URL(filePath: $0, directoryHint: .isDirectory) }
+    session.flatMap(StatusLineView.folder(of:)).map {
+      URL(filePath: $0, directoryHint: .isDirectory)
+    }
   }
 
   /// Makes the read-only model of Markdown text, in the rendered
@@ -159,7 +165,8 @@ extension EditorSlotComposing {
   ///   - onActivate: What a press on a chip does, with the citation of that
   ///     chip.
   /// - Returns: The same view value, with the chips when there are some.
-  func citing(_ citations: [EditorCitation], onActivate: @escaping (EditorCitation) -> Void) -> Self {
+  func citing(_ citations: [EditorCitation], onActivate: @escaping (EditorCitation) -> Void) -> Self
+  {
     citations.isEmpty ? self : editorCitations(citations, onActivate: onActivate)
   }
 }

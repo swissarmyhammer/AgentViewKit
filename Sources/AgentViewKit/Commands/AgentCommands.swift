@@ -66,9 +66,12 @@ public nonisolated enum AgentCommandVerb: String, CaseIterable, Sendable {
   case copyMessage
 
   /// Copies the code of one fenced code block, with no fence lines: the
-  /// block of the payload, or the block of the caret or of the context menu
-  /// in a rendered Markdown view (D185, D193 (f)). The palette and the
-  /// context menu show it only in a code block.
+  /// block of the payload, the ``CodeBlockView`` of an answer that holds the
+  /// focus or the context menu, or the block of the caret or of the context
+  /// menu in a rendered Markdown view (D185). The palette and the context
+  /// menu show it only in a code block. The Copy button of a code block
+  /// view of an answer copies the same code (task ^4g2xbx1, which replaces
+  /// D193 (f)).
   case copyCodeBlock
 
   /// Expands each item of the thread, or collapses each item when all items
@@ -311,7 +314,9 @@ nonisolated struct AgentCommand: EditorCommands.Command {
 
   func availability(in context: CommandContext) -> Availability {
     CommandTargetAccess.availability(
-      at: target, unavailable: .unavailable(reason: String(localized: "The thread is not shown.", bundle: .module))
+      at: target,
+      unavailable: .unavailable(
+        reason: String(localized: "The thread is not shown.", bundle: .module))
     ) { $0.availability(of: verb, payload: payload(in: context)) }
   }
 
@@ -322,16 +327,20 @@ nonisolated struct AgentCommand: EditorCommands.Command {
   /// The payload of the dispatch, with the item of the scope and the code
   /// of the code block of the context, when the payload does not name them.
   ///
-  /// EditorKit writes the fenced code block of the caret, or of the point of
-  /// a context menu, to `CommandContext.codeBlock`. Thus Copy Code Block
-  /// copies that block. A payload that names the code wins.
+  /// The scope of a ``CodeBlockView`` of an answer writes its code to
+  /// `CommandContext.codeBlockCode`. EditorKit writes the fenced code block
+  /// of the caret, or of the point of a context menu, to
+  /// `CommandContext.codeBlock`. Thus Copy Code Block copies that block. The
+  /// code of a code block view comes first. A payload that names the code
+  /// wins.
   ///
   /// - Parameter context: The context of the invocation.
   /// - Returns: The payload.
   @MainActor private func payload(in context: CommandContext) -> CommandPayload? {
     let payload = itemPayload
-    guard verb == .copyCodeBlock, AgentCommandPayload.string(AgentCommandPayload.codeKey, in: payload) == nil,
-      let code = context.codeBlock?.text
+    guard verb == .copyCodeBlock,
+      AgentCommandPayload.string(AgentCommandPayload.codeKey, in: payload) == nil,
+      let code = context.codeBlockCode ?? context.codeBlock?.text
     else { return payload }
     var values = payload?.values ?? [:]
     values[AgentCommandPayload.codeKey] = code
@@ -420,5 +429,22 @@ nonisolated struct AgentCommand: EditorCommands.Command {
   ///   the order of the verbs.
   @MainActor static func definitions(for target: AgentCommandTarget) -> [CommandDefinition] {
     AgentCommandVerb.allCases.filter(target.registers).map { definition(of: $0, for: target) }
+  }
+}
+
+/// The context key of the code of a ``CodeBlockView`` of an answer.
+private nonisolated struct CodeBlockCodeKey: CommandContextKey {
+  static let defaultValue: String? = nil
+}
+
+extension CommandContext {
+  /// The code of the ``CodeBlockView`` of an answer whose scope holds the
+  /// folded path, or `nil` when the path is in no such scope.
+  ///
+  /// The scope of the block (``AgentCodeBlockScope``) writes it. Copy Code
+  /// Block copies it (``AgentCommandPayload/codeKey``).
+  nonisolated var codeBlockCode: String? {
+    get { self[CodeBlockCodeKey.self] }
+    set { self[CodeBlockCodeKey.self] = newValue }
   }
 }

@@ -1,4 +1,3 @@
-@testable import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
 import EditorCommands
@@ -9,6 +8,8 @@ import EditorTestSupport
 import EditorText
 import FoundationModelsACPClient
 import Testing
+
+@testable import AgentViewKit
 
 /// A pasteboard that keeps the last copied text.
 private final class RecordingPasteboard: AgentViewKit.Pasteboard {
@@ -21,18 +22,28 @@ private final class RecordingPasteboard: AgentViewKit.Pasteboard {
 }
 
 /// Tests for Copy Code Block, the command of the code block scope of
-/// EditorKit (AVK-9.2, D185, D193 (f)).
+/// EditorKit and of the scope of a ``CodeBlockView`` of an answer (AVK-9.2,
+/// D185, task ^4g2xbx1).
 ///
 /// The palette and the context menu show the command only in a fenced code
 /// block. The command copies the code of the block with no fence lines. The
 /// tests write the code block value of EditorKit (`CommandContext.codeBlock`)
-/// from a scope below the scope of the session, as the editor scope does.
+/// from a scope below the scope of the session, as the editor scope does,
+/// and the code of a code block view (`CommandContext.codeBlockCode`) from
+/// another scope, as ``AgentCodeBlockScope`` does.
 @MainActor struct CopyCodeBlockCommandTests {
   /// The code of the block of the tests.
   nonisolated static let code = "let a = 1\nprint(a)"
 
   /// The segment of the scope that gives the code block.
   static let blockSegment = FocusSegment(kind: "testCodeBlock", id: "0")
+
+  /// The code of the code block view of the tests.
+  nonisolated static let viewCode = "echo view"
+
+  /// The segment of the scope that gives the code of a code block view of
+  /// an answer (``AgentCodeBlockScope``).
+  static let viewSegment = FocusSegment(kind: "testCodeBlockView", id: "0")
 
   /// The code block value of the tests.
   nonisolated static let value = EditorCodeBlockContextValue(
@@ -52,6 +63,9 @@ private final class RecordingPasteboard: AgentViewKit.Pasteboard {
     let sessionPath: FocusPath
     /// The path of the scope that gives the code block.
     let blockPath: FocusPath
+
+    /// The path of the scope that gives the code of a code block view.
+    var viewPath: FocusPath { sessionPath.appending(CopyCodeBlockCommandTests.viewSegment) }
   }
 
   /// Registers the agent commands at a session scope, with a child scope
@@ -61,7 +75,8 @@ private final class RecordingPasteboard: AgentViewKit.Pasteboard {
   ///   - session: The session model.
   ///   - pasteboard: The pasteboard of the target.
   /// - Returns: The fixture.
-  static func makeFixture(session: SessionModel, pasteboard: any AgentViewKit.Pasteboard) -> Fixture {
+  static func makeFixture(session: SessionModel, pasteboard: any AgentViewKit.Pasteboard) -> Fixture
+  {
     let target = AgentCommandTarget()
     target.session = session
     target.pasteboard = pasteboard
@@ -70,11 +85,14 @@ private final class RecordingPasteboard: AgentViewKit.Pasteboard {
     let system = CommandSystemHarness {
       Scope(segment, bindings: bindings) {
         Scope(blockSegment, contributes: { $0.codeBlock = value })
+        Scope(viewSegment, contributes: { $0.codeBlockCode = viewCode })
       }
     }
     let sessionPath = FocusPath.root(segment)
     system.focus(sessionPath)
-    return Fixture(target: target, system: system, sessionPath: sessionPath, blockPath: sessionPath.appending(blockSegment))
+    return Fixture(
+      target: target, system: system, sessionPath: sessionPath,
+      blockPath: sessionPath.appending(blockSegment))
   }
 
   // MARK: - Place
@@ -94,7 +112,8 @@ private final class RecordingPasteboard: AgentViewKit.Pasteboard {
   @Test func thePaletteShowsCopyCodeBlockOnlyInACodeBlock() {
     let fixture = Self.makeFixture(session: .preview(), pasteboard: RecordingPasteboard())
 
-    let sessionRows = fixture.system.registry.eligible(path: fixture.sessionPath).filter(\.isVisible)
+    let sessionRows = fixture.system.registry.eligible(path: fixture.sessionPath).filter(
+      \.isVisible)
     let blockRows = fixture.system.registry.eligible(path: fixture.blockPath).filter(\.isVisible)
 
     #expect(!sessionRows.contains { $0.id == AgentCommandVerb.copyCodeBlock.id })
@@ -111,6 +130,17 @@ private final class RecordingPasteboard: AgentViewKit.Pasteboard {
     #expect(!sessionIDs.contains(AgentCommandVerb.copyCodeBlock.id))
   }
 
+  /// A production change that fails this test: the gate of Copy Code
+  /// Block reads only the code block of EditorKit, so the palette does not
+  /// show it in a code block view of an answer.
+  @Test func thePaletteShowsCopyCodeBlockInACodeBlockViewOfAnAnswer() {
+    let fixture = Self.makeFixture(session: .preview(), pasteboard: RecordingPasteboard())
+
+    let rows = fixture.system.registry.eligible(path: fixture.viewPath).filter(\.isVisible)
+
+    #expect(rows.first { $0.id == AgentCommandVerb.copyCodeBlock.id }?.isEnabled == true)
+  }
+
   // MARK: - Run
 
   @Test func copyCodeBlockCopiesTheCodeOfTheBlock() {
@@ -122,6 +152,20 @@ private final class RecordingPasteboard: AgentViewKit.Pasteboard {
           AgentCommandVerb.copyCodeBlock.id, at: fixture.blockPath, clicked: fixture.blockPath))
 
       #expect(pasteboard.string(forType: .string) == Self.code)
+    }
+  }
+
+  /// A production change that fails this test: Copy Code Block does not
+  /// read the code of a code block view of an answer, so it copies nothing.
+  @Test func copyCodeBlockCopiesTheCodeOfACodeBlockViewOfAnAnswer() {
+    NSPasteboard.withIsolated { pasteboard in
+      let fixture = Self.makeFixture(session: .preview(), pasteboard: pasteboard)
+
+      #expect(
+        fixture.system.registry.perform(
+          AgentCommandVerb.copyCodeBlock.id, at: fixture.viewPath, clicked: fixture.viewPath))
+
+      #expect(pasteboard.string(forType: .string) == Self.viewCode)
     }
   }
 

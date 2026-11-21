@@ -1,4 +1,3 @@
-@testable import AgentViewKit
 import AgentViewKitTestSupport
 import EditorStyle
 import EditorSwiftUI
@@ -8,6 +7,8 @@ import FoundationModelsACPClient
 import Quartz
 import SwiftUI
 import Testing
+
+@testable import AgentViewKit
 
 /// The snapshot images of the real views of the kit, each in a real window on
 /// the screen, captured from the window server (AVK-13, EditorKit `style.md`
@@ -52,7 +53,8 @@ import Testing
     let thread = AgentThreadView(session: session).environment(\.codeBlockModelCache, cache)
 
     try await Self.generate(thread, named: "thread", size: SnapshotFixtures.threadSize) {
-      await SnapshotFixtures.waitForSyntax(of: try SnapshotFixtures.codeMessageModel(in: cache, session: session))
+      await SnapshotFixtures.waitForSyntax(
+        of: try SnapshotFixtures.codeMessageModel(in: cache, session: session))
     }
   }
 
@@ -98,7 +100,8 @@ import Testing
   /// controls.
   @Test func theButtonsOfTheBottomBarBelowTheTranscript() async throws {
     try await Self.generate(
-      SnapshotFixtures.bottomBarThread, named: "bottom-bar-buttons", size: SnapshotFixtures.threadSize)
+      SnapshotFixtures.bottomBarThread, named: "bottom-bar-buttons",
+      size: SnapshotFixtures.threadSize)
   }
 
   /// The sign-in card while its sign-in runs (^dj4hchg): EditorKit's busy
@@ -117,14 +120,16 @@ import Testing
     let signIn = AgentAuthView.signInIdentifier(for: ScriptedSession.loginAuthMethodID)
 
     try await ReviewGalleryScreenTests.gallery.record(
-      suite: "HostedSnapshotTests", named: "sign-in-card-signing-in", size: SnapshotFixtures.cardSize,
+      suite: "HostedSnapshotTests", named: "sign-in-card-signing-in",
+      size: SnapshotFixtures.cardSize,
       settle: { mount in
         _ = try AccessibilityAction.press.perform(on: signIn, in: mount.window)
         mount.render()
       },
       content: { appearance in
         let session = appearance == .light ? light : dark
-        return AgentAuthView(connection: session.connection).environment(\.sessionModel, session.model)
+        return AgentAuthView(connection: session.connection).environment(
+          \.sessionModel, session.model)
       })
   }
 
@@ -150,7 +155,8 @@ import Testing
   @Test func theComposerWhileTheAgentRuns() async throws {
     let composer = SnapshotFixtures.composer(for: SnapshotFixtures.runningSession)
 
-    try await Self.generate(composer, named: "composer-running", size: SnapshotFixtures.composerSize)
+    try await Self.generate(
+      composer, named: "composer-running", size: SnapshotFixtures.composerSize)
   }
 
   @Test func thePermissionRequestCard() async throws {
@@ -183,13 +189,15 @@ import Testing
     try await session.announceChild(reviewer, title: "Reviewer")
     let child = try #require(session.session(reviewer))
     try await Self.generate(
-      StatusLineGalleryFixtures.gallery(child: child), named: "status-line", size: StatusLineGalleryFixtures.size)
+      StatusLineGalleryFixtures.gallery(child: child), named: "status-line",
+      size: StatusLineGalleryFixtures.size)
   }
 
   /// Each view of the kit that shows a status, in each status, drawn with
   /// EditorKit's status token (``StatusGalleryFixtures``).
   @Test func theStatusOfEachKind() async throws {
-    try await Self.generate(StatusGalleryFixtures.gallery, named: "statuses", size: StatusGalleryFixtures.size)
+    try await Self.generate(
+      StatusGalleryFixtures.gallery, named: "statuses", size: StatusGalleryFixtures.size)
   }
 
   /// The location chips of a tool call and the file chips of a diff in a
@@ -197,7 +205,8 @@ import Testing
   /// than one row (``ChipRowsGalleryFixtures``).
   @Test func theChipRowsInANarrowColumn() async throws {
     try await Self.generate(
-      ChipRowsGalleryFixtures.gallery, named: "chip-rows-narrow", size: ChipRowsGalleryFixtures.size)
+      ChipRowsGalleryFixtures.gallery, named: "chip-rows-narrow", size: ChipRowsGalleryFixtures.size
+    )
   }
 
   /// The files of the kit with the look of Finder (D196): chips and an
@@ -207,7 +216,8 @@ import Testing
     let fixtures = try await FileIconGalleryFixtures()
     defer { fixtures.remove() }
 
-    try await Self.generate(fixtures.gallery, named: "file-icons", size: FileIconGalleryFixtures.size)
+    try await Self.generate(
+      fixtures.gallery, named: "file-icons", size: FileIconGalleryFixtures.size)
   }
 
   /// The normal, the selected and the focused state of each view of the
@@ -224,14 +234,16 @@ import Testing
   /// (``ButtonGalleryFixtures``).
   @Test func theButtonsInANarrowColumn() async throws {
     try await Self.generate(
-      try ButtonGalleryFixtures.gallery(), named: "buttons-narrow", size: ButtonGalleryFixtures.narrowSize)
+      try ButtonGalleryFixtures.gallery(), named: "buttons-narrow",
+      size: ButtonGalleryFixtures.narrowSize)
   }
 
   /// The button families of the kit in a wide column, each with its whole
   /// caption (``ButtonGalleryFixtures``).
   @Test func theButtonsInAWideColumn() async throws {
     try await Self.generate(
-      try ButtonGalleryFixtures.gallery(), named: "buttons-wide", size: ButtonGalleryFixtures.wideSize)
+      try ButtonGalleryFixtures.gallery(), named: "buttons-wide",
+      size: ButtonGalleryFixtures.wideSize)
   }
 
   @Test func theStatusBanner() async throws {
@@ -242,14 +254,16 @@ import Testing
 
   @Test func theTitleLinesOfTheBars() async throws {
     try await Self.generate(
-      SnapshotFixtures.titleLineBars, named: "status-bar-title-lines", size: SnapshotFixtures.titleLineBarsSize)
+      SnapshotFixtures.titleLineBars, named: "status-bar-title-lines",
+      size: SnapshotFixtures.titleLineBarsSize)
   }
 
   /// The permission-mode picker, the menu buttons of the config options and
   /// the tools, and the choice and toggle controls that their menus hold.
   @Test func theConfigAndToolControls() async throws {
     try await Self.generate(
-      SnapshotFixtures.configControls, named: "config-controls", size: SnapshotFixtures.configControlsSize)
+      SnapshotFixtures.configControls, named: "config-controls",
+      size: SnapshotFixtures.configControlsSize)
   }
 
   @Test func theCodeBlock() async throws {
@@ -262,6 +276,22 @@ import Testing
     }
   }
 
+  /// A response with prose and one Swift fence: the fence shows in a code
+  /// block view, between the two paragraphs (task ^4g2xbx1).
+  @Test func theResponseWithACodeBlock() async throws {
+    let cache = CodeBlockModelCache()
+    let response = ResponseView(
+      id: SnapshotFixtures.responseID, markdown: SnapshotFixtures.swiftResponse
+    )
+    .environment(\.codeBlockModelCache, cache)
+
+    try await Self.generate(
+      response, named: "response-code-block", size: SnapshotFixtures.responseSize
+    ) {
+      await SnapshotFixtures.waitForSyntax(of: try SnapshotFixtures.responseCodeModel(in: cache))
+    }
+  }
+
   @Test func theTerminalOutput() async throws {
     let entry = try #require(
       PreviewFixtures.entry(
@@ -270,7 +300,8 @@ import Testing
           exitCode: CommandOutputView.successExitCode),
         as: TerminalEntry.self))
 
-    try await Self.generate(TerminalView(entry: entry), named: "terminal", size: SnapshotFixtures.terminalSize)
+    try await Self.generate(
+      TerminalView(entry: entry), named: "terminal", size: SnapshotFixtures.terminalSize)
   }
 
   /// The output of a command that failed, whose line of the problem is wider
@@ -280,7 +311,8 @@ import Testing
       command: PreviewFixtures.lintCommand, output: PreviewFixtures.lintOutput,
       exitCode: PreviewFixtures.failingExitCode)
 
-    try await Self.generate(output, named: "command-output", size: SnapshotFixtures.commandOutputSize)
+    try await Self.generate(
+      output, named: "command-output", size: SnapshotFixtures.commandOutputSize)
   }
 
   /// A diff of a patch: the file chips over EditorKit's one-value preview of
@@ -295,7 +327,8 @@ import Testing
   /// for the load of the preview to fail.
   @Test func theDiffOfAnUnreadablePatch() async throws {
     try await Self.generate(
-      DiffView(patch: SnapshotFixtures.unreadablePatch), named: "diff-unreadable", size: SnapshotFixtures.diffSize
+      DiffView(patch: SnapshotFixtures.unreadablePatch), named: "diff-unreadable",
+      size: SnapshotFixtures.diffSize
     ) {
       await RunLoopBlockFence.afterPendingBlocks()
     }

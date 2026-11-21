@@ -12,6 +12,21 @@ code, the `\.codeBlockID` environment value and the
 call, a resource and a source attachment show their code in it, and
 `CodeBlockModelCache` keeps the model of each `ResponseView`.
 
+Revision of 2026-11-21 (task ^4g2xbx1): the user decided that an answer
+shows each fenced code block in `CodeBlockView`, with its line numbers and
+its Copy button. `ResponseView` splits its text with `MarkdownCodeFences`
+(the CommonMark fence rules, backticks and tildes) and shows each prose
+segment in `RenderedMarkdownView` and each fence in `CodeBlockView`. A text
+with no fence shows in one `RenderedMarkdownView`, as before. Each code
+block of an answer is in its own command scope (`AgentCodeBlockScope`,
+segment `agentCodeBlock:<responseID>/<index>`), which gives its code to the
+context of the commands (`CommandContext.codeBlockCode`). Thus the Copy
+button, Copy Code Block of the item menu and Copy Code Block of the palette
+copy the same code. This replaces D193 (f) (no controls in the header of a
+fence of an answer). A citation chip goes to the prose segment that holds
+its offset. `MarkdownFence` and the paragraph index of a citation do not
+change: they know only backtick fences.
+
 This file records how `EditorKitCodeBlockStyle` gets the code of a fenced
 block from Textual, and the related decisions of `CodeBlockView`.
 

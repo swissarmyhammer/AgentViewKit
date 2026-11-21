@@ -6,11 +6,11 @@ import SwiftUI
 ///
 /// The model applies the streamed chunks to the text of the entry at the
 /// display rate, so the view gets the whole text each time. The view shows
-/// the text in one read-only EditorKit model (``RenderedMarkdownView``). A new
-/// text that starts with the old text goes into the model as one edit at the
-/// end, so EditorKit parses and lays out only the end of the text. Each
-/// response has a model of its own, keyed by its id: a chunk changes only the
-/// model of its own response. When the environment has a
+/// a text with no fence in one read-only EditorKit model
+/// (``RenderedMarkdownView``). A new text that starts with the old text goes
+/// into the model as one edit at the end, so EditorKit parses and lays out
+/// only the end of the text. Each response has a model of its own, keyed by
+/// its id: a chunk changes only the model of its own response. When the environment has a
 /// ``CodeBlockModelCache``, the model is in the cache. Otherwise the view
 /// keeps the model in its state.
 ///
@@ -24,14 +24,25 @@ import SwiftUI
 /// that was never laid out shows its editor. In the empty space, the text is
 /// still one accessibility element with the same identifier and value.
 ///
-/// EditorKit shows each fenced code block, each formula and each image of the
-/// text. When the view has a ``CitationPayload``, EditorKit shows a citation
-/// chip at each ``CitationMarker``. A press on a chip selects its source, as
-/// a press on an ``InlineCitation`` pill does.
+/// A text with a fenced code block shows in segments (``MarkdownCodeFences``,
+/// task ^4g2xbx1): each prose segment in a ``RenderedMarkdownView``, and each
+/// fenced code block in a ``CodeBlockView``, with its line numbers and its
+/// Copy button. Each code block is in its own command scope
+/// (``AgentCodeBlockScope``), so Copy Code Block of the item menu and of the
+/// palette copies its code. Each segment is keyed by its index, so a streamed
+/// chunk changes only the last segment. In a ``CodeBlockModelCache``, each
+/// segment has a model of its own (``segmentModelID(for:index:isCode:)``). A
+/// text with no fence shows in one ``RenderedMarkdownView``.
 ///
-/// The text is one accessibility element with the identifier
-/// ``textIdentifier``, in one linked reading group (plan.md §6). In a
-/// message, the group is the group of the message. The view applies
+/// EditorKit shows each formula and each image of the text. When the view
+/// has a ``CitationPayload``, EditorKit shows a citation chip at each
+/// ``CitationMarker``, in the prose segment that holds it. A press on a chip
+/// selects its source, as a press on an ``InlineCitation`` pill does.
+///
+/// The text of each prose segment is one accessibility element with the
+/// identifier ``textIdentifier``, in one linked reading group (plan.md §6).
+/// A text with no fence is one such element. In a message, the group is the
+/// group of the message. The view applies
 /// ``SwiftUI/View/accessibilityReadingScope()``, so the group works also
 /// outside an ``AgentThreadView``.
 public struct ResponseView: View {
@@ -42,6 +53,10 @@ public struct ResponseView: View {
   /// The paragraph id of the whole text of a response in a
   /// ``CodeBlockModelCache``.
   static let textBlockKey = "response-text"
+
+  /// The start of the paragraph id of a code segment of a response in a
+  /// ``CodeBlockModelCache``.
+  static let codeSegmentKey = "response-code"
 
   /// The id that keys the model of the text, unique in the thread.
   let id: String
@@ -109,6 +124,43 @@ public struct ResponseView: View {
     CodeBlockID(messageID: id, paragraphID: textBlockKey)
   }
 
+  /// The identity of the model of one segment of the text of the response
+  /// `id` in a ``CodeBlockModelCache``, for a text with a fence.
+  ///
+  /// - Parameters:
+  ///   - id: The id of the response.
+  ///   - index: The index of the segment (``MarkdownCodeFences``).
+  ///   - isCode: Whether the segment is a fenced code block. A prose
+  ///     segment and a code segment at the same index have different
+  ///     models, so a segment that streams from prose to code gets a new
+  ///     model of the correct kind.
+  /// - Returns: The identity. Its message id is `id`, so that
+  ///   ``CodeBlockModelCache/evict(messageID:)`` removes the model.
+  static func segmentModelID(for id: String, index: Int, isCode: Bool) -> CodeBlockID {
+    CodeBlockID(messageID: id, paragraphID: "\(isCode ? codeSegmentKey : textBlockKey)-\(index)")
+  }
+
+  /// The citation chips of one prose segment of the text.
+  ///
+  /// - Parameters:
+  ///   - chips: The chips of the whole text. The offset of each chip is a
+  ///     UTF-8 offset in the whole text.
+  ///   - range: The range of the prose segment in the whole text.
+  ///   - markdown: The whole text.
+  /// - Returns: The chips whose offset is in `range`, each with its offset
+  ///   moved to the start of the segment.
+  static func chips(_ chips: [EditorCitation], in range: Range<String.Index>, of markdown: String)
+    -> [EditorCitation]
+  {
+    let start = markdown.utf8.distance(from: markdown.startIndex, to: range.lowerBound)
+    let end = markdown.utf8.distance(from: markdown.startIndex, to: range.upperBound)
+    return chips.filter { (start...end).contains($0.offset) }.map { chip in
+      var moved = chip
+      moved.offset -= start
+      return moved
+    }
+  }
+
   /// Whether the row of the response keeps its models. A response outside
   /// a thread row is always live.
   private var isLive: Bool {
@@ -157,18 +209,65 @@ public struct ResponseView: View {
     }
   }
 
-  /// The text in a read-only EditorKit editor.
+  /// The text in read-only EditorKit editors.
   private var editor: some View {
     let laidOutHeight = laidOutHeight
-    return RenderedMarkdownView(
-      markdown, identifier: Self.textIdentifier, citations: chips,
-      model: cache.map { Self.model(in: $0, id: id, markdown: markdown) }
-    )
-    .textSelectionRegion(selectionClaim.forwarding(to: selectionRegion))
-    .onGeometryChange(for: CGFloat.self) {
-      $0.size.height
-    } action: {
-      laidOutHeight.points = $0
+    return
+      text
+      .textSelectionRegion(selectionClaim.forwarding(to: selectionRegion))
+      .onGeometryChange(for: CGFloat.self) {
+        $0.size.height
+      } action: {
+        laidOutHeight.points = $0
+      }
+  }
+
+  /// The text: one ``RenderedMarkdownView`` for a text with no fence, or a
+  /// stack of its segments for a text with a fence.
+  @ViewBuilder private var text: some View {
+    let pieces = MarkdownCodeFences.pieces(in: markdown)
+    if pieces.contains(where: \.segment.isCode) {
+      // A segment is keyed by its index, so a streamed chunk changes only
+      // the last segment.
+      VStack(alignment: .leading) {
+        ForEach(pieces.indices, id: \.self) { index in
+          segment(pieces[index], at: index)
+        }
+      }
+    } else {
+      RenderedMarkdownView(
+        markdown, identifier: Self.textIdentifier, citations: chips,
+        model: cache.map { Self.model(in: $0, id: id, markdown: markdown) })
+    }
+  }
+
+  /// The view of one segment of a text with a fence.
+  ///
+  /// - Parameters:
+  ///   - piece: The segment and its range in the text.
+  ///   - index: The index of the segment.
+  /// - Returns: A ``RenderedMarkdownView`` for prose, with the chips of the
+  ///   segment, or a ``CodeBlockView`` in the scope of its block for code.
+  @ViewBuilder
+  private func segment(_ piece: MarkdownCodeFences.Piece, at index: Int) -> some View {
+    switch piece.segment {
+    case .prose(let prose):
+      RenderedMarkdownView(
+        prose, identifier: Self.textIdentifier,
+        citations: Self.chips(chips, in: piece.range, of: markdown),
+        model: cache.map {
+          $0.model(
+            for: Self.segmentModelID(for: id, index: index, isCode: false), text: prose,
+            make: RenderedMarkdownView.makeModel)
+        })
+    case .code(let code, let language, let filename):
+      CodeBlockView(
+        code: code, language: language, filename: filename,
+        model: cache.map {
+          $0.model(for: Self.segmentModelID(for: id, index: index, isCode: true), code: code)
+        }
+      )
+      .agentCodeBlockScope(AgentScopeKind.codeBlock(responseID: id, index: index), code: code)
     }
   }
 
@@ -198,6 +297,9 @@ final class LaidOutHeight {
 }
 
 #Preview("Response with citations") {
-  ResponseView(id: "preview-response", markdown: PreviewFixtures.citedResponse, citations: PreviewFixtures.citations)
-    .citationScope()
+  ResponseView(
+    id: "preview-response", markdown: PreviewFixtures.citedResponse,
+    citations: PreviewFixtures.citations
+  )
+  .citationScope()
 }
