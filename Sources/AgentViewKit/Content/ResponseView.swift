@@ -111,7 +111,22 @@ public struct ResponseView: View {
   ///   - markdown: The text of a new model.
   /// - Returns: The read-only model in the rendered presentation.
   static func model(in cache: CodeBlockModelCache, id: String, markdown: String) -> EditorModel {
-    cache.model(for: modelID(for: id), text: markdown, make: RenderedMarkdownView.makeModel)
+    model(in: cache, modelID: modelID(for: id), markdown: markdown)
+  }
+
+  /// The model of one Markdown text of a response in `cache`: the whole
+  /// text, or one prose segment of a text with a fence.
+  ///
+  /// - Parameters:
+  ///   - cache: The cache of the models.
+  ///   - modelID: The identity of the model (``modelID(for:)`` or
+  ///     ``segmentModelID(for:index:isCode:)``).
+  ///   - markdown: The text of a new model.
+  /// - Returns: The read-only model in the rendered presentation.
+  static func model(in cache: CodeBlockModelCache, modelID: CodeBlockID, markdown: String)
+    -> EditorModel
+  {
+    cache.model(for: modelID, text: markdown, make: RenderedMarkdownView.makeModel)
   }
 
   /// The identity of the text of the response `id` in a
@@ -235,10 +250,25 @@ public struct ResponseView: View {
         }
       }
     } else {
-      RenderedMarkdownView(
-        markdown, identifier: Self.textIdentifier, citations: chips,
-        model: cache.map { Self.model(in: $0, id: id, markdown: markdown) })
+      prose(markdown, modelID: Self.modelID(for: id), citations: chips)
     }
+  }
+
+  /// One Markdown text of the response in a ``RenderedMarkdownView``: the
+  /// whole text, or one prose segment of a text with a fence.
+  ///
+  /// - Parameters:
+  ///   - text: The Markdown text.
+  ///   - modelID: The identity of its model in a ``CodeBlockModelCache``.
+  ///   - citations: The citation chips of the text, with offsets in the text.
+  /// - Returns: The view, with the identifier ``textIdentifier``, and its
+  ///   model from the cache when the environment has a cache.
+  private func prose(_ text: String, modelID: CodeBlockID, citations: [EditorCitation])
+    -> some View
+  {
+    RenderedMarkdownView(
+      text, identifier: Self.textIdentifier, citations: citations,
+      model: cache.map { Self.model(in: $0, modelID: modelID, markdown: text) })
   }
 
   /// The view of one segment of a text with a fence.
@@ -251,15 +281,10 @@ public struct ResponseView: View {
   @ViewBuilder
   private func segment(_ piece: MarkdownCodeFences.Piece, at index: Int) -> some View {
     switch piece.segment {
-    case .prose(let prose):
-      RenderedMarkdownView(
-        prose, identifier: Self.textIdentifier,
-        citations: Self.chips(chips, in: piece.range, of: markdown),
-        model: cache.map {
-          $0.model(
-            for: Self.segmentModelID(for: id, index: index, isCode: false), text: prose,
-            make: RenderedMarkdownView.makeModel)
-        })
+    case .prose(let text):
+      prose(
+        text, modelID: Self.segmentModelID(for: id, index: index, isCode: false),
+        citations: Self.chips(chips, in: piece.range, of: markdown))
     case .code(let code, let language, let filename):
       CodeBlockView(
         code: code, language: language, filename: filename,

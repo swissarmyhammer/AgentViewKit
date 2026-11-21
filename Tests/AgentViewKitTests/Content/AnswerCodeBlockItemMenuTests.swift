@@ -96,22 +96,12 @@ import Testing
       .appending(AgentScopeKind.message(rowKey: rowKey))
     let codeSegment = AgentScopeKind.codeBlock(
       responseID: EntryContentView.blockID(entryID: rowKey, index: 0), index: codeSegmentIndex)
-    let texts = allViews(ofType: NSTextView.self, in: hosting)
+    let texts = views(ofType: NSTextView.self, in: hosting)
     return Fixture(
       system: system, hosting: hosting,
       paragraph: try #require(texts.first { $0.string != CodeBlockAnswerFixture.code }),
       code: try #require(texts.first { $0.string == CodeBlockAnswerFixture.code }),
       itemPath: itemPath, codePath: itemPath.appending(codeSegment))
-  }
-
-  /// Each view of `type` under `root`, depth first.
-  ///
-  /// - Parameters:
-  ///   - type: The class of the views.
-  ///   - root: The root view.
-  /// - Returns: The views, in tree order.
-  static func allViews<V: NSView>(ofType type: V.Type, in root: NSView) -> [V] {
-    ((root as? V).map { [$0] } ?? []) + root.subviews.flatMap { allViews(ofType: type, in: $0) }
   }
 
   /// A production change that fails this test: the code block view of the

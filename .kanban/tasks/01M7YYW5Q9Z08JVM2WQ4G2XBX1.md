@@ -63,6 +63,45 @@ comments:
     - evidence: `swift test` (headless): 1586 tests in 180 suites and 54 tests in 11 suites passed, 0 failures, 0 warnings. `swift build --build-tests` in IntegrationTests and ScreenshotTests: exit 0. `swift format lint --strict` on the touched files: clean. 18 files: Sources/AgentViewKit/Content/MarkdownCodeFences.swift (new), Sources/AgentViewKit/Commands/AgentCodeBlockScope.swift (new), Sources/AgentViewKit/Content/ResponseView.swift, Sources/AgentViewKit/Content/RenderedMarkdownView.swift, Sources/AgentViewKit/Commands/AgentCommands.swift, Sources/AgentViewKit/Commands/AgentCommandPlacement.swift, Sources/AgentViewKitTestSupport/CodeBlockAnswerFixture.swift, Docs/decisions/code-block-source.md, Tests/AgentViewKitTests/Content/MarkdownCodeFencesTests.swift (new), Tests/AgentViewKitTests/Content/ResponseViewTests.swift, Tests/AgentViewKitTests/Content/AnswerCodeBlockItemMenuTests.swift, Tests/AgentViewKitTests/Commands/CopyCodeBlockCommandTests.swift, IntegrationTests/Tests/IntegrationTests/Content/ResponseViewHostedTests.swift, IntegrationTests/Tests/IntegrationTests/Content/AnswerCodeBlockItemMenuPointerHostedTests.swift, ScreenshotTests/Tests/ScreenshotTests/SnapshotFixtures.swift, ScreenshotTests/Tests/ScreenshotTests/HostedSnapshotTests.swift
     - next: /review. The hosted suites and the new snapshot "response-code-block" need a run when the user permits it.
   timestamp: 2026-11-21T20:58:08.199997+00:00
+- actor: claude-code
+  id: 01m7zyrz1gmbn3x2j8fcj2ajwg
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (dd938ec6); 6 findings, 6 confirmed, 0 refuted — Sources/AgentViewKit/Content/MarkdownCodeFences.swift:79 (2), Sources/AgentViewKit/Content/ResponseView.swift:255, Tests/AgentViewKitTests/Content/ResponseViewTests.swift:36, Tests/AgentViewKitTests/Content/ResponseViewTests.swift:45, Tests/AgentViewKitTests/Content/ResponseViewTests.swift:118
+    - next: implement the 6 open items in the "Review Findings (2026-11-21 15:00)" section. The task stays in review.
+  timestamp: 2026-11-21T21:04:10.800864+00:00
+- actor: claude-code
+  id: 01m7zysfak81vkfqs48915mwbf
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 16 files
+    - test: green — swift test, 1586 tests in 180 suites and 54 tests in 11 suites passed; IntegrationTests and ScreenshotTests build passed (not run)
+    - commit: dd938ec6
+    - review: findings — Sources/AgentViewKit/Content/MarkdownCodeFences.swift:79 (2), Sources/AgentViewKit/Content/ResponseView.swift:255, Tests/AgentViewKitTests/Content/ResponseViewTests.swift:36, :45, :118
+  timestamp: 2026-11-21T21:04:27.475391+00:00
+- actor: claude-code
+  id: 01m7zz4evsjsw1a0g052y50v9f
+  text: |-
+    Review findings (2026-11-21 15:00) fixed. All 6 are now `- [x]`. No finding was dropped.
+
+    - `isLineBreak`: one copy. `MarkdownParagraphs.isLineBreak` is now internal (same body), and `MarkdownCodeFences.pieces(in:)` calls it. The private copy is deleted.
+    - `ResponseView`: new private `prose(_:modelID:citations:)` builds the `RenderedMarkdownView` for the no-fence path and for each prose segment. It gets the model through the new `ResponseView.model(in:modelID:markdown:)`; `model(in:id:markdown:)` forwards to it, so its tests (and the hosted test) test the same path.
+    - `ResponseViewTests.mount` calls `StyleViewHost.layOut(_:)`.
+    - Tree walk: EditorTestSupport already has the shared walk `views(ofType:in:)` (`../EditorKit/Sources/EditorTestSupport/HostedWindow.swift`). Thus no new helper: `ResponseViewTests.texts(under:)` and `AnswerCodeBlockItemMenuTests.allViews(ofType:in:)` are deleted, and both suites call `views(ofType:in:)`.
+    - Eviction tests: `theEvictionOfAMessageRemovesTheModelsOfItsSegments` expects `cache.count == 1` before the eviction. The same cause was in `theEvictionOfAMessageRemovesTheModelOfItsResponse` (same file), so it got the same precondition.
+
+    Discoveries:
+    - `Tests/AgentViewKitTests/Thread/LiveRowModelsTests.swift` has its own `textViews(in:)` walk. That file is not in this change and the test existed before dd938ec6, so it did not change here.
+    - `CodeFenceLine.run(in:)` is a near copy of `MarkdownFence.backtickRun(_:)`. The user decision tells not to change `MarkdownFence` in this task, so new task ^ebjsh32 records it.
+    - The headless `swift test` prints one SwiftPM build warning, "missing creator for mutated node" for the mlx-swift_Cmlx.bundle. It comes from the build system and a dependency bundle, not from a source file of this change.
+  timestamp: 2026-11-21T21:10:27.449887+00:00
+- actor: claude-code
+  id: 01m7zz4hvx4kcsqnpc32admr31
+  text: |-
+    ### implement — changed
+    - evidence: `swift test` (headless): 1586 tests in 180 suites and 54 tests in 11 suites passed, 0 failures. `swift build --build-tests` in IntegrationTests and ScreenshotTests: Build complete. `swift format lint --strict` on the 5 touched files: exit 0, no output. Files: Sources/AgentViewKit/Content/MarkdownCodeFences.swift, Sources/AgentViewKit/Content/MarkdownParagraphs.swift, Sources/AgentViewKit/Content/ResponseView.swift, Tests/AgentViewKitTests/Content/ResponseViewTests.swift, Tests/AgentViewKitTests/Content/AnswerCodeBlockItemMenuTests.swift. New task ^ebjsh32.
+    - next: /review. The task stays in doing.
+  timestamp: 2026-11-21T21:10:30.525881+00:00
 position_column: doing
 position_ordinal: '80'
 title: A response in the thread shows each fenced code block in CodeBlockView
@@ -91,3 +130,22 @@ In the chat stream, a fenced code block of a response does not use ``CodeBlockVi
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
 - Run only the headless `swift test`. Do not run the IntegrationTests or ScreenshotTests suites (they take the screen focus); a build of them is allowed.
+
+## Review Findings (2026-11-21 15:00)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 15 file(s) reviewed, 3 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+> 1 file(s) not reviewed — no validator matched:
+> - `Docs/decisions/code-block-source.md` — no validator matches this file
+
+- [x] `Sources/AgentViewKit/Content/MarkdownCodeFences.swift:79` `duplication/duplication` — The new `MarkdownCodeFences.isLineBreak` is a verbatim copy of the existing `MarkdownParagraphs.isLineBreak`. Both test for LF, CR and CRLF with the same body. If one copy changes its line-break rules, the other drifts out of sync, and the Markdown paragraph and fence scanners then split the same text differently. Delete the private `isLineBreak` in MarkdownCodeFences.swift. Move the function to one shared, non-private helper (for example an internal static on `MarkdownParagraphs`, or a small shared enum in `Content/`). Call it from both `split(whereSeparator:)` sites. The existing counterpart only needs its access level raised. Do not change its behavior.
+- [x] `Sources/AgentViewKit/Content/MarkdownCodeFences.swift:79` `reuse/reuse` — The new private static func isLineBreak duplicates an existing helper with the same name and the same body. MarkdownParagraphs already has this line-break test, so two copies of the same rule must now be kept in step. If one changes, the other can drift. Move isLineBreak to one shared place (for example an internal extension on Character, or an internal static on MarkdownParagraphs) and have both MarkdownParagraphs and MarkdownCodeFences call it. Remove the private copy from MarkdownCodeFences.
+- [x] `Sources/AgentViewKit/Content/ResponseView.swift:255` `duplication/duplication` — The prose case of `segment` repeats the no-fence branch of `text`. Both build a `RenderedMarkdownView` with `Self.textIdentifier`, the chips, and a `cache.map` model. Only the chips source and the model ID differ. If one copy changes (for example, a new `RenderedMarkdownView` argument), the other copy can drift out of sync. Extract one private helper, for example `prose(_ text: String, modelID: CodeBlockID, citations: [EditorCitation]) -> some View`, that builds the `RenderedMarkdownView` and calls `cache.model(for:text:make:)`. Call it from both the no-fence branch of `text` (with `Self.modelID(for: id)` and `chips`) and the prose case of `segment` (with `Self.segmentModelID(for: id, index: index, isCode: false)` and the moved chips). Then delete the second copy of the view construction.
+- [x] `Tests/AgentViewKitTests/Content/ResponseViewTests.swift:36` `reuse/reuse` — The `mount` helper rebuilds the layout pass that `StyleViewHost.layOut(_:)` already does: it sets the hosting view's frame to its fitting size, then calls `layoutSubtreeIfNeeded()`. The copy repeats that logic in a test file instead of calling the shared helper, so a change to the shared layout procedure would not reach these tests. Build the `NSHostingView` in `mount`, then call `StyleViewHost.layOut(hosting)` and return it. Delete the inline frame and `layoutSubtreeIfNeeded()` lines.
+- [x] `Tests/AgentViewKitTests/Content/ResponseViewTests.swift:45` `reuse/reuse` — `texts(under:)` is a depth-first walk that collects the `NSTextView` strings under a view. The same walk is written again as `allViews(ofType:in:)` in the same change, so the file pair holds two copies of one tree traversal. Each copy must be kept in step on its own. Move one generic traversal (for example `allViews(ofType:in:)`) into a shared test-support file. Both suites then call `allViews(ofType: NSTextView.self, in: view).map(\.string)` in place of their own recursion.
+- [x] `Tests/AgentViewKitTests/Content/ResponseViewTests.swift:118` `test-integrity/no-test-cheating` — The test theEvictionOfAMessageRemovesTheModelsOfItsSegments asserts only that the cache is empty after evict(messageID:). It never checks that the cache held the model before the eviction. If cache.model(for:code:) did not store the model, the count would still be 0 and the test would pass. The assertion cannot fail for the reason the test is named after. Add a precondition before the eviction, such as `#expect(cache.count == 1)`, so the test proves the model existed and was then removed. Keep `#expect(cache.count == 0)` after the eviction.
+
+> Fix notes (2026-11-21): `isLineBreak` has one copy, internal in `MarkdownParagraphs`; `MarkdownCodeFences` calls it. `ResponseView.prose(_:modelID:citations:)` builds each `RenderedMarkdownView`, through `ResponseView.model(in:modelID:markdown:)`. The tests use `StyleViewHost.layOut(_:)` and the EditorTestSupport walk `views(ofType:in:)` (it was there already, so no new helper); `AnswerCodeBlockItemMenuTests.allViews` is deleted. Both eviction tests in ResponseViewTests now expect `cache.count == 1` before the eviction. No finding was dropped. The near copy of the fence run in `CodeFenceLine` and `MarkdownFence` is a new task, because the user decision tells not to change `MarkdownFence` in this task.

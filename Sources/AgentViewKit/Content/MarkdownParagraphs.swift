@@ -32,11 +32,14 @@ nonisolated enum MarkdownParagraphs {
     return builder.paragraphs
   }
 
-  /// Tells whether a character is a line break of the paragraph rules.
+  /// Tells whether a character is a line break of the Markdown scanners:
+  /// the paragraph rules, and the fence rules of ``MarkdownCodeFences``.
+  /// The two scanners use this one rule, so they split a text into the same
+  /// lines.
   ///
   /// - Parameter character: A character of the text.
   /// - Returns: `true` for an LF, a CR, and a CRLF pair.
-  private static func isLineBreak(_ character: Character) -> Bool {
+  static func isLineBreak(_ character: Character) -> Bool {
     character == "\n" || character == "\r" || character == "\r\n"
   }
 

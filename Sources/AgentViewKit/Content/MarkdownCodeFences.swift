@@ -62,7 +62,9 @@ nonisolated enum MarkdownCodeFences {
   ///   prose piece that holds the whole text.
   static func pieces(in markdown: String) -> [Piece] {
     var builder = Builder()
-    for line in markdown.split(omittingEmptySubsequences: false, whereSeparator: isLineBreak) {
+    for line in markdown.split(
+      omittingEmptySubsequences: false, whereSeparator: MarkdownParagraphs.isLineBreak)
+    {
       builder.add(line)
     }
     let pieces = builder.finish()
@@ -70,14 +72,6 @@ nonisolated enum MarkdownCodeFences {
       return [Piece(segment: .prose(markdown), range: markdown.startIndex..<markdown.endIndex)]
     }
     return pieces
-  }
-
-  /// Tells whether a character is a line break of the fence rules.
-  ///
-  /// - Parameter character: A character of the text.
-  /// - Returns: `true` for an LF, a CR, and a CRLF pair.
-  private static func isLineBreak(_ character: Character) -> Bool {
-    character == "\n" || character == "\r" || character == "\r\n"
   }
 
   /// The state of one scan.

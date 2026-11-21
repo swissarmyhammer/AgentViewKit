@@ -1,3 +1,4 @@
+import AgentViewKitTestSupport
 import AppKit
 import EditorSwiftUI
 import EditorTestSupport
@@ -33,18 +34,8 @@ import Testing
   static func mount(_ markdown: String) -> NSHostingView<some View> {
     let hosting = NSHostingView(
       rootView: ResponseView(id: "response", markdown: markdown).frame(width: hostWidth))
-    hosting.frame = NSRect(origin: .zero, size: hosting.fittingSize)
-    hosting.layoutSubtreeIfNeeded()
+    StyleViewHost.layOut(hosting)
     return hosting
-  }
-
-  /// The text of each text view under `view`, in tree order.
-  ///
-  /// - Parameter view: The root view.
-  /// - Returns: The texts.
-  static func texts(under view: NSView) -> [String] {
-    if let text = view as? NSTextView { return [text.string] }
-    return view.subviews.flatMap(texts(under:))
   }
 
   /// The accessibility labels of the code block views under `view`.
@@ -72,7 +63,8 @@ import Testing
   @Test func aResponseWithOneFenceShowsProseCodeAndProse() {
     let hosting = Self.mount(Self.fencedText)
 
-    #expect(Self.texts(under: hosting) == ["Intro.", "let a = 1", "End."])
+    #expect(
+      views(ofType: NSTextView.self, in: hosting).map(\.string) == ["Intro.", "let a = 1", "End."])
   }
 
   /// A production change that fails this test: the code of a fence shows
@@ -89,7 +81,7 @@ import Testing
     let text = "One.\n\nTwo."
     let hosting = Self.mount(text)
 
-    #expect(Self.texts(under: hosting) == [text])
+    #expect(views(ofType: NSTextView.self, in: hosting).map(\.string) == [text])
     #expect(await Self.codeBlockLabels(under: hosting).isEmpty)
   }
 
@@ -112,6 +104,7 @@ import Testing
     let cache = CodeBlockModelCache()
     _ = cache.model(
       for: ResponseView.segmentModelID(for: "response", index: 1, isCode: true), code: "x")
+    #expect(cache.count == 1)
 
     cache.evict(messageID: "response")
 
@@ -202,6 +195,7 @@ import Testing
   @Test func theEvictionOfAMessageRemovesTheModelOfItsResponse() {
     let cache = CodeBlockModelCache()
     _ = ResponseView.model(in: cache, id: "response", markdown: "Text.")
+    #expect(cache.count == 1)
 
     cache.evict(messageID: "response")
 
