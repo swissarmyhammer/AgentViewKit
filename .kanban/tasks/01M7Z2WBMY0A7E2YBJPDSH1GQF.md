@@ -20,10 +20,27 @@ comments:
     - evidence: 4 files — Sources/AgentViewKit/Items/AgentSymbol.swift, Sources/AgentViewKit/Code/CodeBlockView.swift, Tests/AgentViewKitTests/Code/CodeBlockSymbolTests.swift (new), IntegrationTests/Tests/IntegrationTests/Code/CodeBlockViewHostedTests.swift. `swift test`: 1608 tests in 183 suites passed, plus 54 tests in 11 suites passed, 0 failures. `swift build --build-tests` passes in IntegrationTests and in ScreenshotTests. `swift format lint --strict` passes on the 4 files.
     - next: /review. A hosted run must prove the two open acceptance items (the same x as the terminal command, and the symbol before "plain text"), and the code-block PNG must be made again for the user.
   timestamp: 2026-11-21T23:02:30.119324+00:00
+- actor: claude-code
+  id: 01m805q2v9whrr783pwwmhqarq
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD — 0 findings, 0 confirmed, 0 refuted (7 attempted, 0 failed). 4 files reviewed; 2 files in .kanban/ not reviewed (ignore rule).
+    - next: none. The task is in done.
+  timestamp: 2026-11-21T23:05:29.193374+00:00
+- actor: claude-code
+  id: 01m805qhm5kez46c96wdvhvgtz
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 4 files (AgentSymbol.codeBlock, the symbol in the BlockHeader title of CodeBlockView, 3 unit tests, 2 hosted alignment tests)
+    - test: green — swift test, 1608 tests in 183 suites and 54 tests in 11 suites passed; IntegrationTests and ScreenshotTests build passed (not run)
+    - commit: dfdd324a
+    - review: clean — 0 findings
+    - Open: the 2 hosted alignment tests and the code-block PNG need a hosted run; CI on main runs the hosted tests.
+  timestamp: 2026-11-21T23:05:44.325427+00:00
 depends_on:
 - 01M7YZJF2WT82MEFW3DACB63ES
-position_column: doing
-position_ordinal: '80'
+position_column: done
+position_ordinal: ffffffff8e80
 title: The header of a code block shows a code symbol in the symbol column, as the terminal header does
 ---
 ## What
