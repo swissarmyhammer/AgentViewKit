@@ -94,6 +94,43 @@ comments:
     - open: 5 tests are not fixed. 3 need EditorKit (task ^6386krf): AgentItemFocus `.message`, the math value, linked text. 2 need a hosted run to find the cause: ThreadHeaderContextMenu empty part, ThreadBarBannerOverlap.
     - next: /review, then a CI Integration run.
   timestamp: 2026-11-21T21:40:44.099235+00:00
+- actor: claude-code
+  id: 01m801y8th2ngwpx2b92yttk26
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (676308b0): engine 20 confirmed, 31 refuted. 19 dropped by the written rule (refactor of tests that existed before). 1 open: IntegrationTests/Tests/IntegrationTests/Helpers/ComposerHarness.swift:92 (completeness/invariant-propagation).
+    - next: Fix the open finding. The task stays in Review: 5 hosted tests are not fixed, and CI on main is not green.
+  timestamp: 2026-11-21T21:59:30.385399+00:00
+- actor: claude-code
+  id: 01m801yvttewy9thgmztyacm7m
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 88 files (bounded waits in the hosted tests; 16 stale hosted tests fixed; 5 open: 3 on ^6386krf, 2 need a hosted run)
+    - test: green — swift test, 1586 tests in 180 suites and 54 tests in 11 suites passed; IntegrationTests and ScreenshotTests build passed (not run)
+    - commit: 676308b0
+    - review: findings — IntegrationTests/Tests/IntegrationTests/Helpers/ComposerHarness.swift:92 (19 others dropped by the written rule for old tests)
+  timestamp: 2026-11-21T21:59:49.850056+00:00
+- actor: claude-code
+  id: 01m802623dz9a30qbbm5yypawm
+  text: |-
+    Implement pass for the finding at ComposerHarness.swift:92 (sourceLocation of the bounded wait).
+
+    Research: A script examined each func in IntegrationTests, ScreenshotTests and Examples that has a `sourceLocation: SourceLocation` parameter, and found each bounded wait call in its body (ObservationWait.until(within:), renderAfter, boundedValue, BoundedWait). Two calls did not send the location of the caller:
+    - `ComposerHarness.typePrompt`: `ObservationWait.until(within: BoundedWait.defaultBound)`.
+    - `SingleLineFieldChecks.expectAnswerTakesTheTypingOffTheUndoStack`: `window.harness.renderAfter(requestIsGone)`.
+    Each bounded wait helper (`RenderedMount.renderAfter`, `Task.boundedValue` in AgentViewKitTestSupport, EditorKit `ObservationWait.until(within:sourceLocation:)`) already has a `sourceLocation` parameter, so no helper signature changed. `ComposerWindowUndoHostedTests.performWhileAvailable` (called by `SingleLineFieldChecks.typeAndUndoAll`) has no bounded wait (it uses the unbounded `waitUntilIdle`) and no `sourceLocation` parameter, so it is out of scope.
+
+    Change: both calls now send `sourceLocation: sourceLocation`.
+
+    TDD note: no failing test was written first. The change is only the location of an issue in hosted test helpers, and the hosted suites are not run locally (user rule). The build of the hosted test tree checks that the code compiles.
+  timestamp: 2026-11-21T22:03:45.645446+00:00
+- actor: claude-code
+  id: 01m80264mhya980ea99z8ceabc
+  text: |-
+    ### implement — changed
+    - evidence: 2 files — IntegrationTests/Tests/IntegrationTests/Helpers/ComposerHarness.swift, IntegrationTests/Tests/IntegrationTests/Helpers/SingleLineFieldChecks.swift. `swift test` (root, headless): 1586 tests in 180 suites passed, and 54 tests in 11 suites passed, rc=0. `cd IntegrationTests && swift build --build-tests`: Build complete, 0 errors. `swift format lint --strict` on the 2 files: 0 findings. The finding at ComposerHarness.swift:92 is flipped to [x]. Hosted suites not run (user rule).
+    - next: /review. The task stays in doing.
+  timestamp: 2026-11-21T22:03:48.241984+00:00
 position_column: doing
 position_ordinal: '80'
 title: Integration CI job on main is red (run 44757895393, a60d101a)
@@ -110,3 +147,26 @@ Failures:
 Do:
 - Read the result of the rerun. For each failure that stays, find the cause from the CI log and the code, and fix it. The hosted suites are not run locally; CI checks them.
 - Push, and send the sha and the CI result to testudoapp-9a.
+
+## Review Findings (2026-11-21 15:43)
+
+> Scope: `review sha HEAD~1..HEAD` (676308b0). The review examined only the lines that the change added or changed. 85 files were examined. 4 files in `.kanban/` were not examined (ignore rule). `Docs/decisions/accessibility.md` was not examined (no validator applies).
+
+- [x] `IntegrationTests/Tests/IntegrationTests/Helpers/ComposerHarness.swift:92` `completeness/invariant-propagation` — The bounded wait for the typed value does not send the sourceLocation of the caller. `typePrompt` has a `sourceLocation` parameter, and the goal of this change is that a missing event fails the test at the line of the test. The other waits in this change send the location, so this wait is not the same as them. When the bound expires here, the tool records the issue at the line of the helper, not at the line of the test that called `typePrompt`. Send the location of the caller: `await ObservationWait.until(within: BoundedWait.defaultBound, sourceLocation: sourceLocation) { typed() == prompt }`. Then a timeout shows at the line of the test that called the helper. Do this for each bounded wait in a helper that has a `sourceLocation` parameter.
+
+> 19 other findings are dropped. The written rule of the review skill drops findings that ask to refactor tests that existed before. Each test, helper and duplicate wait in these findings was in the code at HEAD~1. This change only added a bound (`within: BoundedWait.defaultBound`) or changed the format on these lines. The dropped findings are at these locations:
+> - `Commands/AgentCommandScopeHostedTests.swift:394` (duplication)
+> - `Config/ConfigOptionsSessionModelHostedTests.swift:213`, `:439`, `:472` (reuse)
+> - `HumanInTheLoop/PermissionViewHostedTests.swift:320` (reuse)
+> - `HumanInTheLoop/RequestDeckAccessibilityHostedTests.swift:94` (reuse)
+> - `Input/AttachmentChipsHostedTests.swift:293` (duplication)
+> - `Input/ComposerCompletionRoutesHostedTests.swift:331`, `:535` (duplication)
+> - `Input/ComposerDraftHostedTests.swift:181` (duplication)
+> - `Input/ComposerEditorMenuHostedTests.swift:143` (duplication)
+> - `Input/ComposerSessionModelHostedTests.swift:394`, `:450` (duplication)
+> - `Input/EditorKitPromptEditorHostedTests.swift:60` (duplication, reuse), `:198` (duplication)
+> - `Input/PromptInputViewHostedTests.swift:234` (duplication)
+> - `Items/MessageActionsHostedTests.swift:215` (test-integrity/no-test-cheating; the test and its expected value were at HEAD~1, and this change only changed the format of the line)
+> - `Thread/ThreadBottomBarHostedTests.swift:57` (reuse)
+
+> Status: This task stays open in Review. It is not done. 5 hosted tests are not fixed, and CI on main is not green.

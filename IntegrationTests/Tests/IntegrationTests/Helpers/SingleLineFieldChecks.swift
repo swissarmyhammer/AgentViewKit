@@ -328,7 +328,7 @@ import Testing
 
     try window.harness.sendKey(.return)
     try #require(answered(), sourceLocation: sourceLocation)
-    await window.harness.renderAfter(requestIsGone)
+    await window.harness.renderAfter(sourceLocation: sourceLocation, requestIsGone)
     try #require(
       window.harness.element(identifier: identifier) == nil, sourceLocation: sourceLocation)
     await RunLoopBlockFence.afterPendingBlocks()

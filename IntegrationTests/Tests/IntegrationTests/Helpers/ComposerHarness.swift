@@ -89,6 +89,8 @@ struct MountedThread<Content: View> {
       harness.focusFirstEditableTextView(of: NSTextView.self), sourceLocation: sourceLocation)
     harness.type(prompt)
     try harness.requireTextViewShows(prompt, sourceLocation: sourceLocation)
-    await ObservationWait.until(within: BoundedWait.defaultBound) { typed() == prompt }
+    await ObservationWait.until(within: BoundedWait.defaultBound, sourceLocation: sourceLocation) {
+      typed() == prompt
+    }
   }
 }
