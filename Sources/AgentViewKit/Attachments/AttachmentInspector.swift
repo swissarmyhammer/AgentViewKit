@@ -69,7 +69,9 @@ public final class InspectorSelection {
   ///   - change: The kind of the change.
   ///   - attachment: The attachment of the press.
   ///   - order: The attachments of the thread in transcript order.
-  func apply(_ change: AttachmentSelectionChange, to attachment: Attachment, order: () -> [Attachment]) {
+  func apply(
+    _ change: AttachmentSelectionChange, to attachment: Attachment, order: () -> [Attachment]
+  ) {
     list.apply(change, to: attachment, order: order)
   }
 }
@@ -210,24 +212,28 @@ private nonisolated struct VerticalInsets: Equatable, Sendable {
 ///
 /// The view shows one full block for each of its files, in selection order.
 /// Each block is an EditorKit `InspectorView` of one file, built from
-/// EditorKit's field kinds only (^e4857xj): the file name in the name row,
-/// the actions Open, Reveal in Finder, Share and Save in
-/// an EditorKit `InspectorActionRow` under the name, and EditorKit's
-/// one-value preview of the file, a live QuickLook preview at the preview
-/// height of the style, in its `.preview` row. The view never folds several
+/// EditorKit's field kinds only (^e4857xj). The first section of its form
+/// holds a ``BlockHeader``, the header that the code block has too
+/// (``CodeBlockView``): the file name, the line, and the actions Open,
+/// Reveal in Finder, Share and Save in an EditorKit `InspectorActionRow`.
+/// The header names the file, so the block hides the EditorKit name row
+/// (`.inspectorBlockHeader(.hidden)`). EditorKit's one-value preview of the
+/// file, a live QuickLook preview at the preview height of the style, is in
+/// its `.preview` row. The view never folds several
 /// files into one block. The context menu and the keys of the selected
 /// files in a thread view run each action on every selected file (card
 /// ^zsr2pbf); that is the selection of the thread, not this view.
 ///
-/// The rows take EditorKit's scheme ids, which ``nameIdentifier(of:)`` and
-/// ``previewIdentifier(of:)`` give for the block of each file:
+/// The title of the header and the preview row take EditorKit's scheme ids,
+/// which ``nameIdentifier(of:)`` and ``previewIdentifier(of:)`` give for
+/// the block of each file:
 /// `inspection:attachment/object:<object id>/name` and
 /// `inspection:attachment/object:<object id>/field:attachment.preview`.
 /// `attachment` is the explicit id of the inspection, ``viewIdentifier``.
 /// The object id is the raw id of the file of the block
 /// (``Identifier/rawValue``), with each `%`, `/`, `.` and `+` escaped as
 /// `%XX` by EditorKit's `InspectorScheme`. For the attachment with the id
-/// `draft/notes.md`, the name row is
+/// `draft/notes.md`, the title of the header is
 /// `inspection:attachment/object:draft%2Fnotes%2Emd/name`.
 ///
 /// Each block is a grouped form with the ``formIdentifier``. It has the
@@ -235,8 +241,9 @@ private nonisolated struct VerticalInsets: Equatable, Sendable {
 /// The blocks of several files stack as EditorKit stacks the blocks of an
 /// `InspectorView`: each block takes the height of its rows, and the stack
 /// scrolls in a scroll view of its own, or in the scroll view of the host
-/// when the host owns the scrolling (`.inspectorScrolling(.host)`), and each
-/// block shows its name row. The block of one file scrolls by itself unless
+/// when the host owns the scrolling (`.inspectorScrolling(.host)`), and the
+/// header of each block names its file. The block of one file scrolls by
+/// itself unless
 /// the host owns the scrolling.
 ///
 /// Each block is the scope of its file (`agentAttachment:<id>`, AVK-11).
@@ -252,7 +259,7 @@ public struct AttachmentInspector: View {
   public static let identifierPrefix = "inspector"
 
   /// The accessibility identifier of the grouped form of each block, which
-  /// holds the name, the actions and the preview of its file.
+  /// holds the header and the preview of its file.
   public static let formIdentifier = "inspector-form"
 
   /// The id of the `InspectorView` of each block and of its inspection,
@@ -267,7 +274,7 @@ public struct AttachmentInspector: View {
   /// The field part of the scheme id of the preview row.
   static let previewFieldIdentifier = "preview"
 
-  /// The last part of the scheme id of the name row of a block.
+  /// The last part of the scheme id of the title of the header of a block.
   private static let namePart = "name"
 
   /// The accessibility identifiers of the actions, in display order.
@@ -279,11 +286,14 @@ public struct AttachmentInspector: View {
   /// the preview of the file. Its id is ``viewIdentifier``.
   static var inspection: Inspection<InspectedAttachment> {
     .named(
-      FieldLabel(localized: "Attachment", bundle: .module), id: viewIdentifier, name: { $0.attachment.name }
-    ) {
-      Field(FieldLabel(localized: "Preview", bundle: .module)) { PreviewValue.file($0.attachment.url) }
+      FieldLabel(localized: "Attachment", bundle: .module), id: viewIdentifier,
+      name: { $0.attachment.name },
+      fields: {
+        Field(FieldLabel(localized: "Preview", bundle: .module)) {
+          PreviewValue.file($0.attachment.url)
+        }
         .identifier(previewFieldIdentifier)
-    }
+      })
   }
 
   /// The files to show, in selection order.
@@ -312,7 +322,8 @@ public struct AttachmentInspector: View {
     _files = State(initialValue: attachments.map(InspectedAttachment.init))
   }
 
-  /// The scheme id of the name row of the block of `attachment`.
+  /// The scheme id of the title of the header of the block of `attachment`:
+  /// the id of the EditorKit name row, which the block hides.
   ///
   /// The object id is the escaped raw id of the file. For the attachment
   /// with the id `draft/notes.md` the id is
@@ -321,7 +332,8 @@ public struct AttachmentInspector: View {
   /// - Parameter attachment: The file of the block.
   /// - Returns: `inspection:attachment/object:<object id>/name`.
   public static func nameIdentifier(of attachment: Attachment) -> String {
-    let block = InspectorScheme.blockIdentifier(view: viewIdentifier, object: objectIdentifier(of: attachment))
+    let block = InspectorScheme.blockIdentifier(
+      view: viewIdentifier, object: objectIdentifier(of: attachment))
     return InspectorScheme.identifier(of: namePart, inRow: block)
   }
 
@@ -368,9 +380,8 @@ public struct AttachmentInspector: View {
 
   /// The blocks of several files, stacked as EditorKit stacks the blocks of
   /// an `InspectorView`, each taking the height of its rows: in a scroll
-  /// view of the view's own, or in the scroll view of the host. Each block
-  /// shows its name row, also when the host hides the block headers
-  /// (`.inspectorBlockHeader(.hidden)`), so each file is named.
+  /// view of the view's own, or in the scroll view of the host. The header
+  /// of each block names its file, so each file is named.
   @ViewBuilder private var stacked: some View {
     let stack = VStack(spacing: 0) {
       ForEach(files) { file in
@@ -378,24 +389,34 @@ public struct AttachmentInspector: View {
       }
     }
     .inspectorScrolling(.host)
-    .inspectorBlockHeader(.automatic)
     switch scrolling {
     case .form: ScrollView { stack }
     case .host: stack
     }
   }
 
-  /// The block of one file: the EditorKit `InspectorView` of the file with
-  /// the action row, in the scope of the file, so each action acts on that
-  /// file only.
+  /// The block of one file: the EditorKit `InspectorView` of the file, with
+  /// a ``BlockHeader`` of the file name and the action row in place of the
+  /// EditorKit name row, in the scope of the file, so each action acts on
+  /// that file only.
+  ///
+  /// Each block is the one block of its `InspectorView`, so the
+  /// `.inspectorBlockHeader(.hidden)` of the block hides its name row also
+  /// in the stack of several files.
   ///
   /// - Parameter file: The object of the file.
   /// - Returns: The block.
   private func block(of file: InspectedAttachment) -> some View {
     InspectorView(file, Self.inspection, id: Self.viewIdentifier)
       .actions {
-        AttachmentActions(identifierPrefix: Self.identifierPrefix)
+        BlockHeader {
+          Text(file.attachment.name)
+            .accessibilityIdentifier(Self.nameIdentifier(of: file.attachment))
+        } actions: {
+          AttachmentActions(identifierPrefix: Self.identifierPrefix)
+        }
       }
+      .inspectorBlockHeader(.hidden)
       .accessibilityIdentifier(Self.formIdentifier)
       .agentAttachmentScope(file.attachment)
   }

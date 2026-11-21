@@ -77,7 +77,7 @@ struct TerminalBlockFrame: ViewModifier {
 struct EditorBlockHeader: ViewModifier {
   /// The part of the tile gap above the separator line: the line is in the
   /// middle of the gap.
-  static let separatorPlacement: CGFloat = 0.5
+  nonisolated static let separatorPlacement: CGFloat = 0.5
 
   @Environment(\.editorStyle) private var editorStyle
 

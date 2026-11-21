@@ -1,8 +1,38 @@
 ---
 assignees:
 - claude-code
-position_column: todo
-position_ordinal: '8480'
+comments:
+- actor: claude-code
+  id: 01m802ghyxp31cqz675mqky4qb
+  text: |-
+    Research done.
+    - `EditorBlockHeader` (EditorBlockChrome.swift) puts the line in the middle of the tile gap under the row, and the line takes no layout space. `CommandOutputView` and `TerminalView` also use it, so it stays. `BlockHeader` uses its `separatorPlacement`.
+    - Plan for `BlockHeaderLayout`: three subviews (title, line, buttons). Wide: one row; the line is in the middle of the tile gap under the row, outside the bounds, as now (so `CodeBlockView` keeps its look). Narrow: title, then the line in the middle of a tile gap, then the buttons at the leading edge. The geometry is in pure functions (`fitsOnOneLine`, `frames`, `size`), as `SideCardLayout` does, so a unit test reads it with no view.
+    - When the buttons have zero width (the attachment group is off), the layout stays wide.
+    - `AttachmentInspector`: each block gets `.inspectorBlockHeader(.hidden)`. Each block is its own one-object `InspectorView` (naming `.byHost`), so the hidden setting holds also in the stacked form. The title keeps `nameIdentifier(of:)`, so the hosted tests that read the name row by its identifier keep working.
+  timestamp: 2026-11-21T22:09:29.565517+00:00
+- actor: claude-code
+  id: 01m803b5effrwgktanx5jas7we
+  text: |-
+    Implementation landed (TDD: BlockHeaderTests failed first because `BlockHeaderLayout` did not exist, then they passed).
+    - New `Sources/AgentViewKit/Code/BlockHeader.swift`: `BlockHeader` and `BlockHeaderLayout`. The geometry is in pure functions (`fitsOnOneLine`, `size(title:actions:width:)` and `frames(title:lineHeight:actions:in:)`). `sizeThatFits` and `placeSubviews` call them. The tests read them on fixed sizes.
+    - Wide: the line is in the middle of the tile gap under the row and takes no layout space (as `EditorBlockHeader`), so the look of `CodeBlockView` does not change. Narrow: title, the line in the middle of a tile gap, then the buttons at the leading edge. When the buttons have zero width, the header stays on one line.
+    - The `Divider` is in a `VStack`, so it is horizontal also in a horizontal host such as a form row.
+    - `EditorBlockHeader.separatorPlacement` is now `nonisolated`, because the `Layout` methods are nonisolated and read it.
+    - `AttachmentInspector`: each block has `.inspectorBlockHeader(.hidden)` and a `BlockHeader` in `.actions`. The title keeps `nameIdentifier(of:)`. The `.inspectorBlockHeader(.automatic)` of the stack was removed. The `.named(...)` call now gives `fields:` as a labeled argument (swift format OnlyOneTrailingClosureArgument).
+    - `CodeBlockView`: the header is a `BlockHeader`. The imports EditorStyle and EditorTheme are not used now, so I removed them.
+    - ScreenshotTests: new image `inspector-attachment-builtin-narrow-one` (window of `narrowWidth`, 240 pt). The wide image `inspector-attachment-builtin-one` stays. RISK: the old PNG shows a 270 pt inspector column. "answer.swift" and the 4 buttons are about 155 pt wide, so the header goes narrow only when the column content is narrower than that. I did not run the gallery (it takes the screen focus), so I cannot say if the 240 pt window gives a column that narrow.
+    - Formatter: the repo has no .swift-format, and the code uses 120 columns. I ran `swift format lint --strict` with the default configuration plus lineLength 120 and 2-space indentation on the 7 touched files: 0 findings. The default 100-column configuration also reports the lines of files that I did not change.
+  timestamp: 2026-11-21T22:24:01.487607+00:00
+- actor: claude-code
+  id: 01m803b91sbt4tsb46xnt4kjf7
+  text: |-
+    ### implement — changed
+    - evidence: 7 files — Sources/AgentViewKit/Code/BlockHeader.swift (new), Tests/AgentViewKitTests/Code/BlockHeaderTests.swift (new, 18 tests), Sources/AgentViewKit/Code/CodeBlockView.swift, Sources/AgentViewKit/Code/EditorBlockChrome.swift, Sources/AgentViewKit/Attachments/AttachmentInspector.swift, Sources/AgentViewKit/Infrastructure/PreviewFixtures.swift, ScreenshotTests/Tests/ScreenshotTests/InspectorGallery.swift. `swift test`: 1604 tests in 181 suites passed and 54 tests in 11 suites passed, 0 failures, 0 compiler warnings. `swift build --build-tests` in IntegrationTests and ScreenshotTests: Build complete. swift format lint --strict (lineLength 120): 0 findings.
+    - next: /review. The hosted suites and the gallery did not run (screen focus). The user must look at the PNG inspector-attachment-builtin-narrow-one to see if the header is narrow at that width.
+  timestamp: 2026-11-21T22:24:05.177829+00:00
+position_column: doing
+position_ordinal: '80'
 title: One shared block header (title, buttons, line) for the code block and the attachment inspector
 ---
 ## What

@@ -1,4 +1,3 @@
-@testable import AgentViewKit
 import AgentViewKitTestSupport
 import EditorInspector
 import EditorTestSupport
@@ -6,6 +5,8 @@ import FoundationModelsACP
 import FoundationModelsACPClient
 import Quartz
 import SwiftUI
+
+@testable import AgentViewKit
 
 /// The inspector images of the review gallery (EditorKit `style.md`, "The
 /// inspector" and "Review gallery").
@@ -41,8 +42,9 @@ enum InspectorGallery {
   /// area with the inspector column at its trailing edge, in points.
   private static let builtInWidth: CGFloat = 900
 
-  /// The size of the window of the built-in attachment inspector.
-  private static let builtInSize = CGSize(width: builtInWidth, height: height)
+  /// The name of the narrow width in the name of an image of the built-in
+  /// attachment inspector.
+  private static let narrowName = "narrow"
 
   /// The name of the count in the name of an image of one object.
   private static let oneName = "one"
@@ -53,7 +55,9 @@ enum InspectorGallery {
 
   /// The panel widths of each subject, with the name of each in the image
   /// name.
-  private static let widths: [(name: String, width: CGFloat)] = [("narrow", narrowWidth), ("wide", wideWidth)]
+  private static let widths: [(name: String, width: CGFloat)] = [
+    ("narrow", narrowWidth), ("wide", wideWidth),
+  ]
 
   /// One subject of the gallery: its name, its view of one object, and its
   /// view of two objects, one block for each, when it has one.
@@ -78,7 +82,8 @@ enum InspectorGallery {
     ///   - fieldLabels: How each row shows the name of its field, as the
     ///     host of the inspector sets it.
     init<Object: Inspectable>(
-      _ name: String, _ first: Object, _ second: Object, fieldLabels: InspectorFieldLabels = .placeholder
+      _ name: String, _ first: Object, _ second: Object,
+      fieldLabels: InspectorFieldLabels = .placeholder
     ) {
       self.name = name
       one = AnyView(InspectorView(first).inspectorFieldLabels(fieldLabels))
@@ -97,9 +102,11 @@ enum InspectorGallery {
     ///   - fieldLabels: How each row shows the name of its field, as the
     ///     host of the inspector sets it.
     init<Model: InspectableClientModel>(
-      _ name: String, _ first: Model, _ second: Model, fieldLabels: InspectorFieldLabels = .placeholder
+      _ name: String, _ first: Model, _ second: Model,
+      fieldLabels: InspectorFieldLabels = .placeholder
     ) {
-      self.init(name, InspectedClientModel(first), InspectedClientModel(second), fieldLabels: fieldLabels)
+      self.init(
+        name, InspectedClientModel(first), InspectedClientModel(second), fieldLabels: fieldLabels)
     }
 
     /// Makes the subject of a view that shows one object.
@@ -136,13 +143,20 @@ enum InspectorGallery {
     defer { fixtures.close() }
     let directory = try TemporaryFolder(prefix: TestFolderPrefix.agentViewKit)
     defer { directory.remove() }
-    let attachment = try AttachmentFixtures.attachment(named: SnapshotFixtures.inspectorFileName, in: directory)
-    let second = try AttachmentFixtures.attachment(named: SnapshotFixtures.secondInspectorFileName, in: directory)
+    let attachment = try AttachmentFixtures.attachment(
+      named: SnapshotFixtures.inspectorFileName, in: directory)
+    let second = try AttachmentFixtures.attachment(
+      named: SnapshotFixtures.secondInspectorFileName, in: directory)
     let host = Subject(
-      "attachment-host", one: AttachmentInspector(attachment), several: AttachmentInspector([attachment, second]))
+      "attachment-host", one: AttachmentInspector(attachment),
+      several: AttachmentInspector([attachment, second]))
 
     try await recordBuiltInAttachmentInspector([attachment], named: Self.oneName, in: gallery)
-    try await recordBuiltInAttachmentInspector([attachment, second], named: Self.twoName, in: gallery)
+    try await recordBuiltInAttachmentInspector(
+      [attachment], named: "\(Self.narrowName)-\(Self.oneName)", width: Self.narrowWidth,
+      in: gallery)
+    try await recordBuiltInAttachmentInspector(
+      [attachment, second], named: Self.twoName, in: gallery)
     for subject in [host] + (try fixtures.subjects) {
       try await record(subject, in: gallery)
     }
@@ -174,18 +188,27 @@ enum InspectorGallery {
   /// `.attachmentInspector(selection:)` beside a transcript, with one
   /// selected file or two, one block for each file (card ^4138tmp).
   ///
+  /// A window of the narrow panel width makes the inspector column narrow,
+  /// so the image shows the narrow form of the ``BlockHeader`` of each
+  /// block when its title and its buttons do not fit on one line (card
+  /// ^acb63es).
+  ///
   /// - Parameters:
   ///   - attachments: The selected files, in selection order.
-  ///   - count: The name of the count in the image name: ``oneName`` or
-  ///     ``twoName``.
+  ///   - name: The end of the image name: the count, ``oneName`` or
+  ///     ``twoName``, after the width name for a narrow window.
+  ///   - width: The width of the window, in points.
   ///   - gallery: The review gallery.
   /// - Throws: The error of a capture or of a write.
   private static func recordBuiltInAttachmentInspector(
-    _ attachments: [AgentViewKit.Attachment], named count: String, in gallery: ReviewGallery
+    _ attachments: [AgentViewKit.Attachment], named name: String, width: CGFloat = builtInWidth,
+    in gallery: ReviewGallery
   ) async throws {
     let selection = InspectorSelection(attachments: attachments)
     try await gallery.record(
-      suite: suite, named: "inspector-attachment-builtin-\(count)", size: builtInSize, settle: hideQuickLook
+      suite: suite, named: "inspector-attachment-builtin-\(name)",
+      size: CGSize(width: width, height: height),
+      settle: hideQuickLook
     ) { _ in
       GlassSnapshotTests.backdrop
         .attachmentInspector(selection: selection)

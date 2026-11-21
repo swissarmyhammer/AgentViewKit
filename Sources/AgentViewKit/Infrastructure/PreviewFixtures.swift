@@ -21,7 +21,8 @@ enum PreviewFixtures {
   ///   - type: The class of the entry object, such as `ThoughtEntry`.
   /// - Returns: The entry object of the item, or `nil` when the item makes
   ///   an entry of another kind.
-  static func entry<Entry: AnyObject>(_ item: PreviewTranscriptItem, as type: Entry.Type) -> Entry? {
+  static func entry<Entry: AnyObject>(_ item: PreviewTranscriptItem, as type: Entry.Type) -> Entry?
+  {
     firstEntry(in: .preview(transcript: [item]), as: type)
   }
 
@@ -32,7 +33,8 @@ enum PreviewFixtures {
   ///   - type: The class of the entry object, such as `ToolCallEntry`.
   /// - Returns: The first entry object of that class, or `nil` when the
   ///   transcript has no entry of that kind.
-  static func firstEntry<Entry: AnyObject>(in session: SessionModel, as type: Entry.Type) -> Entry? {
+  static func firstEntry<Entry: AnyObject>(in session: SessionModel, as type: Entry.Type) -> Entry?
+  {
     session.transcript.lazy.compactMap { $0.object as? Entry }.first
   }
 
@@ -48,9 +50,10 @@ enum PreviewFixtures {
         SessionConfigSelect(
           currentValue: SessionConfigValueId(rawValue: defaultModeID),
           options: .array(
-            [PermissionPresentation.planModeID, defaultModeID, PermissionPresentation.autoModeID].map {
-              .object(["value": .string($0), "name": .string($0.capitalized)])
-            })))),
+            [PermissionPresentation.planModeID, defaultModeID, PermissionPresentation.autoModeID]
+              .map {
+                .object(["value": .string($0), "name": .string($0.capitalized)])
+              })))),
     SessionConfigOption(
       configId: SessionConfigId(rawValue: "web-search"), name: "Web Search",
       type: .boolean(SessionConfigBoolean(currentValue: true))),
@@ -77,8 +80,10 @@ enum PreviewFixtures {
 
   /// The MCP servers that the client sent to a session.
   static let mcpServers = [
-    MCPServer.stdio(MCPServerStdio(command: AbsolutePath(rawValue: "/usr/local/bin/github-mcp"), name: "GitHub")),
-    MCPServer.stdio(MCPServerStdio(command: AbsolutePath(rawValue: "/usr/local/bin/files-mcp"), name: "Files")),
+    MCPServer.stdio(
+      MCPServerStdio(command: AbsolutePath(rawValue: "/usr/local/bin/github-mcp"), name: "GitHub")),
+    MCPServer.stdio(
+      MCPServerStdio(command: AbsolutePath(rawValue: "/usr/local/bin/files-mcp"), name: "Files")),
   ]
 
   /// A new preview session with ``mcpServers``.
@@ -139,7 +144,8 @@ enum PreviewFixtures {
     /// Names that are longer than a narrow column: ``longAgentName`` and a
     /// long tool name, so that the line truncates in the middle.
     static let long = WhoAsks(
-      agentPath: [longAgentName], source: "createPackageWithTheRegistryCredentialsOfTheContinuousIntegrationService")
+      agentPath: [longAgentName],
+      source: "createPackageWithTheRegistryCredentialsOfTheContinuousIntegrationService")
 
     /// The `_meta` of an elicitation that this agent path and this source
     /// ask.
@@ -183,7 +189,8 @@ enum PreviewFixtures {
       message: message,
       mode: .form(
         ElicitationFormMode(
-          requestedSchema: ElicitationSchema(properties: .object(properties), type: .object, required: required),
+          requestedSchema: ElicitationSchema(
+            properties: .object(properties), type: .object, required: required),
           scope: .session(elicitationScope))),
       meta: WhoAsks.short.meta)
   }
@@ -191,7 +198,8 @@ enum PreviewFixtures {
   /// A form-mode elicitation with three fields. A sub-agent asks it through a
   /// tool, so the card shows the "who asks" line.
   static let formElicitation = formRequest(
-    message: "Give the details of the new package.", properties: packageProperties, required: ["name"])
+    message: "Give the details of the new package.", properties: packageProperties,
+    required: ["name"])
 
   /// A form-mode elicitation with one field of each kind of
   /// ``ElicitationFields``: a text, an integer, a Boolean, a date, a single
@@ -202,14 +210,16 @@ enum PreviewFixtures {
       packageProperties,
       with: [
         ElicitationFields.dueDate.name: .object([
-          "type": .string("string"), "title": .string(ElicitationFields.dueDate.title), "format": .string("date"),
+          "type": .string("string"), "title": .string(ElicitationFields.dueDate.title),
+          "format": .string("date"),
         ]),
         ElicitationFields.platform.name: .object([
           "type": .string("string"), "title": .string(ElicitationFields.platform.title),
           "oneOf": choiceList(ElicitationFields.platformChoices),
         ]),
         ElicitationFields.checks.name: .object([
-          "type": .string("array"), "title": .string(ElicitationFields.checks.title), "minItems": .number(1),
+          "type": .string("array"), "title": .string(ElicitationFields.checks.title),
+          "minItems": .number(1),
           "items": .object(["anyOf": choiceList(ElicitationFields.checkChoices)]),
         ]),
       ]),
@@ -230,7 +240,9 @@ enum PreviewFixtures {
   ///   - added: The members to add. An added member replaces a member of
   ///     `members` with the same name.
   /// - Returns: The members of both, by name.
-  private static func merged(_ members: [String: JSONValue], with added: [String: JSONValue]) -> [String: JSONValue] {
+  private static func merged(_ members: [String: JSONValue], with added: [String: JSONValue])
+    -> [String: JSONValue]
+  {
     members.merging(added) { _, addedValue in addedValue }
   }
 
@@ -283,12 +295,14 @@ enum PreviewFixtures {
   /// The notice of the withdrawal of ``formElicitation``, with
   /// ``withdrawalReason``.
   static let withdrawnNotice = WithdrawnNotice(
-    id: UUID(), text: RequestDeck.withdrawnText(title: formElicitation.message, reason: withdrawalReason))
+    id: UUID(),
+    text: RequestDeck.withdrawnText(title: formElicitation.message, reason: withdrawalReason))
 
   /// The notice of the withdrawal of a request with ``longWithdrawnTitle``,
   /// with ``withdrawalReason``.
   static let longTitleWithdrawnNotice = WithdrawnNotice(
-    id: UUID(), text: RequestDeck.withdrawnText(title: longWithdrawnTitle, reason: withdrawalReason))
+    id: UUID(), text: RequestDeck.withdrawnText(title: longWithdrawnTitle, reason: withdrawalReason)
+  )
 
   /// A URL-mode elicitation that asks the user to sign in in the browser.
   static let urlElicitation = CreateElicitationRequest(
@@ -342,7 +356,9 @@ enum PreviewFixtures {
   ///     the file in the sample project.
   /// - Returns: The attachment. Its name is the last part of `path`, and its
   ///   identifier is the URL of the path in the sample project.
-  private static func attachment(path: String, type: UTType, size: Int, url: URL? = nil) -> Attachment {
+  private static func attachment(path: String, type: UTType, size: Int, url: URL? = nil)
+    -> Attachment
+  {
     let projectURL = projectDirectory.appending(path: path)
     return Attachment(
       id: AttachmentID(projectURL.absoluteString), url: url ?? projectURL, type: type,
@@ -384,7 +400,8 @@ enum PreviewFixtures {
   /// A failure message whose title and explanation are longer than the
   /// texts of each of ``statusMessages``, so that the bar wraps them.
   static let longStatusMessage = StatusBar.Message(
-    title: "The agent stopped because the package registry refused the credentials of the build service",
+    title:
+      "The agent stopped because the package registry refused the credentials of the build service",
     explanation: """
       The agent reported this failure: the registry at packages.example.com answered 401 Unauthorized \
       for each of the three packages that the build needs. Sign in to the registry again, then send the \
@@ -402,7 +419,8 @@ enum PreviewFixtures {
 
   /// A message with a title and no explanation.
   static let titleOnlyStatusMessage = StatusBar.Message(
-    title: "The agent stopped", explanation: "", symbolName: EditorSymbol.severity(.error).systemImage,
+    title: "The agent stopped", explanation: "",
+    symbolName: EditorSymbol.severity(.error).systemImage,
     identifier: "preview-status-title-only", severity: .failure)
 
   /// The width of a narrow column, in points. A status bar or a sign-in card
@@ -420,7 +438,8 @@ enum PreviewFixtures {
   /// - Returns: The button.
   static func statusAction(isEnabled: Bool) -> StatusBar.Action {
     StatusBar.Action(
-      title: "Show Error", systemImage: StateBanner.showErrorSymbol, identifier: statusActionIdentifier,
+      title: "Show Error", systemImage: StateBanner.showErrorSymbol,
+      identifier: statusActionIdentifier,
       isEnabled: isEnabled, perform: {})
   }
 
@@ -433,7 +452,8 @@ enum PreviewFixtures {
   /// (``ToolStatusSymbol/lostWireValue``) and a status that the kit does not
   /// know.
   static let toolCallStatuses: [FoundationModelsACP.ToolCallStatus] = [
-    .pending, .inProgress, .paused, .completed, .failed, .cancelled, .unknown(ToolStatusSymbol.lostWireValue),
+    .pending, .inProgress, .paused, .completed, .failed, .cancelled,
+    .unknown(ToolStatusSymbol.lostWireValue),
     .unknown(unknownWireValue),
   ]
 
@@ -451,15 +471,19 @@ enum PreviewFixtures {
 
   /// Each severity of a session notice: each severity of the ACP standard
   /// and a severity that the kit does not know.
-  static let noticeSeverities: [NoticeSeverity] = [.info, .warning, .error, .unknown(unknownWireValue)]
+  static let noticeSeverities: [NoticeSeverity] = [
+    .info, .warning, .error, .unknown(unknownWireValue),
+  ]
 
   /// The status symbols of the kit (EditorKit's `EditorSymbol` and `ItemStatus`), for the preview of
   /// ``PreviewSymbolSheet``. Each row of that sheet shows the symbol and its
   /// name.
   static let statusSymbolNames = [
-    ItemStatus.pending.systemImage, ItemStatus.inProgress.systemImage, ItemStatus.completed.systemImage,
+    ItemStatus.pending.systemImage, ItemStatus.inProgress.systemImage,
+    ItemStatus.completed.systemImage,
     EditorSymbol.severity(.error).systemImage,
-    ItemStatus.cancelled.systemImage, ItemStatus.unknown.systemImage, EditorSymbol.severity(.warning).systemImage,
+    ItemStatus.cancelled.systemImage, ItemStatus.unknown.systemImage,
+    EditorSymbol.severity(.warning).systemImage,
     EditorSymbol.severity(.information).systemImage,
   ]
 
@@ -477,14 +501,16 @@ enum PreviewFixtures {
   /// ``ConversationEmptyState``.
   static let headerSymbols = [
     HeaderSymbol(header: "Agent header", name: AgentInfoHeader.symbol),
-    HeaderSymbol(header: "Empty conversation", name: EditorSymbol.action(.conversation).systemImage),
+    HeaderSymbol(
+      header: "Empty conversation", name: EditorSymbol.action(.conversation).systemImage),
   ]
 
   /// The name of the agent of ``authConnection(methods:agentName:openSessions:)``.
   static let agentName = "preview-agent"
 
   /// A name of an agent that is longer than ``agentName``.
-  static let longAgentName = "Northwind Traders Engineering Assistant for the Continuous Integration Service"
+  static let longAgentName =
+    "Northwind Traders Engineering Assistant for the Continuous Integration Service"
 
   /// The version of the agent of ``authConnection(methods:agentName:openSessions:)``.
   static let agentVersion = "1.0.0"
@@ -546,7 +572,8 @@ enum PreviewFixtures {
     ///   - environment: The variables of the run. The stub does not read
     ///     them.
     /// - Returns: ``PreviewFixtures/successfulExitStatus``.
-    func runTerminalAuth(arguments: [String], environment: [String: String]) async throws -> Int32? {
+    func runTerminalAuth(arguments: [String], environment: [String: String]) async throws -> Int32?
+    {
       PreviewFixtures.successfulExitStatus
     }
   }
@@ -560,7 +587,8 @@ enum PreviewFixtures {
   /// A transcript that is longer than a window, so that the list scrolls
   /// under the bars of a thread. Each of the ``scrolledTurnCount`` turns is a
   /// user message and an agent message.
-  static let scrolledTranscript = (1...scrolledTurnCount).flatMap { turn -> [PreviewTranscriptItem] in
+  static let scrolledTranscript = (1...scrolledTurnCount).flatMap {
+    turn -> [PreviewTranscriptItem] in
     [
       .user("What does step \(turn) of the build do?"),
       .agent("Step \(turn) compiles one module of the package and links it into the test bundle."),
@@ -699,7 +727,8 @@ enum PreviewFixtures {
     }
     let lineCount = largePatchStepCount + [opening, closing].count
     let header = [
-      "--- a/Sources/BuildPlan.swift", "+++ b/Sources/BuildPlan.swift", "@@ -1,\(lineCount) +1,\(lineCount) @@",
+      "--- a/Sources/BuildPlan.swift", "+++ b/Sources/BuildPlan.swift",
+      "@@ -1,\(lineCount) +1,\(lineCount) @@",
     ]
     return (header + [opening] + changes + [closing]).joined(separator: "\n")
   }
@@ -781,6 +810,10 @@ enum PreviewFixtures {
   /// The name of the file of ``codeSample``. Its extension also names
   /// ``codeSampleLanguage``.
   static let codeSampleFilename = "tax.py"
+
+  /// The widths of the block header preview, in points: a width where the
+  /// title and the button fit on one line, and a width where they do not.
+  static let blockHeaderWidths: [CGFloat] = [320, 60]
 
   /// A short Python function that adds the tax to the sum of some prices,
   /// and a call of it.
@@ -865,7 +898,10 @@ enum PreviewFixtures {
   private static func streamedItems(
     _ chunks: [String], as update: (ContentChunk) -> SessionUpdate
   ) -> [PreviewTranscriptItem] {
-    chunks.map { .update(update(ContentChunk(content: .text(TextContent(text: $0)), messageId: streamedMessageID))) }
+    chunks.map {
+      .update(
+        update(ContentChunk(content: .text(TextContent(text: $0)), messageId: streamedMessageID)))
+    }
   }
 
   /// A message of the transcript, in each state that the message previews
@@ -953,9 +989,14 @@ enum PreviewFixtures {
   /// the sound are in the blocks, so the blocks read no file.
   static let contentOfEachKind: [FoundationModelsACP.ContentBlock] = [
     .text(TextContent(text: citedResponse)),
-    .image(ImageContent(data: wideImageData.base64EncodedString(), mimeType: MediaType(rawValue: bitmapMIMEType))),
-    .audio(AudioContent(data: audioData.base64EncodedString(), mimeType: MediaType(rawValue: waveMIMEType))),
-    .resourceLink(ResourceLink(name: sourceFileAttachment.name, uri: sourceFileAttachment.url.absoluteString)),
+    .image(
+      ImageContent(
+        data: wideImageData.base64EncodedString(), mimeType: MediaType(rawValue: bitmapMIMEType))),
+    .audio(
+      AudioContent(
+        data: audioData.base64EncodedString(), mimeType: MediaType(rawValue: waveMIMEType))),
+    .resourceLink(
+      ResourceLink(name: sourceFileAttachment.name, uri: sourceFileAttachment.url.absoluteString)),
     .resource(textResource),
     .resource(binaryResource),
     .unknown(reviewSummaryKind, smallJSON),
@@ -1092,16 +1133,19 @@ enum PreviewFixtures {
   private static let audioData = WaveFile.data(seconds: audioDurationSeconds)
 
   /// A recording of the sample project. Its bytes are in memory.
-  static let audioAttachment = mediaAttachment(path: "Recordings/standup.wav", type: .wav, data: audioData)
+  static let audioAttachment = mediaAttachment(
+    path: "Recordings/standup.wav", type: .wav, data: audioData)
 
   /// The bytes of ``videoAttachment``: an MPEG-4 movie of 2 seconds, 128 × 72
   /// pixels, H.264, whose gradient changes in each frame. `AVAssetWriter`
   /// made it. A base64 text that does not decode gives no bytes, and the
   /// player then shows its failure.
-  private static let videoData = Data(base64Encoded: videoBase64, options: .ignoreUnknownCharacters) ?? Data()
+  private static let videoData =
+    Data(base64Encoded: videoBase64, options: .ignoreUnknownCharacters) ?? Data()
 
   /// A screen recording of the sample project. Its bytes are in memory.
-  static let videoAttachment = mediaAttachment(path: "Recordings/demo.mp4", type: .mpeg4Movie, data: videoData)
+  static let videoAttachment = mediaAttachment(
+    path: "Recordings/demo.mp4", type: .mpeg4Movie, data: videoData)
 
   /// Makes the attachment of an audio or a movie file whose bytes are in
   /// memory.
@@ -1114,7 +1158,8 @@ enum PreviewFixtures {
   ///   URL of a scheme and a path always parses; were it not to, the URL is
   ///   the path in the sample project, where no file is.
   private static func mediaAttachment(path: String, type: UTType, data: Data) -> Attachment {
-    attachment(path: path, type: type, size: data.count, url: URL(string: "\(memoryScheme):///\(path)"))
+    attachment(
+      path: path, type: type, size: data.count, url: URL(string: "\(memoryScheme):///\(path)"))
   }
 
   /// The bytes of each in-memory file of the attachment previews, by the URL
@@ -1129,7 +1174,8 @@ enum PreviewFixtures {
 
   /// The queue that ``mediaLoader`` answers on. It is not the main queue, so
   /// a busy main actor does not hold up a load.
-  private static let mediaLoaderQueue = DispatchQueue(label: "AgentViewKit.PreviewFixtures.mediaLoader")
+  private static let mediaLoaderQueue = DispatchQueue(
+    label: "AgentViewKit.PreviewFixtures.mediaLoader")
 
   /// The loader of the in-memory audio and movie files.
   private static let mediaLoader = MemoryMediaLoader(
@@ -1143,7 +1189,9 @@ enum PreviewFixtures {
   /// in-memory audio and movie files. A file that it does not hold fails.
   static let attachmentPreviewLoader = AttachmentPreviewLoader(
     text: { url in memoryFiles[url].map { String(decoding: $0, as: UTF8.self) } },
-    thumbnail: { url, _ in memoryFiles[url].flatMap(NSImage.init(data:)).map { .loaded($0) } ?? .failed },
+    thumbnail: { url, _ in
+      memoryFiles[url].flatMap(NSImage.init(data:)).map { .loaded($0) } ?? .failed
+    },
     player: { url in memoryPlayer(of: url) })
 
   /// A loader whose loads end only when their task is cancelled, so that a
@@ -1189,7 +1237,8 @@ enum PreviewFixtures {
 
   /// A web page: the guide of the Swift Package Manager. A web URL that does
   /// not parse is the sample project directory, where no file is.
-  static let webAttachment = Attachment(url: URL(string: packageManagerGuideURL) ?? projectDirectory)
+  static let webAttachment = Attachment(
+    url: URL(string: packageManagerGuideURL) ?? projectDirectory)
 
   /// The attachment service of the previews, so that a press on a file action
   /// in the canvas opens nothing.
@@ -1228,7 +1277,8 @@ enum PreviewFixtures {
         information.isByteRangeAccessSupported = true
       }
       if let dataRequest = loadingRequest.dataRequest {
-        dataRequest.respond(with: file.data.subdata(in: Self.range(of: dataRequest, count: file.data.count)))
+        dataRequest.respond(
+          with: file.data.subdata(in: Self.range(of: dataRequest, count: file.data.count)))
       }
       loadingRequest.finishLoading()
       return true
@@ -1240,9 +1290,12 @@ enum PreviewFixtures {
     ///   - request: The data request.
     ///   - count: The length of the file, in bytes.
     /// - Returns: The range of the bytes, inside the file.
-    private static func range(of request: AVAssetResourceLoadingDataRequest, count: Int) -> Range<Int> {
+    private static func range(of request: AVAssetResourceLoadingDataRequest, count: Int) -> Range<
+      Int
+    > {
       let start = min(Int(request.requestedOffset), count)
-      let end = request.requestsAllDataToEndOfResource ? count : min(count, start + request.requestedLength)
+      let end =
+        request.requestsAllDataToEndOfResource ? count : min(count, start + request.requestedLength)
       return start..<end
     }
   }
@@ -1372,7 +1425,10 @@ enum PreviewFixtures {
     static func gradient(width: Int, height: Int) -> Data {
       Data(
         PixelGrid.positions(width: width, height: height).flatMap { position in
-          [level(position.column, of: width), level(position.row, of: height), UInt8.zero, UInt8.max]
+          [
+            level(position.column, of: width), level(position.row, of: height), UInt8.zero,
+            UInt8.max,
+          ]
         })
     }
 
@@ -1484,7 +1540,8 @@ enum PreviewFixtures {
     /// A field with a set of choices from a list: the checks of the release.
     static let checks = ElicitationFieldSchema(
       name: "checks", title: "Checks", description: "The checks to run before the release.",
-      required: false, kind: .multiChoice(checkChoices, minItems: 1, maxItems: nil), defaultValue: nil)
+      required: false, kind: .multiChoice(checkChoices, minItems: 1, maxItems: nil),
+      defaultValue: nil)
 
     /// Each field of the form, in form order.
     static let all = [packageName, retries, verboseOutput, dueDate, platform, checks]

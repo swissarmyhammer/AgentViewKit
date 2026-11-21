@@ -1,13 +1,11 @@
-import EditorStyle
 import EditorSwiftUI
 import EditorText
-import EditorTheme
 import SwiftUI
 
 /// A read-only code block on EditorKit (plan.md §4.1, §9).
 ///
 /// The view shows a header with the filename or the language and a Copy
-/// button. Below the header, an EditorKit editor shows the code with line
+/// button, in a ``BlockHeader``. Below the header, an EditorKit editor shows the code with line
 /// numbers. The editor takes the height of the code and wraps a long line to
 /// its width, with no scroll of its own, so its host scrolls the block
 /// (`EditorView.sizedToContent()`). When EditorKit has a
@@ -42,9 +40,6 @@ public struct CodeBlockView: View {
   /// The model that the view keeps when the host gives no model.
   @State private var ownModel = OwnModelSlot()
 
-  @Environment(\.editorStyle) private var editorStyle
-  @Environment(\.editorTheme) private var editorTheme
-  @Environment(\.themeSecondary) private var themeSecondary
   @Environment(\.pasteboard) private var pasteboard
 
   /// Makes a code block that keeps its own model.
@@ -105,22 +100,19 @@ public struct CodeBlockView: View {
       comment: "The VoiceOver label of a code block: the name of its language, such as swift.")
   }
 
-  /// The row with the title and the Copy button.
+  /// The header with the title and the Copy button: a ``BlockHeader``.
   private var header: some View {
-    HStack(spacing: editorStyle.spacing.s) {
+    BlockHeader {
       Text(filename ?? language ?? Self.plainTextName)
-        .font(editorTheme.font(for: .ui, style: .caption))
-        .foregroundStyle(themeSecondary)
-        .lineLimit(1)
-        .truncationMode(.middle)
-      Spacer(minLength: editorStyle.spacing.s)
-      EditorToolbarButton(String(localized: "Copy code", bundle: .module), systemImage: AgentSymbol.copy) {
+    } actions: {
+      EditorToolbarButton(
+        String(localized: "Copy code", bundle: .module), systemImage: AgentSymbol.copy
+      ) {
         pasteboard.copyText(code)
       }
       .editorButtonCaptions(.hidden)
       .accessibilityIdentifier(Self.copyIdentifier)
     }
-    .editorBlockHeader()
   }
 
   /// The read-only editor that shows `model`.
