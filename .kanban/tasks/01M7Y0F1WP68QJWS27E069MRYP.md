@@ -12,8 +12,36 @@ comments:
     - evidence: swift test: 1556 tests in 178 suites and 54 tests in 11 suites passed. IntegrationTests swift build --build-tests: Build complete. swift format lint -s: 0 findings.
     - next: commit, push, send the sha to testudoapp-9a. Testudo must call `.rowAccessibilityLabel` on its lists.
   timestamp: 2026-11-21T03:57:33.961500+00:00
-position_column: todo
-position_ordinal: '8180'
+- actor: claude-code
+  id: 01m7yyrjghe74nr0b26kj353qy
+  text: |-
+    Check of dda19651 against the card:
+    - Item "the label that the app sets": met by `rowAccessibilityLabel(_:)`.
+    - Item "or else the text of its content": NOT met. With no `rowAccessibilityLabel`, the row element has no label (the hosted test `aRowElementWithNoHostLabelHasNoLabel` asserts this).
+    - Item "unit test and hosted test": met for the label path only.
+    - Item "push and send the sha": out of scope for this step (the orchestrator does not let this step push).
+
+    Probe (scratch NSHostingView with no window, AXEnhancedUserInterface on, macOS 27):
+    - `.accessibilityElement(children: .contain)` plus `.accessibilityLabel { _ in content }` gives the container the joined text of the content ("Idle, Session A, Delete"), and the children stay as they are.
+    - `.accessibilityElement(children: .combine)` gives the label, but it removes the child elements. Do not use it.
+    - A label that the content sets on itself (for example in `wrappingRows`) comes back one time for each text leaf ("App label, App label, App label"). So the app label path stays `rowAccessibilityLabel(_:)`.
+    - The content in the label closure does not run `onAppear` a second time.
+  timestamp: 2026-11-21T11:44:43.537811+00:00
+- actor: claude-code
+  id: 01m7yz98hvnyqp1gccpqy88zdg
+  text: |-
+    ### implement — changed
+    - Fallback label: with no `rowAccessibilityLabel`, the row element (`agent-row-<list>/<id>`) now has the text of its content as its label, joined with commas (`.accessibilityLabel { _ in content }` in `AgentRowClicks.labeled(_:content:)`). The child elements stay as they are. `OptionalAccessibilityLabel` is removed (it had no other caller).
+    - Docs: `AgentRowList`, `rowAccessibilityLabel(_:)`, `rowLabel` and the two `label` properties tell the fallback.
+    - RED: unit test `aRowElementWithNoRowLabelHasTheTextOfItsContent` failed (label was nil). GREEN: it passes. New unit test `aRowElementWithARowLabelHasThatLabel`. Both read the accessibility tree of an NSHostingView with no window (`withAccessibilityTree`), so they show no window.
+    - Hosted test `aRowElementWithNoHostLabelHasNoLabel` is now `aRowElementWithNoHostLabelHasTheTextOfItsContent` (compile only).
+    - Other hosted tests that read row labels (ActivityTimeline, PendingRequestCountBadge) read content elements with their own identifiers; the change does not touch those elements.
+    - evidence: swift test: 1563 tests in 179 suites and 54 tests in 11 suites passed, 0 warnings. IntegrationTests swift build --build-tests: Build complete. swift format lint -s on the 3 files: 0 findings.
+    - files: Sources/AgentViewKit/Lists/AgentRowList.swift, Tests/AgentViewKitTests/Lists/AgentRowListRowLabelTests.swift, IntegrationTests/Tests/IntegrationTests/Lists/AgentRowListRowLabelHostedTests.swift
+    - next: review. The push and the sha message to testudoapp-9a are still open; this step does not push.
+  timestamp: 2026-11-21T11:53:50.395890+00:00
+position_column: doing
+position_ordinal: '80'
 title: The row container of AgentRowList has the label of the row (Testudo)
 ---
 Request from testudoapp-9a (2026-11-20), proven with a hosted accessibility snapshot in Testudo.

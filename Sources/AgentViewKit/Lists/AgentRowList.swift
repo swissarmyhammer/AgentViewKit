@@ -170,9 +170,9 @@ public enum AgentRowDensity: Hashable, Sendable {
 ///
 /// Each row is one accessibility element that contains the elements of its
 /// content, so VoiceOver reads each row as the content tells. Give the row
-/// element a name with ``rowAccessibilityLabel(_:)``: with no label, the row
-/// element has no name of its own, and only its content tells what the row
-/// is. The row element
+/// element a name with ``rowAccessibilityLabel(_:)``: with no label, the name
+/// of the row element is the text of its content, joined with commas. The row
+/// element
 /// has the identifier ``AgentRowListScope/rowIdentifier(for:)`` and the
 /// accessibility action Open, which opens the row as Return does, or Select in
 /// a list with no `onOpen`, which selects the row. VoiceOver lists it in the
@@ -216,7 +216,8 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
   var rowWrapper: ((AnyView, Item) -> AnyView)?
 
   /// The accessibility label of the element of each row, or `nil` for a row
-  /// element with no label of its own (``rowAccessibilityLabel(_:)``).
+  /// element whose label is the text of its content
+  /// (``rowAccessibilityLabel(_:)``).
   var rowLabel: ((Item) -> Text)?
 
   @Environment(\.commandSystem) private var ambientSystem
@@ -551,7 +552,9 @@ extension AgentRowList {
   ///
   /// The row element contains the elements of its content, so a label on
   /// the content, or in a wrapper of ``wrappingRows(_:)``, names the content
-  /// and not the row. This label names the row element itself:
+  /// and not the row. This label names the row element itself. With no label,
+  /// the name of the row element is the text of its content, joined with
+  /// commas:
   ///
   /// ```swift
   /// AgentRowList(sessions, id: \.id, scope: scope) { session in
@@ -630,8 +633,8 @@ struct AgentRowListRow<Content: View>: View {
   /// How tight the rows of the list stand.
   let density: AgentRowDensity
 
-  /// The accessibility label of the row element, or `nil` for no label of
-  /// its own.
+  /// The accessibility label of the row element, or `nil` for the text of
+  /// the content of the row.
   let label: Text?
 
   /// The wrapper of the whole row, or `nil` for a bare row.
@@ -705,8 +708,8 @@ struct AgentRowClicks: ViewModifier {
   /// The accessibility identifier of the row element.
   let identifier: String
 
-  /// The accessibility label of the row element, or `nil` for no label of
-  /// its own.
+  /// The accessibility label of the row element, or `nil` for the text of
+  /// the content of the row.
   let label: Text?
 
   /// The name of the accessibility action of a row that opens.
@@ -721,13 +724,36 @@ struct AgentRowClicks: ViewModifier {
   /// clear overlay that is hidden from accessibility, and takes no click, is a
   /// second child, so the row element stands a level above the content.
   func body(content: Content) -> some View {
-    clicks(on: content)
-      .overlay { Color.clear.accessibilityHidden(true).allowsHitTesting(false) }
-      .accessibilityElement(children: .contain)
-      .accessibilityIdentifier(identifier)
-      .modifier(OptionalAccessibilityLabel(label: label))
-      .accessibilityAction(
-        named: Text(open == nil ? Self.selectActionName : Self.openActionName), activate)
+    labeled(
+      clicks(on: content)
+        .overlay { Color.clear.accessibilityHidden(true).allowsHitTesting(false) }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier(identifier),
+      content: content
+    )
+    .accessibilityAction(
+      named: Text(open == nil ? Self.selectActionName : Self.openActionName), activate)
+  }
+
+  /// `element` with the label of the row: ``label`` when the host gives one,
+  /// or else the text of `content`.
+  ///
+  /// SwiftUI makes the fallback label from the text views of `content`, and
+  /// joins them with commas. The elements of the content stay in the row
+  /// element as they are. A label that the content sets on itself comes back
+  /// one time for each text view in it, so the host names the row with
+  /// ``AgentRowList/rowAccessibilityLabel(_:)``.
+  ///
+  /// - Parameters:
+  ///   - element: The row element, which contains the elements of `content`.
+  ///   - content: The row, from which the fallback label comes.
+  /// - Returns: The row element, with its label.
+  @ViewBuilder private func labeled(_ element: some View, content: Content) -> some View {
+    if let label {
+      element.accessibilityLabel(label)
+    } else {
+      element.accessibilityLabel { _ in content }
+    }
   }
 
   /// `content` with the clicks of the trigger.
@@ -817,20 +843,4 @@ struct AgentRowClicks: ViewModifier {
     Text(suggestion)
   }
   .scrollContentMargins(\.tile.margin)
-}
-
-/// An accessibility label on the element of the content, or no change for
-/// `nil`. A `nil` label leaves the element with no label of its own, and does
-/// not set an empty one.
-struct OptionalAccessibilityLabel: ViewModifier {
-  /// The label, or `nil` for no label.
-  let label: Text?
-
-  func body(content: Content) -> some View {
-    if let label {
-      content.accessibilityLabel(label)
-    } else {
-      content
-    }
-  }
 }

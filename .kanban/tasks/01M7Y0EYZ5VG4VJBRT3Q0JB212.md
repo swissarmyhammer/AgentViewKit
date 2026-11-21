@@ -33,8 +33,24 @@ comments:
     - not done here, by the order of the caller: push, and the sha to testudoapp-9a.
     - evidence: swift test: 1561 tests in 179 suites and 54 tests in 11 suites passed. swift format lint -s: 0 findings in the new files, and no new findings in AgentThreadView.swift and AgentCommandTarget.swift (same counts as HEAD).
   timestamp: 2026-11-21T11:31:07.840389+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m7yyf978q6eq6cy5zgn6m185
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (4127c353): 0 findings, 0 confirmed, 1 refuted, 7 files attempted, 0 failed. 5 files reviewed. 2 .kanban files are not reviewed because .reviewignore excludes them.
+    - next: none. The task is in done.
+  timestamp: 2026-11-21T11:39:39.112123+00:00
+- actor: claude-code
+  id: 01m7yyfwt42dgyq59hjct79b1d
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 5 files (the composer of an empty thread takes the focus)
+    - test: green — swift test, 1561 tests in 179 suites and 54 tests in 11 suites passed; IntegrationTests build passed (not run)
+    - commit: 4127c353
+    - review: clean — 0 findings
+  timestamp: 2026-11-21T11:39:59.172590+00:00
+position_column: done
+position_ordinal: ffffffff8a80
 title: The composer takes the focus in an empty thread (Testudo)
 ---
 Request from testudoapp-9a (2026-11-20). In Testudo, a chat with no messages does not give the focus to the composer, and a click on the empty space of the chat does not focus the chat. This stops 4 Testudo UI tests: the composer click, the ⌥⌘ digit keys, Stop in the Session menu, and the command surfaces.

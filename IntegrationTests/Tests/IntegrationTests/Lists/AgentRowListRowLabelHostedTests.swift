@@ -7,11 +7,13 @@ import Testing
 @testable import AgentViewKit
 
 /// The row element of an ``AgentRowList`` has the label that the host gives
-/// with ``AgentRowList/rowAccessibilityLabel(_:)``, so VoiceOver and a UI test
-/// read the row by its name (Testudo, 2026-11-20).
+/// with ``AgentRowList/rowAccessibilityLabel(_:)``, or else the text of its
+/// content, so VoiceOver and a UI test read the row by its name (Testudo,
+/// 2026-11-20).
 ///
 /// A production change that fails these tests: the label goes on the content
-/// of the row and not on the row element, which contains the content.
+/// of the row and not on the row element, which contains the content, or a
+/// row element with no host label has no label.
 @Suite(.serialized, .hostedSerially) @MainActor struct AgentRowListRowLabelHostedTests {
   /// The size of the host window.
   static let windowSize = CGSize(width: 320, height: 200)
@@ -70,11 +72,11 @@ import Testing
       })
   }
 
-  @Test func aRowElementWithNoHostLabelHasNoLabel() {
+  @Test func aRowElementWithNoHostLabelHasTheTextOfItsContent() {
     let harness = Self.mount(labelsRows: false)
     defer { harness.close() }
 
     let label = harness.element(identifier: Self.scope.rowIdentifier(for: Self.ids[0]))?.label
-    #expect(label == nil || label?.isEmpty == true)
+    #expect(label == Self.ids[0])
   }
 }
