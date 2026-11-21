@@ -195,7 +195,24 @@ comments:
     - open: items 2 and 3 have a cause from the code, not proven by a hosted run. The EditorKit failures stay on ^6386krf.
     - next: /review, then a CI Integration run. The task stays in doing.
   timestamp: 2026-11-21T22:53:07.918466+00:00
-position_column: doing
+- actor: claude-code
+  id: 01m80571hx6b83whwadk6r66nm
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (c15817bd): 0 findings, 0 confirmed, 0 refuted; 7 validator runs, 0 failed, 0 skipped; 5 files examined, 2 `.kanban/` files not examined (ignore rule). The 1 earlier finding is checked.
+    - next: Keep the task in Review. Do not move it to Done until CI on main is green.
+  timestamp: 2026-11-21T22:56:43.581543+00:00
+- actor: claude-code
+  id: 01m8057eq1ez6cxa0rgy12jbvn
+  text: |-
+    ### finish iteration 3 — clean
+    - implement: changed — 5 files (ThreadStatusHeader content shape; find step tests wait for the hits announcement; bar overlap test waits for the rows in view and checks the bottom pin)
+    - test: green — swift test, 1605 tests in 182 suites and 54 tests in 11 suites passed; IntegrationTests and ScreenshotTests build passed (not run)
+    - commit: c15817bd
+    - review: clean — 0 findings
+    - The task stays in review until CI on main shows the result. The EditorKit tests wait on ^6386krf.
+  timestamp: 2026-11-21T22:56:57.057401+00:00
+position_column: review
 position_ordinal: '80'
 title: Integration CI job on main is red (run 44757895393, a60d101a)
 ---
@@ -242,3 +259,11 @@ Do:
 > Result: 0 new findings (7 validator runs, 0 failed, 0 skipped). The 1 earlier finding is checked.
 
 > Status: This task stays open in Review. It is not done. 5 hosted tests are not fixed, and CI on main is not green.
+
+## Review Findings (2026-11-21 16:55)
+
+> Scope: `review sha HEAD~1..HEAD` (c15817bd). The review examined only the lines that the change added or changed. 5 files were examined. 2 files in `.kanban/` were not examined (ignore rule).
+
+> Result: 0 new findings (7 validator runs, 0 failed, 0 skipped). No finding was dropped. The 1 earlier finding is checked.
+
+> Status: This task stays open in Review. It is not done. CI on main is not green.
