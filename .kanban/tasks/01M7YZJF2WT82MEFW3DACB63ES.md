@@ -64,8 +64,25 @@ comments:
     - evidence: 2 files — Sources/AgentViewKit/Code/BlockHeader.swift, Sources/AgentViewKit/Infrastructure/PreviewFixtures.swift. swiftlint no_magic_numbers (rule configuration): 0 hits in the two files. `swift test`: 1604 tests in 181 suites and 54 tests in 11 suites passed, 0 failures, 0 compiler warnings (BlockHeaderTests passed). `swift build --build-tests` in IntegrationTests and ScreenshotTests: Build complete (suites not run). `swift format lint --strict` (default configuration) on the two files: 0 findings. The build shows the known SwiftPM line "missing creator for mutated node ... mlx-swift_Cmlx.bundle"; it is not from this change. 5 of 5 findings ticked; 10 of 11 subtasks ticked.
     - next: /review. Open: the acceptance item on the current hosted tests of CodeBlockView and the attachment inspector needs a hosted run.
   timestamp: 2026-11-21T22:35:29.458326+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m8044zv1wyvpgarh04nqvgnn
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (f6c805a8) — 0 findings, 0 confirmed, 0 refuted; 7 validator runs, 0 failed; 2 files examined; 2 .kanban files not examined (ignore rule). All 5 items of "Review Findings (2026-11-21 16:28)" are checked.
+    - next: none. The task is in done.
+  timestamp: 2026-11-21T22:38:07.713345+00:00
+- actor: claude-code
+  id: 01m8045bfa0e1r7vt86v3st8j5
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — 2 files (named constants)
+    - test: green — swift test, 1604 tests in 181 suites and 54 tests in 11 suites passed; IntegrationTests and ScreenshotTests build passed (not run)
+    - commit: f6c805a8
+    - review: clean — 0 findings, 5 of 5 earlier items checked
+    - Open: the hosted tests of CodeBlockView and of the attachment inspector did not run (hosted suites are not allowed on this Mac); CI on main runs them.
+  timestamp: 2026-11-21T22:38:19.626214+00:00
+position_column: done
+position_ordinal: ffffffff8d80
 title: One shared block header (title, buttons, line) for the code block and the attachment inspector
 ---
 ## What
