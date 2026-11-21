@@ -32,9 +32,10 @@ hosted tests are in `Tests/AgentViewKitTests/Accessibility/`.
 ## Math in the reading order
 
 EditorKit shows the math of an answer (D185, AVK-9.3). The value of the text
-element of a text block is its Markdown text, so VoiceOver reads each
-formula at its place in the sentence, as its TeX source with its
-delimiters.
+element of a text block is its text, and VoiceOver reads each formula at its
+place in the sentence as EditorKit speaks an inline math widget: the label
+"Math" and the TeX source, with no delimiters ("Math, x^2", EditorKit
+4148b295).
 
 EditorKit also gives each formula an element of its own, with the label
 "Math" and the TeX source as its value, so that a user can also move to each

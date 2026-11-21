@@ -1,4 +1,3 @@
-@testable import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
 import EditorCommandsUI
@@ -9,6 +8,8 @@ import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 import Testing
+
+@testable import AgentViewKit
 
 /// The questions that the tests ask of the steps that the reader of the turn
 /// announcements of a hosted thread reports through
@@ -101,7 +102,7 @@ extension ReportRecorder<TurnAnnouncementStep> {
       .transaction { $0.disablesAnimations = true }
     }
     harness.render()
-    await ObservationWait.until { steps.hasStarted }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { steps.hasStarted }
     return harness
   }
 
@@ -121,9 +122,10 @@ extension ReportRecorder<TurnAnnouncementStep> {
     try await session.send(
       update: BackgroundRunScript.makeChunkUpdate(messageID: firstMessageID, text: threeParagraphs))
     try await session.send(
-      update: BackgroundRunScript.makeChunkUpdate(messageID: secondMessageID, text: secondMessageText))
+      update: BackgroundRunScript.makeChunkUpdate(
+        messageID: secondMessageID, text: secondMessageText))
     let model = session.model
-    await harness.render { model.transcript.count == readingMessageCount }
+    await harness.renderAfter { model.transcript.count == readingMessageCount }
     return model.transcript.map(\.rowKey)
   }
 
@@ -146,7 +148,7 @@ extension ReportRecorder<TurnAnnouncementStep> {
 
     try await session.sendUpdate(ScriptedSession.runningState)
     let model = session.model
-    await harness.render { ComposerSessionModelHostedTests.isRunning(model) }
+    await harness.renderAfter { ComposerSessionModelHostedTests.isRunning(model) }
 
     #expect(harness.element(identifier: ShimmerView.identifier)?.value == value)
   }
@@ -176,9 +178,11 @@ extension ReportRecorder<TurnAnnouncementStep> {
   /// - Parameter session: The scripted session.
   /// - Returns: The task of the request.
   static func beginReplay(of session: ScriptedSession) async -> Task<SessionModel, any Error> {
-    let resume = Task { try await session.connection.resumeSession(ScriptedSession.replayFromStartRequest) }
+    let resume = Task {
+      try await session.connection.resumeSession(ScriptedSession.replayFromStartRequest)
+    }
     let model = session.model
-    await ObservationWait.until { model.isReplaying }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { model.isReplaying }
     return resume
   }
 
@@ -196,9 +200,9 @@ extension ReportRecorder<TurnAnnouncementStep> {
     rendering harness: HostedViewHarness<some View>
   ) async throws {
     session.agent.releaseHeldAnswer()
-    _ = try await resume.value
+    _ = try await resume.boundedValue()
     let model = session.model
-    await harness.render { !model.isReplaying }
+    await harness.renderAfter { !model.isReplaying }
   }
 
   // MARK: - Reading groups
@@ -217,7 +221,9 @@ extension ReportRecorder<TurnAnnouncementStep> {
     defer { harness.close() }
     harness.render()
 
-    let texts = harness.accessibilityElements().filter { $0.identifier == ResponseView.textIdentifier }
+    let texts = harness.accessibilityElements().filter {
+      $0.identifier == ResponseView.textIdentifier
+    }
     #expect(texts.map(\.value) == [Self.threeParagraphs, Self.secondMessageText])
     let first = try #require(texts.first)
     #expect(first.linkedElements.contains { $0.value == Self.secondMessageText })
@@ -237,21 +243,27 @@ extension ReportRecorder<TurnAnnouncementStep> {
     #expect(linked.contains(ItemRow.identifier(for: secondKey)))
   }
 
-  /// The text element of an answer reads its math at its place, as the TeX
-  /// source, and EditorKit gives each formula an element of its own whose
-  /// value is its TeX source.
+  /// The text element of an answer reads its math at its place, as EditorKit
+  /// speaks an inline math widget ("Math, x^2", EditorKit 4148b295), and
+  /// EditorKit gives each formula an element of its own whose value is its
+  /// TeX source.
   @Test func anAnswerReadsItsMathAtItsPlaceAndKeepsTheMathElement() async throws {
     let cache = CodeBlockModelCache()
     let text = "Let $x^2$ be big."
     let harness = HostedViewHarness(
-      ResponseView(id: "math", markdown: text).environment(\.codeBlockModelCache, cache), size: Self.hostSize)
+      ResponseView(id: "math", markdown: text).environment(\.codeBlockModelCache, cache),
+      size: Self.hostSize)
     defer { harness.close() }
     harness.render()
     let model = try #require(ResponseTextChecks.model(of: "math", in: cache))
     await ResponseTextChecks.renderParsed(model, in: harness)
 
-    #expect(ResponseTextChecks.texts(in: harness) == [text])
-    let formulas = harness.accessibilityElements().filter { $0.label == EditorSwiftUIStrings.mathLabel }
+    let spokenMath = EditorSwiftUIStrings.renderedWidgetSpokenText(
+      label: EditorSwiftUIStrings.mathLabel, value: "x^2")
+    #expect(ResponseTextChecks.texts(in: harness) == ["Let \(spokenMath) be big."])
+    let formulas = harness.accessibilityElements().filter {
+      $0.label == EditorSwiftUIStrings.mathLabel
+    }
     #expect(formulas.map(\.value) == ["x^2"])
   }
 
@@ -266,7 +278,8 @@ extension ReportRecorder<TurnAnnouncementStep> {
   /// waits for the event that the observable ``RecordingAnnouncer`` holds an
   /// announcement: the idle after the echo of the prompt is certain to give
   /// one.
-  @Test func aPromptThatGoesIdleAfterItRunsAnnouncesThatTheResponseIsCompleteOneTime() async throws {
+  @Test func aPromptThatGoesIdleAfterItRunsAnnouncesThatTheResponseIsCompleteOneTime() async throws
+  {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let announcer = RecordingAnnouncer()
@@ -276,13 +289,14 @@ extension ReportRecorder<TurnAnnouncementStep> {
 
     _ = try await model.prompt([.text(TextContent(text: "Hello."))])
     try await session.sendUpdate(ScriptedSession.runningState)
-    await ObservationWait.until { model.agentState != nil }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { model.agentState != nil }
     for index in 0..<Self.chunkCount {
       try await session.send(
         update: BackgroundRunScript.makeChunkUpdate(
-          messageID: Self.streamedMessageID, text: SessionModelRedrawScopeTests.streamedChunk(at: index)))
+          messageID: Self.streamedMessageID,
+          text: SessionModelRedrawScopeTests.streamedChunk(at: index)))
       let sent = (0...index).map(SessionModelRedrawScopeTests.streamedChunk(at:)).joined()
-      await harness.render {
+      await harness.renderAfter {
         AgentMessageLookup.agentMessage(messageID: Self.streamedMessageID, in: model)
           .map { SessionTranscriptViewHostedTests.text(of: $0.content) } == sent
       }
@@ -290,7 +304,9 @@ extension ReportRecorder<TurnAnnouncementStep> {
     #expect(announcer.announcements.isEmpty)
 
     try await session.sendUpdate(ScriptedSession.endTurnState)
-    await ObservationWait.until { !announcer.announcements.isEmpty }
+    await ObservationWait.until(within: BoundedWait.defaultBound) {
+      !announcer.announcements.isEmpty
+    }
 
     #expect(
       announcer.announcements == [
@@ -307,16 +323,17 @@ extension ReportRecorder<TurnAnnouncementStep> {
     let model = session.model
 
     try await session.sendToolCallUpdate(title: Self.toolTitle, status: .inProgress)
-    await harness.render { !model.transcript.isEmpty }
+    await harness.renderAfter { !model.transcript.isEmpty }
     #expect(announcer.announcements.isEmpty)
 
     try await session.sendToolCallUpdate(title: Self.toolTitle, status: .completed)
-    await harness.render { Self.isCompletedToolCall(model.transcript.first) }
+    await harness.renderAfter { Self.isCompletedToolCall(model.transcript.first) }
 
     #expect(
       announcer.announcements == [
         RecordingAnnouncer.Announcement(
-          message: ToolCallView.accessibilityLabel(title: Self.toolTitle, status: .completed), priority: .medium)
+          message: ToolCallView.accessibilityLabel(title: Self.toolTitle, status: .completed),
+          priority: .medium)
       ])
   }
 
@@ -333,7 +350,8 @@ extension ReportRecorder<TurnAnnouncementStep> {
     let request = try #require(session.model.pendingPermissions.first)
     #expect(
       announcer.announcements == [
-        RecordingAnnouncer.Announcement(message: "Action required: \(request.request.title)", priority: .high)
+        RecordingAnnouncer.Announcement(
+          message: "Action required: \(request.request.title)", priority: .high)
       ])
   }
 
@@ -346,9 +364,9 @@ extension ReportRecorder<TurnAnnouncementStep> {
     let connection = session.connection
 
     let login = session.startLogin()
-    await harness.render { !connection.pendingElicitations.isEmpty }
+    await harness.renderAfter { !connection.pendingElicitations.isEmpty }
     session.agent.releaseHeldAnswer()
-    try await login.value
+    try await login.boundedValue()
 
     #expect(
       announcer.announcements == [
@@ -367,9 +385,9 @@ extension ReportRecorder<TurnAnnouncementStep> {
 
     let resume = await Self.beginReplay(of: session)
     try await session.sendToolCallUpdate(title: Self.toolTitle, status: .inProgress)
-    await harness.render { !model.transcript.isEmpty }
+    await harness.renderAfter { !model.transcript.isEmpty }
     try await session.sendToolCallUpdate(title: Self.toolTitle, status: .completed)
-    await harness.render { Self.isCompletedToolCall(model.transcript.first) }
+    await harness.renderAfter { Self.isCompletedToolCall(model.transcript.first) }
     #expect(Self.isCompletedToolCall(model.transcript.first))
     try await Self.endReplay(resume, of: session, rendering: harness)
 
@@ -395,10 +413,12 @@ extension ReportRecorder<TurnAnnouncementStep> {
 
     let resume = await Self.beginReplay(of: session)
     try await session.sendUpdate(ScriptedSession.runningState)
-    await harness.render { model.agentState != nil }
+    await harness.renderAfter { model.agentState != nil }
     try await session.sendUpdate(ScriptedSession.endTurnState)
-    await harness.render { Self.isIdle(model.agentState) }
-    await ObservationWait.until { !steps.idleAnnouncements.isEmpty }
+    await harness.renderAfter { Self.isIdle(model.agentState) }
+    await ObservationWait.until(within: BoundedWait.defaultBound) {
+      !steps.idleAnnouncements.isEmpty
+    }
     #expect(steps.idleAnnouncements == [nil])
     try await Self.endReplay(resume, of: session, rendering: harness)
 
@@ -439,7 +459,7 @@ extension ReportRecorder<TurnAnnouncementStep> {
     #expect(reporter.moves.isEmpty)
 
     await session.model.cancelPermission(id)
-    await harness.render { model.pendingPermissions.isEmpty }
+    await harness.renderAfter { model.pendingPermissions.isEmpty }
 
     #expect(reporter.moves == [EditorKitPromptEditor.identifier])
   }
@@ -463,7 +483,7 @@ extension ReportRecorder<TurnAnnouncementStep> {
     #expect(mover.lastMove == nil)
 
     await session.model.cancelPermission(id)
-    await harness.render { model.pendingPermissions.isEmpty }
+    await harness.renderAfter { model.pendingPermissions.isEmpty }
 
     #expect(mover.lastMove?.identifier == EditorKitPromptEditor.identifier)
   }
@@ -471,10 +491,12 @@ extension ReportRecorder<TurnAnnouncementStep> {
   // MARK: - Reduce Motion
 
   @Test func reduceMotionStopsTheShimmerOfARunningSession() async throws {
-    try await Self.expectShimmerOfARunningSession(reduceMotion: true, value: ShimmerView.staticValue)
+    try await Self.expectShimmerOfARunningSession(
+      reduceMotion: true, value: ShimmerView.staticValue)
   }
 
   @Test func withNoReduceMotionTheShimmerOfARunningSessionAnimates() async throws {
-    try await Self.expectShimmerOfARunningSession(reduceMotion: false, value: ShimmerView.animatingValue)
+    try await Self.expectShimmerOfARunningSession(
+      reduceMotion: false, value: ShimmerView.animatingValue)
   }
 }

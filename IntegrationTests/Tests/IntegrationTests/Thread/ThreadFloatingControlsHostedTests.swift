@@ -60,7 +60,9 @@
         try await session.sendUpdate(
           SessionTranscriptViewHostedTests.chunk(
             "user_message_chunk", messageID: promptMessageID, text: message))
-        await ObservationWait.until { !session.model.transcript.isEmpty }
+        await ObservationWait.until(within: BoundedWait.defaultBound) {
+          !session.model.transcript.isEmpty
+        }
         try await ConversationViewHostedTests.sendMessages(
           ConversationViewHostedTests.scrollEntryCount, to: session)
       } catch {
@@ -210,7 +212,10 @@
     /// - Throws: An issue when the list or its scroll view is not there.
     static func listScrollView(in harness: HostedViewHarness<some View>) throws -> NSScrollView {
       let visiblePart = try #require(harness.frame(identifier: ConversationLayout.listIdentifier))
-      return try #require(views(ofType: NSScrollView.self, in: harness.hostingView).first { harness.screenFrame(of: $0).contains(visiblePart) })
+      return try #require(
+        views(ofType: NSScrollView.self, in: harness.hostingView).first {
+          harness.screenFrame(of: $0).contains(visiblePart)
+        })
     }
 
     /// Gives the list the scroll to the bottom that the manager sent after an
@@ -235,7 +240,10 @@
     ///   - anchors: The manager of the scroll position of the thread.
     ///   - harness: The harness that shows the thread.
     static func applyHeldScroll(
-      after baseline: Int, of held: (targets: ReportRecorder<ScrollAnchorTarget>, viewScroll: (ScrollAnchorTarget) -> Void),
+      after baseline: Int,
+      of held: (
+        targets: ReportRecorder<ScrollAnchorTarget>, viewScroll: (ScrollAnchorTarget) -> Void
+      ),
       unpinned: ObservationFlag, anchors: ScrollAnchorManager, harness: HostedViewHarness<some View>
     ) async {
       await ObservationWait.until(within: .seconds(10)) {
@@ -275,8 +283,9 @@
       }
       defer { harness.close() }
       try await session.sendUpdate(
-        SessionTranscriptViewHostedTests.chunk("user_message_chunk", messageID: Self.promptMessageID, text: Self.message))
-      await harness.render(when: { model.transcript.count == 1 })
+        SessionTranscriptViewHostedTests.chunk(
+          "user_message_chunk", messageID: Self.promptMessageID, text: Self.message))
+      await harness.renderAfter({ model.transcript.count == 1 })
       // The first entry shows the list, and the list sends its first scroll
       // to the bottom in the pass that shows it, which can be before the test
       // holds the targets. The test holds from here, and starts each wait at
@@ -287,15 +296,19 @@
       let unpinned = ObservationFlag.observing { _ = anchors.isPinnedToBottom }
 
       var baseline = held.targets.values.count
-      try await session.sendUpdate(SessionStateBannersHostedTests.stateUpdate(#""state": "running""#))
       try await session.sendUpdate(
-        SessionTranscriptViewHostedTests.chunk("agent_message_chunk", messageID: Self.replyMessageID, text: Self.reply))
-      await harness.render(when: { model.transcript.count == 2 })
-      await Self.applyHeldScroll(after: baseline, of: held, unpinned: unpinned, anchors: anchors, harness: harness)
+        SessionStateBannersHostedTests.stateUpdate(#""state": "running""#))
+      try await session.sendUpdate(
+        SessionTranscriptViewHostedTests.chunk(
+          "agent_message_chunk", messageID: Self.replyMessageID, text: Self.reply))
+      await harness.renderAfter({ model.transcript.count == 2 })
+      await Self.applyHeldScroll(
+        after: baseline, of: held, unpinned: unpinned, anchors: anchors, harness: harness)
       baseline = held.targets.values.count
       try await session.sendUpdate(SessionEntryRowsHostedTests.planUpdate(firstStatus: "completed"))
-      await harness.render(when: { model.transcript.count == 3 })
-      await Self.applyHeldScroll(after: baseline, of: held, unpinned: unpinned, anchors: anchors, harness: harness)
+      await harness.renderAfter({ model.transcript.count == 3 })
+      await Self.applyHeldScroll(
+        after: baseline, of: held, unpinned: unpinned, anchors: anchors, harness: harness)
 
       #expect(!unpinned.isRaised, "the thread unpinned during the turn")
       #expect(harness.element(identifier: ScrollToBottomPill.identifier) == nil)
@@ -313,7 +326,9 @@
 
       try Self.scrollUpByCommand(session, anchors: anchors, system: system, harness: harness)
 
-      let pills = harness.accessibilityElements().filter { $0.identifier == ScrollToBottomPill.identifier }
+      let pills = harness.accessibilityElements().filter {
+        $0.identifier == ScrollToBottomPill.identifier
+      }
       #expect(pills.count == 1)
     }
 
@@ -395,7 +410,9 @@
       try #require(anchors.isPinnedToBottom)
       try #require(harness.element(identifier: ScrollToBottomPill.identifier) == nil)
 
-      await ObservationWait.until { targets.values.last == .bottom }
+      await ObservationWait.until(within: BoundedWait.defaultBound) {
+        targets.values.last == .bottom
+      }
       viewScroll(.bottom)
       harness.render()
 
@@ -414,7 +431,8 @@
       defer { harness.close() }
       harness.render()
 
-      let editorNamespace = try #require(FloatingNamespaceProbe.namespace(of: ProbeComposer.probeIdentifier, in: harness))
+      let editorNamespace = try #require(
+        FloatingNamespaceProbe.namespace(of: ProbeComposer.probeIdentifier, in: harness))
       #expect(editorNamespace != FloatingNamespaceProbe.noNamespace)
     }
 
@@ -437,9 +455,12 @@
       defer { harness.close() }
       harness.render()
 
-      let slotNamespace = try #require(FloatingNamespaceProbe.namespace(of: Self.slotProbeIdentifier, in: harness))
+      let slotNamespace = try #require(
+        FloatingNamespaceProbe.namespace(of: Self.slotProbeIdentifier, in: harness))
       #expect(slotNamespace != FloatingNamespaceProbe.noNamespace)
-      #expect(FloatingNamespaceProbe.namespace(of: ProbeComposer.probeIdentifier, in: harness) == slotNamespace)
+      #expect(
+        FloatingNamespaceProbe.namespace(of: ProbeComposer.probeIdentifier, in: harness)
+          == slotNamespace)
     }
 
     @Test func aComposerInTheSlotSendsToTheSessionOfTheThread() async throws {
@@ -458,7 +479,7 @@
       // The composer calls the host closure in the same step as it starts
       // the prompt task, so a press that sent nothing stops the test here.
       try #require(draft.submitCount == 1)
-      await ObservationWait.until { !session.promptTexts.isEmpty }
+      await ObservationWait.until(within: BoundedWait.defaultBound) { !session.promptTexts.isEmpty }
 
       #expect(session.promptTexts == [Self.message])
     }
@@ -475,7 +496,8 @@
 
     var body: some View {
       PromptInputView(
-        text: $text, onSubmit: {}, editor: { _ in FloatingNamespaceProbe(identifier: Self.probeIdentifier) })
+        text: $text, onSubmit: {},
+        editor: { _ in FloatingNamespaceProbe(identifier: Self.probeIdentifier) })
     }
   }
 
@@ -504,7 +526,9 @@
     ///   - identifier: The accessibility identifier of the probe.
     ///   - harness: The harness that shows the probe.
     /// - Returns: The text, or `nil` when the probe is not in the tree.
-    static func namespace(of identifier: String, in harness: HostedViewHarness<some View>) -> String? {
+    static func namespace(of identifier: String, in harness: HostedViewHarness<some View>)
+      -> String?
+    {
       harness.element(identifier: identifier)?.label
     }
   }

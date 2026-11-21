@@ -47,8 +47,55 @@ comments:
     - The output of Swift Testing is buffered, so the start times do not show which test waits. 20 tests started and did not end before 13:41. Tests that are open in both hangs (job 136741707622 and this job): aFocusedItemWithNoSurfaceShowsItsScopeRing(kind:) (in both runs, the .message case of an AgentItemFocus test fails just before the stop), theFocusedInspectorShowsItsScopeRing(), aSubmitPassesTheAttachmentsAndClearsTheRow(), aJumpOnTheCardFocusesTheCardAndNotItsCommentField(), aSubmitAttemptShowsTheErrorOfEachFieldThatIsNotValid().
     - Next: find the await with no bound in those tests (for example in AgentScopeSubjectHostedTests.sendScopeToolCall, used by the .toolCall case after the .message case fails), and fix the failing tests.
   timestamp: 2026-11-21T21:14:48.030177+00:00
-position_column: todo
-position_ordinal: '8280'
+- actor: claude-code
+  id: 01m7zzwh9erref7zr3avg9111m
+  text: |-
+    ### Research for the hang and the failures (2026-11-21)
+    - The hosted tests have 117 calls of `ObservationWait.until(_:)` with no bound (IntegrationTests and AgentViewKitTestSupport). Also 189 calls of `harness.render { … }`. These calls go to EditorKit `HostedViewHarness.render(when:)`, which calls `ObservationWait.until(_:)` with no bound. The default `render(when:)` of the AVK protocol `RenderedMount` is never used: the method of `HostedViewHarness` is the witness.
+    - Other unbounded waits: `await task.value` on test tasks (about 10), one `withCheckedContinuation` in AgentAuthViewHostedTests, and the `for await` loop of `TurnAnnouncementFixtures.announcements`.
+    - EditorKit gives the bounds: `BoundedWait.defaultBound` (30 s), `BoundedWait.next(before:)` and `ObservationWait.until(within:)`.
+    - EditorKit b4c60286 found the same kind of hang in EditorKit: a wait on a value that is not observable (`NSTextView.string`) never wakes. One of the open tests can have the same defect.
+    - The same failures are in the Integration log of 2026-11-20 17:21 (EditorKit 409d360), before 4127c353. Thus 4127c353 is not the first cause of the AgentItemFocus `.message` failures. The last green Integration job is on 429cda80 (2026-11-13).
+  timestamp: 2026-11-21T21:23:36.366263+00:00
+- actor: claude-code
+  id: 01m800vg5dy9nb9kme755tr3t2
+  text: |-
+    ### Hang: each event wait now has a bound (2026-11-21)
+    - `RenderedMount.renderAfter(within:sourceLocation:_:)` (IntegrationTests/Helpers/RenderedMount.swift) replaces each call of EditorKit `HostedViewHarness.render(when:)` (187 calls). It calls `ObservationWait.until(within: BoundedWait.defaultBound)` (30 s), then `RunLoopBlockFence.afterPendingBlocks()`, then `render()`. A grep for `.render {` and `.render(when:` now finds 0 calls.
+    - Each `ObservationWait.until { }` in IntegrationTests and AgentViewKitTestSupport is now `ObservationWait.until(within: BoundedWait.defaultBound) { }` (114 calls).
+    - New `Task.boundedValue(within:sourceLocation:)` (Sources/AgentViewKitTestSupport/BoundedTaskValue.swift) for the 9 `await task.value` in hosted tests. At the bound it records an issue, cancels the task and throws `BoundedTaskError.noEnd`.
+    - `TurnAnnouncementFixtures.collect` reads the stream in a task with a bound, and it now throws. The parse wait of `ResponseTextChecks.renderParsed` has a bound.
+    - Not changed: the `withCheckedContinuation` in AgentAuthViewHostedTests is a fake of production that waits for a cancel, and no test awaits it. `waitForLiveBeacons` and `settle(until:)` are polls of EditorKit that already have a timeout. The unit tests in Tests/ (not hosted) keep their unbounded waits (out of scope).
+    - I could not find the one wait that hung, because the output is buffered. With the bounds, the next run gives a failed test with the issue "the change never came", at the line of the wait, and not a hang. EditorKit b4c60286 found a hang of the same kind: a wait on a value that is not observable.
+
+    ### Failing hosted tests: cause and fix
+    - TranscriptSearchStep findNextHitRunsInAMountedThreadWithHits, escapeInAMountedThreadWithHitsRemovesTheHitsOfTheHost. Cause: the harness gives the focus to its first key view (EditorKit HostedViewHarness `selectKeyView(following:)`), the composer text view. The find verbs are off in a text input on purpose (D133), so perform and Esc give false. The test is stale (ee9fb3fa, cfd868cb, never run in CI). Fix: `showHits` takes the focus out with `makeFirstResponder(nil)` and requires it.
+    - AgentRowListRename (3 tests). Cause: each field starts with the row id ("second"); "x" goes in at the caret and gives "xsecond". The test is stale (6b2b7364, never run). Fix: `rename(thenPress:)` types with `replacingAllText: true`. The later checks (D197 b keys) never ran; the next run shows them.
+    - AgentItemFocus `.message` (theFirstResponderCoversAFocusedItem nav/jump, theBeaconOfAnItemWithNoFocusableViewHoldsTheFocus nav/jump, aFocusedItemWithNoSurfaceShowsItsScopeRing .message). Cause: AVK a92da599 (2026-11-17) shows the text of a message in a read-only, selectable EditorView. EditorKit GeometryProbeView.requestFocus(yieldingTo:) gives the item focus to that text view (472x16), not to the beacon. This is a production regression (the same symptom as EditorKit 905d321a). 4127c353 is not a cause: its guard needs an empty transcript and a composer. Not fixed here: it needs an EditorKit change. New task ^6386krf.
+    - CompactionAndNotice aSummaryChunkBeforeAnyUpdateShowsNoStatusYetAndTheSummary, SessionEntryRows aCompactionSummaryShowsTheACPContentOfTheModel, MessageViews anAgentMessageEntryShowsEachBlockAndASecondChunkChangesTheText, WireContentBlockView aWireTextBlockShowsItsText. Cause: since a92da599, text is in the value of an NSTextView element, not in a label. The tests are stale. Fix: the tests read the value (`ResponseTextChecks.texts` or `value`); the MessageViews helper is now `showsText`.
+    - ThreadAccessibility anAnswerReadsItsMathAtItsPlaceAndKeepsTheMathElement. Text check: EditorKit 3b665069 and 4148b295 speak math as "Math, x^2" on purpose; the test is stale; fix: it expects `EditorSwiftUIStrings.renderedWidgetSpokenText(label: mathLabel, value: "x^2")`. Docs/decisions/accessibility.md and the RenderedMarkdownView comment changed to match. Value check (formula value nil): probably EditorKit `MathWidget` has no static text trait; not fixed here, task ^6386krf.
+    - ThreadAccessibility theTextsOfTheBlocksOfOneMessageLinkEachOther. Cause: since a92da599, the SwiftUI linked group does not reach the hosted NSTextView, and EditorKit has no API for it. Production gap; not fixed here, task ^6386krf.
+    - AttachmentTextContent aMarkdownAttachmentShowsTheRenderedForm. Cause: the fence header comes from the syntax tree, after an async parse; the test read it after one render. The test is stale. Fix: the header check is now its own test, theFenceOfRenderedMarkdownShowsItsLanguageInItsHeader, with a model that it keeps and a bounded wait for the parse.
+    - ComposerCompletionRoutes theSubmitHookGetsTheMentionsBeforeTheTextClears. Cause: the link of an accepted mention comes to the composer through the async commit stream; the test pressed Return in the same step, before the link was in the draft. The test is stale (d1ce3b05, never run). Fix: a bounded wait until the draft text holds the link, before the submit.
+    - ThreadHeaderContextMenu theEmptyPartOfTheHeaderShowsTheContextMenuOfTheHostPath. New test (af0b24c8), never green. I could not find the cause without a hosted run. Hypothesis: the `.contentShape` is on the inner line, not on the view that has `.hostPathContextMenu` (AgentThreadView `topBarParts`). Next: one run that logs the hit-test view at the point.
+    - ThreadBarBannerOverlap theLastRowAtRestIsAboveTheBannersOfTheBottomBar. A regression after 429cda80 (the last row is 27.5 pt under the bar). I could not find the cause without a hosted run. Hypothesis: row heights change after the async parse (a92da599), and this test does only two synchronous render passes.
+
+    ### Checks
+    - `cd IntegrationTests && swift build --build-tests`: success, 0 errors, 0 warnings (EditorKit 621c702).
+    - `swift test` (root): 1586 tests in 180 suites and 54 tests in 11 suites passed.
+    - `swift format lint --strict` on the 85 touched Swift files: 0 findings (the files are formatted with `swift format -i`, so the diff also holds layout changes).
+    - I did not run the hosted suites.
+  timestamp: 2026-11-21T21:40:31.021385+00:00
+- actor: claude-code
+  id: 01m800vwy3bxeevzjeba7f5v59
+  text: |-
+    ### implement — changed
+    - evidence: 87 tracked files plus 1 new file (Sources/AgentViewKitTestSupport/BoundedTaskValue.swift). Main files: IntegrationTests/Tests/IntegrationTests/Helpers/RenderedMount.swift, Helpers/ResponseTextChecks.swift, Thread/TranscriptSearchStepHostedTests.swift, Lists/AgentRowListRenameHostedTests.swift, Input/ComposerCompletionRoutesHostedTests.swift, Attachments/AttachmentTextContentHostedTests.swift, Accessibility/ThreadAccessibilityHostedTests.swift, Items/CompactionAndNoticeHostedTests.swift, Items/SessionEntryRowsHostedTests.swift, Items/MessageViewsHostedTests.swift, Content/WireContentBlockViewHostedTests.swift, Sources/AgentViewKitTestSupport/TurnAnnouncementFixtures.swift, Sources/AgentViewKit/Content/RenderedMarkdownView.swift (comment only), Docs/decisions/accessibility.md, and the bounded-wait edits in about 75 hosted test files. `swift build --build-tests` (IntegrationTests) passed; `swift test` passed 1586 + 54; lint 0 findings. Hosted suites not run.
+    - open: 5 tests are not fixed. 3 need EditorKit (task ^6386krf): AgentItemFocus `.message`, the math value, linked text. 2 need a hosted run to find the cause: ThreadHeaderContextMenu empty part, ThreadBarBannerOverlap.
+    - next: /review, then a CI Integration run.
+  timestamp: 2026-11-21T21:40:44.099235+00:00
+position_column: doing
+position_ordinal: '80'
 title: Integration CI job on main is red (run 44757895393, a60d101a)
 ---
 Request from testudoapp-9a (2026-11-20). Job "Integration (opt-in, real dependencies)" on mini-01 failed. The user cleared the runner screens, and the job runs again (rerun started 2026-11-20).

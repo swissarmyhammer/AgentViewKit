@@ -1,4 +1,3 @@
-@testable import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
 import EditorCommandsUI
@@ -7,6 +6,8 @@ import Foundation
 import FoundationModelsACP
 import SwiftUI
 import Testing
+
+@testable import AgentViewKit
 
 @Suite(.serialized, .hostedSerially) @MainActor struct EditorKitPromptEditorHostedTests {
   /// The text that the tests type.
@@ -56,10 +57,12 @@ import Testing
   ///   - session: The scripted session.
   ///   - harness: The harness that shows the composer.
   /// - Throws: The error of the transport.
-  static func startRunning(_ session: ScriptedSession, in harness: HostedViewHarness<some View>) async throws {
+  static func startRunning(_ session: ScriptedSession, in harness: HostedViewHarness<some View>)
+    async throws
+  {
     let model = session.model
     try await session.sendUpdate(ScriptedSession.runningState)
-    await harness.render {
+    await harness.renderAfter {
       if case .running = model.agentState { true } else { false }
     }
   }
@@ -133,7 +136,7 @@ import Testing
     // The composer calls the host closure in the same step as it starts the
     // prompt task, so a key that sent nothing stops the test here.
     try #require(model.submitCount == 1)
-    await ObservationWait.until { !session.promptTexts.isEmpty }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { !session.promptTexts.isEmpty }
 
     #expect(session.promptTexts == [Self.message])
     #expect(model.plainText.isEmpty)
@@ -153,7 +156,9 @@ import Testing
     try await ComposerHarness.typePrompt(Self.message, in: harness) { model.plainText }
     try Self.pressReturn(modifiers: .shift, in: harness)
     try harness.requireTextViewShows(Self.message + "\n")
-    await ObservationWait.until { model.plainText == Self.message + "\n" }
+    await ObservationWait.until(within: BoundedWait.defaultBound) {
+      model.plainText == Self.message + "\n"
+    }
 
     #expect(session.promptTexts.isEmpty)
     #expect(model.plainText == Self.message + "\n")
@@ -170,7 +175,7 @@ import Testing
     try await ComposerHarness.typePrompt(Self.message, in: harness) { model.plainText }
     try Self.pressReturn(modifiers: .command, in: harness)
     try #require(model.submitCount == 1)
-    await ObservationWait.until { !session.promptTexts.isEmpty }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { !session.promptTexts.isEmpty }
 
     #expect(session.promptTexts == [Self.message])
     #expect(model.plainText.isEmpty)
@@ -190,7 +195,9 @@ import Testing
     // Esc starts the cancel in the same step as the key, so a key that
     // started nothing stops the test here.
     try #require(starts.values == [ScriptedSession.cancelMethod])
-    await ObservationWait.until { !session.agent.messages(method: ScriptedSession.cancelMethod).isEmpty }
+    await ObservationWait.until(within: BoundedWait.defaultBound) {
+      !session.agent.messages(method: ScriptedSession.cancelMethod).isEmpty
+    }
 
     #expect(session.agent.messages(method: ScriptedSession.cancelMethod).count == 1)
   }
@@ -216,7 +223,7 @@ import Testing
     defer { session.close() }
     try await session.sendUpdate(Self.commandsUpdate)
     let model = session.model
-    await ObservationWait.until { model.availableCommands != nil }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { model.availableCommands != nil }
     let commands = model.availableCommands
 
     let all = await CompletionFixture.editor("/", commands: commands, root: nil).query()
@@ -227,7 +234,8 @@ import Testing
     #expect(fixture.accept("/compact"))
 
     #expect(fixture.text == "/compact ")
-    #expect(!EditorKitPromptEditor.isTrigger("/compact ", reportsCommands: true, hasAtSource: false))
+    #expect(
+      !EditorKitPromptEditor.isTrigger("/compact ", reportsCommands: true, hasAtSource: false))
     #expect(session.promptTexts.isEmpty)
   }
 
@@ -236,7 +244,9 @@ import Testing
   /// The engine of the editor lists the files for an at sign, directories
   /// first; the accepted file becomes a link in the prompt text, and the
   /// prompt sends it as a resource link. See ^c3ya9ed above.
-  @Test func theEditorEngineListsTheFilesForAnAtSignAndTheAcceptedFileGoesOutAsAResourceLink() async throws {
+  @Test func theEditorEngineListsTheFilesForAnAtSignAndTheAcceptedFileGoesOutAsAResourceLink()
+    async throws
+  {
     let root = try TemporaryFileRoot(files: ["notes.txt", "src/main.swift"])
 
     let all = await CompletionFixture.editor("@", commands: nil, root: root.url).query()
@@ -248,13 +258,17 @@ import Testing
     #expect(fixture.text == "@notes.txt ")
 
     let file = root.url.appending(path: "notes.txt")
-    let accepted = try #require(EditorKitPromptEditor.acceptedFile(before: Substring(fixture.text), root: root.url))
-    let text = EditorKitPromptEditor.attributedText(fixture.text, references: [accepted], root: root.url)
+    let accepted = try #require(
+      EditorKitPromptEditor.acceptedFile(before: Substring(fixture.text), root: root.url))
+    let text = EditorKitPromptEditor.attributedText(
+      fixture.text, references: [accepted], root: root.url)
     #expect(String(text.characters) == "@notes.txt ")
     #expect(text.runs.compactMap(\.link) == [file])
 
-    let urls = PromptInputView<EditorKitPromptEditor, DefaultPromptAccessory>.attachmentURLs([], in: text)
-    let blocks = PromptContent.makeBlocks(for: UserInput(text: fixture.text, attachments: urls), accepting: nil)
+    let urls = PromptInputView<EditorKitPromptEditor, DefaultPromptAccessory>.attachmentURLs(
+      [], in: text)
+    let blocks = PromptContent.makeBlocks(
+      for: UserInput(text: fixture.text, attachments: urls), accepting: nil)
     #expect(blocks.map(ContentBlockWireType.wireType(of:)) == ["text", "resource_link"])
     let link: String? = if case .resourceLink(let link) = blocks.last { link.uri } else { nil }
     #expect(link == file.absoluteString)
@@ -271,7 +285,8 @@ import Testing
     let draft = "@notes.txt "
     let file = root.url.appending(path: "notes.txt")
     let model = PromptInputHostedTestModel()
-    model.text = EditorKitPromptEditor.attributedText(draft, references: ["notes.txt"], root: root.url)
+    model.text = EditorKitPromptEditor.attributedText(
+      draft, references: ["notes.txt"], root: root.url)
     try #require(model.text.runs.compactMap(\.link) == [file])
     let harness = try Self.mount(model, session: session, fileRoot: root.url)
     defer { harness.close() }
@@ -279,7 +294,9 @@ import Testing
     // The text view draws the linked file as a chip, so the plain text of the
     // prompt, not the string of the text view, holds the file path.
     harness.type(Self.message)
-    await ObservationWait.until { model.plainText == draft + Self.message }
+    await ObservationWait.until(within: BoundedWait.defaultBound) {
+      model.plainText == draft + Self.message
+    }
 
     #expect(model.text.runs.compactMap(\.link) == [file])
   }
@@ -289,7 +306,8 @@ import Testing
   @Test func theReferencesOfAPromptTextAreThePathsOfItsFileLinksUnderTheRoot() throws {
     let root = try TemporaryFileRoot(files: ["notes.txt", "src/main.swift"])
     var text = EditorKitPromptEditor.attributedText(
-      "@notes.txt @src/main.swift @other.txt ", references: ["notes.txt", "src/main.swift"], root: root.url)
+      "@notes.txt @src/main.swift @other.txt ", references: ["notes.txt", "src/main.swift"],
+      root: root.url)
     let other = try #require(text.range(of: "@other.txt"))
     text[other].link = URL(filePath: "/elsewhere/other.txt")
 

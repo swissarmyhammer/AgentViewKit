@@ -73,8 +73,11 @@
         CompactionAndNoticeHostedTests.compactionUpdate(
           #""status": "failed", "error": "\#(CompactionAndNoticeHostedTests.failureReason)""#))
       try await session.sendUpdate(
-        WireBlockJSON.makeToolCallUpdate(id: toolCallID, fields: ToolCallViewHostedTests.readFields))
-      await ObservationWait.until { ToolCallEntryViewHostedTests.toolCallEntry(toolCallID, in: model) != nil }
+        WireBlockJSON.makeToolCallUpdate(id: toolCallID, fields: ToolCallViewHostedTests.readFields)
+      )
+      await ObservationWait.until(within: BoundedWait.defaultBound) {
+        ToolCallEntryViewHostedTests.toolCallEntry(toolCallID, in: model) != nil
+      }
       return try #require(ToolCallEntryViewHostedTests.toolCallEntry(toolCallID, in: model))
     }
 
@@ -85,7 +88,9 @@
     ///   - session: The scripted session.
     ///   - call: The tool call entry to expand.
     /// - Returns: The harness.
-    static func mountThemed(_ session: ScriptedSession, expanding call: ToolCallEntry) -> HostedViewHarness<some View> {
+    static func mountThemed(_ session: ScriptedSession, expanding call: ToolCallEntry)
+      -> HostedViewHarness<some View>
+    {
       let harness = HostedViewHarness(size: tallSize) {
         ConversationView(session: session.model)
           .environment(\.expandedBlocksStore, ToolCallViewHostedTests.makeExpandedStore(for: call))
@@ -103,7 +108,9 @@
     /// - Returns: The frame of the row.
     /// - Throws: An issue when the transcript shows no such row.
     static func compactionRow(in harness: HostedViewHarness<some View>) throws -> CGRect {
-      try #require(harness.frame(identifier: ItemRow.identifier(for: CompactionAndNoticeHostedTests.compactionKey)))
+      try #require(
+        harness.frame(
+          identifier: ItemRow.identifier(for: CompactionAndNoticeHostedTests.compactionKey)))
     }
 
     /// The frame of the header text of the compaction of the tests.
@@ -114,7 +121,9 @@
     /// - Throws: An issue when the compaction shows no header.
     static func compactionHeader(in harness: HostedViewHarness<some View>) throws -> CGRect {
       try #require(
-        harness.frame(identifier: CompactionEntryView.identifier(for: CompactionAndNoticeHostedTests.compactionKey)))
+        harness.frame(
+          identifier: CompactionEntryView.identifier(
+            for: CompactionAndNoticeHostedTests.compactionKey)))
     }
 
     /// The frame of the error of the compaction of the tests: the first part
@@ -135,7 +144,9 @@
     ///   - harness: The harness that shows the transcript.
     /// - Returns: The frame of the toggle.
     /// - Throws: An issue when the call shows no toggle.
-    static func toggle(of call: ToolCallEntry, in harness: HostedViewHarness<some View>) throws -> CGRect {
+    static func toggle(of call: ToolCallEntry, in harness: HostedViewHarness<some View>) throws
+      -> CGRect
+    {
       try #require(harness.frame(identifier: ToolCallView.toggleIdentifier(for: call.id.rowKey)))
     }
 
@@ -149,8 +160,10 @@
       let header = try Self.compactionHeader(in: harness)
       let error = try Self.compactionError(in: harness)
 
-      ContentTileInsetHostedTests.expectLength(row.maxY - header.maxY, is: Self.themedPadding, "top inset")
-      ContentTileInsetHostedTests.expectLength(error.minX - row.minX, is: Self.themedPadding, "leading inset")
+      ContentTileInsetHostedTests.expectLength(
+        row.maxY - header.maxY, is: Self.themedPadding, "top inset")
+      ContentTileInsetHostedTests.expectLength(
+        error.minX - row.minX, is: Self.themedPadding, "leading inset")
     }
 
     @Test func theThemedGapSeparatesTheHeaderAndTheBodyOfTheTileWithABorder() async throws {
@@ -176,11 +189,14 @@
       let harness = Self.mountThemed(session, expanding: call)
       defer { harness.close() }
 
-      let tile = try #require(harness.frame(identifier: ToolCallView.identifier(for: call.id.rowKey)))
+      let tile = try #require(
+        harness.frame(identifier: ToolCallView.identifier(for: call.id.rowKey)))
       let toggle = try Self.toggle(of: call, in: harness)
 
-      ContentTileInsetHostedTests.expectLength(tile.maxY - toggle.maxY, is: Self.themedPadding, "top inset")
-      ContentTileInsetHostedTests.expectLength(toggle.minX - tile.minX, is: Self.themedPadding, "leading inset")
+      ContentTileInsetHostedTests.expectLength(
+        tile.maxY - toggle.maxY, is: Self.themedPadding, "top inset")
+      ContentTileInsetHostedTests.expectLength(
+        toggle.minX - tile.minX, is: Self.themedPadding, "leading inset")
     }
 
     @Test func theThemedGapSeparatesTheHeaderAndTheBodyOfTheTileWithNoBorder() async throws {
@@ -190,9 +206,11 @@
       defer { harness.close() }
 
       let toggle = try Self.toggle(of: call, in: harness)
-      let body = try #require(harness.frame(identifier: ToolCallView.bodyIdentifier(for: call.id.rowKey)))
+      let body = try #require(
+        harness.frame(identifier: ToolCallView.bodyIdentifier(for: call.id.rowKey)))
 
-      ContentTileInsetHostedTests.expectLength(toggle.minY - body.maxY, is: Self.themedGap, "header-to-body gap")
+      ContentTileInsetHostedTests.expectLength(
+        toggle.minY - body.maxY, is: Self.themedGap, "header-to-body gap")
     }
 
     @Test func theThemedMarginSeparatesTheTwoTiles() async throws {
@@ -202,9 +220,11 @@
       defer { harness.close() }
 
       let compaction = try Self.compactionRow(in: harness)
-      let toolCall = try #require(harness.frame(identifier: ItemRow.identifier(for: call.id.rowKey)))
+      let toolCall = try #require(
+        harness.frame(identifier: ItemRow.identifier(for: call.id.rowKey)))
 
-      ContentTileInsetHostedTests.expectLength(compaction.minY - toolCall.maxY, is: Self.themedMargin, "margin")
+      ContentTileInsetHostedTests.expectLength(
+        compaction.minY - toolCall.maxY, is: Self.themedMargin, "margin")
     }
   }
 #endif

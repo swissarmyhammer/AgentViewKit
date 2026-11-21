@@ -20,10 +20,11 @@
   /// The scripted agent answers each prompt in the ACPAgent order (the
   /// response, then the echo, then the scripted updates). After each update,
   /// a test waits for the event that the model has the change
-  /// (``ObservationWait/until(_:)``). Then it does one layout pass, and
+  /// (``ObservationWait/until(within:sourceLocation:_:)``). Then it does one layout pass, and
   /// compares the views with the model: the rows, the state banner and the
   /// activity indicator. At the end, it reads the announcements of the
-  /// thread. No test reads a clock, polls, or has a time limit.
+  /// thread. No test polls or has a time limit. Each wait has a
+  /// bound, so a change that does not come fails the test.
   @Suite(.serialized, .hostedSerially) @MainActor struct AgentWorkOrderHostedTests {
     /// A size that shows each row, the state banner and the activity
     /// indicator.
@@ -51,7 +52,8 @@
     static let running = StateUpdate.running(RunningStateUpdate())
 
     /// The one announcement of the idle that ends the work of the prompts.
-    static let responseComplete = ThreadAccessibility.turnAnnouncement(for: IdleStateUpdate(stopReason: .endTurn))
+    static let responseComplete = ThreadAccessibility.turnAnnouncement(
+      for: IdleStateUpdate(stopReason: .endTurn))
 
     /// The compaction updates after the prompt, in send order: the wire
     /// status, the status of the model, and the label of the row.
@@ -63,7 +65,8 @@
     /// The `agent_message_chunk` value of the reply, as JSON text.
     static var replyChunk: String {
       get throws {
-        try ScriptedSession.agentMessageChunkUpdate(messageID: replyMessageID, text: replyText).jsonString
+        try ScriptedSession.agentMessageChunkUpdate(messageID: replyMessageID, text: replyText)
+          .jsonString
       }
     }
 
@@ -103,7 +106,9 @@
     ///   - model: The session model.
     ///   - harness: The harness that shows the indicator.
     /// - Returns: `true` when the indicator shows what the model reports.
-    static func showsTheActivity<Content: View>(of model: SessionModel, in harness: HostedViewHarness<Content>) -> Bool {
+    static func showsTheActivity<Content: View>(
+      of model: SessionModel, in harness: HostedViewHarness<Content>
+    ) -> Bool {
       let showsShimmer = harness.element(identifier: ShimmerView.identifier) != nil
       return showsShimmer == (ActivityState(session: model) == .thinking)
     }
@@ -115,8 +120,11 @@
     ///   - model: The session model.
     ///   - harness: The harness that shows the thread.
     /// - Returns: `true` when the views show what the model reports.
-    static func showsTheThread<Content: View>(of model: SessionModel, in harness: HostedViewHarness<Content>) -> Bool {
-      BackgroundRunsHostedTests.showsTheModel(model, in: harness) && showsTheActivity(of: model, in: harness)
+    static func showsTheThread<Content: View>(
+      of model: SessionModel, in harness: HostedViewHarness<Content>
+    ) -> Bool {
+      BackgroundRunsHostedTests.showsTheModel(model, in: harness)
+        && showsTheActivity(of: model, in: harness)
     }
 
     /// Waits until `predicate` is true, and then lays out the views of
@@ -125,8 +133,10 @@
     /// - Parameters:
     ///   - harness: The harness that shows the thread.
     ///   - predicate: The change of the model to wait for.
-    static func layOut<Content: View>(_ harness: HostedViewHarness<Content>, after predicate: @MainActor () -> Bool) async {
-      await ObservationWait.until(predicate)
+    static func layOut<Content: View>(
+      _ harness: HostedViewHarness<Content>, after predicate: @MainActor () -> Bool
+    ) async {
+      await ObservationWait.until(within: BoundedWait.defaultBound, predicate)
       harness.hostingView.layoutSubtreeIfNeeded()
     }
 
@@ -169,10 +179,15 @@
       #expect(harness.stateBannerLabel == StateBanner.message(for: Self.idle).title)
       #expect(model.transcript.isEmpty)
 
-      #expect(await TurnAnnouncementFixtures.collect(announcements, of: session, endingWith: Self.idle).isEmpty)
+      #expect(
+        try await TurnAnnouncementFixtures.collect(
+          announcements, of: session, endingWith: Self.idle
+        ).isEmpty)
     }
 
-    @Test func anIdleWithNoStopReasonAfterBackgroundWorkOnlyShowsTheWorkAndAnnouncesNothing() async throws {
+    @Test func anIdleWithNoStopReasonAfterBackgroundWorkOnlyShowsTheWorkAndAnnouncesNothing()
+      async throws
+    {
       let session = try await TurnAnnouncementFixtures.open(turns: [])
       defer { session.close() }
       let harness = Self.mount(session)
@@ -182,13 +197,18 @@
 
       for step in BackgroundRunScript.backgroundOnlySteps {
         try await session.send(update: step.update)
-        await Self.layOut(harness) { BackgroundRunsHostedTests.isReported(change: step.change, by: model) }
+        await Self.layOut(harness) {
+          BackgroundRunsHostedTests.isReported(change: step.change, by: model)
+        }
         #expect(Self.showsTheThread(of: model, in: harness), "\(step.change)")
       }
 
       #expect(model.agentState == Self.idle)
       #expect(harness.stateBannerLabel == StateBanner.message(for: Self.idle).title)
-      #expect(await TurnAnnouncementFixtures.collect(announcements, of: session, endingWith: Self.idle).isEmpty)
+      #expect(
+        try await TurnAnnouncementFixtures.collect(
+          announcements, of: session, endingWith: Self.idle
+        ).isEmpty)
     }
 
     @Test func oneIdleThatEndsTwoOpenPromptsShowsBothPromptsAndTheEndOneTime() async throws {
@@ -209,11 +229,14 @@
       #expect(Self.showsTheThread(of: model, in: harness))
       #expect(harness.stateBannerLabel == StateBanner.message(for: Self.endTurn).title)
       #expect(
-        await TurnAnnouncementFixtures.collect(announcements, of: session, endingWith: Self.endTurn)
+        try await TurnAnnouncementFixtures.collect(
+          announcements, of: session, endingWith: Self.endTurn)
           == [Self.responseComplete])
     }
 
-    @Test func aCompactionAfterThePromptEndedShowsInProgressThenCompletedAndKeepsTheEnd() async throws {
+    @Test func aCompactionAfterThePromptEndedShowsInProgressThenCompletedAndKeepsTheEnd()
+      async throws
+    {
       let session = try await TurnAnnouncementFixtures.open(turns: [
         [ScriptedSession.runningState, Self.replyChunk, ScriptedSession.endTurnState]
       ])
@@ -223,19 +246,24 @@
       let model = session.model
       let announcements = ThreadAccessibility.makeTurnAnnouncements(of: model)
       _ = try await model.prompt(Self.promptContent)
-      await ObservationWait.until { model.agentState == Self.endTurn }
+      await ObservationWait.until(within: BoundedWait.defaultBound) {
+        model.agentState == Self.endTurn
+      }
 
       for step in Self.compactionSteps {
         try await session.sendUpdate(Self.compactionUpdate(status: step.wire))
         await Self.layOut(harness) { Self.compaction(in: model)?.status == step.status }
         #expect(model.transcript.last?.rowKey == Self.compactionKey, "\(step.wire)")
-        #expect(harness.element(identifier: CompactionEntryView.identifier(for: Self.compactionKey))?.label == step.label)
+        #expect(
+          harness.element(identifier: CompactionEntryView.identifier(for: Self.compactionKey))?
+            .label == step.label)
         #expect(Self.showsTheThread(of: model, in: harness), "\(step.wire)")
         #expect(model.agentState == Self.endTurn, "\(step.wire)")
       }
 
       #expect(
-        await TurnAnnouncementFixtures.collect(announcements, of: session, endingWith: Self.endTurn)
+        try await TurnAnnouncementFixtures.collect(
+          announcements, of: session, endingWith: Self.endTurn)
           == [Self.responseComplete])
     }
   }

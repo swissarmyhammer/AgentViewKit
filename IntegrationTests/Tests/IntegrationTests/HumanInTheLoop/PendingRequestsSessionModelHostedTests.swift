@@ -141,7 +141,9 @@
     ///   - text: The text of the prompt that the answer comes before.
     ///   - model: The session model.
     /// - Returns: A flag that is not set yet.
-    static func flagAnswerBeforePrompt(withText text: String, in model: SessionModel) -> ObservationFlag {
+    static func flagAnswerBeforePrompt(withText text: String, in model: SessionModel)
+      -> ObservationFlag
+    {
       ObservationFlag.observing {
         _ = model.pendingPermissions
       } when: {
@@ -169,13 +171,14 @@
       let session = try await ScriptedSession.open()
       defer { session.close() }
       var answers: [PermissionAnswer] = []
-      let harness = Self.mount(session: session, answerReport: ObservationReport { answers.append($0) })
+      let harness = Self.mount(
+        session: session, answerReport: ObservationReport { answers.append($0) })
       defer { harness.close() }
       let model = session.model
 
       try await session.sendRequest(
         Self.permissionMethod, id: Self.agentRequestID, params: ScriptedSession.permissionParams)
-      await harness.render { !model.pendingPermissions.isEmpty }
+      await harness.renderAfter { !model.pendingPermissions.isEmpty }
       let pending = try #require(model.pendingPermissions.first)
       #expect(harness.element(identifier: RequestDeck.identifier) != nil)
       #expect(harness.element(identifier: Self.cardIdentifier(pending.id)) != nil)
@@ -185,10 +188,12 @@
       // The card reports its answer in the same step as it starts the answer
       // task, so a press that the card did not handle stops the test here.
       try #require(answers == [PermissionAnswer(option: Self.allowOptionID, comment: nil)])
-      await harness.render { Self.isAnswered(Self.agentRequestID, in: session) }
+      await harness.renderAfter { Self.isAnswered(Self.agentRequestID, in: session) }
 
       let response = try #require(Self.response(to: Self.agentRequestID, in: session))
-      #expect(response["result"] == (try Self.json(#"{"outcome": {"outcome": "selected", "optionId": "yes"}}"#)))
+      #expect(
+        response["result"]
+          == (try Self.json(#"{"outcome": {"outcome": "selected", "optionId": "yes"}}"#)))
       #expect(model.pendingPermissions.isEmpty)
       #expect(harness.element(identifier: Self.cardIdentifier(pending.id)) == nil)
       #expect(session.agent.messages(method: ScriptedSession.promptMethod).isEmpty)
@@ -207,23 +212,26 @@
       let session = try await ScriptedSession.open()
       defer { session.close() }
       var answers: [PermissionAnswer] = []
-      let harness = Self.mount(session: session, answerReport: ObservationReport { answers.append($0) })
+      let harness = Self.mount(
+        session: session, answerReport: ObservationReport { answers.append($0) })
       defer { harness.close() }
       let model = session.model
 
       try await session.sendRequest(
         Self.permissionMethod, id: Self.agentRequestID, params: ScriptedSession.permissionParams)
-      await harness.render { !model.pendingPermissions.isEmpty }
+      await harness.renderAfter { !model.pendingPermissions.isEmpty }
       #expect(harness.element(identifier: PermissionView.identifier) != nil)
       try harness.perform(.press, on: PermissionView.optionIdentifier(for: Self.rejectOptionID))
-      try SingleLineFieldChecks.type(Self.comment, intoFieldWith: PermissionView.commentIdentifier, in: harness)
+      try SingleLineFieldChecks.type(
+        Self.comment, intoFieldWith: PermissionView.commentIdentifier, in: harness)
       let answeredBeforePrompt = Self.flagAnswerBeforePrompt(withText: Self.comment, in: model)
       try harness.perform(.press, on: PermissionView.commentSubmitIdentifier)
       // The card reports its answer in the same step as it starts the answer
       // task, so a Send press that the card did not handle stops the test here.
-      try #require(answers == [PermissionAnswer(option: Self.rejectOptionID, comment: Self.comment)])
+      try #require(
+        answers == [PermissionAnswer(option: Self.rejectOptionID, comment: Self.comment)])
       let agent = session.agent
-      await ObservationWait.until {
+      await ObservationWait.until(within: BoundedWait.defaultBound) {
         Self.indexOfPrompt(withText: Self.comment, in: agent) != nil
           && Self.response(to: Self.agentRequestID, in: session) != nil
       }
@@ -231,7 +239,9 @@
       #expect(answeredBeforePrompt.isRaised)
       #expect(Self.transcriptHasUserMessage(withText: Self.comment, in: model))
       let response = try #require(Self.response(to: Self.agentRequestID, in: session))
-      #expect(response["result"] == (try Self.json(#"{"outcome": {"outcome": "selected", "optionId": "no"}}"#)))
+      #expect(
+        response["result"]
+          == (try Self.json(#"{"outcome": {"outcome": "selected", "optionId": "no"}}"#)))
       #expect(model.pendingPermissions.isEmpty)
     }
 
@@ -256,9 +266,10 @@
       let agent = session.agent
       let requestID = Double(Self.agentRequestID)
 
-      let pendingID = try await session.sendPermissionRequest(id: Self.agentRequestID, rendering: harness)
+      let pendingID = try await session.sendPermissionRequest(
+        id: Self.agentRequestID, rendering: harness)
       model.answerPermission(pendingID, option: Self.rejectOptionID, comment: Self.comment)
-      await ObservationWait.until {
+      await ObservationWait.until(within: BoundedWait.defaultBound) {
         Self.indexOfPrompt(withText: Self.comment, in: agent) != nil
           && agent.index(ofResponseTo: requestID) != nil
       }
@@ -283,7 +294,8 @@
       #expect(harness.element(identifier: Self.cardIdentifier(pending.id)) == nil)
       #expect(harness.element(identifier: PermissionView.identifier) == nil)
       let result = await session.result(ofRequest: Self.agentRequestID)
-      #expect(result == (try Self.json(#"{"outcome": {"outcome": "selected", "optionId": "yes"}}"#)))
+      #expect(
+        result == (try Self.json(#"{"outcome": {"outcome": "selected", "optionId": "yes"}}"#)))
     }
 
     @Test func cancelAllPendingOnTheModelRemovesTheShownCards() async throws {
@@ -300,16 +312,22 @@
       // Only the front card is in the accessibility tree. The header counts
       // the two cards.
       #expect(harness.element(identifier: Self.cardIdentifier(permission.id)) != nil)
-      #expect(harness.element(identifier: RequestDeck.positionIdentifier)?.label == "Request 1 of 2")
+      #expect(
+        harness.element(identifier: RequestDeck.positionIdentifier)?.label == "Request 1 of 2")
 
       session.model.cancelAllPending()
       let model = session.model
-      await harness.render { model.pendingPermissions.isEmpty && model.pendingElicitations.isEmpty }
+      await harness.renderAfter {
+        model.pendingPermissions.isEmpty && model.pendingElicitations.isEmpty
+      }
 
       #expect(cards.allSatisfy { harness.element(identifier: $0) == nil })
-      #expect(await session.result(ofRequest: Self.agentRequestID) == (try Self.json(Self.cancelledPermissionResult)))
       #expect(
-        await session.result(ofRequest: elicitationRequestID) == (try Self.json(Self.cancelledElicitationResult)))
+        await session.result(ofRequest: Self.agentRequestID)
+          == (try Self.json(Self.cancelledPermissionResult)))
+      #expect(
+        await session.result(ofRequest: elicitationRequestID)
+          == (try Self.json(Self.cancelledElicitationResult)))
     }
 
     // MARK: - Elicitation
@@ -345,7 +363,9 @@
     }
 
     @Test(arguments: ElicitationAnswer.allCases)
-    func eachElicitationAnswerGoesToTheAgentAndTheCardGoesAway(answer: ElicitationAnswer) async throws {
+    func eachElicitationAnswerGoesToTheAgentAndTheCardGoesAway(answer: ElicitationAnswer)
+      async throws
+    {
       let session = try await ScriptedSession.open()
       defer { session.close() }
       let harness = Self.mount(session: session)
@@ -353,8 +373,9 @@
       let model = session.model
 
       try await session.sendRequest(
-        Self.elicitationMethod, id: Self.agentRequestID, params: ScriptedSession.formElicitationParams)
-      await harness.render { !model.pendingElicitations.isEmpty }
+        Self.elicitationMethod, id: Self.agentRequestID,
+        params: ScriptedSession.formElicitationParams)
+      await harness.renderAfter { !model.pendingElicitations.isEmpty }
       let pending = try #require(model.pendingElicitations.first)
       #expect(harness.element(identifier: ElicitationView.formIdentifier) != nil)
       #expect(harness.element(identifier: Self.cardIdentifier(pending.id)) != nil)
@@ -363,7 +384,7 @@
       // The model removes the answered elicitation in the same step as the
       // press, so a press that did not answer stops the test here.
       try #require(model.pendingElicitations.isEmpty)
-      await harness.render { Self.isAnswered(Self.agentRequestID, in: session) }
+      await harness.renderAfter { Self.isAnswered(Self.agentRequestID, in: session) }
 
       let response = try #require(Self.response(to: Self.agentRequestID, in: session))
       #expect(response["result"] == (try Self.json(answer.expectedResult)))
@@ -382,19 +403,21 @@
       defer { harness.close() }
 
       let login = session.startLogin()
-      await harness.render { !connection.pendingElicitations.isEmpty }
+      await harness.renderAfter { !connection.pendingElicitations.isEmpty }
       let pending = try #require(connection.pendingElicitations.first)
       #expect(harness.element(identifier: ElicitationView.formIdentifier) != nil)
       #expect(pending.requestMethod == ScriptedSession.loginMethod)
       #expect(harness.element(identifier: Self.cardIdentifier(pending.id)) != nil)
 
       session.agent.releaseHeldAnswer()
-      try await login.value
-      await harness.render { connection.pendingElicitations.isEmpty }
+      try await login.boundedValue()
+      await harness.renderAfter { connection.pendingElicitations.isEmpty }
 
       #expect(connection.pendingElicitations.isEmpty)
       #expect(harness.element(identifier: Self.cardIdentifier(pending.id)) == nil)
-      await ObservationWait.until { Self.response(to: elicitationID, in: session) != nil }
+      await ObservationWait.until(within: BoundedWait.defaultBound) {
+        Self.response(to: elicitationID, in: session) != nil
+      }
       let response = try #require(Self.response(to: elicitationID, in: session))
       #expect(response["result"] == (try Self.json(#"{"action": "cancel"}"#)))
     }
@@ -414,7 +437,7 @@
       defer { harness.close() }
 
       let login = session.startLogin()
-      await harness.render { !connection.pendingRequests.isEmpty }
+      await harness.renderAfter { !connection.pendingRequests.isEmpty }
       let pending = try #require(connection.pendingElicitations.first)
       #expect(harness.element(identifier: RequestDeck.identifier) != nil)
       #expect(harness.element(identifier: Self.cardIdentifier(pending.id)) != nil)
@@ -424,8 +447,8 @@
       // step as the press, so a press that did not answer stops the test here.
       try #require(connection.pendingElicitations.isEmpty)
       session.agent.releaseHeldAnswer()
-      try await login.value
-      await ObservationWait.until {
+      try await login.boundedValue()
+      await ObservationWait.until(within: BoundedWait.defaultBound) {
         Self.response(to: elicitationID, in: session) != nil && connection.pendingRequests.isEmpty
       }
       harness.render()

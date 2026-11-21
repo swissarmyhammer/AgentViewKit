@@ -1,4 +1,3 @@
-@testable import AgentViewKit
 import AgentViewKitTestSupport
 import EditorInspector
 import EditorInspectorTestSupport
@@ -6,6 +5,8 @@ import EditorTestSupport
 import Foundation
 import SwiftUI
 import Testing
+
+@testable import AgentViewKit
 
 /// Hosted tests of ``ToolToggles`` with a host list, and of the default
 /// composer.
@@ -38,21 +39,26 @@ import Testing
   /// - Returns: The id that the row carries.
   static func row(_ tool: ToolToggleID) -> String {
     InspectorDriver.field(
-      view: ToolToggles.listIdentifier, object: listObject, group: ToolToggles.groupIdentifier, field: tool.rawValue)
+      view: ToolToggles.listIdentifier, object: listObject, group: ToolToggles.groupIdentifier,
+      field: tool.rawValue)
   }
 
   /// The object id of the list of a ``ToolToggles``: the list has no
   /// identity of its own, so EditorKit names it by its inspection and its
   /// position.
-  static let listObject = InspectorRowID.object(ToolToggleList(tools: []), view: ToolToggles.listIdentifier)
+  static let listObject = InspectorRowID.object(
+    ToolToggleList(tools: []), view: ToolToggles.listIdentifier)
 
   /// Mounts the list style of ``tools``, and makes one render pass.
   ///
   /// - Parameter onToggle: The host closure of the view.
   /// - Returns: The harness. The caller closes it.
-  static func mountList(onToggle: @escaping ToolToggles.OnToggle = { _, _ in }) -> HostedViewHarness<ToolToggles> {
+  static func mountList(onToggle: @escaping ToolToggles.OnToggle = { _, _ in })
+    -> HostedViewHarness<ToolToggles>
+  {
     let harness = HostedViewHarness(
-      ToolToggles(tools: tools, style: .list, onToggle: onToggle), size: ConnectionsViewHostedTests.listSize)
+      ToolToggles(tools: tools, style: .list, onToggle: onToggle),
+      size: ConnectionsViewHostedTests.listSize)
     harness.render()
     return harness
   }
@@ -67,9 +73,9 @@ import Testing
     defer { harness.close() }
 
     try harness.inspectorDriver.press(Self.row(Self.issueID))
-    await ObservationWait.until { recorder.values.count == 1 }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { recorder.values.count == 1 }
     try harness.inspectorDriver.press(Self.row(Self.searchID))
-    await ObservationWait.until { recorder.values.count == 2 }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { recorder.values.count == 2 }
 
     #expect(
       recorder.values == [
@@ -91,7 +97,8 @@ import Testing
     defer { harness.close() }
 
     let identifiers = harness.inspectorDriver.fieldIDs(
-      inBlock: InspectorScheme.blockIdentifier(view: ToolToggles.listIdentifier, object: Self.listObject))
+      inBlock: InspectorScheme.blockIdentifier(
+        view: ToolToggles.listIdentifier, object: Self.listObject))
     #expect(identifiers == [Self.row(Self.searchID), Self.row(Self.issueID)])
   }
 
@@ -121,7 +128,7 @@ import Testing
     harness.render()
 
     try harness.perform(.press, on: ToolToggles.toggleIdentifier(for: Self.issueID))
-    await ObservationWait.until { !recorder.values.isEmpty }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { !recorder.values.isEmpty }
 
     #expect(recorder.values == [.init(id: Self.issueID, isEnabled: true)])
   }

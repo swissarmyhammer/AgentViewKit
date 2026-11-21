@@ -1,7 +1,6 @@
-@testable import AgentViewKit
+import AgentViewKitDemoSupport
 import AgentViewKitTestSupport
 import AppKit
-import AgentViewKitDemoSupport
 import EditorCommandsUI
 import EditorTestSupport
 import Foundation
@@ -9,6 +8,8 @@ import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 import Testing
+
+@testable import AgentViewKit
 
 /// Hosted tests of ``PermissionView`` and ``RequestDeck``.
 ///
@@ -54,7 +55,9 @@ import Testing
   static let modeID = "mode"
 
   /// The four known option kinds, in the order of the card.
-  static let knownKinds: [PermissionOptionKind] = [.allowOnce, .allowAlways, .rejectOnce, .rejectAlways]
+  static let knownKinds: [PermissionOptionKind] = [
+    .allowOnce, .allowAlways, .rejectOnce, .rejectAlways,
+  ]
 
   /// A kind that no ACP option has, as a source-defined fifth option sends.
   static let folderKind = PermissionOptionKind.unknown("folder")
@@ -169,7 +172,8 @@ import Testing
   /// - Parameter session: The scripted session.
   /// - Returns: The texts.
   static func promptTexts(_ session: ScriptedSession) -> [String] {
-    session.agent.messages(method: ScriptedSession.promptMethod).map(ScriptedWireAgent.promptText(of:))
+    session.agent.messages(method: ScriptedSession.promptMethod).map(
+      ScriptedWireAgent.promptText(of:))
   }
 
   /// The identifiers of the option buttons of a harness, in tree order.
@@ -222,7 +226,8 @@ import Testing
     defer { harness.close() }
 
     for kind in kinds {
-      let button = harness.element(identifier: PermissionView.optionIdentifier(for: Self.optionID(kind)))
+      let button = harness.element(
+        identifier: PermissionView.optionIdentifier(for: Self.optionID(kind)))
       #expect(button?.role == NSAccessibility.Role.button.rawValue, "\(kind)")
       #expect(button?.label == kind.wireValue, "\(kind)")
     }
@@ -237,7 +242,9 @@ import Testing
 
     #expect(
       Self.optionIdentifiers(harness)
-        == (Self.knownKinds + [Self.folderKind]).map { PermissionView.optionIdentifier(for: Self.optionID($0)) })
+        == (Self.knownKinds + [Self.folderKind]).map {
+          PermissionView.optionIdentifier(for: Self.optionID($0))
+        })
   }
 
   @Test func theCardShowsTheTitleAndTheToolCallOfTheSessionModel() async throws {
@@ -248,7 +255,8 @@ import Testing
       {"sessionUpdate": "tool_call_update", "toolCallId": "\#(Self.toolCallID)",
        "title": "\#(Self.toolCallTitle)", "kind": "read", "status": "pending"}
       """#)
-    let harness = try await Self.mountCard(in: session, params: Self.makeParams(subject: Self.toolCallSubject))
+    let harness = try await Self.mountCard(
+      in: session, params: Self.makeParams(subject: Self.toolCallSubject))
     defer { harness.close() }
 
     #expect(harness.element(identifier: PermissionView.titleIdentifier)?.label == Self.title)
@@ -270,7 +278,8 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     var answers: [PermissionAnswer] = []
-    let harness = try await Self.mountCard(in: session, answerReport: ObservationReport { answers.append($0) })
+    let harness = try await Self.mountCard(
+      in: session, answerReport: ObservationReport { answers.append($0) })
     defer { harness.close() }
 
     try Self.press(.allowOnce, in: harness)
@@ -290,7 +299,8 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     var answers: [PermissionAnswer] = []
-    let harness = try await Self.mountCard(in: session, answerReport: ObservationReport { answers.append($0) })
+    let harness = try await Self.mountCard(
+      in: session, answerReport: ObservationReport { answers.append($0) })
     defer { harness.close() }
     #expect(harness.element(identifier: PermissionView.commentIdentifier) == nil)
 
@@ -298,13 +308,17 @@ import Testing
     #expect(harness.element(identifier: PermissionView.commentIdentifier) != nil)
     #expect(session.model.pendingPermissions.count == 1)
 
-    try SingleLineFieldChecks.type(Self.comment, intoFieldWith: PermissionView.commentIdentifier, in: harness)
+    try SingleLineFieldChecks.type(
+      Self.comment, intoFieldWith: PermissionView.commentIdentifier, in: harness)
     try harness.perform(.press, on: PermissionView.commentSubmitIdentifier)
     // The card reports its answer in the same step as it starts the answer
     // task, so a Send press that the card did not handle stops the test here.
-    try #require(answers == [PermissionAnswer(option: Self.optionID(.rejectOnce), comment: Self.comment)])
+    try #require(
+      answers == [PermissionAnswer(option: Self.optionID(.rejectOnce), comment: Self.comment)])
     let result = await session.result(ofRequest: Self.agentRequestID)
-    await ObservationWait.until { !Self.promptTexts(session).isEmpty }
+    await ObservationWait.until(within: BoundedWait.defaultBound) {
+      !Self.promptTexts(session).isEmpty
+    }
 
     #expect(result == (try Self.selectedResult(.rejectOnce)))
     #expect(Self.promptTexts(session) == [Self.comment])
@@ -331,7 +345,8 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     var answers: [PermissionAnswer] = []
-    let harness = try await Self.mountCard(in: session, answerReport: ObservationReport { answers.append($0) })
+    let harness = try await Self.mountCard(
+      in: session, answerReport: ObservationReport { answers.append($0) })
     defer { harness.close() }
 
     try Self.press(.rejectAlways, in: harness)
@@ -388,7 +403,8 @@ import Testing
     let harness = try await Self.mountCard(in: session)
     defer { harness.close() }
 
-    harness.expectButton(identifier: PermissionView.switchToAutoIdentifier, label: "Allow and Switch to Auto Mode")
+    harness.expectButton(
+      identifier: PermissionView.switchToAutoIdentifier, label: "Allow and Switch to Auto Mode")
   }
 
   @Test func switchToAutoAllowsThenSetsTheMode() async throws {
@@ -409,7 +425,9 @@ import Testing
     // press that started nothing stops the test here.
     try #require(starts.values == [ScriptedSession.permissionMethod, Self.setConfigOptionMethod])
     let result = await session.result(ofRequest: Self.agentRequestID)
-    await ObservationWait.until { !agent.messages(method: Self.setConfigOptionMethod).isEmpty }
+    await ObservationWait.until(within: BoundedWait.defaultBound) {
+      !agent.messages(method: Self.setConfigOptionMethod).isEmpty
+    }
 
     #expect(result == (try Self.selectedResult(.allowOnce)))
     #expect(allowedBeforeModeSet.isRaised)
@@ -424,20 +442,24 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     try await session.sendUpdate(
-      #"{"sessionUpdate": "terminal_update", "terminalId": "\#(Self.terminalID)", "command": "\#(Self.command)"}"#)
-    let harness = try await Self.mountCard(in: session, params: Self.makeParams(subject: Self.commandSubject))
+      #"{"sessionUpdate": "terminal_update", "terminalId": "\#(Self.terminalID)", "command": "\#(Self.command)"}"#
+    )
+    let harness = try await Self.mountCard(
+      in: session, params: Self.makeParams(subject: Self.commandSubject))
     defer { harness.close() }
 
     let subject = harness.element(identifier: PermissionView.subjectIdentifier)
     #expect(subject?.label?.contains(Self.command) == true)
     #expect(subject?.label?.contains(Self.workingDirectory) == true)
     #expect(harness.element(identifier: TerminalView.identifier) == nil)
-    #expect(harness.element(identifier: PermissionView.terminalLinkIdentifier)?.label == "Show Terminal")
+    #expect(
+      harness.element(identifier: PermissionView.terminalLinkIdentifier)?.label == "Show Terminal")
 
     try harness.perform(.press, on: PermissionView.terminalLinkIdentifier)
 
     #expect(harness.element(identifier: TerminalView.identifier) != nil)
-    #expect(harness.element(identifier: PermissionView.terminalLinkIdentifier)?.label == "Hide Terminal")
+    #expect(
+      harness.element(identifier: PermissionView.terminalLinkIdentifier)?.label == "Hide Terminal")
   }
 
   @Test func theCommandDrawsInTheCodeRole() async throws {
@@ -447,14 +469,16 @@ import Testing
       id: Self.agentRequestID, params: Self.makeParams(subject: Self.commandSubject))
 
     try FontRoleExpectations.expectText(
-      of: PermissionView(request: pending, session: session.model), identifier: PermissionView.subjectIdentifier,
+      of: PermissionView(request: pending, session: session.model),
+      identifier: PermissionView.subjectIdentifier,
       drawsIn: .code, size: Self.cardSize)
   }
 
   @Test func aCommandWithNoTerminalEntryHasNoLink() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
-    let harness = try await Self.mountCard(in: session, params: Self.makeParams(subject: Self.commandSubject))
+    let harness = try await Self.mountCard(
+      in: session, params: Self.makeParams(subject: Self.commandSubject))
     defer { harness.close() }
 
     #expect(harness.element(identifier: PermissionView.subjectIdentifier) != nil)
@@ -520,17 +544,20 @@ import Testing
 
     let permissionID = try await Self.sendPermissionRequest(session, harness: harness)
     try await session.sendRequest(
-      "elicitation/create", id: Self.agentRequestID + 1, params: ScriptedSession.formElicitationParams)
+      "elicitation/create", id: Self.agentRequestID + 1,
+      params: ScriptedSession.formElicitationParams)
     let model = session.model
-    await harness.render { !model.pendingElicitations.isEmpty }
+    await harness.renderAfter { !model.pendingElicitations.isEmpty }
     let elicitationID = try #require(session.model.pendingElicitations.first).id
-    #expect(harness.element(identifier: RequestDeck.identifier(for: permissionID.uuidString)) != nil)
+    #expect(
+      harness.element(identifier: RequestDeck.identifier(for: permissionID.uuidString)) != nil)
 
     // Only the front card is in the accessibility tree. Next brings the card
     // behind it to the front.
     try harness.perform(.press, on: RequestDeck.nextIdentifier)
 
-    #expect(harness.element(identifier: RequestDeck.identifier(for: elicitationID.uuidString)) != nil)
+    #expect(
+      harness.element(identifier: RequestDeck.identifier(for: elicitationID.uuidString)) != nil)
     #expect(harness.element(identifier: ElicitationView.formIdentifier) != nil)
   }
 

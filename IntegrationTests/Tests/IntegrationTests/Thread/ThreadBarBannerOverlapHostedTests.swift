@@ -42,8 +42,11 @@
     ///   - session: The session of the failed turn.
     ///   - anchors: The manager of the scroll position of the list.
     /// - Returns: The thread view, with no animation.
-    static func failedTurnThread(_ session: SessionModel, anchors: ScrollAnchorManager) -> some View {
-      AgentThreadView(session: session, connection: FailedTurnFixtures.signInConnection, anchors: anchors) {
+    static func failedTurnThread(_ session: SessionModel, anchors: ScrollAnchorManager) -> some View
+    {
+      AgentThreadView(
+        session: session, connection: FailedTurnFixtures.signInConnection, anchors: anchors
+      ) {
         DefaultThreadComposer()
       }
       .transaction { $0.disablesAnimations = true }
@@ -62,8 +65,10 @@
       _ key: String, clearOf barIdentifier: String, in harness: HostedViewHarness<Content>,
       sourceLocation: SourceLocation = #_sourceLocation
     ) throws {
-      let row = try #require(harness.frame(identifier: ItemRow.identifier(for: key)), sourceLocation: sourceLocation)
-      let bar = try #require(harness.frame(identifier: barIdentifier), sourceLocation: sourceLocation)
+      let row = try #require(
+        harness.frame(identifier: ItemRow.identifier(for: key)), sourceLocation: sourceLocation)
+      let bar = try #require(
+        harness.frame(identifier: barIdentifier), sourceLocation: sourceLocation)
 
       #expect(!row.intersects(bar), "row \(row), bar \(bar)", sourceLocation: sourceLocation)
     }
@@ -74,21 +79,24 @@
       let session = Self.failedTurnSession
       let lastKey = try #require(session.transcript.last?.rowKey)
       let harness = HostedViewHarness(
-        Self.failedTurnThread(session, anchors: ScrollAnchorManager()), size: FailedTurnFixtures.threadSize)
+        Self.failedTurnThread(session, anchors: ScrollAnchorManager()),
+        size: FailedTurnFixtures.threadSize)
       defer { harness.close() }
       harness.render()
       harness.render()
 
       #expect(harness.frame(identifier: StateBanner.showErrorIdentifier) != nil)
       #expect(harness.frame(identifier: AgentAuthView.identifier) != nil)
-      try Self.expectRow(lastKey, clearOf: AgentThreadLayout.floatingControlsIdentifier, in: harness)
+      try Self.expectRow(
+        lastKey, clearOf: AgentThreadLayout.floatingControlsIdentifier, in: harness)
     }
 
     /// When the failure banner shows in the bottom bar of a list that follows
     /// the bottom, the bottom inset grows with the banner, and the last row
     /// moves up above the banner.
     @Test func theLastRowStaysAboveTheBottomBarWhenTheFailureBannerShows() async throws {
-      let session = try await ConversationViewHostedTests.openSession(messages: ConversationViewHostedTests.scrollEntryCount)
+      let session = try await ConversationViewHostedTests.openSession(
+        messages: ConversationViewHostedTests.scrollEntryCount)
       defer { session.close() }
       let model = session.model
       let harness = HostedViewHarness(size: FailedTurnFixtures.threadSize) {
@@ -101,11 +109,12 @@
       let lastKey = try #require(model.transcript.last?.rowKey)
       try await session.sendUpdate(
         SessionStateBannersHostedTests.stateUpdate(#""state": "idle", "stopReason": "refusal""#))
-      await harness.render { model.agentState != nil }
+      await harness.renderAfter { model.agentState != nil }
       harness.render()
 
       #expect(harness.frame(identifier: StateBanner.showErrorIdentifier) != nil)
-      try Self.expectRow(lastKey, clearOf: AgentThreadLayout.floatingControlsIdentifier, in: harness)
+      try Self.expectRow(
+        lastKey, clearOf: AgentThreadLayout.floatingControlsIdentifier, in: harness)
     }
 
     /// A move of the list to the first row, as the Show Error button, the
@@ -116,7 +125,8 @@
       let session = Self.failedTurnSession
       let firstKey = try #require(session.transcript.first?.rowKey)
       let anchors = ScrollAnchorManager()
-      let harness = HostedViewHarness(Self.failedTurnThread(session, anchors: anchors), size: FailedTurnFixtures.threadSize)
+      let harness = HostedViewHarness(
+        Self.failedTurnThread(session, anchors: anchors), size: FailedTurnFixtures.threadSize)
       defer { harness.close() }
       harness.render()
 

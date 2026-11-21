@@ -1,9 +1,10 @@
-@testable import AgentViewKit
 import AgentViewKitTestSupport
 import EditorComplete
 import EditorTestSupport
 import SwiftUI
 import Testing
+
+@testable import AgentViewKit
 
 /// A host view that shows a composer with an EditorKit editor over a
 /// session that the test holds.
@@ -50,7 +51,8 @@ struct EditorKitSessionPromptInputHost: View {
   /// - Throws: The error of the transport, or an error when the editor
   ///   cannot get the focus.
   static func mount(
-    _ draft: PromptInputHostedTestModel, editorSession: PromptEditorSession, session: ScriptedSession,
+    _ draft: PromptInputHostedTestModel, editorSession: PromptEditorSession,
+    session: ScriptedSession,
     commandsUpdate: String
   ) async throws -> HostedViewHarness<some View> {
     let harness = HostedViewHarness(size: EditorKitPromptEditorHostedTests.composerSize) {
@@ -59,7 +61,7 @@ struct EditorKitSessionPromptInputHost: View {
     }
     let model = session.model
     try await session.sendUpdate(commandsUpdate)
-    await harness.render { model.availableCommands != nil }
+    await harness.renderAfter { model.availableCommands != nil }
     try #require(harness.focusFirstEditableTextView())
     return harness
   }
@@ -69,10 +71,12 @@ struct EditorKitSessionPromptInputHost: View {
   /// - Parameters:
   ///   - draft: The model that holds the text of the composer.
   ///   - harness: The harness of the composer.
-  static func typeSlash(_ draft: PromptInputHostedTestModel, in harness: HostedViewHarness<some View>) async throws {
+  static func typeSlash(
+    _ draft: PromptInputHostedTestModel, in harness: HostedViewHarness<some View>
+  ) async throws {
     harness.type(SlashCommandSource.trigger)
     try harness.requireTextViewShows(SlashCommandSource.trigger)
-    await harness.render { draft.plainText == SlashCommandSource.trigger }
+    await harness.renderAfter { draft.plainText == SlashCommandSource.trigger }
   }
 
   /// The completion session of the editor.
@@ -94,10 +98,13 @@ struct EditorKitSessionPromptInputHost: View {
   /// - Parameters:
   ///   - editorSession: The session of the editor.
   ///   - harness: The harness of the composer.
-  static func renderNoCommandsNote(of editorSession: PromptEditorSession, in harness: HostedViewHarness<some View>) async {
-    await harness.render {
+  static func renderNoCommandsNote(
+    of editorSession: PromptEditorSession, in harness: HostedViewHarness<some View>
+  ) async {
+    await harness.renderAfter {
       let completion = Self.completion(of: editorSession)
-      return completion.isOpen && completion.listedItems.isEmpty && completion.prefix == SlashCommandSource.trigger
+      return completion.isOpen && completion.listedItems.isEmpty
+        && completion.prefix == SlashCommandSource.trigger
     }
   }
 
@@ -112,9 +119,12 @@ struct EditorKitSessionPromptInputHost: View {
     defer { harness.close() }
 
     try await Self.typeSlash(draft, in: harness)
-    await harness.render { Self.completion(of: editorSession).listedItems.count == Self.commandCount }
+    await harness.renderAfter {
+      Self.completion(of: editorSession).listedItems.count == Self.commandCount
+    }
 
-    let list = try #require(harness.frame(identifier: EditorKitPromptEditor.completionListIdentifier))
+    let list = try #require(
+      harness.frame(identifier: EditorKitPromptEditor.completionListIdentifier))
     let field = try #require(harness.frame(identifier: PromptFieldSurface.identifier))
     #expect(!list.intersects(field), "list \(list), field \(field)")
     #expect(list.minY > field.maxY, "list \(list), field \(field)")
@@ -130,7 +140,9 @@ struct EditorKitSessionPromptInputHost: View {
       commandsUpdate: EditorKitPromptEditorHostedTests.commandsUpdate)
     defer { harness.close() }
     try await Self.typeSlash(draft, in: harness)
-    await harness.render { Self.completion(of: editorSession).listedItems.count == Self.commandCount }
+    await harness.renderAfter {
+      Self.completion(of: editorSession).listedItems.count == Self.commandCount
+    }
     let second = Self.completion(of: editorSession).listedItems[1].label
 
     try harness.sendKey(.downArrow)
@@ -140,7 +152,7 @@ struct EditorKitSessionPromptInputHost: View {
     try harness.sendKey(.return)
     let accepted = second + " "
     try #require(editorSession.model.text == accepted)
-    await harness.render { draft.plainText == accepted }
+    await harness.renderAfter { draft.plainText == accepted }
 
     #expect(draft.plainText == accepted)
     #expect(session.promptTexts.isEmpty)

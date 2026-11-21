@@ -1,8 +1,10 @@
-@testable import AgentViewKit
 import AppKit
 import EditorSwiftUI
 import EditorTestSupport
 import SwiftUI
+import Testing
+
+@testable import AgentViewKit
 
 /// The steps that the hosted tests of the text of an answer share
 /// (``ResponseView``, AVK-9.7).
@@ -11,7 +13,8 @@ import SwiftUI
 /// identifier ``ResponseView/textIdentifier``. Its value is the Markdown text.
 /// A test that reads the math or the citation chips of a response waits for
 /// the syntax parse of the model of the response first: the parse runs off
-/// the main actor and ends for certain, so the wait has no clock.
+/// the main actor and ends for certain. The wait has a bound, so a parse
+/// that does not end fails the test.
 @MainActor enum ResponseTextChecks {
   /// The value of each response text element that `harness` shows, in view
   /// order.
@@ -40,11 +43,18 @@ import SwiftUI
   /// Waits for the end of the syntax parse of `model`, then for the update
   /// that SwiftUI queued for it, and renders.
   ///
+  /// The wait for the parse has a bound. When the bound passes, the wait
+  /// records an issue, so the test fails and the run goes on.
+  ///
   /// - Parameters:
   ///   - model: The model of a response.
   ///   - harness: The harness that shows the response.
   static func renderParsed(_ model: EditorModel, in harness: HostedViewHarness<some View>) async {
-    _ = await model.syntax?.ensureParsed(upTo: model.state.version)
+    let version = model.state.version
+    let parse = Task { _ = await model.syntax?.ensureParsed(upTo: version) }
+    // At the bound, `boundedValue` records the issue of the test itself, so
+    // its error adds nothing.
+    _ = try? await parse.boundedValue()
     await RunLoopBlockFence.afterPendingBlocks()
     harness.render()
   }

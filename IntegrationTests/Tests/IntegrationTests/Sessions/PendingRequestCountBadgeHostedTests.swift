@@ -68,7 +68,8 @@ import Testing
   static func openSessionsWithRequests() async throws -> (Fixture, HostedViewHarness<some View>) {
     let session = try await ScriptedSession.open { agent in
       agent.resultQueues["session/new"] = [
-        newSessionResult(SessionId(rawValue: ScriptedSession.sessionID)), newSessionResult(secondSessionID),
+        newSessionResult(SessionId(rawValue: ScriptedSession.sessionID)),
+        newSessionResult(secondSessionID),
         newSessionResult(thirdSessionID),
       ]
       agent.resultQueues["session/list"] = [listPage]
@@ -85,7 +86,7 @@ import Testing
         .formElicitation(id: 3, sessionId: secondSessionID),
       ], to: second)
     try await session.sendInOrder([.permission(id: 4, sessionId: thirdSessionID)], to: third)
-    await harness.render { !second.pendingRequests.isEmpty && !third.pendingRequests.isEmpty }
+    await harness.renderAfter { !second.pendingRequests.isEmpty && !third.pendingRequests.isEmpty }
     return (Fixture(session: session, second: second, third: third), harness)
   }
 
@@ -119,7 +120,7 @@ import Testing
 
   /// The answer removes the elicitation from the model of the second
   /// session in the same main-actor step. The wait is
-  /// ``ObservationWait/until(_:)`` on that change, which is certain to come.
+  /// ``ObservationWait/until(within:sourceLocation:_:)`` on that change, which is certain to come.
   @Test func anAnswerChangesTheCountOfItsSession() async throws {
     let (fixture, harness) = try await Self.openSessionsWithRequests()
     defer { fixture.session.close() }
@@ -128,7 +129,9 @@ import Testing
     let elicitation = try #require(second.pendingElicitations.first)
 
     second.acceptElicitation(elicitation.id)
-    await ObservationWait.until { second.pendingRequests.count == 1 }
+    await ObservationWait.until(within: BoundedWait.defaultBound) {
+      second.pendingRequests.count == 1
+    }
     harness.render()
 
     #expect(Self.rowLabel(of: Self.secondSessionID, in: harness) == "Second, 1 open question")

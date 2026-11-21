@@ -1,12 +1,13 @@
-@testable import AgentViewKit
-import AgentViewKitTestSupport
 import AgentViewKitDemoSupport
+import AgentViewKitTestSupport
 import EditorTestSupport
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 import Testing
+
+@testable import AgentViewKit
 
 /// The connection views of a `ConnectionModel` (plan.md §3.3, §3.8
 /// "Connection banner", "Login on error `-32000`").
@@ -39,7 +40,8 @@ import Testing
     #"[{"type": "agent", "methodId": "\#(agentMethodID.rawValue)", "name": "Sign in with the agent"}]"#
 
   /// The `info` member of an agent with a title.
-  static let titledAgentInfo = #"{"name": "scripted-agent", "title": "Scripted Agent", "version": "2.1.0"}"#
+  static let titledAgentInfo =
+    #"{"name": "scripted-agent", "title": "Scripted Agent", "version": "2.1.0"}"#
 
   /// The text of the error that the failing transport throws.
   nonisolated static let transportFailureText = "The pipe to the agent broke."
@@ -74,7 +76,8 @@ import Testing
     info: String = ScriptedSession.agentInfo, configure: (ScriptedWireAgent) -> Void = { _ in }
   ) async throws -> ScriptedSession {
     try await ScriptedSession.open {
-      $0.results["initialize"] = ScriptedSession.makeInitializeResult(info: info, authMethods: authMethods)
+      $0.results["initialize"] = ScriptedSession.makeInitializeResult(
+        info: info, authMethods: authMethods)
       configure($0)
     }
   }
@@ -114,7 +117,8 @@ import Testing
   ///   - harness: The harness of the card.
   /// - Throws: The error of the press, or an issue when the button is still
   ///   enabled.
-  static func pressAuthAction(_ identifier: String, in harness: HostedViewHarness<some View>) throws {
+  static func pressAuthAction(_ identifier: String, in harness: HostedViewHarness<some View>) throws
+  {
     try harness.perform(.press, on: identifier)
     try #require(harness.element(identifier: identifier)?.isEnabled == false)
   }
@@ -152,7 +156,7 @@ import Testing
 
     session.close()
     let connection = session.connection
-    await harness.render { connection.state == .disconnected }
+    await harness.renderAfter { connection.state == .disconnected }
 
     #expect(session.connection.state == .disconnected)
     #expect(harness.element(identifier: AgentConnectionBanner.disconnectedIdentifier) != nil)
@@ -160,13 +164,16 @@ import Testing
 
   @Test func aTransportFailureShowsTheFailedBannerWithTheErrorText() async throws {
     let connection = ConnectionModel(coalescingCadence: .zero)
-    let harness = HostedViewHarness(size: Self.size) { AgentConnectionBanner(connection: connection) }
+    let harness = HostedViewHarness(size: Self.size) {
+      AgentConnectionBanner(connection: connection)
+    }
     defer { harness.close() }
 
     _ = await connection.connect(over: FailingTransport())
-    await harness.render { Self.hasFailed(connection) }
+    await harness.renderAfter { Self.hasFailed(connection) }
 
-    let label = try #require(harness.element(identifier: AgentConnectionBanner.failedIdentifier)?.label)
+    let label = try #require(
+      harness.element(identifier: AgentConnectionBanner.failedIdentifier)?.label)
     #expect(label.contains(Self.transportFailureText))
     #expect(harness.element(identifier: AgentConnectionBanner.disconnectedIdentifier) == nil)
   }
@@ -190,7 +197,9 @@ import Testing
   @Test func theHeaderShowsTheTitleOfTheAgentWhenTheAgentGivesOne() async throws {
     let session = try await Self.openSession(info: Self.titledAgentInfo)
     defer { session.close() }
-    let harness = HostedViewHarness(size: Self.size) { AgentInfoHeader(connection: session.connection) }
+    let harness = HostedViewHarness(size: Self.size) {
+      AgentInfoHeader(connection: session.connection)
+    }
     defer { harness.close() }
     harness.render()
 
@@ -221,15 +230,22 @@ import Testing
     try Self.pressAuthAction(AgentAuthView.signInIdentifier(for: Self.agentMethodID), in: harness)
     // The failure and the end of the progress come in one main-actor turn.
     let connection = session.connection
-    await harness.render { Self.hasLeftTheRequiredState(connection) }
+    await harness.renderAfter { Self.hasLeftTheRequiredState(connection) }
 
     #expect(harness.element(identifier: AgentAuthView.failureIdentifier) != nil)
     #expect(
       session.connection.authState
-        == .failed(AuthFailure(operation: .login(Self.agentMethodID), reason: .request(Self.scriptedRefusal))))
-    #expect(harness.element(identifier: AgentAuthView.failureIdentifier)?.label == Self.scriptedRefusal.message)
-    #expect(harness.element(identifier: AgentAuthView.failureTitleIdentifier)?.label == "Sign-in failed")
-    #expect(harness.element(identifier: AgentAuthView.signInIdentifier(for: Self.agentMethodID))?.isEnabled == true)
+        == .failed(
+          AuthFailure(operation: .login(Self.agentMethodID), reason: .request(Self.scriptedRefusal))
+        ))
+    #expect(
+      harness.element(identifier: AgentAuthView.failureIdentifier)?.label
+        == Self.scriptedRefusal.message)
+    #expect(
+      harness.element(identifier: AgentAuthView.failureTitleIdentifier)?.label == "Sign-in failed")
+    #expect(
+      harness.element(identifier: AgentAuthView.signInIdentifier(for: Self.agentMethodID))?
+        .isEnabled == true)
   }
 
   @Test func theSignInButtonSendsTheLoginFrameAndALoginHidesTheSignInRows() async throws {
@@ -238,17 +254,19 @@ import Testing
     let harness = Self.mountAuth(session.connection)
     defer { harness.close() }
     harness.render()
-    #expect(harness.element(identifier: AgentAuthView.rowIdentifier(for: Self.agentMethodID)) != nil)
+    #expect(
+      harness.element(identifier: AgentAuthView.rowIdentifier(for: Self.agentMethodID)) != nil)
 
     try Self.pressAuthAction(AgentAuthView.signInIdentifier(for: Self.agentMethodID), in: harness)
     let connection = session.connection
-    await harness.render { Self.hasLeftTheRequiredState(connection) }
+    await harness.renderAfter { Self.hasLeftTheRequiredState(connection) }
 
     let login = try #require(session.agent.messages(method: Self.loginMethod).first)
     #expect(login["params"]?["methodId"]?.stringValue == Self.agentMethodID.rawValue)
     #expect(session.agent.messages(method: Self.loginMethod).count == 1)
     #expect(session.connection.authState == .authenticated(Self.agentMethodID))
-    #expect(harness.element(identifier: AgentAuthView.rowIdentifier(for: Self.agentMethodID)) == nil)
+    #expect(
+      harness.element(identifier: AgentAuthView.rowIdentifier(for: Self.agentMethodID)) == nil)
   }
 
   // MARK: - Authentication required
@@ -258,7 +276,9 @@ import Testing
   ///
   /// - Parameter configure: Changes the agent before it starts.
   /// - Returns: The scripted session.
-  static func openSignedInSession(configure: (ScriptedWireAgent) -> Void) async throws -> ScriptedSession {
+  static func openSignedInSession(configure: (ScriptedWireAgent) -> Void) async throws
+    -> ScriptedSession
+  {
     let session = try await openSession(configure: configure)
     try await session.connection.login(LoginAuthRequest(methodId: agentMethodID))
     return session
@@ -274,7 +294,8 @@ import Testing
     #expect(session.connection.authState == .required(session.connection.authMethods))
     #expect(session.model.transcript.isEmpty)
     #expect(harness.element(identifier: AgentAuthView.identifier) != nil)
-    #expect(harness.element(identifier: AgentAuthView.signInIdentifier(for: Self.agentMethodID)) != nil)
+    #expect(
+      harness.element(identifier: AgentAuthView.signInIdentifier(for: Self.agentMethodID)) != nil)
   }
 
   @Test func aPromptThatFailsWithAuthenticationRequiredOpensTheLoginView() async throws {
@@ -288,26 +309,34 @@ import Testing
     harness.render()
     #expect(harness.element(identifier: AgentAuthView.identifier) == nil)
 
-    _ = try? await session.model.prompt([.text(FoundationModelsACP.TextContent(text: Self.promptText))])
+    _ = try? await session.model.prompt([
+      .text(FoundationModelsACP.TextContent(text: Self.promptText))
+    ])
     // The connection model records the `-32000` answer before the prompt
     // call throws it again, so `authState` is final when the call returns.
     harness.render()
 
     #expect(session.connection.authState == .required(session.connection.authMethods))
     #expect(harness.element(identifier: AgentAuthView.identifier) != nil)
-    #expect(harness.element(identifier: AgentAuthView.signInIdentifier(for: Self.agentMethodID)) != nil)
+    #expect(
+      harness.element(identifier: AgentAuthView.signInIdentifier(for: Self.agentMethodID)) != nil)
   }
 
   @Test func aPromptThatFailsWithAnotherCodeDoesNotOpenTheLoginView() async throws {
-    let session = try await Self.openSignedInSession { $0.failingMethods = [ScriptedSession.promptMethod] }
+    let session = try await Self.openSignedInSession {
+      $0.failingMethods = [ScriptedSession.promptMethod]
+    }
     defer { session.close() }
     let harness = Self.mountThread(session)
     defer { harness.close() }
     harness.render()
 
-    _ = try? await session.model.prompt([.text(FoundationModelsACP.TextContent(text: Self.promptText))])
+    _ = try? await session.model.prompt([
+      .text(FoundationModelsACP.TextContent(text: Self.promptText))
+    ])
     let lastEntry = try #require(session.model.transcript.last)
-    let lastErrorCode: ErrorCode? = if case .error(let entry) = lastEntry { entry.code } else { nil }
+    let lastErrorCode: ErrorCode? =
+      if case .error(let entry) = lastEntry { entry.code } else { nil }
     // The connection model reads the error of the prompt before the prompt
     // call throws it again, so `authState` is final when the call returns.
     harness.render()

@@ -1,6 +1,7 @@
 import EditorTestSupport
 import FoundationModelsACP
 import FoundationModelsACPClient
+import Testing
 
 /// The scripted sessions of the turn announcement tests, and the collection
 /// of their announcements.
@@ -31,21 +32,31 @@ public enum TurnAnnouncementFixtures {
   /// Waits until the model of `session` has `last` as its agent state, then
   /// disconnects, and gives each announcement of `announcements`.
   ///
+  /// The disconnect ends the stream. Each wait has a bound, so a state or an
+  /// end of the stream that does not come fails the test.
+  ///
   /// - Parameters:
   ///   - announcements: The announcement stream of the session model.
   ///   - session: The scripted session.
   ///   - last: The last agent state that the agent sends.
   /// - Returns: The announcements, in order.
+  /// - Throws: ``BoundedTaskError/noEnd(_:)`` when the stream does not end
+  ///   within the bound.
   public static func collect(
     _ announcements: AsyncStream<String>, of session: ScriptedSession, endingWith last: StateUpdate
-  ) async -> [String] {
-    await ObservationWait.until { session.model.agentState == last }
-    await session.connection.disconnect()
-    // An async sequence has no `map` into an array, so the loop collects it.
-    var texts: [String] = []
-    for await text in announcements {
-      texts.append(text)
+  ) async throws -> [String] {
+    await ObservationWait.until(within: BoundedWait.defaultBound) {
+      session.model.agentState == last
     }
-    return texts
+    await session.connection.disconnect()
+    let reader = Task {
+      // An async sequence has no `map` into an array, so the loop collects it.
+      var texts: [String] = []
+      for await text in announcements {
+        texts.append(text)
+      }
+      return texts
+    }
+    return try await reader.boundedValue()
   }
 }

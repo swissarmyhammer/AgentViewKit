@@ -77,11 +77,14 @@
     ///   - edge: The edge of the list that is in view.
     ///   - model: The session model of the conversation.
     ///   - anchors: The manager of the conversation.
-    static func reportRows(at edge: ListEdge, of model: SessionModel, to anchors: ScrollAnchorManager) {
+    static func reportRows(
+      at edge: ListEdge, of model: SessionModel, to anchors: ScrollAnchorManager
+    ) {
       let keys = model.transcript.map(\.rowKey)
       switch edge {
       case .top:
-        anchors.noteVisible(ids: Array(keys.prefix(reportedRowCount)), distanceFromBottom: .greatestFiniteMagnitude)
+        anchors.noteVisible(
+          ids: Array(keys.prefix(reportedRowCount)), distanceFromBottom: .greatestFiniteMagnitude)
       case .bottom:
         anchors.noteVisible(ids: Array(keys.suffix(reportedRowCount)), distanceFromBottom: 0)
       }
@@ -110,7 +113,9 @@
     ///   - key: The row key of the entry.
     ///   - harness: The harness that shows the conversation.
     /// - Returns: `true` when part of the row is in the list frame.
-    static func showsRow<Content: View>(_ key: String, in harness: HostedViewHarness<Content>) -> Bool {
+    static func showsRow<Content: View>(_ key: String, in harness: HostedViewHarness<Content>)
+      -> Bool
+    {
       let list = harness.frame(identifier: ConversationLayout.listIdentifier)
       let row = harness.frame(identifier: ItemRow.identifier(for: key))
       return if let list, let row { !list.intersection(row).isEmpty } else { false }
@@ -129,7 +134,9 @@
     ///   - key: The row key of the entry.
     ///   - harness: The harness that shows the conversation.
     /// - Returns: `true` when the list frame contains the row frame.
-    static func showsWholeRow<Content: View>(_ key: String, in harness: HostedViewHarness<Content>) -> Bool {
+    static func showsWholeRow<Content: View>(_ key: String, in harness: HostedViewHarness<Content>)
+      -> Bool
+    {
       let list = harness.frame(identifier: ConversationLayout.listIdentifier)
       let row = harness.frame(identifier: ItemRow.identifier(for: key))
       return if let list, let row { list.contains(row) } else { false }
@@ -170,7 +177,9 @@
           SessionTranscriptViewHostedTests.chunk(
             "agent_message_chunk", messageID: "\(messagePrefix)\(index)", text: "Done."))
       }
-      await ObservationWait.until { model.transcript.count == total }
+      await ObservationWait.until(within: BoundedWait.defaultBound) {
+        model.transcript.count == total
+      }
     }
 
     /// Adds an agent message with ``insertedMessageID`` at the end of the
@@ -187,7 +196,9 @@
       try await session.sendUpdate(
         SessionTranscriptViewHostedTests.chunk(
           "agent_message_chunk", messageID: insertedMessageID, text: "One more."))
-      await ObservationWait.until { model.transcript.count > count }
+      await ObservationWait.until(within: BoundedWait.defaultBound) {
+        model.transcript.count > count
+      }
       return try #require(model.transcript.last?.rowKey)
     }
 
@@ -202,7 +213,8 @@
     /// - Returns: The session, the manager, and the harness.
     /// - Throws: The error of the scripted session.
     static func mountScrolledConversation() async throws -> (
-      ScriptedSession, ScrollAnchorManager, HostedViewHarness<ConversationView<DefaultConversationEmptyState>>
+      ScriptedSession, ScrollAnchorManager,
+      HostedViewHarness<ConversationView<DefaultConversationEmptyState>>
     ) {
       let session = try await openSession(messages: scrollEntryCount)
       let (anchors, harness) = mountConversation(of: session)
@@ -285,7 +297,9 @@
     ///
     /// - Parameter anchors: The manager of the conversation.
     /// - Returns: The recorder of the scroll targets.
-    static func recordScrollTargets(of anchors: ScrollAnchorManager) -> ReportRecorder<ScrollAnchorTarget> {
+    static func recordScrollTargets(of anchors: ScrollAnchorManager) -> ReportRecorder<
+      ScrollAnchorTarget
+    > {
       let targets = ReportRecorder<ScrollAnchorTarget>()
       let viewScroll = anchors.onScroll
       anchors.onScroll = { target in
@@ -567,7 +581,9 @@
       try #require(anchors.isPinnedToBottom)
       try #require(harness.element(identifier: ScrollToBottomPill.identifier) == nil)
 
-      await ObservationWait.until { targets.values.last == .bottom }
+      await ObservationWait.until(within: BoundedWait.defaultBound) {
+        targets.values.last == .bottom
+      }
       harness.render()
 
       #expect(Self.showsRow(lastKey, in: harness))
@@ -612,12 +628,16 @@
     ///   - harness: The harness that shows the banner and the list.
     /// - Throws: The error of the scripted session, or an issue when the
     ///   press fails.
-    static func pressShowError(of session: ScriptedSession, in harness: HostedViewHarness<some View>) async throws {
+    static func pressShowError(
+      of session: ScriptedSession, in harness: HostedViewHarness<some View>
+    ) async throws {
       let model = session.model
       let stateBefore = model.agentState
       try await session.sendUpdate(
         SessionStateBannersHostedTests.stateUpdate(#""state": "idle", "stopReason": "refusal""#))
-      await ObservationWait.until { model.agentState != stateBefore }
+      await ObservationWait.until(within: BoundedWait.defaultBound) {
+        model.agentState != stateBefore
+      }
       harness.hostingView.layoutSubtreeIfNeeded()
       try harness.perform(.press, on: StateBanner.showErrorIdentifier)
       harness.hostingView.layoutSubtreeIfNeeded()

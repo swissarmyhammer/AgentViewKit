@@ -58,7 +58,9 @@
     ///   - model: The session model.
     /// - Returns: The row keys of the transcript entries that have a row, in
     ///   the order of the rows.
-    static func shownRows<Content: View>(in harness: HostedViewHarness<Content>, of model: SessionModel)
+    static func shownRows<Content: View>(
+      in harness: HostedViewHarness<Content>, of model: SessionModel
+    )
       -> [String]
     {
       let keys = model.transcript.map(\.rowKey)
@@ -82,7 +84,9 @@
     ) async throws -> String {
       try await session.sendToolCallUpdate(title: title, status: .inProgress)
       let model = session.model
-      await harness.render { ToolCallEntryViewHostedTests.rowKey(ofCall: title, in: model) != nil }
+      await harness.renderAfter {
+        ToolCallEntryViewHostedTests.rowKey(ofCall: title, in: model) != nil
+      }
       return try #require(ToolCallEntryViewHostedTests.rowKey(ofCall: title, in: model))
     }
 
@@ -96,8 +100,9 @@
       let model = session.model
 
       try await session.sendUpdate(
-        SessionTranscriptViewHostedTests.chunk("agent_thought_chunk", messageID: Self.thoughtID, text: "Plan."))
-      await ObservationWait.until { !model.transcript.isEmpty }
+        SessionTranscriptViewHostedTests.chunk(
+          "agent_thought_chunk", messageID: Self.thoughtID, text: "Plan."))
+      await ObservationWait.until(within: BoundedWait.defaultBound) { !model.transcript.isEmpty }
       let thoughtKey = try #require(model.transcript.first?.rowKey)
       let firstKey = try await Self.sendCall(Self.firstCall, in: session, rendering: harness)
       let secondKey = try await Self.sendCall(Self.secondCall, in: session, rendering: harness)
@@ -109,7 +114,8 @@
       #expect(model.transcript.map(\.rowKey) == expected)
       #expect(Self.shownRows(in: harness, of: model) == expected)
       let first = harness.element(identifier: ActivityTimeline.rowIdentifier(for: firstKey))
-      #expect(first?.label == ToolCallView.accessibilityLabel(title: Self.firstCall, status: .inProgress))
+      #expect(
+        first?.label == ToolCallView.accessibilityLabel(title: Self.firstCall, status: .inProgress))
       #expect(first?.value == nil || first?.value == "")
     }
 
@@ -124,7 +130,9 @@
       #expect(harness.element(identifier: rowID)?.label == "\(Self.firstCall), In progress")
 
       try await session.sendToolCallUpdate(title: Self.firstCall, status: .failed)
-      await harness.render { BackgroundRunsHostedTests.toolCall(id: Self.firstCall, in: model)?.status == .failed }
+      await harness.renderAfter {
+        BackgroundRunsHostedTests.toolCall(id: Self.firstCall, in: model)?.status == .failed
+      }
 
       #expect(harness.element(identifier: rowID)?.label == "\(Self.firstCall), Failed")
     }
@@ -155,7 +163,8 @@
       defer { harness.close() }
 
       try await session.sendUpdate(
-        SessionTranscriptViewHostedTests.chunk("agent_message_chunk", messageID: Self.messageID, text: "Done."))
+        SessionTranscriptViewHostedTests.chunk(
+          "agent_message_chunk", messageID: Self.messageID, text: "Done."))
       let callKey = try await Self.sendCall(Self.firstCall, in: session, rendering: harness)
       let messageKey = try #require(session.model.transcript.first?.rowKey)
 
@@ -203,8 +212,9 @@
       defer { harness.close() }
       let model = session.model
       try await session.sendUpdate(
-        SessionEntryRowsHostedTests.terminalUpdate(#""command": "\#(SessionEntryRowsHostedTests.command)""#))
-      await harness.render { !model.transcript.isEmpty }
+        SessionEntryRowsHostedTests.terminalUpdate(
+          #""command": "\#(SessionEntryRowsHostedTests.command)""#))
+      await harness.renderAfter { !model.transcript.isEmpty }
       let key = try #require(model.transcript.first?.rowKey)
       let rowID = ActivityTimeline.rowIdentifier(for: key)
       #expect(harness.element(identifier: rowID)?.label == SessionEntryRowsHostedTests.command)

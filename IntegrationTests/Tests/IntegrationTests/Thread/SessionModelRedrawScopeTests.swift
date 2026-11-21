@@ -67,7 +67,8 @@
     /// - Returns: The JSON text of the update.
     static func makeChunk(position: Int, text: String) -> String {
       WireBlockJSON.makeChunk(
-        "agent_message_chunk", messageID: messageID(at: position), block: WireBlockJSON.makeText(text))
+        "agent_message_chunk", messageID: messageID(at: position),
+        block: WireBlockJSON.makeText(text))
     }
 
     /// The model of the text block of the row `key` in `cache`.
@@ -91,17 +92,20 @@
     }
 
     @Test func aStreamOfChunksEvaluatesOnlyTheStreamedRowAndShowsTheEntryText() async throws {
-      let session = try await ScriptedSession.open(coalescingCadence: SessionModel.defaultCoalescingCadence)
+      let session = try await ScriptedSession.open(
+        coalescingCadence: SessionModel.defaultCoalescingCadence)
       defer { session.close() }
       let cache = CodeBlockModelCache()
       let harness = HostedViewHarness(
-        AgentThreadView(session: session.model).environment(\.codeBlockModelCache, cache), size: Self.tallSize)
+        AgentThreadView(session: session.model).environment(\.codeBlockModelCache, cache),
+        size: Self.tallSize)
       defer { harness.close() }
       let model = session.model
       for position in 0..<Self.rowCount {
-        try await session.sendUpdate(Self.makeChunk(position: position, text: Self.firstChunk(at: position)))
+        try await session.sendUpdate(
+          Self.makeChunk(position: position, text: Self.firstChunk(at: position)))
       }
-      await harness.render { model.transcript.count == Self.rowCount }
+      await harness.renderAfter { model.transcript.count == Self.rowCount }
       let keys = model.transcript.map(\.id.rowKey)
       try #require(keys.count == Self.rowCount)
       #expect(SessionTranscriptViewHostedTests.rowKeys(in: harness) == keys)
@@ -110,16 +114,18 @@
       Self.resetCounts(of: keys)
 
       for index in 0..<Self.streamedChunkCount {
-        try await session.sendUpdate(Self.makeChunk(position: Self.streamedPosition, text: Self.streamedChunk(at: index)))
+        try await session.sendUpdate(
+          Self.makeChunk(position: Self.streamedPosition, text: Self.streamedChunk(at: index)))
       }
       let expected =
         Self.firstChunk(at: Self.streamedPosition)
         + (0..<Self.streamedChunkCount).map(Self.streamedChunk(at:)).joined()
-      await harness.render {
+      await harness.renderAfter {
         SessionTranscriptViewHostedTests.entryText(of: model, at: Self.streamedPosition) == expected
       }
 
-      let entryText = try #require(SessionTranscriptViewHostedTests.entryText(of: model, at: Self.streamedPosition))
+      let entryText = try #require(
+        SessionTranscriptViewHostedTests.entryText(of: model, at: Self.streamedPosition))
       #expect(entryText == expected)
       let streamedKey = keys[Self.streamedPosition]
       #expect(BodyEvaluationCounter.count(ItemRow.contentCounterKey(for: streamedKey)) >= 1)

@@ -27,14 +27,17 @@
 
     /// The buffer limits of the overflow test: the connection keeps one
     /// update of one session.
-    static let smallBufferLimits = SessionUpdateBufferLimits(maximumUpdatesPerSession: 1, maximumSessions: 1)
+    static let smallBufferLimits = SessionUpdateBufferLimits(
+      maximumUpdatesPerSession: 1, maximumSessions: 1)
 
     /// The number of updates that the agent sends before the `session/new`
     /// result in the overflow test. It is more than the buffer keeps.
     static let overflowUpdateCount = 2
 
     /// The two additional workspace roots of the session in the reload test.
-    static let additionalDirectories = [AbsolutePath(rawValue: "/tmp/shared-lib"), AbsolutePath(rawValue: "/tmp/docs")]
+    static let additionalDirectories = [
+      AbsolutePath(rawValue: "/tmp/shared-lib"), AbsolutePath(rawValue: "/tmp/docs"),
+    ]
 
     /// Each `state_update` that the test sends, with the title that the state
     /// banner must show for it, in send order.
@@ -45,11 +48,17 @@
       (stateUpdate(#""state": "idle", "stopReason": "end_turn""#), "The response is complete"),
       (stateUpdate(#""state": "idle", "stopReason": "cancelled""#), "The response was cancelled"),
       (stateUpdate(#""state": "idle", "stopReason": "max_tokens""#), "The response is incomplete"),
-      (stateUpdate(#""state": "idle", "stopReason": "max_turn_requests""#), "The response reached its request limit"),
+      (
+        stateUpdate(#""state": "idle", "stopReason": "max_turn_requests""#),
+        "The response reached its request limit"
+      ),
       (stateUpdate(#""state": "idle", "stopReason": "refusal""#), "The model refused to continue"),
       (stateUpdate(#""state": "idle", "stopReason": "error""#), "The response failed"),
       (stateUpdate(#""state": "idle", "stopReason": "_truncated""#), "The response was cut off"),
-      (stateUpdate(#""state": "idle", "stopReason": "_custom_stop""#), "The response stopped for an unknown reason"),
+      (
+        stateUpdate(#""state": "idle", "stopReason": "_custom_stop""#),
+        "The response stopped for an unknown reason"
+      ),
       (stateUpdate(#""state": "paused""#), "The agent reported an unknown state"),
     ]
 
@@ -69,7 +78,8 @@
     /// - Throws: The error of the encoder.
     static func chunkFrame(index: Int) throws -> String {
       ScriptedSession.sessionUpdateFrame(
-        update: try ScriptedSession.agentMessageChunkUpdate(messageID: "early-\(index)", text: "Early."))
+        update: try ScriptedSession.agentMessageChunkUpdate(
+          messageID: "early-\(index)", text: "Early."))
     }
 
     /// Shows the thread of a session and a composer below it. The thread gets
@@ -102,7 +112,9 @@
     ///   - identifier: The accessibility identifier of the text of the banner.
     ///   - harness: The harness that shows the thread.
     /// - Returns: `true` when the text shows.
-    static func shows<Content: View>(_ identifier: String, in harness: HostedViewHarness<Content>) -> Bool {
+    static func shows<Content: View>(_ identifier: String, in harness: HostedViewHarness<Content>)
+      -> Bool
+    {
       harness.element(identifier: identifier) != nil
     }
 
@@ -145,7 +157,7 @@
 
       let before = model.agentState
       try await session.sendUpdate(Self.stateUpdate(#""state": "idle", "stopReason": "refusal""#))
-      await harness.render { model.agentState != before }
+      await harness.renderAfter { model.agentState != before }
       #expect(harness.element(identifier: StateBanner.showErrorIdentifier)?.label == "Show Error")
       try harness.perform(.press, on: StateBanner.showErrorIdentifier)
 
@@ -155,7 +167,9 @@
     // MARK: - Resume
 
     @Test func aResumeShowsTheReplayMarkerAndThenThePartialHistoryNote() async throws {
-      let session = try await ScriptedSession.open { $0.heldMethods = [ScriptedSession.resumeMethod] }
+      let session = try await ScriptedSession.open {
+        $0.heldMethods = [ScriptedSession.resumeMethod]
+      }
       defer { session.close() }
       let harness = Self.mount(session, draft: PromptInputHostedTestModel())
       defer { harness.close() }
@@ -163,19 +177,22 @@
       harness.render()
       #expect(!Self.shows(SessionStreamBanner.partialHistoryIdentifier, in: harness))
 
-      let resume = Task { try await session.connection.resumeSession(ScriptedSession.replayFromStartRequest) }
-      await harness.render { model.isReplaying }
+      let resume = Task {
+        try await session.connection.resumeSession(ScriptedSession.replayFromStartRequest)
+      }
+      await harness.renderAfter { model.isReplaying }
 
       #expect(model.isReplaying)
       #expect(Self.shows(SessionStreamBanner.replayingIdentifier, in: harness))
       #expect(!Self.shows(SessionStreamBanner.partialHistoryIdentifier, in: harness))
 
       session.agent.releaseHeldAnswer()
-      _ = try await resume.value
-      await harness.render { !model.isReplaying }
+      _ = try await resume.boundedValue()
+      await harness.renderAfter { !model.isReplaying }
 
       #expect(!Self.shows(SessionStreamBanner.replayingIdentifier, in: harness))
-      let note = try #require(harness.element(identifier: SessionStreamBanner.partialHistoryIdentifier)?.label)
+      let note = try #require(
+        harness.element(identifier: SessionStreamBanner.partialHistoryIdentifier)?.label)
       #expect(note.contains("can be partial"))
       #expect(!note.localizedCaseInsensitiveContains("complete"))
     }
@@ -207,7 +224,9 @@
       additionalDirectories: [AbsolutePath] = [], resumeAnswer: ResumeAnswer = .held
     ) async throws -> ScriptedSession {
       let chunkFrames = try (1...overflowUpdateCount).map(chunkFrame(index:))
-      return try await ScriptedSession.open(bufferLimits: smallBufferLimits, additionalDirectories: additionalDirectories) {
+      return try await ScriptedSession.open(
+        bufferLimits: smallBufferLimits, additionalDirectories: additionalDirectories
+      ) {
         $0.leadIns["session/new"] = { _, _ in chunkFrames }
         switch resumeAnswer {
         case .held: $0.heldMethods = [ScriptedSession.resumeMethod]
@@ -241,10 +260,10 @@
       of session: ScriptedSession, in harness: HostedViewHarness<Content>
     ) async throws {
       let model = session.model
-      await harness.render { model.hasMissedUpdates }
+      await harness.renderAfter { model.hasMissedUpdates }
 
       try harness.perform(.press, on: SessionStreamBanner.reloadIdentifier)
-      await harness.render { !model.isReplaying && endsWithAnError(model) }
+      await harness.renderAfter { !model.isReplaying && endsWithAnError(model) }
     }
 
     @Test func aFailedReloadShowsTheReloadFailedBannerWithTheReloadButton() async throws {
@@ -278,7 +297,8 @@
 
       try await Self.reloadAndWaitForTheFailure(of: session, in: harness)
 
-      let label = try #require(harness.element(identifier: SessionStreamBanner.reloadFailedIdentifier)?.label)
+      let label = try #require(
+        harness.element(identifier: SessionStreamBanner.reloadFailedIdentifier)?.label)
       #expect(label.contains(failure.localizedDescription))
     }
 
@@ -294,14 +314,14 @@
       agent.heldMethods = [ScriptedSession.resumeMethod]
 
       try harness.perform(.press, on: SessionStreamBanner.reloadIdentifier)
-      await harness.render { model.isReplaying && agent.isHoldingAnswer }
+      await harness.renderAfter { model.isReplaying && agent.isHoldingAnswer }
 
       #expect(!Self.shows(SessionStreamBanner.reloadFailedIdentifier, in: harness))
       #expect(Self.shows(SessionStreamBanner.missedUpdatesIdentifier, in: harness))
       #expect(harness.element(identifier: SessionStreamBanner.reloadIdentifier)?.isEnabled == false)
 
       agent.releaseHeldAnswer()
-      await harness.render { !model.hasMissedUpdates }
+      await harness.renderAfter { !model.hasMissedUpdates }
 
       #expect(!Self.shows(SessionStreamBanner.reloadFailedIdentifier, in: harness))
       #expect(!Self.shows(SessionStreamBanner.missedUpdatesIdentifier, in: harness))
@@ -324,12 +344,13 @@
       failed.agent.failingMethods = []
 
       _ = try await failed.connection.resumeSession(ScriptedSession.replayFromStartRequest)
-      await harness.render { !failed.model.hasMissedUpdates }
+      await harness.renderAfter { !failed.model.hasMissedUpdates }
       #expect(!Self.shows(SessionStreamBanner.reloadFailedIdentifier, in: harness))
       let missing = try await Self.openOverflowingSession()
       defer { missing.close() }
-      harness.hostingView.rootView = SessionStreamBanner(session: missing.model, connection: missing.connection)
-      await harness.render { missing.model.hasMissedUpdates }
+      harness.hostingView.rootView = SessionStreamBanner(
+        session: missing.model, connection: missing.connection)
+      await harness.renderAfter { missing.model.hasMissedUpdates }
 
       #expect(Self.shows(SessionStreamBanner.missedUpdatesIdentifier, in: harness))
       #expect(!Self.shows(SessionStreamBanner.reloadFailedIdentifier, in: harness))
@@ -352,7 +373,8 @@
       defer { missing.close() }
       try #require(missing.model.hasMissedUpdates)
 
-      harness.hostingView.rootView = SessionStreamBanner(session: missing.model, connection: missing.connection)
+      harness.hostingView.rootView = SessionStreamBanner(
+        session: missing.model, connection: missing.connection)
       harness.render()
 
       #expect(Self.shows(SessionStreamBanner.missedUpdatesIdentifier, in: harness))
@@ -371,18 +393,19 @@
       let harness = HostedViewHarness(
         SessionStreamBanner(session: first.model, connection: first.connection), size: Self.size)
       defer { harness.close() }
-      await harness.render { first.model.hasMissedUpdates }
+      await harness.renderAfter { first.model.hasMissedUpdates }
       try harness.perform(.press, on: SessionStreamBanner.reloadIdentifier)
-      await harness.render { first.agent.isHoldingAnswer }
+      await harness.renderAfter { first.agent.isHoldingAnswer }
       let second = try await Self.openOverflowingSession()
       defer { second.close() }
       try #require(second.model.hasMissedUpdates)
-      harness.hostingView.rootView = SessionStreamBanner(session: second.model, connection: second.connection)
+      harness.hostingView.rootView = SessionStreamBanner(
+        session: second.model, connection: second.connection)
       harness.render()
 
       first.agent.failingMethods = [ScriptedSession.resumeMethod]
       first.agent.releaseHeldAnswer()
-      await harness.render { !first.model.isReplaying && Self.endsWithAnError(first.model) }
+      await harness.renderAfter { !first.model.isReplaying && Self.endsWithAnError(first.model) }
 
       #expect(Self.shows(SessionStreamBanner.missedUpdatesIdentifier, in: harness))
       #expect(!Self.shows(SessionStreamBanner.reloadFailedIdentifier, in: harness))
@@ -395,11 +418,12 @@
       let session = try await Self.openOverflowingSession()
       defer { session.close() }
       let starts = ReportRecorder<String>()
-      let harness = Self.mount(session, draft: PromptInputHostedTestModel(), requestStartReport: starts.report)
+      let harness = Self.mount(
+        session, draft: PromptInputHostedTestModel(), requestStartReport: starts.report)
       defer { harness.close() }
       let model = session.model
       let agent = session.agent
-      await harness.render { model.hasMissedUpdates }
+      await harness.renderAfter { model.hasMissedUpdates }
       #expect(Self.shows(SessionStreamBanner.missedUpdatesIdentifier, in: harness))
       #expect(model.hasMissedUpdates)
       #expect(harness.element(identifier: SessionStreamBanner.reloadIdentifier)?.label == "Reload")
@@ -408,7 +432,9 @@
       // The Reload button starts the resume in the same step as the press, so
       // a press that started nothing stops the test here.
       try #require(starts.values == [ScriptedSession.resumeMethod])
-      await harness.render { model.isReplaying && !agent.messages(method: ScriptedSession.resumeMethod).isEmpty }
+      await harness.renderAfter {
+        model.isReplaying && !agent.messages(method: ScriptedSession.resumeMethod).isEmpty
+      }
 
       #expect(model.isReplaying)
       let resume = try #require(agent.messages(method: ScriptedSession.resumeMethod).first)
@@ -420,21 +446,25 @@
       #expect(harness.element(identifier: SessionStreamBanner.reloadIdentifier)?.isEnabled == false)
 
       agent.releaseHeldAnswer()
-      await harness.render { !model.hasMissedUpdates }
+      await harness.renderAfter { !model.hasMissedUpdates }
 
       #expect(!Self.shows(SessionStreamBanner.missedUpdatesIdentifier, in: harness))
       #expect(agent.messages(method: ScriptedSession.resumeMethod).count == 1)
     }
 
-    @Test func reloadSendsTheWorkingDirectoryAndTheAdditionalDirectoriesOfTheSessionModel() async throws {
-      let session = try await Self.openOverflowingSession(additionalDirectories: Self.additionalDirectories)
+    @Test func reloadSendsTheWorkingDirectoryAndTheAdditionalDirectoriesOfTheSessionModel()
+      async throws
+    {
+      let session = try await Self.openOverflowingSession(
+        additionalDirectories: Self.additionalDirectories)
       defer { session.close() }
       let starts = ReportRecorder<String>()
-      let harness = Self.mount(session, draft: PromptInputHostedTestModel(), requestStartReport: starts.report)
+      let harness = Self.mount(
+        session, draft: PromptInputHostedTestModel(), requestStartReport: starts.report)
       defer { harness.close() }
       let model = session.model
       let agent = session.agent
-      await harness.render { model.hasMissedUpdates }
+      await harness.renderAfter { model.hasMissedUpdates }
       #expect(Self.shows(SessionStreamBanner.reloadIdentifier, in: harness))
       #expect(model.additionalDirectories == Self.additionalDirectories)
 
@@ -442,12 +472,15 @@
       // The Reload button starts the resume in the same step as the press, so
       // a press that started nothing stops the test here.
       try #require(starts.values == [ScriptedSession.resumeMethod])
-      await ObservationWait.until { !agent.messages(method: ScriptedSession.resumeMethod).isEmpty }
+      await ObservationWait.until(within: BoundedWait.defaultBound) {
+        !agent.messages(method: ScriptedSession.resumeMethod).isEmpty
+      }
 
       let resume = try #require(agent.messages(method: ScriptedSession.resumeMethod).first)
       #expect(resume["params"]?["cwd"]?.stringValue == ScriptedSession.workingDirectory)
       #expect(
-        resume["params"]?["additionalDirectories"] == .array(Self.additionalDirectories.map { .string($0.rawValue) }))
+        resume["params"]?["additionalDirectories"]
+          == .array(Self.additionalDirectories.map { .string($0.rawValue) }))
     }
 
     // MARK: - Closed thread
@@ -459,14 +492,16 @@
       defer { harness.close() }
       let model = session.model
       harness.render()
-      #expect(harness.element(identifier: DefaultPromptAccessory.submitIdentifier)?.isEnabled == true)
+      #expect(
+        harness.element(identifier: DefaultPromptAccessory.submitIdentifier)?.isEnabled == true)
       #expect(!Self.shows(SessionStreamBanner.closedIdentifier, in: harness))
 
       try await session.connection.close(model)
-      await harness.render { model.isClosed }
+      await harness.renderAfter { model.isClosed }
 
       #expect(Self.shows(SessionStreamBanner.closedIdentifier, in: harness))
-      #expect(harness.element(identifier: DefaultPromptAccessory.submitIdentifier)?.isEnabled == false)
+      #expect(
+        harness.element(identifier: DefaultPromptAccessory.submitIdentifier)?.isEnabled == false)
     }
   }
 #endif

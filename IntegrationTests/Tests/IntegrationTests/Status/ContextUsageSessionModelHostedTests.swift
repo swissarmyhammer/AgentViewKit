@@ -67,7 +67,7 @@ import Testing
     let model = session.model
     let before = model.usage
     try await session.sendUpdate(update)
-    await harness.render { model.usage != before }
+    await harness.renderAfter { model.usage != before }
   }
 
   /// The text of the usage element, or `nil` when the view shows no usage.
@@ -152,7 +152,7 @@ import Testing
     let model = session.model
 
     try await session.sendUpdate(Self.markerUpdate)
-    await harness.render { !model.transcript.isEmpty }
+    await harness.renderAfter { !model.transcript.isEmpty }
 
     #expect(!model.transcript.isEmpty)
     #expect(model.usage == nil)

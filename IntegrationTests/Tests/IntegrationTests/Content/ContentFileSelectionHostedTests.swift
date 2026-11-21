@@ -61,7 +61,7 @@ import UniformTypeIdentifiers
         .environment(\.resourceFileReport, writes.report),
       size: Self.hostSize)
     defer { harness.close() }
-    await harness.render { writes.values.contains(where: Blocks.isLoaded) }
+    await harness.renderAfter { writes.values.contains(where: Blocks.isLoaded) }
 
     try harness.perform(.press, on: AttachmentView.identifier(for: .chip))
 
@@ -110,7 +110,8 @@ import UniformTypeIdentifiers
     let url = try directory.write(Self.fileName, contents: Self.blobBytes)
     let state = HostAttachmentState()
     let target = HostAttachmentTarget(
-      selection: Binding(get: { state.selection }, set: { state.selection = $0 }), sessionId: Self.hostSessionID,
+      selection: Binding(get: { state.selection }, set: { state.selection = $0 }),
+      sessionId: Self.hostSessionID,
       anchor: AttachmentSelectionAnchor())
     let harness = HostedViewHarness(
       ContentBlockView(block: Self.makeLinkBlock(to: url), id: Self.blockID)
@@ -121,7 +122,10 @@ import UniformTypeIdentifiers
 
     try harness.perform(.press, on: AttachmentView.identifier(for: .chip))
 
-    #expect(state.selection == [AgentAttachmentSelection(attachment: Attachment(url: url), sessionId: Self.hostSessionID)])
+    #expect(
+      state.selection == [
+        AgentAttachmentSelection(attachment: Attachment(url: url), sessionId: Self.hostSessionID)
+      ])
   }
 
   @Test func aFileResourceLinkKeepsTheAttachmentCommandsInItsContextMenu() async throws {
@@ -130,13 +134,15 @@ import UniformTypeIdentifiers
     let url = try directory.write(Self.fileName, contents: Self.blobBytes)
 
     let menu = await Self.contextMenuIDs(
-      of: ContentBlockView(block: Self.makeLinkBlock(to: url), id: Self.blockID), at: Attachment(url: url).id)
+      of: ContentBlockView(block: Self.makeLinkBlock(to: url), id: Self.blockID),
+      at: Attachment(url: url).id)
 
     #expect(menu == AttachmentFixtures.verbIDs)
   }
 
   @Test func aResourceLinkThatIsNotAFileStaysALinkCard() throws {
-    let link = FoundationModelsACP.ResourceLink(name: "Guide", uri: "https://example.com/guide.html")
+    let link = FoundationModelsACP.ResourceLink(
+      name: "Guide", uri: "https://example.com/guide.html")
     let harness = HostedViewHarness(
       ContentBlockView(block: .resourceLink(link), id: Self.blockID), size: Self.hostSize)
     defer { harness.close() }
@@ -172,7 +178,8 @@ import UniformTypeIdentifiers
     let (session, call) = try await Self.openLocationCall(path: url.path(percentEncoded: false))
     defer { session.close() }
 
-    let menu = await Self.contextMenuIDs(of: Self.expandedView(of: call), at: Attachment(url: url).id)
+    let menu = await Self.contextMenuIDs(
+      of: Self.expandedView(of: call), at: Attachment(url: url).id)
 
     #expect(menu == AttachmentFixtures.verbIDs)
   }
@@ -201,7 +208,8 @@ import UniformTypeIdentifiers
   /// - Parameter url: The `file:` URL of the file.
   /// - Returns: The link block.
   static func makeLinkBlock(to url: URL) -> FoundationModelsACP.ContentBlock {
-    .resourceLink(FoundationModelsACP.ResourceLink(name: url.lastPathComponent, uri: url.absoluteString))
+    .resourceLink(
+      FoundationModelsACP.ResourceLink(name: url.lastPathComponent, uri: url.absoluteString))
   }
 
   /// Opens a scripted session and sends one tool call with one location.
@@ -210,7 +218,8 @@ import UniformTypeIdentifiers
   /// - Returns: The session and the entry of the call.
   /// - Throws: The error of the transport.
   static func openLocationCall(path: String) async throws -> (ScriptedSession, ToolCallEntry) {
-    let fields = #""title": "Read the file", "kind": "read", "status": "completed", "locations": [{"path": "\#(path)"}]"#
+    let fields =
+      #""title": "Read the file", "kind": "read", "status": "completed", "locations": [{"path": "\#(path)"}]"#
     return try await ScriptedSession.openWithEntry(
       update: WireBlockJSON.makeToolCallUpdate(id: toolCallID, fields: fields),
       lookingUp: { model in
@@ -245,7 +254,8 @@ import UniformTypeIdentifiers
     let system = CommandSystem()
     let harness = HostedViewHarness(content.commandSystem(system), size: hostSize)
     defer { harness.close() }
-    await harness.render(when: condition)
-    return system.registry.contextMenuMirror(at: FocusPath.root(AgentScopeKind.attachment(id))).map(\.id)
+    await harness.renderAfter(condition)
+    return system.registry.contextMenuMirror(at: FocusPath.root(AgentScopeKind.attachment(id))).map(
+      \.id)
   }
 }

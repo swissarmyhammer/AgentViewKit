@@ -19,8 +19,8 @@ import SwiftUI
 ///
 /// EditorKit shows math (`$…$`, `$$…$$`) with iosMath. Each formula is an
 /// accessibility element whose value is its TeX source. The value of the text
-/// element is the Markdown text, with the source of each formula at its
-/// place.
+/// element is the text, with each formula at its place as EditorKit speaks
+/// it: the label "Math" and the TeX source ("Math, x^2").
 ///
 /// In the row of an entry with a search hit, the view draws the find marks
 /// of the matched words of the hit (``TranscriptSearchMatches``).

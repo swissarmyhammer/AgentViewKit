@@ -1,4 +1,3 @@
-@testable import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
 import EditorCommands
@@ -8,6 +7,8 @@ import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 import Testing
+
+@testable import AgentViewKit
 
 /// Tests for the EditorKit navigation and jump on the items of a thread
 /// (AVK-7d).
@@ -48,7 +49,7 @@ import Testing
         .init(kind: "agent_message_chunk", messageID: "nav-second", text: "Second"),
       ], to: session)
     let model = session.model
-    await harness.render { model.transcript.count == 2 }
+    await harness.renderAfter { model.transcript.count == 2 }
     let thread = AgentCommandScopeHostedTests.path(of: model)
     return model.transcript.map { thread.appending(AgentScopeKind.message(rowKey: $0.rowKey)) }
   }
@@ -64,7 +65,9 @@ import Testing
   ///   - system: The command system of the window.
   ///   - window: The window.
   /// - Returns: The path, or `nil` when no item holds the first responder.
-  static func focusedItem(among items: [FocusPath], in system: CommandSystem, window: NSWindow) -> FocusPath? {
+  static func focusedItem(among items: [FocusPath], in system: CommandSystem, window: NSWindow)
+    -> FocusPath?
+  {
     guard let responder = window.firstResponder as? NSView,
       let frame = WindowSpace.rect(of: responder)
     else { return nil }
@@ -78,13 +81,16 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let system = CommandSystem()
-    let harness = AgentCommandScopeHostedTests.mount(session: session, system: system, outerScope: false)
+    let harness = AgentCommandScopeHostedTests.mount(
+      session: session, system: system, outerScope: false)
     defer { harness.close() }
     let messages = try await Self.sendTwoMessages(to: session, rendering: harness)
     let thread = AgentCommandScopeHostedTests.path(of: session.model)
-    registerNavCommands(controller: NavModeController(system: system), layer: thread, into: &system.registry)
+    registerNavCommands(
+      controller: NavModeController(system: system), layer: thread, into: &system.registry)
     try #require(system.geometry.requestFocus(at: messages[0]))
-    try #require(Self.focusedItem(among: messages, in: system, window: harness.window) == messages[0])
+    try #require(
+      Self.focusedItem(among: messages, in: system, window: harness.window) == messages[0])
 
     try #require(system.registry.performKey(KeySequence(.downArrow), mode: .cua, at: messages[0]))
     #expect(Self.focusedItem(among: messages, in: system, window: harness.window) == messages[1])
@@ -99,10 +105,12 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let system = CommandSystem()
-    let harness = AgentCommandScopeHostedTests.mount(session: session, system: system, outerScope: false)
+    let harness = AgentCommandScopeHostedTests.mount(
+      session: session, system: system, outerScope: false)
     defer { harness.close() }
     let messages = try await Self.sendTwoMessages(to: session, rendering: harness)
-    let toolCall = try await AgentScopeSubjectHostedTests.sendScopeToolCall(to: session, rendering: harness)
+    let toolCall = try await AgentScopeSubjectHostedTests.sendScopeToolCall(
+      to: session, rendering: harness)
     let thread = AgentCommandScopeHostedTests.path(of: session.model)
     let items = messages + [thread.appending(AgentScopeKind.toolCall(toolCall.toolCallId.rawValue))]
     let jump = JumpModeController(system: system)
@@ -124,7 +132,8 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let system = CommandSystem()
-    let harness = AgentCommandScopeHostedTests.mount(session: session, system: system, outerScope: false)
+    let harness = AgentCommandScopeHostedTests.mount(
+      session: session, system: system, outerScope: false)
     defer { harness.close() }
     let messages = try await Self.sendTwoMessages(to: session, rendering: harness)
     let jump = JumpModeController(system: system)
@@ -132,7 +141,8 @@ import Testing
 
     try #require(jump.commit(messages[position]))
 
-    #expect(Self.focusedItem(among: messages, in: system, window: harness.window) == messages[position])
+    #expect(
+      Self.focusedItem(among: messages, in: system, window: harness.window) == messages[position])
   }
 
   /// The deck shows the first request whole, and only the top edge of the
@@ -142,7 +152,8 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let system = CommandSystem()
-    let harness = AgentCommandScopeHostedTests.mount(session: session, system: system, outerScope: true)
+    let harness = AgentCommandScopeHostedTests.mount(
+      session: session, system: system, outerScope: true)
     defer { harness.close() }
     let cards = try await Self.sendDeckOfTwoPermissions(to: session, rendering: harness)
     let jump = JumpModeController(system: system)
@@ -161,11 +172,13 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let system = CommandSystem()
-    let harness = AgentCommandScopeHostedTests.mount(session: session, system: system, outerScope: true)
+    let harness = AgentCommandScopeHostedTests.mount(
+      session: session, system: system, outerScope: true)
     defer { harness.close() }
     let cards = try await Self.sendDeckOfTwoPermissions(to: session, rendering: harness)
 
-    let snapshot = system.geometry.snapshot(layer: AgentCommandScopeHostedTests.path(of: session.model))
+    let snapshot = system.geometry.snapshot(
+      layer: AgentCommandScopeHostedTests.path(of: session.model))
 
     let scopes = Set(snapshot.scopes.map(\.path))
     #expect(scopes.contains(cards.front))
@@ -178,18 +191,21 @@ import Testing
   @Test func aDeckCardKeepsItsCommentTextWhenItGoesBehindAndComesBack() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
-    let harness = AgentCommandScopeHostedTests.mount(session: session, system: CommandSystem(), outerScope: true)
+    let harness = AgentCommandScopeHostedTests.mount(
+      session: session, system: CommandSystem(), outerScope: true)
     defer { harness.close() }
     _ = try await Self.sendDeckOfTwoPermissions(to: session, rendering: harness)
     let reject = PermissionOptionId(rawValue: AgentCommandFixtures.rejectOptionID)
     try harness.perform(.press, on: PermissionView.optionIdentifier(for: reject))
-    try SingleLineFieldChecks.type(Self.commentText, intoFieldWith: PermissionView.commentIdentifier, in: harness)
+    try SingleLineFieldChecks.type(
+      Self.commentText, intoFieldWith: PermissionView.commentIdentifier, in: harness)
 
     try harness.perform(.press, on: RequestDeck.nextIdentifier)
     try #require(harness.element(identifier: PermissionView.commentIdentifier) == nil)
     try harness.perform(.press, on: RequestDeck.previousIdentifier)
 
-    #expect(harness.element(identifier: PermissionView.commentIdentifier)?.value == Self.commentText)
+    #expect(
+      harness.element(identifier: PermissionView.commentIdentifier)?.value == Self.commentText)
   }
 
   /// The scope paths of the two cards of a deck of two permission requests.
@@ -234,10 +250,12 @@ import Testing
     defer { session.close() }
     let model = session.model
     let system = CommandSystem()
-    let harness = AgentCommandScopeHostedTests.mount(session: session, system: system, outerScope: true)
+    let harness = AgentCommandScopeHostedTests.mount(
+      session: session, system: system, outerScope: true)
     defer { harness.close() }
     try await AgentCommandScopeHostedTests.sendScopeMessage(to: session, rendering: harness)
-    let toolCall = try await AgentScopeSubjectHostedTests.sendScopeToolCall(to: session, rendering: harness)
+    let toolCall = try await AgentScopeSubjectHostedTests.sendScopeToolCall(
+      to: session, rendering: harness)
     let request = try await session.sendPermissionRequest(
       id: Self.frontRequestID, rendering: harness)
     let message = try #require(model.transcript.first)
@@ -246,7 +264,8 @@ import Testing
     let scopes = Set(system.geometry.snapshot(layer: thread).scopes.map(\.path))
 
     #expect(scopes.contains(thread.appending(AgentScopeKind.message(rowKey: message.rowKey))))
-    #expect(scopes.contains(thread.appending(AgentScopeKind.toolCall(toolCall.toolCallId.rawValue))))
+    #expect(
+      scopes.contains(thread.appending(AgentScopeKind.toolCall(toolCall.toolCallId.rawValue))))
     #expect(scopes.contains(thread.appending(AgentScopeKind.request(request))))
   }
 }

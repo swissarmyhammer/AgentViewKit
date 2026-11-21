@@ -61,7 +61,9 @@
 
     var body: some View {
       AgentThreadView(session: session, connection: connection, anchors: anchors) {
-        PromptInputView(text: Bindable(record.draft).text, attachments: Bindable(record.draft).attachments) {
+        PromptInputView(
+          text: Bindable(record.draft).text, attachments: Bindable(record.draft).attachments
+        ) {
           record.draft.submitCount += 1
         }
       }
@@ -136,11 +138,14 @@
     ///   segment of the picker.
     func isAnswered(by answer: NSObject?, in shown: ShownBarControl) -> Bool {
       guard let answer else { return false }
-      guard self == .modePicker else { return accessibilityIdentifier(of: answer) == shown.identifier }
+      guard self == .modePicker else {
+        return accessibilityIdentifier(of: answer) == shown.identifier
+      }
       let role = accessibilityRole(of: answer)
       let label = accessibilityLabel(of: answer)
       let segments = shown.harness.elements(under: PermissionModePicker.pickerIdentifier)
-      return label == Self.centerModeValue && segments.contains { $0.role == role && $0.label == label }
+      return label == Self.centerModeValue
+        && segments.contains { $0.role == role && $0.label == label }
     }
 
     /// The label of the segment at the center of the permission-mode picker
@@ -230,11 +235,14 @@
     ///   - system: The command system of the window.
     /// - Returns: The harness, after one render pass.
     static func mount(
-      _ session: SessionModel, connection: ConnectionModel? = nil, anchors: ScrollAnchorManager = ScrollAnchorManager(),
+      _ session: SessionModel, connection: ConnectionModel? = nil,
+      anchors: ScrollAnchorManager = ScrollAnchorManager(),
       record: BarControlRecord = BarControlRecord(), system: CommandSystem
     ) -> HostedViewHarness<BarControlThreadHost> {
       let harness = HostedViewHarness(
-        BarControlThreadHost(session: session, connection: connection, anchors: anchors, system: system, record: record),
+        BarControlThreadHost(
+          session: session, connection: connection, anchors: anchors, system: system, record: record
+        ),
         size: windowSize)
       harness.render()
       return harness
@@ -252,7 +260,8 @@
     ///     control that a landed jump only focuses.
     /// - Returns: The shown control.
     static func show(
-      _ session: SessionModel, identifier: String, anchors: ScrollAnchorManager = ScrollAnchorManager(),
+      _ session: SessionModel, identifier: String,
+      anchors: ScrollAnchorManager = ScrollAnchorManager(),
       record: BarControlRecord = BarControlRecord(), system: CommandSystem,
       wasPressed: (@MainActor () -> Bool)?
     ) -> ShownBarControl {
@@ -275,16 +284,21 @@
       case .stop: showStop(system: system)
       case .modePicker:
         show(
-          PreviewFixtures.configuredSession, identifier: PermissionModePicker.pickerIdentifier, system: system,
+          PreviewFixtures.configuredSession, identifier: PermissionModePicker.pickerIdentifier,
+          system: system,
           wasPressed: nil)
       case .signIn:
         try await showAuthAction(
-          identifier: AgentAuthView.signInIdentifier(for: ConnectionModelViewsHostedTests.agentMethodID), system: system)
-      case .signOut: try await showAuthAction(identifier: AgentAuthView.signOutIdentifier, system: system)
+          identifier: AgentAuthView.signInIdentifier(
+            for: ConnectionModelViewsHostedTests.agentMethodID), system: system)
+      case .signOut:
+        try await showAuthAction(identifier: AgentAuthView.signOutIdentifier, system: system)
       case .dismiss: try showDismiss(system: system)
       case .reload: try await showReload(system: system)
       case .showError: try showShowError(system: system)
-      case .editor: show(.preview(), identifier: EditorKitPromptEditor.identifier, system: system, wasPressed: nil)
+      case .editor:
+        show(
+          .preview(), identifier: EditorKitPromptEditor.identifier, system: system, wasPressed: nil)
       case .dictation: showDictation(system: system)
       case .suggestion: try showSuggestion(system: system)
       case .removeAttachment: try showRemoveAttachment(system: system)
@@ -299,7 +313,10 @@
     /// - Returns: The shown control.
     static func showSend(system: CommandSystem) -> ShownBarControl {
       let record = BarControlRecord(text: message)
-      return show(.preview(), identifier: DefaultPromptAccessory.submitIdentifier, record: record, system: system) {
+      return show(
+        .preview(), identifier: DefaultPromptAccessory.submitIdentifier, record: record,
+        system: system
+      ) {
         record.draft.submitCount == 1
       }
     }
@@ -312,7 +329,8 @@
     static func showStop(system: CommandSystem) -> ShownBarControl {
       let record = BarControlRecord()
       return show(
-        ThreadBottomBarHostedTests.runningSession(), identifier: DefaultPromptAccessory.stopIdentifier, record: record,
+        ThreadBottomBarHostedTests.runningSession(),
+        identifier: DefaultPromptAccessory.stopIdentifier, record: record,
         system: system
       ) { record.requestStarts.values == [ScriptedSession.cancelMethod] }
     }
@@ -329,14 +347,17 @@
     ///   - system: The command system of the window.
     /// - Returns: The shown control.
     /// - Throws: The error of the scripted session.
-    static func showAuthAction(identifier: String, system: CommandSystem) async throws -> ShownBarControl {
+    static func showAuthAction(identifier: String, system: CommandSystem) async throws
+      -> ShownBarControl
+    {
       let session = try await ConnectionModelViewsHostedTests.openSession {
         $0.heldMethods = [ScriptedSession.loginMethod, AgentAuthViewHostedTests.logoutMethod]
       }
       let harness = mount(session.model, connection: session.connection, system: system)
       return ShownBarControl(
         harness: harness, session: session.model, identifier: identifier,
-        wasPressed: { harness.element(identifier: identifier)?.isEnabled == false }, closeSession: session.close)
+        wasPressed: { harness.element(identifier: identifier)?.isEnabled == false },
+        closeSession: session.close)
     }
 
     /// Shows a thread with one notice, so that the top bar shows its Dismiss
@@ -346,9 +367,13 @@
     /// - Returns: The shown control.
     /// - Throws: An issue when the model holds no notice.
     static func showDismiss(system: CommandSystem) throws -> ShownBarControl {
-      let session = SessionModel.preview(transcript: [.update(.notice(Notice(severity: .warning, title: noticeTitle)))])
+      let session = SessionModel.preview(transcript: [
+        .update(.notice(Notice(severity: .warning, title: noticeTitle)))
+      ])
       let notice = try #require(session.notices.first)
-      return show(session, identifier: SessionNoticeBanner.dismissIdentifier(for: notice.id), system: system) {
+      return show(
+        session, identifier: SessionNoticeBanner.dismissIdentifier(for: notice.id), system: system
+      ) {
         session.notices.isEmpty
       }
     }
@@ -364,10 +389,11 @@
       let model = session.model
       let record = BarControlRecord()
       let harness = mount(model, connection: session.connection, record: record, system: system)
-      await harness.render { model.hasMissedUpdates }
+      await harness.renderAfter { model.hasMissedUpdates }
       return ShownBarControl(
         harness: harness, session: model, identifier: SessionStreamBanner.reloadIdentifier,
-        wasPressed: { record.requestStarts.values == [ScriptedSession.resumeMethod] }, closeSession: session.close)
+        wasPressed: { record.requestStarts.values == [ScriptedSession.resumeMethod] },
+        closeSession: session.close)
     }
 
     /// Shows a thread with an error entry and an idle state, so that the
@@ -385,7 +411,9 @@
       // `appendError` puts the error entry at the end of the transcript.
       let errorKey = try #require(session.transcript.last?.rowKey)
       let anchors = ScrollAnchorManager()
-      return show(session, identifier: StateBanner.showErrorIdentifier, anchors: anchors, system: system) {
+      return show(
+        session, identifier: StateBanner.showErrorIdentifier, anchors: anchors, system: system
+      ) {
         anchors.anchorID == errorKey
       }
     }
@@ -397,7 +425,9 @@
     /// - Returns: The shown control.
     static func showDictation(system: CommandSystem) -> ShownBarControl {
       let record = BarControlRecord()
-      return show(.preview(), identifier: SpeechInputButton.identifier, record: record, system: system) {
+      return show(
+        .preview(), identifier: SpeechInputButton.identifier, record: record, system: system
+      ) {
         record.speechPhases.values == [.recording(level: nil)]
       }
     }
@@ -411,7 +441,10 @@
     static func showSuggestion(system: CommandSystem) throws -> ShownBarControl {
       let suggestion = try #require(PreviewFixtures.suggestions.first)
       let record = BarControlRecord()
-      return show(.preview(), identifier: SuggestionsView.chipIdentifier(at: 0), record: record, system: system) {
+      return show(
+        .preview(), identifier: SuggestionsView.chipIdentifier(at: 0), record: record,
+        system: system
+      ) {
         record.draft.plainText == suggestion
       }
     }
@@ -428,7 +461,8 @@
       let record = BarControlRecord()
       let remaining = PreviewFixtures.attachments.dropFirst().map(\.id)
       return show(
-        .preview(), identifier: AttachmentChips.removeIdentifier(for: attachment.id), record: record, system: system
+        .preview(), identifier: AttachmentChips.removeIdentifier(for: attachment.id),
+        record: record, system: system
       ) { record.draft.attachments.map(\.id) == remaining }
     }
 
@@ -448,7 +482,8 @@
         harness: harness, session: session.model, identifier: ScrollToBottomPill.identifier,
         wasPressed: { anchors.isPinnedToBottom }, closeSession: session.close)
       do {
-        try ThreadFloatingControlsHostedTests.scrollUpByCommand(session, anchors: anchors, system: system, harness: harness)
+        try ThreadFloatingControlsHostedTests.scrollUpByCommand(
+          session, anchors: anchors, system: system, harness: harness)
       } catch {
         shown.close()
         throw error
@@ -478,7 +513,9 @@
     ///   - system: The command system of the window.
     /// - Returns: The controller of the open session.
     /// - Throws: An issue when no session opens.
-    static func openJump(on shown: ShownBarControl, system: CommandSystem) throws -> JumpModeController {
+    static func openJump(on shown: ShownBarControl, system: CommandSystem) throws
+      -> JumpModeController
+    {
       let jump = JumpModeController(system: system)
       try #require(jump.activate(layer: AgentCommandScopeHostedTests.path(of: shown.session)))
       return jump
@@ -496,7 +533,9 @@
 
       let chip = try #require(chips.first { $0.id == shown.path }, "\(chips.map(\.id))")
       let controlFrame = Self.windowSpaceFrame(of: screenFrame, in: shown.harness.window)
-      #expect(controlFrame.contains(chip.anchor.origin), "label \(chip.anchor.origin), control \(controlFrame)")
+      #expect(
+        controlFrame.contains(chip.anchor.origin),
+        "label \(chip.anchor.origin), control \(controlFrame)")
     }
 
     /// A landed jump presses each bar button, as a click does: the press
@@ -525,13 +564,17 @@
       defer { shown.close() }
       let window = shown.harness.window
       window.makeFirstResponder(nil)
-      try #require(AgentNavigationHostedTests.focusedItem(among: [shown.path], in: system, window: window) == nil)
+      try #require(
+        AgentNavigationHostedTests.focusedItem(among: [shown.path], in: system, window: window)
+          == nil)
       let jump = try Self.openJump(on: shown, system: system)
 
       try #require(jump.commit(shown.path))
       shown.harness.render()
 
-      #expect(AgentNavigationHostedTests.focusedItem(among: [shown.path], in: system, window: window) == shown.path)
+      #expect(
+        AgentNavigationHostedTests.focusedItem(among: [shown.path], in: system, window: window)
+          == shown.path)
     }
 
     /// A disabled Send, with no text in the composer, is no jump target: the
@@ -540,10 +583,13 @@
       let system = CommandSystem()
       let record = BarControlRecord()
       let shown = Self.show(
-        .preview(), identifier: DefaultPromptAccessory.submitIdentifier, record: record, system: system,
+        .preview(), identifier: DefaultPromptAccessory.submitIdentifier, record: record,
+        system: system,
         wasPressed: nil)
       defer { shown.close() }
-      try #require(shown.harness.element(identifier: DefaultPromptAccessory.submitIdentifier)?.isEnabled == false)
+      try #require(
+        shown.harness.element(identifier: DefaultPromptAccessory.submitIdentifier)?.isEnabled
+          == false)
       let jump = try Self.openJump(on: shown, system: system)
 
       let chips = try #require(jump.overlayState?.chips)
@@ -557,17 +603,24 @@
     /// control answers the control, not the transcript row under the bar:
     /// the read that VoiceOver with the pointer, Hover Text and XCUI make.
     @Test(arguments: BarControl.allCases)
-    func theHitTestAtTheCenterOfEachBarControlAnswersTheControl(_ control: BarControl) async throws {
+    func theHitTestAtTheCenterOfEachBarControlAnswersTheControl(_ control: BarControl) async throws
+    {
       let system = CommandSystem()
       let shown = try await Self.show(control, system: system)
       defer { shown.close() }
 
-      let element = accessibilityHitTest(atCenterOfScopeAt: shown.path, in: system, window: shown.harness.window)
+      let element = accessibilityHitTest(
+        atCenterOfScopeAt: shown.path, in: system, window: shown.harness.window)
 
       let answer = element.map { element in
-        [accessibilityRole(of: element), accessibilityLabel(of: element), accessibilityIdentifier(of: element)]
+        [
+          accessibilityRole(of: element), accessibilityLabel(of: element),
+          accessibilityIdentifier(of: element),
+        ]
       }
-      #expect(control.isAnswered(by: element, in: shown), "role, label, identifier: \(String(describing: answer))")
+      #expect(
+        control.isAnswered(by: element, in: shown),
+        "role, label, identifier: \(String(describing: answer))")
     }
 
     /// A jump to the editor of the composer focuses its text view, so the

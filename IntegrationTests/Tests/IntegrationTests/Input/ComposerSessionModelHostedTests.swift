@@ -131,7 +131,9 @@
     private static func mount(
       session: ScriptedSession, draft: AttachmentChipsTestModel
     ) -> HostedViewHarness<some View> {
-      mount(session: session, connection: ConnectionHolder(connection: session.connection), draft: draft)
+      mount(
+        session: session, connection: ConnectionHolder(connection: session.connection), draft: draft
+      )
     }
 
     /// Writes a pasted image and a text file to a new temporary directory.
@@ -152,7 +154,10 @@
     /// - Parameter agent: The scripted agent.
     /// - Returns: The blocks, or an empty list when the agent got no prompt.
     static func promptBlocks(of agent: ScriptedWireAgent) -> [JSONValue] {
-      guard case .array(let blocks) = agent.messages(method: ScriptedSession.promptMethod).first?["params"]?["prompt"] else {
+      guard
+        case .array(let blocks) = agent.messages(method: ScriptedSession.promptMethod).first?[
+          "params"]?["prompt"]
+      else {
         return []
       }
       return blocks
@@ -213,7 +218,9 @@
     // MARK: - Send
 
     @Test(arguments: [ScriptedWireAgent.PromptEchoOrder.beforeResult, .afterResult])
-    func aSentPromptShowsAsPendingAtOnceAndThenAsSent(order: ScriptedWireAgent.PromptEchoOrder) async throws {
+    func aSentPromptShowsAsPendingAtOnceAndThenAsSent(order: ScriptedWireAgent.PromptEchoOrder)
+      async throws
+    {
       let markerUpdate = try Self.makeMarkerUpdate()
       let session = try await ScriptedSession.open {
         $0.promptEchoOrder = order
@@ -232,7 +239,7 @@
       // The composer calls the host closure in the same step as it starts the
       // prompt task, so a submit that sent nothing stops the test here.
       try #require(draft.submitCount == 1)
-      await harness.render { !Self.userMessages(of: model).isEmpty }
+      await harness.renderAfter { !Self.userMessages(of: model).isEmpty }
       let entry = try #require(Self.userMessages(of: model).first)
 
       #expect(entry.sendState == .pending)
@@ -240,7 +247,9 @@
       #expect(draft.plainText.isEmpty)
 
       session.agent.releaseHeldAnswer()
-      await harness.render { model.transcript.contains { $0.rowKey.hasSuffix(Self.markerMessageID) } }
+      await harness.renderAfter {
+        model.transcript.contains { $0.rowKey.hasSuffix(Self.markerMessageID) }
+      }
 
       #expect(entry.sendState == .sent)
       #expect(entry.messageId != nil)
@@ -250,7 +259,9 @@
     }
 
     @Test func aFailedPromptShowsTheMessageAsNotSentAndAddsAnErrorRow() async throws {
-      let session = try await ScriptedSession.open { $0.failingMethods = [ScriptedSession.promptMethod] }
+      let session = try await ScriptedSession.open {
+        $0.failingMethods = [ScriptedSession.promptMethod]
+      }
       defer { session.close() }
       let draft = PromptInputHostedTestModel(text: Self.firstMessage)
       let harness = Self.mount(session: session, draft: draft)
@@ -260,7 +271,7 @@
 
       try harness.perform(.press, on: DefaultPromptAccessory.submitIdentifier)
       try #require(draft.submitCount == 1)
-      await harness.render { TranscriptChecks.hasErrorEntry(model) }
+      await harness.renderAfter { TranscriptChecks.hasErrorEntry(model) }
       let entry = try #require(Self.userMessages(of: model).first)
 
       #expect(entry.sendState == .failed)
@@ -271,7 +282,9 @@
     // MARK: - Send while the agent runs
 
     @Test func aSubmitWhileTheAgentRunsSendsAPromptFrameAtOnce() async throws {
-      let session = try await ScriptedSession.open { $0.heldMethods = [ScriptedSession.promptMethod] }
+      let session = try await ScriptedSession.open {
+        $0.heldMethods = [ScriptedSession.promptMethod]
+      }
       defer { session.close() }
       let draft = PromptInputHostedTestModel(text: Self.firstMessage)
       let harness = Self.mount(session: session, draft: draft)
@@ -281,7 +294,9 @@
 
       try Self.submitWithReturn(in: harness)
       try #require(draft.submitCount == 1)
-      await harness.render { !session.agent.messages(method: ScriptedSession.promptMethod).isEmpty }
+      await harness.renderAfter {
+        !session.agent.messages(method: ScriptedSession.promptMethod).isEmpty
+      }
       let entry = try #require(Self.userMessages(of: model).first)
 
       #expect(Self.promptTexts(of: session.agent) == [Self.firstMessage])
@@ -301,12 +316,16 @@
 
       try Self.submitWithReturn(in: harness)
       try #require(draft.submitCount == 1)
-      await ObservationWait.until { session.agent.messages(method: ScriptedSession.promptMethod).count == 1 }
+      await ObservationWait.until(within: BoundedWait.defaultBound) {
+        session.agent.messages(method: ScriptedSession.promptMethod).count == 1
+      }
       draft.text = AttributedString(Self.secondMessage)
       harness.render()
       try Self.submitWithReturn(in: harness)
       try #require(draft.submitCount == 2)
-      await harness.render { session.agent.messages(method: ScriptedSession.promptMethod).count == 2 }
+      await harness.renderAfter {
+        session.agent.messages(method: ScriptedSession.promptMethod).count == 2
+      }
 
       #expect(Self.promptTexts(of: session.agent) == [Self.firstMessage, Self.secondMessage])
       #expect(Self.isRunning(model))
@@ -324,7 +343,9 @@
 
       try await Self.startRunning(session, in: harness)
       try await session.sendUpdate(ScriptedSession.idleState)
-      await ObservationWait.until { CancelFixtures.isIdle(model.agentState) }
+      await ObservationWait.until(within: BoundedWait.defaultBound) {
+        CancelFixtures.isIdle(model.agentState)
+      }
       harness.render()
 
       #expect(session.agent.received.count == framesBefore)
@@ -332,7 +353,9 @@
 
     // MARK: - Stop
 
-    @Test func theStopButtonShowsBesideTheSendButtonWhileTheAgentRunsAndGoesAwayWhenItIsIdle() async throws {
+    @Test func theStopButtonShowsBesideTheSendButtonWhileTheAgentRunsAndGoesAwayWhenItIsIdle()
+      async throws
+    {
       let session = try await ScriptedSession.open()
       defer { session.close() }
       let draft = PromptInputHostedTestModel()
@@ -368,7 +391,9 @@
       // The Stop button starts the cancel in the same step as the press, so a
       // press that started nothing stops the test here.
       try #require(starts.values == [ScriptedSession.cancelMethod])
-      await ObservationWait.until { !session.agent.messages(method: ScriptedSession.cancelMethod).isEmpty }
+      await ObservationWait.until(within: BoundedWait.defaultBound) {
+        !session.agent.messages(method: ScriptedSession.cancelMethod).isEmpty
+      }
 
       let cancels = session.agent.messages(method: ScriptedSession.cancelMethod)
       #expect(cancels.count == 1)
@@ -379,25 +404,31 @@
 
     @Test func aPastedImageThatTheAgentDoesNotAcceptShowsAsNotAcceptedAndIsNotSent() async throws {
       let session = try await ScriptedSession.open {
-        $0.results["initialize"] = ScriptedSession.makeInitializeResult(promptCapabilities: Self.embeddedContextOnly)
+        $0.results["initialize"] = ScriptedSession.makeInitializeResult(
+          promptCapabilities: Self.embeddedContextOnly)
       }
       defer { session.close() }
       let files = try Self.makeAttachedFiles()
       defer { try? FileManager.default.removeItem(at: files.directory) }
-      let draft = AttachmentChipsTestModel(text: Self.firstMessage, attachments: [files.image, files.notes])
+      let draft = AttachmentChipsTestModel(
+        text: Self.firstMessage, attachments: [files.image, files.notes])
       let harness = Self.mount(session: session, draft: draft)
       defer { harness.close() }
       let imageBadge = AttachmentChips.notAcceptedIdentifier(for: files.image.id)
       harness.render()
 
       #expect(harness.element(identifier: imageBadge) != nil)
-      #expect(harness.element(identifier: AttachmentChips.notAcceptedIdentifier(for: files.notes.id)) == nil)
+      #expect(
+        harness.element(identifier: AttachmentChips.notAcceptedIdentifier(for: files.notes.id))
+          == nil)
 
       try harness.perform(.press, on: DefaultPromptAccessory.submitIdentifier)
       // The composer clears its attachments in the same step as it starts the
       // prompt task, so a submit that sent nothing stops the test here.
       try #require(draft.attachments.isEmpty)
-      await ObservationWait.until { !session.agent.messages(method: ScriptedSession.promptMethod).isEmpty }
+      await ObservationWait.until(within: BoundedWait.defaultBound) {
+        !session.agent.messages(method: ScriptedSession.promptMethod).isEmpty
+      }
 
       let blocks = Self.promptBlocks(of: session.agent)
       #expect(blocks.map { $0["type"]?.stringValue } == ["text", "resource"])
@@ -416,7 +447,9 @@
 
       try harness.perform(.press, on: DefaultPromptAccessory.submitIdentifier)
       try #require(draft.attachments.isEmpty)
-      await ObservationWait.until { !session.agent.messages(method: ScriptedSession.promptMethod).isEmpty }
+      await ObservationWait.until(within: BoundedWait.defaultBound) {
+        !session.agent.messages(method: ScriptedSession.promptMethod).isEmpty
+      }
 
       let blocks = Self.promptBlocks(of: session.agent)
       #expect(blocks.map { $0["type"]?.stringValue } == ["text", "resource_link"])
@@ -427,7 +460,8 @@
       let first = try await ScriptedSession.open()
       defer { first.close() }
       let second = try await ScriptedSession.open {
-        $0.results["initialize"] = ScriptedSession.makeInitializeResult(promptCapabilities: Self.imageOnly)
+        $0.results["initialize"] = ScriptedSession.makeInitializeResult(
+          promptCapabilities: Self.imageOnly)
       }
       defer { second.close() }
       let files = try Self.makeAttachedFiles()
@@ -445,7 +479,8 @@
       harness.render()
 
       #expect(harness.element(identifier: imageBadge) == nil)
-      #expect(harness.element(identifier: AttachmentChips.chipIdentifier(for: files.image.id)) != nil)
+      #expect(
+        harness.element(identifier: AttachmentChips.chipIdentifier(for: files.image.id)) != nil)
     }
 
     // MARK: - Helpers
@@ -462,7 +497,7 @@
     ) async throws {
       let model = session.model
       try await session.sendUpdate(ScriptedSession.runningState)
-      await harness.render { isRunning(model) }
+      await harness.renderAfter { isRunning(model) }
     }
 
     /// Submits the text of the composer with the Return key of the editor.
@@ -485,7 +520,9 @@
     /// - Parameter agent: The scripted agent.
     /// - Returns: The texts.
     static func promptTexts(of agent: ScriptedWireAgent) -> [String] {
-      agent.messages(method: ScriptedSession.promptMethod).compactMap { $0["params"]?["prompt"]?[0]?["text"]?.stringValue }
+      agent.messages(method: ScriptedSession.promptMethod).compactMap {
+        $0["params"]?["prompt"]?[0]?["text"]?.stringValue
+      }
     }
 
     /// A `session/update` frame of the session of a request.
@@ -495,7 +532,8 @@
     ///   - request: The request frame whose session gets the update.
     /// - Returns: The JSON text of the frame.
     static func updateFrame(carrying update: JSONValue, for request: JSONValue) -> String {
-      ScriptedSession.sessionUpdateFrame(sessionId: request["params"]?["sessionId"] ?? .null, update: update)
+      ScriptedSession.sessionUpdateFrame(
+        sessionId: request["params"]?["sessionId"] ?? .null, update: update)
     }
   }
 #endif

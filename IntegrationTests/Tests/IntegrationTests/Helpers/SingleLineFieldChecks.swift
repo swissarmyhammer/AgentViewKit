@@ -1,4 +1,3 @@
-@testable import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
 import EditorCommands
@@ -7,6 +6,8 @@ import EditorSwiftUI
 import EditorTestSupport
 import SwiftUI
 import Testing
+
+@testable import AgentViewKit
 
 /// The steps that the hosted tests of a one-line EditorKit field
 /// (`SingleLineField`) share: a root command scope that gives the window its
@@ -132,7 +133,8 @@ import Testing
   @discardableResult
   static func type(
     _ text: String, intoFieldWith identifier: String, in harness: HostedViewHarness<some View>,
-    replacingAllText: Bool = false, thenPress key: KeyEquivalent, modifiers: SwiftUI.EventModifiers = [],
+    replacingAllText: Bool = false, thenPress key: KeyEquivalent,
+    modifiers: SwiftUI.EventModifiers = [],
     sourceLocation: SourceLocation = #_sourceLocation
   ) throws -> NSTextView {
     let textView = try type(
@@ -164,7 +166,8 @@ import Testing
     _ text: String, intoFieldWith identifier: String, in window: MountedThread<some View>,
     sourceLocation: SourceLocation = #_sourceLocation
   ) throws -> NSTextView {
-    let textView = try type(text, intoFieldWith: identifier, in: window.harness, sourceLocation: sourceLocation)
+    let textView = try type(
+      text, intoFieldWith: identifier, in: window.harness, sourceLocation: sourceLocation)
     try #require(textView.string == text, sourceLocation: sourceLocation)
     let field = try revertFieldScope(in: window.system, sourceLocation: sourceLocation)
     let registry = window.system.registry
@@ -208,7 +211,8 @@ import Testing
   ///   - harness: The harness that shows the field.
   ///   - sourceLocation: The location of the caller, for the failure report.
   static func expectRevertFieldEmptied(
-    _ textView: NSTextView, harness: HostedViewHarness<some View>, sourceLocation: SourceLocation = #_sourceLocation
+    _ textView: NSTextView, harness: HostedViewHarness<some View>,
+    sourceLocation: SourceLocation = #_sourceLocation
   ) {
     #expect(textView.string.isEmpty, sourceLocation: sourceLocation)
     #expect(harness.window.firstResponder === textView, sourceLocation: sourceLocation)
@@ -227,7 +231,8 @@ import Testing
     ofFieldWith identifier: String, in harness: HostedViewHarness<some View>,
     sourceLocation: SourceLocation = #_sourceLocation
   ) throws -> String? {
-    try textView(identifier: identifier, in: harness, sourceLocation: sourceLocation).accessibilityHelp()
+    try textView(identifier: identifier, in: harness, sourceLocation: sourceLocation)
+      .accessibilityHelp()
   }
 
   /// Moves the keyboard focus out of the field with `identifier` after the
@@ -246,7 +251,8 @@ import Testing
     _ text: String, intoFieldWith identifier: String, in harness: HostedViewHarness<some View>,
     sourceLocation: SourceLocation = #_sourceLocation
   ) throws -> NSTextView {
-    let textView = try type(text, intoFieldWith: identifier, in: harness, sourceLocation: sourceLocation)
+    let textView = try type(
+      text, intoFieldWith: identifier, in: harness, sourceLocation: sourceLocation)
     try #require(textView.string == text, sourceLocation: sourceLocation)
     try #require(harness.window.makeFirstResponder(nil), sourceLocation: sourceLocation)
     harness.render()
@@ -322,8 +328,9 @@ import Testing
 
     try window.harness.sendKey(.return)
     try #require(answered(), sourceLocation: sourceLocation)
-    await window.harness.render(when: requestIsGone)
-    try #require(window.harness.element(identifier: identifier) == nil, sourceLocation: sourceLocation)
+    await window.harness.renderAfter(requestIsGone)
+    try #require(
+      window.harness.element(identifier: identifier) == nil, sourceLocation: sourceLocation)
     await RunLoopBlockFence.afterPendingBlocks()
 
     #expect(!window.stack.canUndo, sourceLocation: sourceLocation)
@@ -347,7 +354,9 @@ import Testing
     let elements = harness.accessibilityElements().filter { $0.identifier == identifier }
 
     #expect(textView.isEditable, sourceLocation: sourceLocation)
-    #expect(views(withAccessibilityIdentifier: identifier, in: harness.hostingView) == [textView], sourceLocation: sourceLocation)
+    #expect(
+      views(withAccessibilityIdentifier: identifier, in: harness.hostingView) == [textView],
+      sourceLocation: sourceLocation)
     #expect(elements.count == 1, "\(elements)", sourceLocation: sourceLocation)
   }
 }

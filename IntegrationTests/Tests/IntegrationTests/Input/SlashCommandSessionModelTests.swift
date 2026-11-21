@@ -1,10 +1,11 @@
-@testable import AgentViewKit
 import AgentViewKitTestSupport
 import EditorTestSupport
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 import Testing
+
+@testable import AgentViewKit
 
 /// The slash command menu of the composer over a `SessionModel` (plan.md
 /// §3.2 "Last-value state", §3.7 `Commands "not reported"`).
@@ -32,7 +33,8 @@ import Testing
     """#
 
   /// An `available_commands_update` with no command.
-  static let emptyCommandsUpdate = #"{"sessionUpdate":"available_commands_update","availableCommands":[]}"#
+  static let emptyCommandsUpdate =
+    #"{"sessionUpdate":"available_commands_update","availableCommands":[]}"#
 
   /// The `messageId` of the agent message that marks the end of the frames
   /// that a test sent.
@@ -95,11 +97,15 @@ import Testing
     defer { session.close() }
     let model = session.model
     try await session.sendUpdate(Self.markerUpdate)
-    await ObservationWait.until { !model.transcript.isEmpty }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { !model.transcript.isEmpty }
 
     #expect(model.availableCommands == nil)
-    #expect(!EditorKitPromptEditor.isTrigger("/", reportsCommands: model.availableCommands != nil, hasAtSource: false))
-    #expect(await CompletionFixture.editor("/", commands: model.availableCommands, root: nil).query().isEmpty)
+    #expect(
+      !EditorKitPromptEditor.isTrigger(
+        "/", reportsCommands: model.availableCommands != nil, hasAtSource: false))
+    #expect(
+      await CompletionFixture.editor("/", commands: model.availableCommands, root: nil).query()
+        .isEmpty)
   }
 
   @Test func afterAnEmptyCommandsUpdateASlashShowsTheNoCommandsNote() async throws {
@@ -111,11 +117,11 @@ import Testing
     defer { harness.close() }
     let model = session.model
     try await session.sendUpdate(Self.emptyCommandsUpdate)
-    await harness.render { model.availableCommands != nil }
+    await harness.renderAfter { model.availableCommands != nil }
 
     harness.type("/")
     try harness.requireTextViewShows("/")
-    await harness.render { draft.plainText == "/" }
+    await harness.renderAfter { draft.plainText == "/" }
     await ComposerEditorMenuHostedTests.renderNoCommandsNote(of: editorSession, in: harness)
 
     #expect(model.availableCommands?.isEmpty == true)
@@ -138,8 +144,10 @@ import Testing
     defer { session.close() }
     let commands = session.model.availableCommands
 
-    #expect(commands?.compactMap(SlashCommandSource.command(of:)).map(\.name) == ["compact", "plan"])
-    #expect(EditorKitPromptEditor.isTrigger("/", reportsCommands: commands != nil, hasAtSource: false))
+    #expect(
+      commands?.compactMap(SlashCommandSource.command(of:)).map(\.name) == ["compact", "plan"])
+    #expect(
+      EditorKitPromptEditor.isTrigger("/", reportsCommands: commands != nil, hasAtSource: false))
     let labels = await CompletionFixture.editor("/", commands: commands, root: nil).query()
     #expect(Set(labels) == ["/compact", "/plan"])
   }

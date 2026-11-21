@@ -49,14 +49,19 @@ import Testing
       .filter { $0.hasPrefix(ContentBlockView.identifierPrefix) }
   }
 
-  /// Tells whether an element of `harness` has a label that holds `text`.
+  /// Tells whether an element of `harness` has a value that holds `text`.
+  ///
+  /// The text of a message is a rendered text view, whose element gives the
+  /// text as its value, not as its label.
   ///
   /// - Parameters:
   ///   - text: The text to find.
   ///   - harness: The harness that shows the thread.
-  /// - Returns: `true` when a label holds `text`.
-  static func showsLabel<Content: View>(containing text: String, in harness: HostedViewHarness<Content>) -> Bool {
-    harness.accessibilityElements().contains { $0.label?.contains(text) == true }
+  /// - Returns: `true` when a value holds `text`.
+  static func showsText<Content: View>(
+    containing text: String, in harness: HostedViewHarness<Content>
+  ) -> Bool {
+    harness.accessibilityElements().contains { $0.value?.contains(text) == true }
   }
 
   /// Sends one text chunk of `kind` to a scripted session, and expects that
@@ -80,8 +85,9 @@ import Testing
     let model = session.model
 
     try await session.sendUpdate(
-      WireBlockJSON.makeChunk(kind, messageID: entryMessageID, block: WireBlockJSON.makeText(firstChunk)))
-    await harness.render { !model.transcript.isEmpty }
+      WireBlockJSON.makeChunk(
+        kind, messageID: entryMessageID, block: WireBlockJSON.makeText(firstChunk)))
+    await harness.renderAfter { !model.transcript.isEmpty }
     let key = try #require(model.transcript.first?.rowKey)
 
     #expect(harness.element(identifier: identifier(key))?.label == label)
@@ -93,13 +99,17 @@ import Testing
   @Test func aUserMessageEntryMountsWithItsIdentifierAndLabel() async throws {
     #expect(UserMessageView.identifier(for: "user-mount") == "user-message-user-mount")
     try await Self.expectMessageEntryMounts(
-      kind: "user_message_chunk", identifier: { UserMessageView.identifier(for: $0) }, label: "You said")
+      kind: "user_message_chunk", identifier: { UserMessageView.identifier(for: $0) },
+      label: "You said")
   }
 
   @Test func anAgentMessageEntryMountsWithItsIdentifierAndLabel() async throws {
-    #expect(AssistantMessageView.identifier(for: "assistant-mount") == "assistant-message-assistant-mount")
+    #expect(
+      AssistantMessageView.identifier(for: "assistant-mount") == "assistant-message-assistant-mount"
+    )
     try await Self.expectMessageEntryMounts(
-      kind: "agent_message_chunk", identifier: { AssistantMessageView.identifier(for: $0) }, label: "Assistant said")
+      kind: "agent_message_chunk", identifier: { AssistantMessageView.identifier(for: $0) },
+      label: "Assistant said")
   }
 
   @Test(arguments: MessageRole.allCases)
@@ -124,27 +134,33 @@ import Testing
       AgentThreadView(session: session.model), size: Self.tallSize)
     defer { harness.close() }
     let model = session.model
-    let image = WireBlockJSON.makeImage(data: try TestImage.makePNGData(), mimeType: Self.imageMimeType)
+    let image = WireBlockJSON.makeImage(
+      data: try TestImage.makePNGData(), mimeType: Self.imageMimeType)
     let expectedBlocks = [
       ContentBlockView.identifier(for: .image), ContentBlockView.identifier(for: .resourceLink),
       ContentBlockView.identifier(for: .text),
     ]
 
     try await session.sendUpdate(Self.makeAgentChunk(image))
-    try await session.sendUpdate(Self.makeAgentChunk(WireBlockJSON.makeResourceLink(name: Self.linkName, uri: Self.linkURI)))
+    try await session.sendUpdate(
+      Self.makeAgentChunk(WireBlockJSON.makeResourceLink(name: Self.linkName, uri: Self.linkURI)))
     try await session.sendUpdate(Self.makeAgentChunk(WireBlockJSON.makeText(Self.firstChunk)))
-    await harness.render { SessionTranscriptViewHostedTests.entryText(of: model, at: 0) == Self.firstChunk }
+    await harness.renderAfter {
+      SessionTranscriptViewHostedTests.entryText(of: model, at: 0) == Self.firstChunk
+    }
 
     #expect(Self.blockIdentifiers(in: harness) == expectedBlocks)
     #expect(harness.element(identifier: ImageView.imageIdentifier) != nil)
     #expect(harness.element(identifier: LinkView.cardIdentifier)?.label == Self.linkName)
-    #expect(Self.showsLabel(containing: Self.firstChunk, in: harness))
+    #expect(Self.showsText(containing: Self.firstChunk, in: harness))
 
     try await session.sendUpdate(Self.makeAgentChunk(WireBlockJSON.makeText(Self.secondChunk)))
     let joined = Self.firstChunk + Self.secondChunk
-    await harness.render { SessionTranscriptViewHostedTests.entryText(of: model, at: 0) == joined }
+    await harness.renderAfter {
+      SessionTranscriptViewHostedTests.entryText(of: model, at: 0) == joined
+    }
 
-    #expect(Self.showsLabel(containing: joined, in: harness))
+    #expect(Self.showsText(containing: joined, in: harness))
     #expect(Self.blockIdentifiers(in: harness) == expectedBlocks)
   }
 
@@ -155,7 +171,7 @@ import Testing
     defer { session.close() }
     let model = session.model
     try await session.sendUpdate(Self.makeAgentChunk(WireBlockJSON.makeText(Self.firstChunk)))
-    await ObservationWait.until { !model.transcript.isEmpty }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { !model.transcript.isEmpty }
     let key = try #require(model.transcript.first?.rowKey)
     let message = AssistantMessageView.identifier(for: key)
     let plain = HostedViewHarness(AgentThreadView(session: model), size: Self.tallSize)

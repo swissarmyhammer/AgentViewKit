@@ -190,7 +190,7 @@ struct SplitViewHostWithThreadTabs: View {
     defer { harness.close() }
 
     try harness.perform(.press, on: ImageView.imageIdentifier)
-    await ObservationWait.until { !state.selection.isEmpty }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { !state.selection.isEmpty }
 
     let selection = try #require(state.selection.first)
     #expect(selection.sessionId == session.model.sessionId)
@@ -250,7 +250,8 @@ struct SplitViewHostWithThreadTabs: View {
 
     #expect(
       state.selection
-        == [AgentAttachmentSelection(attachment: attachments[1], sessionId: second.model.sessionId)])
+        == [AgentAttachmentSelection(attachment: attachments[1], sessionId: second.model.sessionId)]
+    )
     #expect(Shared.inspectorItems(in: harness).count == 1)
 
     state.shownThread = 0

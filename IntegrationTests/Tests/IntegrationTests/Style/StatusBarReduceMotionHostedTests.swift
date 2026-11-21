@@ -26,7 +26,8 @@ import Testing
   static func message(isOngoing: Bool) -> StatusBar.Message {
     StatusBar.Message(
       title: "Replaying", explanation: "The agent sends the history again.",
-      symbolName: EditorSymbol.status(.inProgress).systemImage, identifier: "message", isOngoing: isOngoing)
+      symbolName: EditorSymbol.status(.inProgress).systemImage, identifier: "message",
+      isOngoing: isOngoing)
   }
 
   /// Mounts the bar of a message and gives the class name of each layer it
@@ -43,7 +44,7 @@ import Testing
     let harness = HostedViewHarness(bar, size: size)
     defer { harness.close() }
     let layer = try #require(harness.hostingView.layer)
-    await harness.render { layer.sublayers?.isEmpty == false }
+    await harness.renderAfter { layer.sublayers?.isEmpty == false }
     let layers = DepthFirstWalk.layers(from: layer)
     return layers.map { String(describing: type(of: $0)) }
   }

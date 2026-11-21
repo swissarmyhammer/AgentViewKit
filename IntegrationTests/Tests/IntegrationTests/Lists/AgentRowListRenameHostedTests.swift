@@ -78,15 +78,17 @@ import Testing
     "rename-field-\(id)"
   }
 
-  /// Types ``typed`` into the rename field of the second row, and then
-  /// presses `key`.
+  /// Types ``typed`` into the rename field of the second row in place of
+  /// the old name, as a rename does, and then presses `key`. The field of
+  /// each row starts with the id of the row as its text.
   ///
   /// - Parameter key: The key to press after the typing.
   /// - Throws: An issue when the field cannot take the focus, or when the
   ///   typing does not reach the field.
   func rename(thenPress key: KeyEquivalent) throws {
     try SingleLineFieldChecks.type(
-      Self.typed, intoFieldWith: Self.fieldIdentifier(Self.ids[1]), in: harness, thenPress: key)
+      Self.typed, intoFieldWith: Self.fieldIdentifier(Self.ids[1]), in: harness,
+      replacingAllText: true, thenPress: key)
   }
 }
 

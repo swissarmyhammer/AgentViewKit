@@ -38,19 +38,22 @@
     static func openSessionWithNotice() async throws -> ScriptedSession {
       let session = try await ConnectionModelViewsHostedTests.openSession()
       do {
-        try await ConversationViewHostedTests.sendMessages(ConversationViewHostedTests.scrollEntryCount, to: session)
-        try await session.sendUpdate(CompactionAndNoticeHostedTests.notice(severity: noticeSeverity))
+        try await ConversationViewHostedTests.sendMessages(
+          ConversationViewHostedTests.scrollEntryCount, to: session)
+        try await session.sendUpdate(
+          CompactionAndNoticeHostedTests.notice(severity: noticeSeverity))
       } catch {
         session.close()
         throw error
       }
       let model = session.model
-      await ObservationWait.until { !model.notices.isEmpty }
+      await ObservationWait.until(within: BoundedWait.defaultBound) { !model.notices.isEmpty }
       return session
     }
 
     /// The explanation of the disconnected banner.
-    static let disconnectedExplanation = "No connection to the agent is open. The agent receives no messages."
+    static let disconnectedExplanation =
+      "No connection to the agent is open. The agent receives no messages."
 
     /// The width that a test measures an explanation in: wide enough that the
     /// explanation of a banner of the tests stays on one line.
@@ -65,9 +68,12 @@
     static func explanationHeight(of explanation: String) -> CGFloat {
       func height(_ text: String) -> CGFloat {
         let message = StatusBar.Message(
-          title: "Title", explanation: text, symbolName: EditorSymbol.severity(.information).systemImage,
+          title: "Title", explanation: text,
+          symbolName: EditorSymbol.severity(.information).systemImage,
           identifier: "message")
-        return StyleViewHost.size(of: StatusBar(message: message, action: nil), width: explanationMeasureWidth).height
+        return StyleViewHost.size(
+          of: StatusBar(message: message, action: nil), width: explanationMeasureWidth
+        ).height
       }
       return height(explanation) - height("")
     }
@@ -97,11 +103,18 @@
     ///   - harness: The harness that shows the thread.
     /// - Throws: An issue when the thread holds no element with one of the
     ///   identifiers.
-    static func expectReadingOrder(_ identifiers: [String], in harness: HostedViewHarness<some View>) throws {
+    static func expectReadingOrder(
+      _ identifiers: [String], in harness: HostedViewHarness<some View>
+    ) throws {
       let all = harness.accessibilityElementsInNavigationOrder().compactMap(\.identifier)
-      let expected = identifiers + [ConversationLayout.listIdentifier, AgentThreadLayout.floatingControlsIdentifier]
+      let expected =
+        identifiers + [
+          ConversationLayout.listIdentifier, AgentThreadLayout.floatingControlsIdentifier,
+        ]
 
-      let positions = try expected.map { try #require(all.firstIndex(of: $0), "\($0) is not in the thread") }
+      let positions = try expected.map {
+        try #require(all.firstIndex(of: $0), "\($0) is not in the thread")
+      }
 
       #expect(positions == positions.sorted(), "\(expected) at \(positions)")
     }
@@ -119,7 +132,9 @@
       let notice = try #require(harness.frame(identifier: Self.noticeIdentifier(of: session)))
 
       // The y axis of the screen goes up, so the top edge is `maxY`.
-      #expect(abs(list.maxY - host.maxY) <= ThreadBottomBarHostedTests.edgeTolerance, "list \(list), host \(host)")
+      #expect(
+        abs(list.maxY - host.maxY) <= ThreadBottomBarHostedTests.edgeTolerance,
+        "list \(list), host \(host)")
       #expect(list.contains(header), "list \(list), header \(header)")
       #expect(list.contains(notice), "list \(list), notice \(notice)")
     }
@@ -133,7 +148,8 @@
       defer { harness.close() }
       harness.render()
 
-      try Self.expectReadingOrder([StatusLineView.identifier, Self.noticeIdentifier(of: session)], in: harness)
+      try Self.expectReadingOrder(
+        [StatusLineView.identifier, Self.noticeIdentifier(of: session)], in: harness)
     }
 
     /// VoiceOver reads a closed thread in order: the header, the connection
@@ -149,7 +165,7 @@
       // state of the stream banner.
       session.close()
       let connection = session.connection
-      await harness.render { connection.state == .disconnected }
+      await harness.renderAfter { connection.state == .disconnected }
 
       try Self.expectReadingOrder(
         [
@@ -169,8 +185,10 @@
       harness.render()
       let notice = try #require(session.model.notices.first)
 
-      let dismiss = try #require(harness.frame(identifier: SessionNoticeBanner.dismissIdentifier(for: notice.id)))
-      let controls = try #require(harness.frame(identifier: AgentThreadLayout.floatingControlsIdentifier))
+      let dismiss = try #require(
+        harness.frame(identifier: SessionNoticeBanner.dismissIdentifier(for: notice.id)))
+      let controls = try #require(
+        harness.frame(identifier: AgentThreadLayout.floatingControlsIdentifier))
       let bannerEdge = dismiss.maxX + EditorStyle.default.tile.padding
 
       #expect(
@@ -190,8 +208,9 @@
       // closed state of the stream banner below it.
       session.close()
       let connection = session.connection
-      await harness.render { connection.state == .disconnected }
-      let disconnected = try #require(harness.frame(identifier: AgentConnectionBanner.disconnectedIdentifier))
+      await harness.renderAfter { connection.state == .disconnected }
+      let disconnected = try #require(
+        harness.frame(identifier: AgentConnectionBanner.disconnectedIdentifier))
       let closed = try #require(harness.frame(identifier: SessionStreamBanner.closedIdentifier))
       let style = EditorStyle.default
 
@@ -199,10 +218,12 @@
       // The explanation and the tile padding stand below it. The y axis of the
       // screen goes up.
       let disconnectedBottom =
-        disconnected.minY - Self.explanationHeight(of: Self.disconnectedExplanation) - style.tile.padding
+        disconnected.minY - Self.explanationHeight(of: Self.disconnectedExplanation)
+        - style.tile.padding
       let gap = disconnectedBottom - (closed.maxY + style.tile.padding)
 
-      #expect(abs(gap - style.tile.margin) <= ThreadBottomBarHostedTests.edgeTolerance, "gap \(gap)")
+      #expect(
+        abs(gap - style.tile.margin) <= ThreadBottomBarHostedTests.edgeTolerance, "gap \(gap)")
     }
   }
 #endif

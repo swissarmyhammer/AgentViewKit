@@ -71,7 +71,8 @@
 
     /// The text of the chip of the location that a later update adds: the
     /// name of its file and its line, the label of EditorKit's `PathChip`.
-    static let addedLocationText = "\(URL(filePath: addedLocationPath).lastPathComponent):\(addedLocationLine)"
+    static let addedLocationText =
+      "\(URL(filePath: addedLocationPath).lastPathComponent):\(addedLocationLine)"
 
     /// The number of locations of the fixture call after the later update.
     static let locationCountAfterUpdate = 2
@@ -107,7 +108,9 @@
     ///   - text: The text to find.
     ///   - harness: The harness that shows the thread.
     /// - Returns: `true` when an element shows the text.
-    static func showsText<Content: View>(_ text: String, in harness: HostedViewHarness<Content>) -> Bool {
+    static func showsText<Content: View>(_ text: String, in harness: HostedViewHarness<Content>)
+      -> Bool
+    {
       harness.accessibilityElements().contains { element in
         element.label?.contains(text) == true || element.value?.contains(text) == true
       }
@@ -173,7 +176,9 @@
     ) async throws -> ToolCallEntry {
       try await session.sendUpdate(update)
       let model = session.model
-      await ObservationWait.until { toolCallEntry(id, in: model) != nil }
+      await ObservationWait.until(within: BoundedWait.defaultBound) {
+        toolCallEntry(id, in: model) != nil
+      }
       return try #require(toolCallEntry(id, in: model))
     }
 
@@ -214,7 +219,8 @@
 
       #expect(harness.element(identifier: Self.registeredIdentifier) != nil)
       #expect(harness.element(identifier: ToolCallView.locationsIdentifier(for: key)) == nil)
-      #expect(harness.element(identifier: ToolCallView.identifier(for: key))?.label == Self.runningLabel)
+      #expect(
+        harness.element(identifier: ToolCallView.identifier(for: key))?.label == Self.runningLabel)
     }
 
     @Test func aCallWithNoNameShowsTheDefaultBody() async throws {
@@ -230,7 +236,8 @@
 
       #expect(harness.element(identifier: Self.registeredIdentifier) == nil)
       #expect(harness.element(identifier: ToolCallView.locationsIdentifier(for: key)) != nil)
-      #expect(harness.element(identifier: ToolCallView.identifier(for: key))?.label == Self.runningLabel)
+      #expect(
+        harness.element(identifier: ToolCallView.identifier(for: key))?.label == Self.runningLabel)
     }
 
     @Test func theLabelChangesWithTheStatusOfTheEntry() async throws {
@@ -246,9 +253,11 @@
 
       try await session.sendUpdate(
         WireBlockJSON.makeToolCallUpdate(id: "status-c", fields: #""status": "completed""#))
-      await harness.render { Self.toolCallEntry("status-c", in: model)?.status == .completed }
+      await harness.renderAfter { Self.toolCallEntry("status-c", in: model)?.status == .completed }
 
-      #expect(harness.element(identifier: ToolCallView.identifier(for: key))?.label == Self.completedLabel)
+      #expect(
+        harness.element(identifier: ToolCallView.identifier(for: key))?.label == Self.completedLabel
+      )
     }
 
     // MARK: - Locations
@@ -261,7 +270,8 @@
       defer { harness.close() }
       let model = session.model
       _ = try await Self.showExpandedCall(
-        WireBlockJSON.makeToolCallUpdate(id: "location-c", fields: Self.readFields), id: "location-c",
+        WireBlockJSON.makeToolCallUpdate(id: "location-c", fields: Self.readFields),
+        id: "location-c",
         in: session, harness: harness, store: store)
       #expect(!Self.showsText(Self.addedLocationText, in: harness))
 
@@ -269,9 +279,11 @@
         "locations": [{"path": "\#(Self.readPath)"},
                       {"path": "\#(Self.addedLocationPath)", "line": \#(Self.addedLocationLine)}]
         """#
-      try await session.sendUpdate(WireBlockJSON.makeToolCallUpdate(id: "location-c", fields: locations))
-      await harness.render {
-        Self.toolCallEntry("location-c", in: model)?.locations.count == Self.locationCountAfterUpdate
+      try await session.sendUpdate(
+        WireBlockJSON.makeToolCallUpdate(id: "location-c", fields: locations))
+      await harness.renderAfter {
+        Self.toolCallEntry("location-c", in: model)?.locations.count
+          == Self.locationCountAfterUpdate
       }
 
       #expect(Self.showsText(Self.addedLocationText, in: harness))
@@ -291,7 +303,8 @@
         in: session, harness: harness, store: store)
 
       #expect(harness.element(identifier: ToolCallView.inputIdentifier(for: key)) != nil)
-      #expect(harness.element(identifier: ToolCallView.contentIdentifier(for: key, index: 0)) != nil)
+      #expect(
+        harness.element(identifier: ToolCallView.contentIdentifier(for: key, index: 0)) != nil)
       #expect(harness.element(identifier: ToolCallView.outputIdentifier(for: key)) != nil)
       #expect(Self.showsText(Self.inputPath, in: harness))
       #expect(Self.showsText(Self.partText, in: harness))
@@ -306,15 +319,18 @@
       defer { harness.close() }
       let model = session.model
       _ = try await Self.showExpandedCall(
-        WireBlockJSON.makeToolCallUpdate(id: "output-c", fields: Self.rawValueFields), id: "output-c",
+        WireBlockJSON.makeToolCallUpdate(id: "output-c", fields: Self.rawValueFields),
+        id: "output-c",
         in: session, harness: harness, store: store)
       #expect(Self.showsText(Self.firstOutput, in: harness))
 
       try await session.sendUpdate(
         WireBlockJSON.makeToolCallUpdate(
-          id: "output-c", fields: #""rawOutput": {"\#(Self.outputMember)": "\#(Self.secondOutput)"}"#))
-      await harness.render {
-        Self.toolCallEntry("output-c", in: model)?.rawOutput?[Self.outputMember] == .string(Self.secondOutput)
+          id: "output-c",
+          fields: #""rawOutput": {"\#(Self.outputMember)": "\#(Self.secondOutput)"}"#))
+      await harness.renderAfter {
+        Self.toolCallEntry("output-c", in: model)?.rawOutput?[Self.outputMember]
+          == .string(Self.secondOutput)
       }
 
       #expect(Self.showsText(Self.secondOutput, in: harness))
@@ -378,7 +394,8 @@
     /// - Returns: The row key of the call.
     /// - Throws: The error of the transport, or a missing entry.
     static func sendCall(
-      _ id: String, thenRequests requests: [ScriptedSession.AgentRequest] = [], to session: ScriptedSession
+      _ id: String, thenRequests requests: [ScriptedSession.AgentRequest] = [],
+      to session: ScriptedSession
     ) async throws -> String {
       let update = WireBlockJSON.makeToolCallUpdate(id: id, fields: readFields)
       let call = try await receiveCall(update, id: id, in: session)
@@ -400,7 +417,8 @@
     static func showWaitingCall(
       _ id: String, in session: ScriptedSession, harness: HostedViewHarness<some View>
     ) async throws -> String {
-      let key = try await sendCall(id, thenRequests: [.linkedElicitation(toolCall: id)], to: session)
+      let key = try await sendCall(
+        id, thenRequests: [.linkedElicitation(toolCall: id)], to: session)
       harness.render()
       try #require(harness.element(identifier: ToolCallView.waitingIdentifier(for: key)) != nil)
       return key
@@ -422,10 +440,13 @@
       defer { harness.close() }
       let otherKey = try await Self.sendCall("other-c", to: session)
 
-      let key = try await Self.sendCall("ask-c", thenRequests: [.linkedElicitation(toolCall: "ask-c")], to: session)
+      let key = try await Self.sendCall(
+        "ask-c", thenRequests: [.linkedElicitation(toolCall: "ask-c")], to: session)
       harness.render()
 
-      #expect(harness.element(identifier: ToolCallView.waitingIdentifier(for: key))?.label == Self.waitingLabel)
+      #expect(
+        harness.element(identifier: ToolCallView.waitingIdentifier(for: key))?.label
+          == Self.waitingLabel)
       #expect(harness.element(identifier: ToolCallView.waitingIdentifier(for: otherKey)) == nil)
       #expect(harness.element(identifier: ElicitationView.formIdentifier) == nil)
     }
@@ -439,7 +460,9 @@
       let model = session.model
       let key = try await Self.sendCall(
         "front-c",
-        thenRequests: [.permission(id: Self.permissionRequestID), .linkedElicitation(toolCall: "front-c")],
+        thenRequests: [
+          .permission(id: Self.permissionRequestID), .linkedElicitation(toolCall: "front-c"),
+        ],
         to: session)
       harness.render()
       let linked = try #require(model.pendingElicitations.first?.id)
@@ -448,7 +471,8 @@
       try harness.perform(.press, on: ToolCallView.waitingIdentifier(for: key))
 
       #expect(model.frontRequestID == linked)
-      #expect(harness.element(identifier: RequestDeck.positionIdentifier)?.label == "Request 2 of 2")
+      #expect(
+        harness.element(identifier: RequestDeck.positionIdentifier)?.label == "Request 2 of 2")
       #expect(reporter.moves.last == RequestDeck.identifier(for: linked.uuidString))
     }
 
@@ -505,7 +529,9 @@
 
       let key = try await Self.sendCall(
         "both-c",
-        thenRequests: [.linkedPermission(toolCall: "both-c"), .linkedElicitation(toolCall: "both-c")],
+        thenRequests: [
+          .linkedPermission(toolCall: "both-c"), .linkedElicitation(toolCall: "both-c"),
+        ],
         to: session)
       harness.render()
 
@@ -522,7 +548,8 @@
       let harness = Self.mountThread(session, store: ExpandedBlocksStore())
       defer { harness.close() }
       let model = session.model
-      let key = try await Self.sendCall("url-c", thenRequests: [.linkedURLElicitation(toolCall: "url-c")], to: session)
+      let key = try await Self.sendCall(
+        "url-c", thenRequests: [.linkedURLElicitation(toolCall: "url-c")], to: session)
       let pending = try #require(model.pendingElicitations.first)
 
       model.acceptElicitation(pending.id)
@@ -531,7 +558,9 @@
       try #require(model.awaitingURLCompletions.map(\.id) == [pending.id])
       harness.render()
 
-      #expect(harness.element(identifier: ToolCallView.waitingIdentifier(for: key))?.label == Self.urlWaitingLabel)
+      #expect(
+        harness.element(identifier: ToolCallView.waitingIdentifier(for: key))?.label
+          == Self.urlWaitingLabel)
 
       model.stopWaiting(pending.id)
       harness.render()
@@ -576,7 +605,8 @@
                              "properties": {"branch": {"type": "string", "default": "\#(branch)"}}}}
         """#
       return Self(
-        method: ScriptedSession.elicitationMethod, id: ToolCallEntryViewHostedTests.elicitationRequestID,
+        method: ScriptedSession.elicitationMethod,
+        id: ToolCallEntryViewHostedTests.elicitationRequestID,
         params: params)
     }
 
@@ -594,7 +624,8 @@
          "elicitationId": "url-\#(id)"}
         """#
       return Self(
-        method: ScriptedSession.elicitationMethod, id: ToolCallEntryViewHostedTests.elicitationRequestID,
+        method: ScriptedSession.elicitationMethod,
+        id: ToolCallEntryViewHostedTests.elicitationRequestID,
         params: params)
     }
 
@@ -610,7 +641,8 @@
          "options": [{"optionId": "yes", "name": "Allow", "kind": "allow_once"}]}
         """#
       return Self(
-        method: ScriptedSession.permissionMethod, id: ToolCallEntryViewHostedTests.permissionRequestID,
+        method: ScriptedSession.permissionMethod,
+        id: ToolCallEntryViewHostedTests.permissionRequestID,
         params: params)
     }
   }

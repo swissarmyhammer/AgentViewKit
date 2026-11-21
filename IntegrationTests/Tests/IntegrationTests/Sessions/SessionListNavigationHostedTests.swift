@@ -21,7 +21,9 @@ import Testing
 /// list routes it to the registry at the focused scope.
 @Suite(.serialized, .hostedSerially) @MainActor struct SessionListNavigationHostedTests {
   /// The ids of the two listed sessions of the first page, in list order.
-  static let listedIDs = [ScriptedSession.sessionID, SessionPickerConnectionModelHostedTests.closedSessionID]
+  static let listedIDs = [
+    ScriptedSession.sessionID, SessionPickerConnectionModelHostedTests.closedSessionID,
+  ]
 
   /// Mounts the picker of a session in a window with `system`, waits until
   /// the picker reports the end of its first refresh, and then renders it.
@@ -34,8 +36,10 @@ import Testing
   ///   - onOpen: The action for a resumed session.
   /// - Returns: The harness that shows the picker.
   static func mountPicker(
-    _ session: ScriptedSession, system: CommandSystem, calls: ReportRecorder<String?> = ReportRecorder(),
-    presses: ReportRecorder<String> = ReportRecorder(), onOpen: @escaping (SessionModel) -> Void = { _ in }
+    _ session: ScriptedSession, system: CommandSystem,
+    calls: ReportRecorder<String?> = ReportRecorder(),
+    presses: ReportRecorder<String> = ReportRecorder(),
+    onOpen: @escaping (SessionModel) -> Void = { _ in }
   ) async -> HostedViewHarness<some View> {
     let harness = HostedViewHarness(
       SessionListView(connection: session.connection, onOpen: onOpen)
@@ -43,7 +47,7 @@ import Testing
         .environment(\.sessionListPressReport, presses.report)
         .commandSystem(system),
       size: SessionPickerConnectionModelHostedTests.listSize)
-    await harness.render { !calls.values.isEmpty }
+    await harness.renderAfter { !calls.values.isEmpty }
     return harness
   }
 
@@ -61,7 +65,9 @@ import Testing
   /// - Parameter connection: The connection model of the picker.
   /// - Returns: The row paths.
   static func rowPaths(of connection: ConnectionModel) -> [FocusPath] {
-    listedIDs.map { listPath(of: connection).appending(SessionListView.rowSegment(for: SessionId(rawValue: $0))) }
+    listedIDs.map {
+      listPath(of: connection).appending(SessionListView.rowSegment(for: SessionId(rawValue: $0)))
+    }
   }
 
   /// The scope among `scopes` whose area is the area of the first responder
@@ -76,7 +82,9 @@ import Testing
   ///   - harness: The harness that shows the picker.
   /// - Returns: The path of the focused scope, or `nil` when none of
   ///   `scopes` holds the focus.
-  static func focusedScope(among scopes: [FocusPath], in system: CommandSystem, harness: HostedViewHarness<some View>)
+  static func focusedScope(
+    among scopes: [FocusPath], in system: CommandSystem, harness: HostedViewHarness<some View>
+  )
     -> FocusPath?
   {
     guard let responder = harness.window.firstResponder as? NSView,
@@ -93,7 +101,9 @@ import Testing
   ///   - harness: The harness that shows the picker.
   /// - Returns: The path of the selected row, or `nil` when no row is
   ///   selected.
-  static func selectedRow(among rows: [FocusPath], in system: CommandSystem, harness: HostedViewHarness<some View>)
+  static func selectedRow(
+    among rows: [FocusPath], in system: CommandSystem, harness: HostedViewHarness<some View>
+  )
     -> FocusPath?
   {
     focusedScope(among: rows, in: system, harness: harness)
@@ -128,7 +138,9 @@ import Testing
     var opened: [SessionModel] = []
     let calls = ReportRecorder<String?>()
     let presses = ReportRecorder<String>()
-    let harness = await Self.mountPicker(session, system: system, calls: calls, presses: presses) { opened.append($0) }
+    let harness = await Self.mountPicker(session, system: system, calls: calls, presses: presses) {
+      opened.append($0)
+    }
     defer { harness.close() }
     let rows = Self.rowPaths(of: session.connection)
     try #require(system.geometry.requestFocus(at: rows[1]))
@@ -137,7 +149,7 @@ import Testing
 
     try harness.sendKey(.return)
     try #require(presses.values == [SessionPickerConnectionModelHostedTests.row(Self.listedIDs[1])])
-    await harness.render { calls.values.count > reportsBefore }
+    await harness.renderAfter { calls.values.count > reportsBefore }
 
     #expect(opened.map(\.sessionId.rawValue) == [Self.listedIDs[1]])
   }

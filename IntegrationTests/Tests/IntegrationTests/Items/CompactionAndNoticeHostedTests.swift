@@ -100,7 +100,9 @@
       try await session.sendUpdate(Self.compactionUpdate(#""status": "in_progress""#))
       try await session.sendUpdate(Self.agentChunk(messageID: "after"))
       try await session.sendUpdate(Self.compactionUpdate(#""status": "completed""#))
-      await harness.render { SessionEntryRowsHostedTests.compaction(in: model)?.status == .completed }
+      await harness.renderAfter {
+        SessionEntryRowsHostedTests.compaction(in: model)?.status == .completed
+      }
 
       let keys = model.transcript.map(\.rowKey)
       #expect(keys.count == 3)
@@ -122,10 +124,15 @@
         {"sessionUpdate": "compaction_summary_chunk", "compactionId": "\#(Self.compactionID)",
          "content": {"type": "text", "text": "\#(Self.summaryText)"}}
         """#)
-      await harness.render { SessionEntryRowsHostedTests.compaction(in: model)?.summary.isEmpty == false }
+      await harness.renderAfter {
+        SessionEntryRowsHostedTests.compaction(in: model)?.summary.isEmpty == false
+      }
 
       #expect(Self.compactionLabel(in: harness) == "Context compaction, No status yet")
-      #expect(harness.accessibilityElements().contains { $0.label?.contains(Self.summaryText) == true })
+      // The summary is the text of a rendered text view: it is in the value of
+      // the element, not in its label.
+      #expect(
+        harness.accessibilityElements().contains { $0.value?.contains(Self.summaryText) == true })
     }
 
     @Test func aFailedCompactionShowsItsReason() async throws {
@@ -137,10 +144,14 @@
 
       try await session.sendUpdate(
         Self.compactionUpdate(#""status": "failed", "error": "\#(Self.failureReason)""#))
-      await harness.render { SessionEntryRowsHostedTests.compaction(in: model)?.status == .failed }
+      await harness.renderAfter {
+        SessionEntryRowsHostedTests.compaction(in: model)?.status == .failed
+      }
 
       #expect(Self.compactionLabel(in: harness) == "Context compaction, Failed")
-      #expect(harness.element(identifier: CompactionEntryView.errorIdentifier)?.label == Self.failureReason)
+      #expect(
+        harness.element(identifier: CompactionEntryView.errorIdentifier)?.label
+          == Self.failureReason)
     }
 
     // MARK: - Notices
@@ -153,7 +164,7 @@
       let model = session.model
 
       try await session.sendUpdate(Self.notice(severity: "warning"))
-      await harness.render { !model.notices.isEmpty }
+      await harness.renderAfter { !model.notices.isEmpty }
       let notice = try #require(model.notices.first)
 
       #expect(
@@ -171,10 +182,12 @@
 
       try await session.sendUpdate(Self.notice(severity: "info"))
       try await session.sendUpdate(Self.notice(severity: "error"))
-      await harness.render { model.notices.count == Self.twoNoticesCount }
+      await harness.renderAfter { model.notices.count == Self.twoNoticesCount }
       let ids = model.notices.map(\.id)
 
-      let labels = ids.map { harness.element(identifier: SessionNoticeBanner.identifier(for: $0))?.label }
+      let labels = ids.map {
+        harness.element(identifier: SessionNoticeBanner.identifier(for: $0))?.label
+      }
       #expect(
         labels == [
           "Information, \(Self.noticeTitle), \(Self.noticeDescription)",
@@ -190,7 +203,7 @@
       let model = session.model
 
       try await session.sendUpdate(Self.notice(severity: "info"))
-      await harness.render { !model.notices.isEmpty }
+      await harness.renderAfter { !model.notices.isEmpty }
       let notice = try #require(model.notices.first)
 
       try harness.perform(.press, on: SessionNoticeBanner.dismissIdentifier(for: notice.id))

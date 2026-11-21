@@ -53,7 +53,8 @@
     /// ``DiffViewHostedTests/patch`` as absolute paths, then
     /// ``readOnlyPath``.
     static let editLocations = [
-      projectDirectory + DiffViewHostedTests.firstPath, projectDirectory + DiffViewHostedTests.secondPath,
+      projectDirectory + DiffViewHostedTests.firstPath,
+      projectDirectory + DiffViewHostedTests.secondPath,
       readOnlyPath,
     ]
 
@@ -65,7 +66,8 @@
     /// - Returns: The fields, as JSON members.
     /// - Throws: The error of the JSON encode of the patch.
     static func editFields() throws -> String {
-      let patch = try #require(String(data: JSONEncoder().encode(DiffViewHostedTests.patch), encoding: .utf8))
+      let patch = try #require(
+        String(data: JSONEncoder().encode(DiffViewHostedTests.patch), encoding: .utf8))
       let locations = editLocations.map { #"{"path": "\#($0)"}"# }.joined(separator: ", ")
       return #"""
         "title": "Edit two files", "kind": "edit", "status": "completed",
@@ -83,7 +85,9 @@
     /// - Returns: The session and the entry of the call.
     /// - Throws: The error of the transport, or an issue when the model holds
     ///   no such entry at the time limit.
-    static func openCall(id: String, fields: String) async throws -> (ScriptedSession, ToolCallEntry) {
+    static func openCall(id: String, fields: String) async throws -> (
+      ScriptedSession, ToolCallEntry
+    ) {
       try await ScriptedSession.openWithEntry(
         update: WireBlockJSON.makeToolCallUpdate(id: id, fields: fields),
         lookingUp: { ToolCallEntryViewHostedTests.toolCallEntry(id, in: $0) })
@@ -106,7 +110,9 @@
     ///   - call: The tool call entry.
     ///   - store: The store of the expanded rows.
     /// - Returns: The harness.
-    static func mount(_ call: ToolCallEntry, store: ExpandedBlocksStore) -> HostedViewHarness<some View> {
+    static func mount(_ call: ToolCallEntry, store: ExpandedBlocksStore) -> HostedViewHarness<
+      some View
+    > {
       let harness = HostedViewHarness(size: tallSize) {
         ToolCallView(entry: call)
           .environment(\.expandedBlocksStore, store)
@@ -123,7 +129,8 @@
       defer { session.close() }
 
       try FontRoleExpectations.expectText(
-        of: ToolCallView(entry: call), identifier: ToolCallView.toggleIdentifier(for: call.id.rowKey), drawsIn: .ui,
+        of: ToolCallView(entry: call),
+        identifier: ToolCallView.toggleIdentifier(for: call.id.rowKey), drawsIn: .ui,
         size: Self.tallSize)
     }
 
@@ -151,10 +158,13 @@
       BodyEvaluationCounter.reset(rowKey)
       BodyEvaluationCounter.reset(bodyKey)
 
-      try await session.sendUpdate(WireBlockJSON.makeToolCallUpdate(id: id, fields: #""status": "completed""#))
-      await harness.render { call.status == .completed }
+      try await session.sendUpdate(
+        WireBlockJSON.makeToolCallUpdate(id: id, fields: #""status": "completed""#))
+      await harness.renderAfter { call.status == .completed }
 
-      #expect(harness.element(identifier: ToolCallView.identifier(for: key))?.label == Self.completedLabel)
+      #expect(
+        harness.element(identifier: ToolCallView.identifier(for: key))?.label == Self.completedLabel
+      )
       #expect(BodyEvaluationCounter.count(rowKey) >= 1)
       #expect(BodyEvaluationCounter.count(bodyKey) == 0)
     }
@@ -198,7 +208,8 @@
       #expect(store.isExpanded(entry: .toolCall(call)))
       #expect(harness.element(identifier: ToolCallView.locationsIdentifier(for: key)) != nil)
       #expect(harness.element(identifier: ToolCallView.inputIdentifier(for: key)) != nil)
-      #expect(harness.element(identifier: ToolCallView.contentIdentifier(for: key, index: 0)) != nil)
+      #expect(
+        harness.element(identifier: ToolCallView.contentIdentifier(for: key, index: 0)) != nil)
       #expect(harness.element(identifier: ToolCallView.outputIdentifier(for: key)) == nil)
 
       try harness.perform(.press, on: toggleID)
@@ -222,7 +233,8 @@
 
       #expect(harness.element(identifier: CommandOutputView.identifier) != nil)
       #expect(harness.element(identifier: CommandOutputView.footerIdentifier) != nil)
-      #expect(harness.element(identifier: ToolCallView.outputIdentifier(for: call.id.rowKey)) != nil)
+      #expect(
+        harness.element(identifier: ToolCallView.outputIdentifier(for: call.id.rowKey)) != nil)
     }
 
     @Test func aTerminalPartShowsALabelWithTheTerminalID() async throws {
@@ -250,7 +262,9 @@
       let harness = Self.mount(call, store: Self.makeExpandedStore(for: call))
       defer { harness.close() }
 
-      #expect(harness.element(identifier: ToolCallView.contentIdentifier(for: call.id.rowKey, index: 0)) != nil)
+      #expect(
+        harness.element(identifier: ToolCallView.contentIdentifier(for: call.id.rowKey, index: 0))
+          != nil)
       #expect(harness.element(identifier: UnknownItemView.identifier) != nil)
     }
 
@@ -279,7 +293,8 @@
     /// location of the same file shows no chip of its own (card ^tgjr9xg).
     /// The location that the diff does not show keeps its chip.
     @Test func eachFileOfADiffShowsOnceAsItsDiffChip() async throws {
-      let (session, call) = try await Self.openCall(id: "diff-once-call", fields: try Self.editFields())
+      let (session, call) = try await Self.openCall(
+        id: "diff-once-call", fields: try Self.editFields())
       defer { session.close() }
       let harness = Self.mount(call, store: Self.makeExpandedStore(for: call))
       defer { harness.close() }
@@ -293,11 +308,13 @@
         }
         #expect(named.count == 1, "\(location): \(named.compactMap(\.identifier))")
         let isInDiff = location != Self.readOnlyPath
-        let chip = harness.element(identifier: ToolCallView.locationIdentifier(for: key, index: index))
+        let chip = harness.element(
+          identifier: ToolCallView.locationIdentifier(for: key, index: index))
         #expect((chip == nil) == isInDiff, "\(location)")
       }
       for path in [DiffViewHostedTests.firstPath, DiffViewHostedTests.secondPath] {
-        #expect(harness.element(identifier: DiffView.fileChipIdentifier(for: path)) != nil, "\(path)")
+        #expect(
+          harness.element(identifier: DiffView.fileChipIdentifier(for: path)) != nil, "\(path)")
       }
     }
 
@@ -305,7 +322,8 @@
     /// chips and its detail start on the leading edge of the other blocks of
     /// the expanded body.
     @Test func theDiffChipsTheDiffTextAndTheOtherBlocksShareOneLeadingEdge() async throws {
-      let (session, call) = try await Self.openCall(id: "diff-edge-call", fields: try Self.editFields())
+      let (session, call) = try await Self.openCall(
+        id: "diff-edge-call", fields: try Self.editFields())
       defer { session.close() }
       let harness = Self.mount(call, store: Self.makeExpandedStore(for: call))
       defer { harness.close() }

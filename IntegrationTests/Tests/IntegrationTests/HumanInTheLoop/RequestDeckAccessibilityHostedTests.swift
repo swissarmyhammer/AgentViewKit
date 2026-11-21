@@ -1,4 +1,3 @@
-@testable import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
 import EditorCommandsUI
@@ -8,6 +7,8 @@ import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 import Testing
+
+@testable import AgentViewKit
 
 /// The focus and the announcements of a ``RequestDeck`` in a window (deck
 /// design section 4, test plan row 37).
@@ -73,7 +74,8 @@ import Testing
   /// - Returns: The request.
   static func urlConsent(id: Int) -> ScriptedSession.AgentRequest {
     ScriptedSession.AgentRequest(
-      method: ScriptedSession.elicitationMethod, id: id, params: ElicitationURLConsentViewHostedTests.makeParams())
+      method: ScriptedSession.elicitationMethod, id: id,
+      params: ElicitationURLConsentViewHostedTests.makeParams())
   }
 
   @Test func aNewRequestAnnouncesOneTimeAtTheHighPriorityAndMovesNoFocus() async throws {
@@ -89,7 +91,8 @@ import Testing
     let elicitation = try #require(session.model.pendingElicitations.first)
     #expect(
       announcer.announcements == [
-        RecordingAnnouncer.Announcement(message: "Action required: \(elicitation.request.message)", priority: .high)
+        RecordingAnnouncer.Announcement(
+          message: "Action required: \(elicitation.request.message)", priority: .high)
       ])
     #expect(reporter.moves.isEmpty)
   }
@@ -112,13 +115,18 @@ import Testing
 
     await model.cancelPermission(permission.id)
     harness.render()
-    #expect(reporter.moves == [RequestDeck.identifier(for: permission.id.uuidString), EditorKitPromptEditor.identifier])
+    #expect(
+      reporter.moves == [
+        RequestDeck.identifier(for: permission.id.uuidString), EditorKitPromptEditor.identifier,
+      ])
   }
 
   /// The accept of the only pending request keeps its card in the deck as a
   /// waiting card. The waiting card asks for no input, so the focus goes to
   /// the prompt editor while the waiting card shows.
-  @Test func anAcceptOfTheOnlyURLRequestMovesTheFocusToThePromptEditorAndKeepsTheWaitingCard() async throws {
+  @Test func anAcceptOfTheOnlyURLRequestMovesTheFocusToThePromptEditorAndKeepsTheWaitingCard()
+    async throws
+  {
     let reporter = RecordingFocusReporter()
     let mounted = try await ElicitationURLConsentViewHostedTests.mountDeck(
       [ElicitationURLConsentViewHostedTests.urlRequest], reporter: reporter)
@@ -135,7 +143,7 @@ import Testing
     harness.render()
     try #require(reporter.moves.last == EditorKitPromptEditor.identifier)
     try #require(harness.element(identifier: ElicitationURLConsentView.waitingIdentifier) != nil)
-    await harness.render { mounted.browser.sessions.contains(where: \.isWaiting) }
+    await harness.renderAfter { mounted.browser.sessions.contains(where: \.isWaiting) }
 
     #expect(reporter.moves == [EditorKitPromptEditor.identifier])
     #expect(harness.element(identifier: ElicitationURLConsentView.waitingIdentifier) != nil)
@@ -193,7 +201,9 @@ import Testing
     // editable text, so no text field can take Esc, and its Esc action
     // cancels on the main actor.
     let elicitationRequestID = Self.firstRequestID + 1
-    try await session.sendInOrder([.permission(id: Self.firstRequestID), Self.urlConsent(id: elicitationRequestID)])
+    try await session.sendInOrder([
+      .permission(id: Self.firstRequestID), Self.urlConsent(id: elicitationRequestID),
+    ])
     harness.render()
     let elicitation = try #require(model.pendingElicitations.first)
 

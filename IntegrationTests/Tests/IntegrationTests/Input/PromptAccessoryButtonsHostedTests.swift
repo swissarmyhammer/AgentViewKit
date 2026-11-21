@@ -19,8 +19,9 @@
   ///
   /// Each test sets the state of the session model in a fixed order. After a
   /// change, it waits for the event that the model has the change
-  /// (``ObservationWait/until(_:)``), does one layout pass, and reads the
-  /// buttons. No test reads a clock, polls, or has a time limit.
+  /// (``ObservationWait/until(within:sourceLocation:_:)``), does one layout pass, and reads the
+  /// buttons. No test polls or has a time limit. Each wait has a
+  /// bound, so a change that does not come fails the test.
   @Suite(.serialized, .hostedSerially) @MainActor struct PromptAccessoryButtonsHostedTests {
     /// The size of a window that shows the full composer.
     static let size = CGSize(width: 480, height: 200)
@@ -57,7 +58,9 @@
     ///
     /// - Parameter harness: The harness that shows the composer.
     /// - Returns: The element.
-    static func sendButton<Content: View>(in harness: HostedViewHarness<Content>) -> AccessibilityElementSnapshot? {
+    static func sendButton<Content: View>(in harness: HostedViewHarness<Content>)
+      -> AccessibilityElementSnapshot?
+    {
       harness.element(identifier: DefaultPromptAccessory.submitIdentifier)
     }
 
@@ -65,7 +68,9 @@
     ///
     /// - Parameter harness: The harness that shows the composer.
     /// - Returns: The element.
-    static func stopButton<Content: View>(in harness: HostedViewHarness<Content>) -> AccessibilityElementSnapshot? {
+    static func stopButton<Content: View>(in harness: HostedViewHarness<Content>)
+      -> AccessibilityElementSnapshot?
+    {
       harness.element(identifier: DefaultPromptAccessory.stopIdentifier)
     }
 
@@ -93,7 +98,8 @@
     /// - Returns: The labels and the enable state.
     static func buttons<Content: View>(in harness: HostedViewHarness<Content>) -> Buttons {
       let send = sendButton(in: harness)
-      return Buttons(send: send?.label, isSendEnabled: send?.isEnabled, stop: stopButton(in: harness)?.label)
+      return Buttons(
+        send: send?.label, isSendEnabled: send?.isEnabled, stop: stopButton(in: harness)?.label)
     }
 
     // MARK: - Running
@@ -123,7 +129,9 @@
 
       #expect(session.agent.messages(method: ScriptedSession.promptMethod).count == 1)
       #expect(model.agentState == Self.running)
-      #expect(Self.buttons(in: harness) == Buttons(send: Self.sendLabel, isSendEnabled: false, stop: Self.stopLabel))
+      #expect(
+        Self.buttons(in: harness)
+          == Buttons(send: Self.sendLabel, isSendEnabled: false, stop: Self.stopLabel))
     }
 
     // MARK: - Idle

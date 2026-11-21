@@ -30,11 +30,14 @@ import Testing
     let scenario = try await RecordedSessionsScenario.start()
     let calls = ReportRecorder<String?>()
     let harness = HostedViewHarness(
-      SessionListView(connection: scenario.agent.connection, cwd: scenario.agent.workingDirectory, onOpen: { _ in })
-        .environment(\.sessionListCallReport, calls.report),
+      SessionListView(
+        connection: scenario.agent.connection, cwd: scenario.agent.workingDirectory,
+        onOpen: { _ in }
+      )
+      .environment(\.sessionListCallReport, calls.report),
       size: SessionPickerConnectionModelHostedTests.listSize)
 
-    await harness.render { !calls.values.isEmpty }
+    await harness.renderAfter { !calls.values.isEmpty }
 
     #expect(calls.values == [nil])
     #expect(!SessionPickerConnectionModelHostedTests.rowIdentifiers(in: harness).isEmpty)
@@ -42,7 +45,9 @@ import Testing
     await scenario.stop()
   }
 
-  @Test(.hostedSerially) func theGalleryDetailShowsATranscriptRowOfEachRecordedSession() async throws {
+  @Test(.hostedSerially) func theGalleryDetailShowsATranscriptRowOfEachRecordedSession()
+    async throws
+  {
     try await Self.hostTheGalleryWindowOfEachSession { info, harness in
       #expect(!Self.transcriptRowIdentifiers(in: harness).isEmpty, "\(info.sessionId)")
     }
@@ -51,7 +56,8 @@ import Testing
   @Test(.hostedSerially) func theGalleryWindowOfEachRecordedSessionGetsNarrower() async throws {
     try await Self.hostTheGalleryWindowOfEachSession { info, harness in
       harness.window.styleMask.insert(.resizable)
-      harness.window.setContentSize(CGSize(width: Self.narrowWindowWidth, height: GalleryWindowReplica.windowSize.height))
+      harness.window.setContentSize(
+        CGSize(width: Self.narrowWindowWidth, height: GalleryWindowReplica.windowSize.height))
       harness.render()
 
       #expect(harness.hostingView.frame.width == Self.narrowWindowWidth, "\(info.sessionId)")
@@ -78,10 +84,12 @@ extension RecordedSessionsGalleryHostedTests {
   ) async throws {
     let scenario = try await RecordedSessionsScenario.start()
     let connection = scenario.agent.connection
-    try await RecordedSessionsScenario.resumeEachSessionFromTheStart(of: scenario.agent) { info, session in
+    try await RecordedSessionsScenario.resumeEachSessionFromTheStart(of: scenario.agent) {
+      info, session in
       let harness = HostedViewHarness(
-        GalleryWindowReplica(session: session, connection: connection), size: GalleryWindowReplica.windowSize)
-      await harness.render { !session.transcript.isEmpty }
+        GalleryWindowReplica(session: session, connection: connection),
+        size: GalleryWindowReplica.windowSize)
+      await harness.renderAfter { !session.transcript.isEmpty }
       check(info, harness)
       harness.close()
     }
@@ -93,6 +101,8 @@ extension RecordedSessionsGalleryHostedTests {
   /// - Parameter harness: The harness that shows the transcript.
   /// - Returns: The row identifiers, in view order.
   static func transcriptRowIdentifiers(in harness: HostedViewHarness<some View>) -> [String] {
-    harness.accessibilityElements().compactMap(\.identifier).filter { $0.hasPrefix(ItemRow.identifierPrefix) }
+    harness.accessibilityElements().compactMap(\.identifier).filter {
+      $0.hasPrefix(ItemRow.identifierPrefix)
+    }
   }
 }

@@ -36,7 +36,8 @@ import Testing
   static func rows(of session: SessionModel) -> [String] {
     [
       ConfigOptionsSessionModelHostedTests.row(
-        ConfigOptionsView.uncategorizedSectionID, SessionConfigId(rawValue: "web-search"), of: session),
+        ConfigOptionsView.uncategorizedSectionID, SessionConfigId(rawValue: "web-search"),
+        of: session),
       ToolTogglesHostedTests.row(tools[0].id),
       ClientModelInspectionHostedTests.row(of: session, group: "session", field: "id"),
     ]
@@ -83,7 +84,7 @@ import Testing
     harness.render()
 
     try harness.inspectorDriver.press(ToolTogglesHostedTests.row(Self.tools[0].id))
-    await ObservationWait.until { !recorder.values.isEmpty }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { !recorder.values.isEmpty }
 
     #expect(recorder.values == [false])
   }

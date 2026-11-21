@@ -3,6 +3,7 @@ import EditorTestSupport
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
+import Testing
 
 /// Helpers for a scripted session that has child sessions.
 ///
@@ -26,7 +27,8 @@ extension ScriptedSession {
   public func send(update: SessionUpdate, in sessionId: SessionId) async throws {
     childWire.record(update, in: sessionId)
     try await agent.send(
-      Self.sessionUpdateFrame(sessionId: .string(sessionId.rawValue), update: JSONValue(encoding: update)))
+      Self.sessionUpdateFrame(
+        sessionId: .string(sessionId.rawValue), update: JSONValue(encoding: update)))
   }
 
   /// Finds a session of the tree under the scripted session.
@@ -64,7 +66,9 @@ extension ScriptedSession {
       sessionId: child, state: state.map { .value($0) } ?? .unchanged,
       title: title.map { .value($0) } ?? .unchanged, meta: link.map { .value($0) } ?? .unchanged)
     try await send(update: .subagentUpdate(update), in: parent)
-    await ObservationWait.until { self.session(child) != nil || self.model.isClosed }
+    await ObservationWait.until(within: BoundedWait.defaultBound) {
+      self.session(child) != nil || self.model.isClosed
+    }
     guard let made = session(child) else { throw ScriptedChildError.notAnnounced(child) }
     return made
   }
@@ -76,7 +80,9 @@ extension ScriptedSession {
   ///   - child: The id of the child.
   ///   - parent: The parent. The default is the scripted session.
   /// - Throws: The error of the encoder or of the transport.
-  public func sendChildSnapshot(_ state: StateUpdate, child: SessionId, in parent: SessionId? = nil) async throws {
+  public func sendChildSnapshot(_ state: StateUpdate, child: SessionId, in parent: SessionId? = nil)
+    async throws
+  {
     let update = SubagentUpdate(sessionId: child, state: .value(state))
     try await send(update: .subagentUpdate(update), in: parent ?? model.sessionId)
   }
@@ -101,7 +107,8 @@ extension ScriptedSession {
   /// - Throws: The error of the encoder or of the transport.
   public func sendChildMessage(_ text: String, messageID: String, child: SessionId) async throws {
     try childWire.requireConfirmed(child)
-    try await send(update: BackgroundRunScript.makeChunkUpdate(messageID: messageID, text: text), in: child)
+    try await send(
+      update: BackgroundRunScript.makeChunkUpdate(messageID: messageID, text: text), in: child)
   }
 
   /// Sends a permission request of a child.
@@ -127,7 +134,8 @@ extension ScriptedSession {
     try childWire.requireConfirmed(child)
     childWire.record(request: Self.elicitationMethod, id: id, session: child)
     try await sendRequest(
-      Self.elicitationMethod, id: id, params: Self.makeFormElicitationParams(sessionId: child.rawValue))
+      Self.elicitationMethod, id: id,
+      params: Self.makeFormElicitationParams(sessionId: child.rawValue))
   }
 
   /// Sends the `agents` tool call that starts a child, in the stream of the
@@ -139,11 +147,14 @@ extension ScriptedSession {
   ///     `_meta.sah.agentRun` with it. `nil` sends no link.
   ///   - parent: The parent. The default is the scripted session.
   /// - Throws: The error of the encoder or of the transport.
-  public func sendAgentToolCall(_ toolCallId: ToolCallId, child: SessionId?, in parent: SessionId? = nil) async throws {
+  public func sendAgentToolCall(
+    _ toolCallId: ToolCallId, child: SessionId?, in parent: SessionId? = nil
+  ) async throws {
     try await send(
       update: .toolCallUpdate(
         ToolCallUpdate(
-          toolCallId: toolCallId, name: .value("agents"), status: .value(.inProgress), title: .value("Run agent"),
+          toolCallId: toolCallId, name: .value("agents"), status: .value(.inProgress),
+          title: .value("Run agent"),
           meta: try Self.linkMeta(child: child))),
       in: parent ?? model.sessionId)
   }
@@ -160,7 +171,8 @@ extension ScriptedSession {
   ///   - parent: The parent. The default is the scripted session.
   /// - Throws: The error of the encoder or of the transport.
   public func sendAgentToolCallResult(
-    _ toolCallId: ToolCallId, status: ToolCallStatus = .completed, child: SessionId?, in parent: SessionId? = nil
+    _ toolCallId: ToolCallId, status: ToolCallStatus = .completed, child: SessionId?,
+    in parent: SessionId? = nil
   ) async throws {
     if let child { try childWire.requireConfirmed(child) }
     try await send(

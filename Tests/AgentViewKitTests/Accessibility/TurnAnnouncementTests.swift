@@ -22,7 +22,8 @@ import Testing
 
   /// The `session/update` value that tells that the agent is idle because
   /// the user cancelled (`cancelled`).
-  static let cancelledState = #"{"sessionUpdate":"state_update","state":"idle","stopReason":"cancelled"}"#
+  static let cancelledState =
+    #"{"sessionUpdate":"state_update","state":"idle","stopReason":"cancelled"}"#
 
   /// The `session/update` value of a user message that this client did not
   /// send.
@@ -48,7 +49,8 @@ import Testing
     _ = try await session.model.prompt(Self.promptContent)
 
     #expect(
-      await TurnAnnouncementFixtures.collect(announcements, of: session, endingWith: Self.endTurn)
+      try await TurnAnnouncementFixtures.collect(
+        announcements, of: session, endingWith: Self.endTurn)
         == ["Response complete"])
   }
 
@@ -60,7 +62,9 @@ import Testing
     try await session.sendUpdate(ScriptedSession.runningState)
     try await session.sendUpdate(ScriptedSession.idleState)
 
-    #expect(await TurnAnnouncementFixtures.collect(announcements, of: session, endingWith: Self.idle).isEmpty)
+    #expect(
+      try await TurnAnnouncementFixtures.collect(announcements, of: session, endingWith: Self.idle)
+        .isEmpty)
   }
 
   @Test func aSecondIdleWithNoNewPromptAnnouncesNothing() async throws {
@@ -76,7 +80,7 @@ import Testing
     _ = try await session.model.prompt(Self.promptContent)
 
     #expect(
-      await TurnAnnouncementFixtures.collect(announcements, of: session, endingWith: Self.idle)
+      try await TurnAnnouncementFixtures.collect(announcements, of: session, endingWith: Self.idle)
         == ["Response complete"])
   }
 
@@ -90,19 +94,23 @@ import Testing
     _ = try await session.model.prompt(Self.promptContent)
 
     #expect(
-      await TurnAnnouncementFixtures.collect(announcements, of: session, endingWith: Self.endTurn)
+      try await TurnAnnouncementFixtures.collect(
+        announcements, of: session, endingWith: Self.endTurn)
         == ["Response complete"])
   }
 
   @Test func theIdleAfterTheEchoOfACancelledPromptAnnouncesTheCancel() async throws {
-    let session = try await TurnAnnouncementFixtures.open(turns: [[ScriptedSession.runningState, Self.cancelledState]])
+    let session = try await TurnAnnouncementFixtures.open(turns: [
+      [ScriptedSession.runningState, Self.cancelledState]
+    ])
     defer { session.close() }
     let announcements = ThreadAccessibility.makeTurnAnnouncements(of: session.model)
 
     _ = try await session.model.prompt(Self.promptContent)
 
     #expect(
-      await TurnAnnouncementFixtures.collect(announcements, of: session, endingWith: Self.cancelled)
+      try await TurnAnnouncementFixtures.collect(
+        announcements, of: session, endingWith: Self.cancelled)
         == ["Response cancelled"])
   }
 
@@ -115,6 +123,9 @@ import Testing
     try await session.sendUpdate(ScriptedSession.runningState)
     try await session.sendUpdate(ScriptedSession.endTurnState)
 
-    #expect(await TurnAnnouncementFixtures.collect(announcements, of: session, endingWith: Self.endTurn).isEmpty)
+    #expect(
+      try await TurnAnnouncementFixtures.collect(
+        announcements, of: session, endingWith: Self.endTurn
+      ).isEmpty)
   }
 }

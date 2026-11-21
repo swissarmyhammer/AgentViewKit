@@ -75,9 +75,12 @@ import Testing
   // MARK: - Default views
 
   @Test(arguments: wireKinds)
-  func eachWireBlockMountsTheDefaultViewOfItsKind(kind: FoundationModelsACP.ContentBlock.Kind) throws {
+  func eachWireBlockMountsTheDefaultViewOfItsKind(kind: FoundationModelsACP.ContentBlock.Kind)
+    throws
+  {
     let block = try Self.makeWireBlock(of: kind)
-    let harness = HostedViewHarness(ContentBlockView(block: block, id: Self.blockID), size: Self.hostSize)
+    let harness = HostedViewHarness(
+      ContentBlockView(block: block, id: Self.blockID), size: Self.hostSize)
     defer { harness.close() }
     harness.render()
 
@@ -98,16 +101,18 @@ import Testing
 
   @Test func aWireTextBlockShowsItsText() {
     let harness = HostedViewHarness(
-      ContentBlockView(block: .text(TextContent(text: Self.blockText)), id: Self.blockID), size: Self.hostSize)
+      ContentBlockView(block: .text(TextContent(text: Self.blockText)), id: Self.blockID),
+      size: Self.hostSize)
     defer { harness.close() }
     harness.render()
 
-    #expect(Self.labels(in: harness).contains { $0.contains(Self.blockText) })
+    #expect(ResponseTextChecks.texts(in: harness).contains { $0.contains(Self.blockText) })
   }
 
   @Test func aWireUnknownBlockShowsItsKindInTheRawView() {
     let block = FoundationModelsACP.ContentBlock.unknown(Self.unknownKind, .object([:]))
-    let harness = HostedViewHarness(ContentBlockView(block: block, id: Self.blockID), size: Self.hostSize)
+    let harness = HostedViewHarness(
+      ContentBlockView(block: block, id: Self.blockID), size: Self.hostSize)
     defer { harness.close() }
     harness.render()
 
@@ -138,7 +143,7 @@ import Testing
     // The image starts the file write in the same step as the press, so a
     // press that started nothing stops the test here.
     try #require(selects.values == [Self.imageName])
-    await ObservationWait.until { !selection.attachments.isEmpty }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { !selection.attachments.isEmpty }
 
     let attachment = try #require(selection.attachments.first)
     #expect(attachment.name == Self.imageName)
@@ -147,7 +152,8 @@ import Testing
   }
 
   @Test func aWireImageWithDataThatIsNotBase64ShowsThePlaceholder() {
-    let image = FoundationModelsACP.ImageContent(data: Self.notBase64, mimeType: MediaType(rawValue: "image/png"))
+    let image = FoundationModelsACP.ImageContent(
+      data: Self.notBase64, mimeType: MediaType(rawValue: "image/png"))
     let harness = HostedViewHarness(
       ContentBlockView(block: .image(image), id: Self.blockID), size: Self.hostSize)
     defer { harness.close() }
@@ -178,13 +184,14 @@ import Testing
   /// test waits for the failed state, then renders, then reads the label.
   @Test func aWireSoundWithDataThatIsNotBase64ShowsTheFailureLabel() async {
     let fileStates = ReportRecorder<PreviewLoadState<URL>>()
-    let audio = FoundationModelsACP.AudioContent(data: Self.notBase64, mimeType: MediaType(rawValue: "audio/wav"))
+    let audio = FoundationModelsACP.AudioContent(
+      data: Self.notBase64, mimeType: MediaType(rawValue: "audio/wav"))
     let harness = HostedViewHarness(
       ContentBlockView(block: .audio(audio), id: Self.blockID)
         .environment(\.audioFileReport, fileStates.report),
       size: Self.hostSize)
     defer { harness.close() }
-    await harness.render { fileStates.values.contains(where: Self.isFailed) }
+    await harness.renderAfter { fileStates.values.contains(where: Self.isFailed) }
 
     #expect(harness.element(identifier: AudioPlayerView.failureIdentifier) != nil)
   }
@@ -223,13 +230,14 @@ import Testing
         .environment(\.resourceFileReport, writes.report),
       size: Self.hostSize)
     defer { harness.close() }
-    await harness.render { writes.values.contains(where: Self.isLoaded) }
+    await harness.renderAfter { writes.values.contains(where: Self.isLoaded) }
 
     #expect(Self.labels(in: harness).contains { $0.contains(Self.archiveName) })
   }
 
   @Test func aWireResourceWithNoContentsShowsTheRawView() {
-    let resource = FoundationModelsACP.EmbeddedResource(resource: .object(["uri": .string(Self.archiveURI)]))
+    let resource = FoundationModelsACP.EmbeddedResource(
+      resource: .object(["uri": .string(Self.archiveURI)]))
     let harness = HostedViewHarness(
       ContentBlockView(block: .resource(resource), id: Self.blockID), size: Self.hostSize)
     defer { harness.close() }
@@ -241,7 +249,9 @@ import Testing
   // MARK: - Audience
 
   @Test(arguments: annotatedKinds)
-  func aWireBlockForTheAssistantOnlyProducesNoElement(kind: FoundationModelsACP.ContentBlock.Kind) throws {
+  func aWireBlockForTheAssistantOnlyProducesNoElement(kind: FoundationModelsACP.ContentBlock.Kind)
+    throws
+  {
     let assistantOnly = FoundationModelsACP.Annotations(audience: [.assistant])
     let block = try Self.makeWireBlock(of: kind, annotations: assistantOnly)
     let harness = HostedViewHarness(
@@ -255,7 +265,8 @@ import Testing
 
     let elements = harness.accessibilityElements()
     #expect(elements.contains { $0.label == "host" })
-    #expect(!elements.contains { ($0.identifier ?? "").hasPrefix(ContentBlockView.identifierPrefix) })
+    #expect(
+      !elements.contains { ($0.identifier ?? "").hasPrefix(ContentBlockView.identifierPrefix) })
     #expect(elements.compactMap(\.label).allSatisfy { !$0.contains(Self.blockText) })
     #expect(harness.element(identifier: LinkView.cardIdentifier) == nil)
   }
@@ -297,7 +308,7 @@ import Testing
         "agent_message_chunk", messageID: Self.entryMessageID,
         block: WireBlockJSON.makeResourceLink(name: Self.linkName, uri: Self.linkURI)))
     let model = session.model
-    await ObservationWait.until { !model.transcript.isEmpty }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { !model.transcript.isEmpty }
     let entry = try #require(model.transcript.first)
 
     let harness = HostedViewHarness(
@@ -324,10 +335,14 @@ import Testing
 
   @Test func theFileNameComesFromTheURIOrTheMIMEType() {
     #expect(
-      ContentBlockFile.fileName(uri: "https://example.com/a/chart.png", mimeType: "image/png", stem: "image")
+      ContentBlockFile.fileName(
+        uri: "https://example.com/a/chart.png", mimeType: "image/png", stem: "image")
         == "chart.png")
-    #expect(ContentBlockFile.fileName(uri: nil, mimeType: "image/png", stem: "image") == "image.png")
-    #expect(ContentBlockFile.fileName(uri: "https://example.com/", mimeType: "audio/wav", stem: "audio") == "audio.wav")
+    #expect(
+      ContentBlockFile.fileName(uri: nil, mimeType: "image/png", stem: "image") == "image.png")
+    #expect(
+      ContentBlockFile.fileName(uri: "https://example.com/", mimeType: "audio/wav", stem: "audio")
+        == "audio.wav")
     #expect(ContentBlockFile.fileName(uri: nil, mimeType: "no/such-type", stem: "audio") == "audio")
   }
 
@@ -373,10 +388,13 @@ import Testing
   ///
   /// - Parameter annotations: The annotations of the block.
   /// - Returns: A link block named ``linkName``.
-  static func makeLinkBlock(annotations: FoundationModelsACP.Annotations? = nil) -> FoundationModelsACP.ContentBlock {
+  static func makeLinkBlock(annotations: FoundationModelsACP.Annotations? = nil)
+    -> FoundationModelsACP.ContentBlock
+  {
     .resourceLink(
       FoundationModelsACP.ResourceLink(
-        name: linkName, uri: linkURI, annotations: annotations, mimeType: MediaType(rawValue: "text/html")))
+        name: linkName, uri: linkURI, annotations: annotations,
+        mimeType: MediaType(rawValue: "text/html")))
   }
 
   /// Makes one ACP block of a kind.
@@ -388,7 +406,8 @@ import Testing
   /// - Returns: The block.
   /// - Throws: An error when AppKit cannot make the image.
   static func makeWireBlock(
-    of kind: FoundationModelsACP.ContentBlock.Kind, annotations: FoundationModelsACP.Annotations? = nil
+    of kind: FoundationModelsACP.ContentBlock.Kind,
+    annotations: FoundationModelsACP.Annotations? = nil
   ) throws -> FoundationModelsACP.ContentBlock {
     switch kind {
     case .text:
@@ -409,7 +428,8 @@ import Testing
       .resource(
         FoundationModelsACP.EmbeddedResource(
           resource: .object([
-            "uri": .string("file:///notes.txt"), "mimeType": .string("text/plain"), "text": .string(blockText),
+            "uri": .string("file:///notes.txt"), "mimeType": .string("text/plain"),
+            "text": .string(blockText),
           ]),
           annotations: annotations))
     case .unknown:

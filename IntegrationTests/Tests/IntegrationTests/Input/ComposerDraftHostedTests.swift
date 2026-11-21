@@ -1,4 +1,3 @@
-@testable import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
 import EditorCommands
@@ -7,6 +6,8 @@ import EditorTestSupport
 import FoundationModelsACPClient
 import SwiftUI
 import Testing
+
+@testable import AgentViewKit
 
 /// Tells ``ComposerDraftHost`` which session its thread view shows, and when
 /// to rebuild the thread view.
@@ -84,7 +85,9 @@ struct ComposerDraftHost: View {
   ///   - harness: The harness that shows the thread.
   ///   - session: The scripted session of the thread.
   /// - Throws: An error when the editor cannot get the focus.
-  static func typeMessage(in harness: HostedViewHarness<some View>, session: ScriptedSession) async throws {
+  static func typeMessage(in harness: HostedViewHarness<some View>, session: ScriptedSession)
+    async throws
+  {
     try await ComposerHarness.typePrompt(message, in: harness) { draftText(of: session) }
   }
 
@@ -153,7 +156,9 @@ struct ComposerDraftHost: View {
     defer { thread.harness.close() }
     try await Self.typeMessage(in: thread.harness, session: session)
     try EditorKitPromptEditorHostedTests.pressReturn(in: thread.harness)
-    await ObservationWait.until { session.promptTexts == [Self.message] }
+    await ObservationWait.until(within: BoundedWait.defaultBound) {
+      session.promptTexts == [Self.message]
+    }
     #expect(Self.draftText(of: session).isEmpty)
 
     Self.rebuild(host, in: thread.harness)
@@ -173,11 +178,15 @@ struct ComposerDraftHost: View {
     defer { thread.harness.close() }
     try await Self.typeMessage(in: thread.harness, session: session)
     try EditorKitPromptEditorHostedTests.pressReturn(in: thread.harness)
-    await ObservationWait.until { session.promptTexts == [Self.message] }
+    await ObservationWait.until(within: BoundedWait.defaultBound) {
+      session.promptTexts == [Self.message]
+    }
     thread.harness.render()
 
     try await ComposerWindowUndoHostedTests.perform(.undo, in: thread)
-    await ObservationWait.until { Self.draftText(of: session) == Self.message }
+    await ObservationWait.until(within: BoundedWait.defaultBound) {
+      Self.draftText(of: session) == Self.message
+    }
     Self.rebuild(host, in: thread.harness)
 
     try thread.harness.requireTextViewShows(Self.message)

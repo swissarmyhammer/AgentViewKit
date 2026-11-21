@@ -36,8 +36,11 @@
     ///
     /// - Returns: The session model.
     static func runningSession() -> SessionModel {
-      let messages = Array(repeating: PreviewTranscriptItem.agent("Done."), count: ConversationViewHostedTests.scrollEntryCount)
-      return .preview(transcript: messages + [.update(.stateUpdate(.running(RunningStateUpdate())))])
+      let messages = Array(
+        repeating: PreviewTranscriptItem.agent("Done."),
+        count: ConversationViewHostedTests.scrollEntryCount)
+      return .preview(
+        transcript: messages + [.update(.stateUpdate(.running(RunningStateUpdate())))])
     }
 
     /// The full frame of the list in `harness`, in screen points.
@@ -51,7 +54,8 @@
     /// - Throws: An issue when the list or its scroll view is not there.
     static func listFrame(in harness: HostedViewHarness<some View>) throws -> CGRect {
       let visiblePart = try #require(harness.frame(identifier: ConversationLayout.listIdentifier))
-      let frames = views(ofType: NSScrollView.self, in: harness.hostingView).map(harness.screenFrame(of:))
+      let frames = views(ofType: NSScrollView.self, in: harness.hostingView).map(
+        harness.screenFrame(of:))
       return try #require(frames.first { $0.contains(visiblePart) })
     }
 
@@ -78,8 +82,12 @@
     ///   - harness: The harness that shows the thread.
     /// - Returns: The position, in depth first order.
     /// - Throws: An issue when the floating controls hold no such element.
-    static func floatingPosition(of identifier: String, in harness: HostedViewHarness<some View>) throws -> Int {
-      try #require(ThreadFloatingControlsHostedTests.floatingControlIdentifiers(in: harness).firstIndex(of: identifier))
+    static func floatingPosition(of identifier: String, in harness: HostedViewHarness<some View>)
+      throws -> Int
+    {
+      try #require(
+        ThreadFloatingControlsHostedTests.floatingControlIdentifiers(in: harness).firstIndex(
+          of: identifier))
     }
 
     @Test func theStateBannerIsInTheFloatingControlsOfTheThread() {
@@ -111,14 +119,15 @@
       defer { session.close() }
       let model = session.model
       try await session.sendUpdate(ScriptedSession.endTurnState)
-      await ObservationWait.until { model.agentState != nil }
+      await ObservationWait.until(within: BoundedWait.defaultBound) { model.agentState != nil }
       let harness = ConnectionModelViewsHostedTests.mountThread(session)
       defer { harness.close() }
       harness.render()
 
       let banner = try Self.floatingPosition(of: StateBanner.bannerIdentifier, in: harness)
       let prompt = try Self.floatingPosition(of: AgentAuthView.identifier, in: harness)
-      let composer = try Self.floatingPosition(of: DefaultPromptAccessory.submitIdentifier, in: harness)
+      let composer = try Self.floatingPosition(
+        of: DefaultPromptAccessory.submitIdentifier, in: harness)
       #expect(banner < prompt)
       #expect(prompt < composer)
     }
@@ -156,7 +165,9 @@
       let (session, errorKey) = try await ConversationViewHostedTests.openSessionWithErrorAtTop()
       defer { session.close() }
       let anchors = ScrollAnchorManager()
-      let harness = ThreadFloatingControlsHostedTests.mount(session, anchors: anchors, system: CommandSystem()) {
+      let harness = ThreadFloatingControlsHostedTests.mount(
+        session, anchors: anchors, system: CommandSystem()
+      ) {
         EmptyView()
       }
       defer { harness.close() }

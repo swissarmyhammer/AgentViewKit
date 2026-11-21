@@ -1,9 +1,10 @@
-@testable import AgentViewKit
 import AgentViewKitTestSupport
 import EditorTestSupport
 import Foundation
 import SwiftUI
 import Testing
+
+@testable import AgentViewKit
 
 /// Hosted tests of ``SpeechInputButton`` in the default composer, with a
 /// ``FakeSpeechTranscriber``.
@@ -80,14 +81,16 @@ import Testing
 
     #expect(harness.element(identifier: SpeechInputButton.identifier)?.value == "Not recording")
     try Self.pressToRecord(in: harness)
-    await ObservationWait.until { transcriber.isRunning }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { transcriber.isRunning }
     transcriber.feed(level: Self.halfLevel)
     transcriber.feed("hello")
-    await harness.render { model.plainText == "hello" }
+    await harness.renderAfter { model.plainText == "hello" }
 
     #expect(model.plainText == "hello")
     #expect(transcriber.calls == [.requestAuthorization, .start])
-    #expect(harness.element(identifier: SpeechInputButton.identifier)?.value == "Recording, input level 50%")
+    #expect(
+      harness.element(identifier: SpeechInputButton.identifier)?.value
+        == "Recording, input level 50%")
     #expect(model.submitCount == 0)
   }
 
@@ -96,16 +99,19 @@ import Testing
   @Test func whileRecordingTheValueCarriesTheLastInputLevel() async throws {
     let transcriber = FakeSpeechTranscriber()
     let recorder = ReportRecorder<SpeechInputButton.Phase>()
-    let harness = Self.mount(PromptInputHostedTestModel(), transcriber: transcriber, recorder: recorder)
+    let harness = Self.mount(
+      PromptInputHostedTestModel(), transcriber: transcriber, recorder: recorder)
     defer { harness.close() }
 
     try Self.pressToRecord(in: harness)
-    await ObservationWait.until { transcriber.isRunning }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { transcriber.isRunning }
     transcriber.feed(level: Self.halfLevel)
     transcriber.feed(level: Self.loudLevel)
-    await harness.render { recorder.values.last == .recording(level: Self.loudLevel) }
+    await harness.renderAfter { recorder.values.last == .recording(level: Self.loudLevel) }
 
-    #expect(harness.element(identifier: SpeechInputButton.identifier)?.value == "Recording, input level 75%")
+    #expect(
+      harness.element(identifier: SpeechInputButton.identifier)?.value
+        == "Recording, input level 75%")
   }
 
   @Test func aSecondPressStopsTheSessionAndKeepsTheText() async throws {
@@ -115,9 +121,11 @@ import Testing
     defer { harness.close() }
 
     try Self.pressToRecord(in: harness)
-    await ObservationWait.until { transcriber.isRunning }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { transcriber.isRunning }
     transcriber.feed("hello there")
-    await ObservationWait.until { model.plainText == "hello there" }
+    await ObservationWait.until(within: BoundedWait.defaultBound) {
+      model.plainText == "hello there"
+    }
     try harness.perform(.press, on: SpeechInputButton.identifier)
     transcriber.feed("ignored")
     harness.render()
@@ -135,10 +143,12 @@ import Testing
     defer { harness.close() }
 
     try Self.pressToRecord(in: harness)
-    await ObservationWait.until { transcriber.isRunning }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { transcriber.isRunning }
     transcriber.feed("the")
     transcriber.feed("the bug")
-    await ObservationWait.until { model.plainText == "Fix the bug" }
+    await ObservationWait.until(within: BoundedWait.defaultBound) {
+      model.plainText == "Fix the bug"
+    }
 
     #expect(model.plainText == "Fix the bug")
   }
@@ -151,10 +161,10 @@ import Testing
     defer { harness.close() }
 
     try Self.pressToRecord(in: harness)
-    await ObservationWait.until { transcriber.isRunning }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { transcriber.isRunning }
     transcriber.feed("done")
     transcriber.finish()
-    await harness.render { recorder.values.last == .idle }
+    await harness.renderAfter { recorder.values.last == .idle }
 
     #expect(recorder.values == [.recording(level: nil), .idle])
     #expect(harness.element(identifier: SpeechInputButton.identifier)?.value == "Not recording")
@@ -170,7 +180,7 @@ import Testing
     defer { harness.close() }
 
     try Self.pressToRecord(in: harness)
-    await harness.render { recorder.values.last == .denied }
+    await harness.renderAfter { recorder.values.last == .denied }
 
     #expect(recorder.values == [.recording(level: nil), .denied])
     #expect(harness.element(identifier: SpeechInputButton.identifier)?.value == "Not allowed")

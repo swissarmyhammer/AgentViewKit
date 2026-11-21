@@ -62,7 +62,9 @@
     ///   - text: The whole text of an entry.
     ///   - harness: The harness that shows the thread.
     /// - Returns: `true` when the harness shows `text` in one text element.
-    static func showsText<Content: View>(_ text: String, in harness: HostedViewHarness<Content>) -> Bool {
+    static func showsText<Content: View>(_ text: String, in harness: HostedViewHarness<Content>)
+      -> Bool
+    {
       ResponseTextChecks.texts(in: harness) == [text]
     }
 
@@ -133,9 +135,10 @@
       defer { harness.close() }
       let model = session.model
       for position in 0..<chunkMessageCount {
-        try await session.sendUpdate(chunk(kind, messageID: "chunk-m\(position)", text: "Message \(position)."))
+        try await session.sendUpdate(
+          chunk(kind, messageID: "chunk-m\(position)", text: "Message \(position)."))
       }
-      await harness.render { model.transcript.count == chunkMessageCount }
+      await harness.renderAfter { model.transcript.count == chunkMessageCount }
       let keys = model.transcript.map(\.id.rowKey)
       #expect(rowKeys(in: harness) == keys)
       for key in keys {
@@ -144,14 +147,16 @@
         BodyEvaluationCounter.reset(ItemRow.counterKey(for: key))
       }
 
-      try await session.sendUpdate(chunk(kind, messageID: "chunk-m\(chunkedPosition)", text: " More."))
-      await harness.render {
+      try await session.sendUpdate(
+        chunk(kind, messageID: "chunk-m\(chunkedPosition)", text: " More."))
+      await harness.renderAfter {
         entryText(of: model, at: chunkedPosition) == "Message \(chunkedPosition). More."
       }
 
       for (position, key) in keys.enumerated() {
         let expected = position == chunkedPosition ? 1 : 0
-        #expect(BodyEvaluationCounter.count(ItemRow.contentCounterKey(for: key)) == expected, "\(key)")
+        #expect(
+          BodyEvaluationCounter.count(ItemRow.contentCounterKey(for: key)) == expected, "\(key)")
         #expect(BodyEvaluationCounter.count(ItemRow.counterKey(for: key)) == 0, "\(key)")
         BodyEvaluationCounter.reset(ItemRow.contentCounterKey(for: key))
         BodyEvaluationCounter.reset(ItemRow.counterKey(for: key))
@@ -165,10 +170,13 @@
         AgentThreadView(session: session.model), size: Self.tallSize)
       defer { harness.close() }
 
-      try await session.sendUpdate(Self.chunk("user_message_chunk", messageID: "order-u", text: "Question."))
-      try await session.sendUpdate(Self.chunk("agent_thought_chunk", messageID: "order-m", text: "Thinking."))
-      try await session.sendUpdate(Self.chunk("agent_message_chunk", messageID: "order-m", text: "Answer."))
-      await harness.render { session.model.transcript.count == Self.orderedRowCount }
+      try await session.sendUpdate(
+        Self.chunk("user_message_chunk", messageID: "order-u", text: "Question."))
+      try await session.sendUpdate(
+        Self.chunk("agent_thought_chunk", messageID: "order-m", text: "Thinking."))
+      try await session.sendUpdate(
+        Self.chunk("agent_message_chunk", messageID: "order-m", text: "Answer."))
+      await harness.renderAfter { session.model.transcript.count == Self.orderedRowCount }
 
       let expected = session.model.transcript.map(\.id.rowKey)
       #expect(expected.count == Self.orderedRowCount)
@@ -187,12 +195,12 @@
       let model = session.model
 
       let prompt = Task { try await model.prompt([.text(TextContent(text: "Hello."))]) }
-      await ObservationWait.until { !model.transcript.isEmpty }
+      await ObservationWait.until(within: BoundedWait.defaultBound) { !model.transcript.isEmpty }
       let firstEntry = try #require(model.transcript.first)
       let pending = try #require(Self.userMessage(firstEntry))
       #expect(firstEntry.id.origin == .local)
-      _ = try await prompt.value
-      await harness.render { pending.sendState == .sent }
+      _ = try await prompt.boundedValue()
+      await harness.renderAfter { pending.sendState == .sent }
 
       #expect(pending.messageId != nil)
       #expect(model.transcript.map(\.id) == [firstEntry.id])
@@ -207,11 +215,13 @@
       defer { harness.close() }
 
       try await session.sendUpdate(
-        #"{"sessionUpdate":"tool_call_update","toolCallId":"row-c","status":"pending","title":"Read"}"#)
-      await harness.render { !session.model.transcript.isEmpty }
+        #"{"sessionUpdate":"tool_call_update","toolCallId":"row-c","status":"pending","title":"Read"}"#
+      )
+      await harness.renderAfter { !session.model.transcript.isEmpty }
 
       let key = try #require(session.model.transcript.first?.rowKey)
-      #expect(harness.element(identifier: ToolCallView.identifier(for: key))?.label == "Read, Pending")
+      #expect(
+        harness.element(identifier: ToolCallView.identifier(for: key))?.label == "Read, Pending")
       #expect(harness.element(identifier: UnknownItemView.identifier) == nil)
     }
 
@@ -223,9 +233,11 @@
       defer { harness.close() }
       let model = session.model
 
-      try await session.sendUpdate(Self.chunk("agent_message_chunk", messageID: "join-m", text: "Hello "))
-      try await session.sendUpdate(Self.chunk("agent_message_chunk", messageID: "join-m", text: "world."))
-      await harness.render { Self.entryText(of: model, at: 0) == "Hello world." }
+      try await session.sendUpdate(
+        Self.chunk("agent_message_chunk", messageID: "join-m", text: "Hello "))
+      try await session.sendUpdate(
+        Self.chunk("agent_message_chunk", messageID: "join-m", text: "world."))
+      await harness.renderAfter { Self.entryText(of: model, at: 0) == "Hello world." }
 
       #expect(Self.showsText("Hello world.", in: harness))
     }
@@ -254,10 +266,12 @@
       let harness = HostedViewHarness(ConversationView(session: session.model), size: Self.tallSize)
       defer { harness.close() }
 
-      try await session.sendUpdate(Self.chunk("user_message_chunk", messageID: "anchor-u", text: "Question."))
-      try await session.sendUpdate(Self.chunk("agent_message_chunk", messageID: "anchor-m", text: "Answer."))
+      try await session.sendUpdate(
+        Self.chunk("user_message_chunk", messageID: "anchor-u", text: "Question."))
+      try await session.sendUpdate(
+        Self.chunk("agent_message_chunk", messageID: "anchor-m", text: "Answer."))
       let model = session.model
-      await ObservationWait.until { model.transcript.count == 2 }
+      await ObservationWait.until(within: BoundedWait.defaultBound) { model.transcript.count == 2 }
       harness.hostingView.layoutSubtreeIfNeeded()
 
       #expect(Self.rowKeys(in: harness) == model.transcript.map(\.rowKey))
@@ -277,14 +291,14 @@
           Self.chunk("agent_message_chunk", messageID: Self.streamedMessageID, text: chunk))
         model.flushPendingChunks()
         let sent = Self.streamedChunks[...index].joined()
-        await harness.render { Self.entryText(of: model, at: 0) == sent }
+        await harness.renderAfter { Self.entryText(of: model, at: 0) == sent }
         let text = try #require(Self.entryText(of: model, at: 0))
         #expect(Self.showsText(text, in: harness), "\(text)")
       }
       #expect(ComposerSessionModelHostedTests.isRunning(model))
 
       try await session.sendUpdate(ScriptedSession.idleState)
-      await harness.render { !ComposerSessionModelHostedTests.isRunning(model) }
+      await harness.renderAfter { !ComposerSessionModelHostedTests.isRunning(model) }
 
       #expect(Self.showsText(Self.streamedChunks.joined(), in: harness))
     }
@@ -318,10 +332,12 @@
     /// - Parameter status: The ACP status, such as `pending`.
     /// - Returns: The JSON text of the update.
     static func overrideCallUpdate(status: String) -> String {
-      let content = #"[{"type": "content", "content": \#(WireBlockJSON.makeText(overrideCallOutput))}]"#
+      let content =
+        #"[{"type": "content", "content": \#(WireBlockJSON.makeText(overrideCallOutput))}]"#
       return WireBlockJSON.makeToolCallUpdate(
         id: overrideCallID,
-        fields: #""status": "\#(status)", "title": "\#(overrideCallTitle)", "content": \#(content)"#)
+        fields: #""status": "\#(status)", "title": "\#(overrideCallTitle)", "content": \#(content)"#
+      )
     }
 
     /// The label of the host tool call view for a call with the title of the
@@ -333,33 +349,40 @@
       ToolCallView.accessibilityLabel(title: overrideCallTitle, status: status)
     }
 
-    @Test func aHostToolCallOverrideReplacesOnlyTheToolCallViewAndShowsAStatusChange() async throws {
+    @Test func aHostToolCallOverrideReplacesOnlyTheToolCallViewAndShowsAStatusChange() async throws
+    {
       let session = try await ScriptedSession.open()
       defer { session.close() }
       let harness = HostedViewHarness(size: Self.tallSize) {
         AgentThreadView(session: session.model)
           .toolCallView { call in
-            Text(ToolCallView.accessibilityLabel(title: call.title ?? "", status: call.status ?? .pending))
-              .accessibilityIdentifier(Self.customToolCallIdentifier)
+            Text(
+              ToolCallView.accessibilityLabel(
+                title: call.title ?? "", status: call.status ?? .pending)
+            )
+            .accessibilityIdentifier(Self.customToolCallIdentifier)
           }
       }
       defer { harness.close() }
 
       try await session.sendUpdate(Self.overrideCallUpdate(status: "pending"))
-      try await session.sendUpdate(Self.chunk("agent_message_chunk", messageID: Self.overrideMessageID, text: "Done."))
+      try await session.sendUpdate(
+        Self.chunk("agent_message_chunk", messageID: Self.overrideMessageID, text: "Done."))
       let model = session.model
-      await harness.render { model.transcript.count == Self.overrideRowCount }
+      await harness.renderAfter { model.transcript.count == Self.overrideRowCount }
       let keys = model.transcript.map(\.rowKey)
       #expect(keys.count == Self.overrideRowCount)
       let callKey = try #require(keys.first)
       let messageKey = try #require(keys.last)
-      #expect(harness.element(identifier: Self.customToolCallIdentifier)?.label == Self.customLabel(status: .pending))
+      #expect(
+        harness.element(identifier: Self.customToolCallIdentifier)?.label
+          == Self.customLabel(status: .pending))
       #expect(harness.element(identifier: ToolCallView.identifier(for: callKey)) == nil)
       #expect(harness.element(identifier: AssistantMessageView.identifier(for: messageKey)) != nil)
 
       try await session.sendUpdate(Self.overrideCallUpdate(status: "completed"))
       let completed = Self.customLabel(status: .completed)
-      await harness.render {
+      await harness.renderAfter {
         BackgroundRunsHostedTests.toolCall(id: Self.overrideCallID, in: model)?.status == .completed
       }
 
@@ -381,14 +404,14 @@
 
       let model = session.model
       try await session.sendUpdate(Self.overrideCallUpdate(status: "in_progress"))
-      await harness.render { !model.transcript.isEmpty }
+      await harness.renderAfter { !model.transcript.isEmpty }
       let key = try #require(model.transcript.first?.rowKey)
       let body = ToolCallView.bodyIdentifier(for: key)
       #expect(harness.element(identifier: ToolCallView.identifier(for: key)) != nil)
       #expect(harness.element(identifier: body) == nil)
 
       try await session.sendUpdate(Self.overrideCallUpdate(status: "failed"))
-      await harness.render {
+      await harness.renderAfter {
         BackgroundRunsHostedTests.toolCall(id: Self.overrideCallID, in: model)?.status == .failed
       }
 

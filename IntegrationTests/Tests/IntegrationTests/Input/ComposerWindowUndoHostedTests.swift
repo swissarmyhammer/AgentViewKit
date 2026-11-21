@@ -1,4 +1,3 @@
-@testable import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
 import EditorCommands
@@ -6,6 +5,8 @@ import EditorCommandsUI
 import EditorTestSupport
 import SwiftUI
 import Testing
+
+@testable import AgentViewKit
 
 /// A thread view of a scripted session with a composer in its composer slot.
 ///
@@ -70,7 +71,8 @@ struct ComposerUndoThreadHost: View {
   ///   - composer: The text of the composer.
   /// - Throws: The error of the transport.
   static func reRender(
-    _ thread: MountedThread<some View>, session: ScriptedSession, composer: PromptInputHostedTestModel
+    _ thread: MountedThread<some View>, session: ScriptedSession,
+    composer: PromptInputHostedTestModel
   ) async throws {
     try await AgentCommandScopeHostedTests.sendState(
       ScriptedSession.runningState, to: session, rendering: thread.harness)
@@ -84,7 +86,9 @@ struct ComposerUndoThreadHost: View {
   ///   - thread: The mounted thread.
   ///   - composer: The text of the composer.
   /// - Throws: An error when the editor cannot get the focus.
-  static func typeMessage(in thread: MountedThread<some View>, composer: PromptInputHostedTestModel) async throws {
+  static func typeMessage(in thread: MountedThread<some View>, composer: PromptInputHostedTestModel)
+    async throws
+  {
     try await ComposerHarness.typePrompt(message, in: thread.harness) { composer.plainText }
   }
 
@@ -97,7 +101,8 @@ struct ComposerUndoThreadHost: View {
   ///   - thread: The mounted thread.
   ///   - composer: The text of the composer.
   /// - Throws: An error when the press sends nothing.
-  static func send(in thread: MountedThread<some View>, composer: PromptInputHostedTestModel) throws {
+  static func send(in thread: MountedThread<some View>, composer: PromptInputHostedTestModel) throws
+  {
     try EditorKitPromptEditorHostedTests.pressReturn(in: thread.harness)
     // The composer clears its text in the same step as the press, so a press
     // that sent nothing stops the test here.
@@ -128,7 +133,8 @@ struct ComposerUndoThreadHost: View {
   ///   - canPerform: Whether the stack holds an entry for `command`.
   /// - Throws: An error when `command` is not available.
   static func performWhileAvailable(
-    _ command: CommandID, in thread: MountedThread<some View>, typed: String = message, canPerform: () -> Bool
+    _ command: CommandID, in thread: MountedThread<some View>, typed: String = message,
+    canPerform: () -> Bool
   ) async throws {
     for _ in typed where canPerform() {
       try await perform(command, in: thread)
@@ -143,7 +149,9 @@ struct ComposerUndoThreadHost: View {
   ///   - composer: The text of the composer.
   /// - Throws: An error when the editor cannot get the focus or the typing
   ///   leaves nothing to undo.
-  static func typeAndUndoAll(in thread: MountedThread<some View>, composer: PromptInputHostedTestModel) async throws {
+  static func typeAndUndoAll(
+    in thread: MountedThread<some View>, composer: PromptInputHostedTestModel
+  ) async throws {
     try await typeMessage(in: thread, composer: composer)
     try #require(thread.stack.canUndo)
     try await performWhileAvailable(.undo, in: thread) { thread.stack.canUndo }
@@ -224,7 +232,7 @@ struct ComposerUndoThreadHost: View {
     try await Self.typeMessage(in: thread, composer: composer)
     let typing = try #require(thread.stack.undoTop)
     try Self.send(in: thread, composer: composer)
-    await ObservationWait.until { !session.promptTexts.isEmpty }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { !session.promptTexts.isEmpty }
     try thread.harness.requireTextViewShows("")
     let clear = try #require(thread.stack.undoTop)
     try #require(clear.id != typing.id)

@@ -61,10 +61,14 @@ import Testing
   ///   transport.
   static func openSessionWithTwoServers() async throws -> ScriptedSession {
     let session = try await ScriptedSession.open()
-    try await session.sendUpdate(makeStatusUpdate(name: webName, transport: httpTransport, status: "connecting"))
-    try await session.sendUpdate(makeStatusUpdate(name: filesName, transport: stdioTransport, status: "connected"))
+    try await session.sendUpdate(
+      makeStatusUpdate(name: webName, transport: httpTransport, status: "connecting"))
+    try await session.sendUpdate(
+      makeStatusUpdate(name: filesName, transport: stdioTransport, status: "connected"))
     let model = session.model
-    await ObservationWait.until { model.mcpServers.count == serverCount }
+    await ObservationWait.until(within: BoundedWait.defaultBound) {
+      model.mcpServers.count == serverCount
+    }
     return session
   }
 
@@ -122,7 +126,9 @@ import Testing
       let end =
         rest.firstIndex { $0.identifier?.hasPrefix(ConnectionRow.identifierPrefix) == true }
         ?? rest.endIndex
-      return rest[..<end].first { $0.identifier?.hasPrefix(ConnectionRow.statusIdentifierPrefix) == true }
+      return rest[..<end].first {
+        $0.identifier?.hasPrefix(ConnectionRow.statusIdentifierPrefix) == true
+      }
     }
   }
 
@@ -149,10 +155,11 @@ import Testing
 
     try await session.sendUpdate(
       Self.makeStatusUpdate(
-        name: Self.filesName, transport: Self.stdioTransport, status: "failed", reason: Self.failureReason))
+        name: Self.filesName, transport: Self.stdioTransport, status: "failed",
+        reason: Self.failureReason))
     let failed = ConnectionRow.statusIdentifier(for: .failed(reason: nil))
     let model = session.model
-    await harness.render {
+    await harness.renderAfter {
       Self.server(Self.filesName, has: .failed(reason: Self.failureReason), in: model)
     }
 
@@ -173,8 +180,11 @@ import Testing
 
     #expect(session.model.mcpServers.map(\.name) == names)
     #expect(Self.rowIdentifiers(in: harness) == names.map(ConnectionRow.identifier(for:)))
-    #expect(names.map { harness.element(identifier: ConnectionRow.identifier(for: $0))?.label } == names)
-    let transports = names.map { harness.element(identifier: ConnectionRow.transportIdentifier(for: $0))?.label }
+    #expect(
+      names.map { harness.element(identifier: ConnectionRow.identifier(for: $0))?.label } == names)
+    let transports = names.map {
+      harness.element(identifier: ConnectionRow.transportIdentifier(for: $0))?.label
+    }
     #expect(transports == ["HTTP", "stdio"])
   }
 
@@ -188,9 +198,11 @@ import Testing
     try await session.sendUpdate(
       Self.makeStatusUpdate(name: Self.unknownTransportName, transport: nil, status: "connected"))
     let model = session.model
-    await harness.render { Self.server(Self.unknownTransportName, has: .connected, in: model) }
+    await harness.renderAfter { Self.server(Self.unknownTransportName, has: .connected, in: model) }
 
     #expect(harness.element(identifier: rowIdentifier)?.label == Self.unknownTransportName)
-    #expect(harness.element(identifier: ConnectionRow.transportIdentifier(for: Self.unknownTransportName)) == nil)
+    #expect(
+      harness.element(identifier: ConnectionRow.transportIdentifier(for: Self.unknownTransportName))
+        == nil)
   }
 }

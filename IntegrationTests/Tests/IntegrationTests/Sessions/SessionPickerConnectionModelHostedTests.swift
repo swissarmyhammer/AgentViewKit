@@ -1,6 +1,6 @@
+import AgentViewKitDemoSupport
 import AgentViewKitTestSupport
 import AppKit
-import AgentViewKitDemoSupport
 import EditorTestSupport
 import FoundationModelsACP
 import FoundationModelsACPClient
@@ -152,7 +152,8 @@ import Testing
   /// - Returns: The harness that shows the picker.
   static func mountPicker(
     _ session: ScriptedSession, cwd: AbsolutePath? = nil, currentSession: SessionId? = nil,
-    calls: ReportRecorder<String?> = ReportRecorder(), presses: ReportRecorder<String> = ReportRecorder(),
+    calls: ReportRecorder<String?> = ReportRecorder(),
+    presses: ReportRecorder<String> = ReportRecorder(),
     onOpen: @escaping (SessionModel) -> Void = { _ in }, onNewSession: (() -> Void)? = nil
   ) async -> HostedViewHarness<some View> {
     let harness = HostedViewHarness(
@@ -163,7 +164,7 @@ import Testing
       .environment(\.sessionListCallReport, calls.report)
       .environment(\.sessionListPressReport, presses.report),
       size: listSize)
-    await harness.render { !calls.values.isEmpty }
+    await harness.renderAfter { !calls.values.isEmpty }
     return harness
   }
 
@@ -188,7 +189,7 @@ import Testing
     // The picker reports the press in the same step as it starts the call,
     // so a press that started nothing stops the test here.
     try #require(Array(presses.values.dropFirst(pressesBefore)) == [identifier])
-    await harness.render { calls.values.count > reportsBefore }
+    await harness.renderAfter { calls.values.count > reportsBefore }
   }
 
   /// The identifiers of the rows that show.
@@ -217,8 +218,14 @@ import Testing
     let harness = await Self.mountPicker(session)
     defer { harness.close() }
 
-    #expect(Self.rowIdentifiers(in: harness) == [Self.row(ScriptedSession.sessionID), Self.row(Self.closedSessionID)])
-    #expect(session.connection.sessions.map(\.sessionId.rawValue) == [ScriptedSession.sessionID, Self.closedSessionID])
+    #expect(
+      Self.rowIdentifiers(in: harness) == [
+        Self.row(ScriptedSession.sessionID), Self.row(Self.closedSessionID),
+      ])
+    #expect(
+      session.connection.sessions.map(\.sessionId.rawValue) == [
+        ScriptedSession.sessionID, Self.closedSessionID,
+      ])
     #expect(harness.element(identifier: SessionListView.loadMoreIdentifier)?.label == "Load More")
     #expect(session.agent.messages(method: "session/list").count == 1)
   }
@@ -236,7 +243,8 @@ import Testing
 
     #expect(
       Self.rowIdentifiers(in: harness) == [
-        Self.row(ScriptedSession.sessionID), Self.row(Self.closedSessionID), Self.row(Self.secondPageSessionID),
+        Self.row(ScriptedSession.sessionID), Self.row(Self.closedSessionID),
+        Self.row(Self.secondPageSessionID),
       ])
     #expect(harness.element(identifier: SessionListView.loadMoreIdentifier) == nil)
     let lists = session.agent.messages(method: "session/list")
@@ -258,7 +266,10 @@ import Testing
       SessionListView.refreshIdentifier, in: harness, calls: calls, presses: presses)
 
     let lists = session.agent.messages(method: "session/list")
-    #expect(lists.map { $0["params"]?["cwd"] } == [.string(Self.listedDirectory), .string(Self.listedDirectory)])
+    #expect(
+      lists.map { $0["params"]?["cwd"] } == [
+        .string(Self.listedDirectory), .string(Self.listedDirectory),
+      ])
     #expect(Self.rowIdentifiers(in: harness) == [Self.row(Self.secondPageSessionID)])
   }
 
@@ -285,8 +296,9 @@ import Testing
     let connection = session.connection
     let sessionsBefore = connection.sessions
 
-    try await session.sendUpdate(#"{"sessionUpdate": "session_info_update", "title": "\#(Self.renamedTitle)"}"#)
-    await harness.render { connection.sessions != sessionsBefore }
+    try await session.sendUpdate(
+      #"{"sessionUpdate": "session_info_update", "title": "\#(Self.renamedTitle)"}"#)
+    await harness.renderAfter { connection.sessions != sessionsBefore }
 
     let labels = harness.accessibilityElements().compactMap(\.label)
     #expect(labels.contains { $0.contains(Self.renamedTitle) })
@@ -302,7 +314,8 @@ import Testing
     let harness = await Self.mountPicker(session)
     defer { harness.close() }
 
-    try SingleLineFieldChecks.type("docs", intoFieldWith: SessionListView.searchIdentifier, in: harness)
+    try SingleLineFieldChecks.type(
+      "docs", intoFieldWith: SessionListView.searchIdentifier, in: harness)
 
     #expect(Self.rowIdentifiers(in: harness) == [Self.row(Self.closedSessionID)])
     #expect(session.connection.sessions.count == 2)
@@ -319,10 +332,13 @@ import Testing
     var opened: [SessionModel] = []
     let calls = ReportRecorder<String?>()
     let presses = ReportRecorder<String>()
-    let harness = await Self.mountPicker(session, calls: calls, presses: presses) { opened.append($0) }
+    let harness = await Self.mountPicker(session, calls: calls, presses: presses) {
+      opened.append($0)
+    }
     defer { harness.close() }
 
-    try await Self.pressAndRenderTheCall(Self.row(Self.closedSessionID), in: harness, calls: calls, presses: presses)
+    try await Self.pressAndRenderTheCall(
+      Self.row(Self.closedSessionID), in: harness, calls: calls, presses: presses)
 
     #expect(opened.map(\.sessionId.rawValue) == [Self.closedSessionID])
     let resume = try #require(session.agent.messages(method: "session/resume").first)
@@ -341,15 +357,20 @@ import Testing
     var opened: [SessionModel] = []
     let calls = ReportRecorder<String?>()
     let presses = ReportRecorder<String>()
-    let harness = await Self.mountPicker(session, calls: calls, presses: presses) { opened.append($0) }
+    let harness = await Self.mountPicker(session, calls: calls, presses: presses) {
+      opened.append($0)
+    }
     defer { harness.close() }
 
-    try await Self.pressAndRenderTheCall(Self.row(Self.closedSessionID), in: harness, calls: calls, presses: presses)
+    try await Self.pressAndRenderTheCall(
+      Self.row(Self.closedSessionID), in: harness, calls: calls, presses: presses)
 
     #expect(!opened.isEmpty)
     let resume = try #require(session.agent.messages(method: "session/resume").first)
     #expect(resume["params"]?["cwd"] == .string(Self.docsDirectory))
-    #expect(resume["params"]?["additionalDirectories"] == .array(Self.listedAdditionalDirectories.map { .string($0) }))
+    #expect(
+      resume["params"]?["additionalDirectories"]
+        == .array(Self.listedAdditionalDirectories.map { .string($0) }))
     #expect(opened.first?.additionalDirectories.map(\.rawValue) == Self.listedAdditionalDirectories)
   }
 
@@ -364,7 +385,8 @@ import Testing
     defer { harness.close() }
 
     try await Self.pressAndRenderTheCall(
-      SessionListView.deleteIdentifier(for: SessionId(rawValue: Self.closedSessionID)), in: harness, calls: calls,
+      SessionListView.deleteIdentifier(for: SessionId(rawValue: Self.closedSessionID)), in: harness,
+      calls: calls,
       presses: presses)
 
     let delete = try #require(session.agent.messages(method: "session/delete").first)
@@ -386,7 +408,8 @@ import Testing
     defer { harness.close() }
 
     try await Self.pressAndRenderTheCall(
-      SessionListView.deleteIdentifier(for: SessionId(rawValue: Self.closedSessionID)), in: harness, calls: calls,
+      SessionListView.deleteIdentifier(for: SessionId(rawValue: Self.closedSessionID)), in: harness,
+      calls: calls,
       presses: presses)
 
     #expect(harness.element(identifier: SessionListView.failureIdentifier) != nil)
@@ -473,14 +496,15 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let visibility = Visibility()
-    let harness = HostedViewHarness(ClosingHost(session: session, visibility: visibility), size: Self.listSize)
+    let harness = HostedViewHarness(
+      ClosingHost(session: session, visibility: visibility), size: Self.listSize)
     defer { harness.close() }
     harness.render()
     let model = session.model
 
     visibility.showsThread = false
     harness.render()
-    await ObservationWait.until { model.isClosed }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { model.isClosed }
 
     let close = try #require(session.agent.messages(method: "session/close").first)
     #expect(close["params"]?["sessionId"] == .string(ScriptedSession.sessionID))
@@ -496,7 +520,9 @@ import Testing
   @Test func withNoCloseCapabilityTheCloseOfAThreadViewSendsNothing() async throws {
     let session = try await ScriptedSession.open { agent in
       agent.results["initialize"] = Self.sessionlessInitialize
-      agent.resultQueues["session/new"] = [Self.scriptedNewSessionResult, Self.fenceNewSessionResult]
+      agent.resultQueues["session/new"] = [
+        Self.scriptedNewSessionResult, Self.fenceNewSessionResult,
+      ]
     }
     defer { session.close() }
     let visibility = Visibility()
@@ -510,8 +536,9 @@ import Testing
 
     visibility.showsThread = false
     harness.render()
-    await ObservationWait.until { !closes.values.isEmpty }
-    _ = try await session.connection.newSession(NewSessionRequest(cwd: AbsolutePath(rawValue: Self.listedDirectory)))
+    await ObservationWait.until(within: BoundedWait.defaultBound) { !closes.values.isEmpty }
+    _ = try await session.connection.newSession(
+      NewSessionRequest(cwd: AbsolutePath(rawValue: Self.listedDirectory)))
 
     #expect(closes.values == [false])
     #expect(!session.connection.canCloseSessions)

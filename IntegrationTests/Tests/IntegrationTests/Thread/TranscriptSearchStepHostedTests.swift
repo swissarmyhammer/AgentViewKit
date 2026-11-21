@@ -6,6 +6,7 @@ import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 import Testing
+
 @testable import AgentViewKit
 
 /// Tests for Find Next Hit and the Esc of the search hits in a mounted
@@ -49,11 +50,14 @@ import Testing
   /// Sends a user message and an agent message, and gives the host one hit
   /// in each, the user message first.
   ///
+  /// At the end, no view has the focus, so the find verbs can run.
+  ///
   /// - Parameters:
   ///   - session: The scripted session.
   ///   - host: The hits of the host.
   ///   - harness: The harness that renders the view after each change.
-  /// - Throws: The error of the transport.
+  /// - Throws: The error of the transport, or an issue when the window does not
+  ///   take the focus out of the composer.
   static func showHits(
     in session: ScriptedSession, host: HostHits, rendering harness: HostedViewHarness<some View>
   ) async throws {
@@ -64,12 +68,17 @@ import Testing
         .init(kind: "agent_message_chunk", messageID: "hit-second", text: "The parser fails."),
       ], to: session)
     let model = session.model
-    await harness.render { model.transcript.count == 2 }
+    await harness.renderAfter { model.transcript.count == 2 }
     let ids = model.transcript.compactMap { entry -> SessionEntry.ID? in
       if case .wire(let id) = entry.id { id } else { nil }
     }
     host.hits = TranscriptSearchHits(
       ids.map { TranscriptSearchHit(entryID: $0, terms: ["parser"]) })
+    harness.render()
+    // The harness gives the focus to its first key view, the text view of the
+    // composer. The find verbs are off while a text input has the focus
+    // (D133), so the test takes the focus out of the composer.
+    try #require(harness.window.makeFirstResponder(nil))
     harness.render()
   }
 

@@ -1,6 +1,7 @@
 import EditorTestSupport
 import FoundationModelsACP
 import FoundationModelsACPClient
+import Testing
 
 /// The session fixtures of the cancel rule: the idle state, a permission
 /// request, a preview session model, and the `running` then `idle` order of a
@@ -16,8 +17,10 @@ public enum CancelFixtures {
   /// one reject option.
   public static let permissionRequest = RequestPermissionRequest(
     options: [
-      PermissionOption(kind: .allowOnce, name: "Allow", optionId: PermissionOptionId(rawValue: "allow")),
-      PermissionOption(kind: .rejectOnce, name: "Reject", optionId: PermissionOptionId(rawValue: "reject")),
+      PermissionOption(
+        kind: .allowOnce, name: "Allow", optionId: PermissionOptionId(rawValue: "allow")),
+      PermissionOption(
+        kind: .rejectOnce, name: "Reject", optionId: PermissionOptionId(rawValue: "reject")),
     ],
     sessionId: SessionModel.previewSessionId,
     title: "Run the tests?")
@@ -68,8 +71,8 @@ public enum CancelFixtures {
   public static func makeIdleAfterRunning(_ session: ScriptedSession) async throws {
     let model = session.model
     try await session.sendUpdate(ScriptedSession.runningState)
-    await ObservationWait.until { isActive(model.agentState) }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { isActive(model.agentState) }
     try await session.sendUpdate(ScriptedSession.idleState)
-    await ObservationWait.until { isIdle(model.agentState) }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { isIdle(model.agentState) }
   }
 }

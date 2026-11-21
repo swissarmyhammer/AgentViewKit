@@ -1,14 +1,15 @@
-@testable import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
 import EditorComplete
 import EditorExtensions
+import EditorStyle
 import EditorTestSupport
 import Foundation
-import EditorStyle
 import SwiftUI
 import Synchronization
 import Testing
+
+@testable import AgentViewKit
 
 /// One prefix-completion route of the composer tests, and the rows of its
 /// provider: the sigil set of the chat input of TestudoApp (^6nkvrk1).
@@ -136,7 +137,9 @@ struct RoutedComposerThreadHost: View {
       RoutedComposerThreadHost(session: session, editorSession: editorSession, routes: routes)
         .composerMentions(mentions)
         .environment(
-          \.composerMentionResolver, resolve.map { ComposerMentionResolver(revision: AnyHashable(0), resolve: $0) })
+          \.composerMentionResolver,
+          resolve.map { ComposerMentionResolver(revision: AnyHashable(0), resolve: $0) }
+        )
         .environment(\.composerSubmitHook, submitHook)
         .promptFileRoot(fileRoot)
         .environment(\.sessionModel, session.model)
@@ -173,7 +176,7 @@ struct RoutedComposerThreadHost: View {
   static func waitForRows(
     _ labels: [String], of editorSession: PromptEditorSession, in thread: MountedThread<some View>
   ) async {
-    await thread.harness.render { Set(labels).isSubset(of: listedLabels(of: editorSession)) }
+    await thread.harness.renderAfter { Set(labels).isSubset(of: listedLabels(of: editorSession)) }
   }
 
   // MARK: - Rows
@@ -208,7 +211,8 @@ struct RoutedComposerThreadHost: View {
     try await Self.type(fixture.sigil, in: thread, editorSession: editorSession)
     await Self.waitForRows(fixture.labels, of: editorSession, in: thread)
 
-    let selectedIndex = ComposerEditorMenuHostedTests.completion(of: editorSession).listedSelectedIndex
+    let selectedIndex = ComposerEditorMenuHostedTests.completion(of: editorSession)
+      .listedSelectedIndex
     let rows = thread.harness.elements(under: EditorKitPromptEditor.completionListIdentifier)
       .filter { $0.identifier == EditorKitPromptEditor.completionRowIdentifier }
     #expect(rows.map(\.isSelected) == fixture.labels.indices.map { $0 == selectedIndex })
@@ -224,9 +228,10 @@ struct RoutedComposerThreadHost: View {
     defer { thread.harness.close() }
     let model = session.model
     try await session.sendUpdate(EditorKitPromptEditorHostedTests.commandsUpdate)
-    await thread.harness.render { model.availableCommands != nil }
+    await thread.harness.renderAfter { model.availableCommands != nil }
 
-    try await Self.type(ComposerRouteFixture.commands.sigil, in: thread, editorSession: editorSession)
+    try await Self.type(
+      ComposerRouteFixture.commands.sigil, in: thread, editorSession: editorSession)
     await Self.waitForRows(ComposerRouteFixture.commands.labels, of: editorSession, in: thread)
 
     #expect(Self.listedLabels(of: editorSession) == ComposerRouteFixture.commands.labels)
@@ -277,7 +282,8 @@ struct RoutedComposerThreadHost: View {
     let link = try #require(URL(string: "testudo-session://01ABC"))
     let mention = ComposerMention(label: "claude-code", token: "claude-code", link: link)
     let thread = try Self.mount(
-      session, editorSession: editorSession, routes: [], mentions: [ComposerMentionSource { _ in [mention] }])
+      session, editorSession: editorSession, routes: [],
+      mentions: [ComposerMentionSource { _ in [mention] }])
     defer { thread.harness.close() }
     try await Self.type("@cla", in: thread, editorSession: editorSession)
     await Self.waitForRows(["claude-code"], of: editorSession, in: thread)
@@ -301,7 +307,8 @@ struct RoutedComposerThreadHost: View {
     var submissions: [ComposerSubmission] = []
     var textsAtHook: [String] = []
     let thread = try Self.mount(
-      session, editorSession: editorSession, routes: [], mentions: [ComposerMentionSource { _ in [mention] }],
+      session, editorSession: editorSession, routes: [],
+      mentions: [ComposerMentionSource { _ in [mention] }],
       submitHook: { submission in
         submissions.append(submission)
         textsAtHook.append(editorSession.model.text)
@@ -312,9 +319,16 @@ struct RoutedComposerThreadHost: View {
     await Self.waitForRows(["claude-code"], of: editorSession, in: thread)
     try EditorKitPromptEditorHostedTests.press(.return, in: thread.harness)
     try #require(editorSession.model.text == "@claude-code ")
+    // The accept reaches the composer through the async commit stream of the
+    // editor, in a later main-actor step. A person presses the next key after
+    // that step, so the test waits until the draft holds the link of the chip.
+    let draft = PromptDraftStore.shared.draft(for: session.model)
+    await ObservationWait.until(within: BoundedWait.defaultBound) {
+      draft.text.runs[\.link].contains { $0.0 == link }
+    }
 
     try EditorKitPromptEditorHostedTests.pressReturn(in: thread.harness)
-    await ObservationWait.until { !session.promptBlocks.isEmpty }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { !session.promptBlocks.isEmpty }
 
     #expect(textsAtHook == ["@claude-code "])
     #expect(submissions.first?.mentions.map(\.link) == [link])
@@ -338,7 +352,7 @@ struct RoutedComposerThreadHost: View {
     try await Self.type("hello", in: thread, editorSession: editorSession)
 
     try EditorKitPromptEditorHostedTests.pressReturn(in: thread.harness)
-    await thread.harness.render { calls == 1 }
+    await thread.harness.renderAfter { calls == 1 }
 
     #expect(editorSession.model.text == "hello")
     #expect(session.promptTexts.isEmpty)
@@ -352,7 +366,8 @@ struct RoutedComposerThreadHost: View {
     let editorSession = PromptEditorSession()
     let mention = ComposerMention(label: "claude-code", token: "claude-code")
     let thread = try Self.mount(
-      session, editorSession: editorSession, routes: [], mentions: [ComposerMentionSource { _ in [mention] }])
+      session, editorSession: editorSession, routes: [],
+      mentions: [ComposerMentionSource { _ in [mention] }])
     defer { thread.harness.close() }
     try await Self.type("ask", in: thread, editorSession: editorSession)
 
@@ -375,13 +390,15 @@ struct RoutedComposerThreadHost: View {
     defer { thread.harness.close() }
 
     try await Self.type("ask @foo now", in: thread, editorSession: editorSession)
-    await thread.harness.render {
-      thread.harness.element(identifier: EditorKitPromptEditor.identifier)?.hint?.contains("No session named foo")
+    await thread.harness.renderAfter {
+      thread.harness.element(identifier: EditorKitPromptEditor.identifier)?.hint?.contains(
+        "No session named foo")
         == true
     }
 
     #expect(
-      thread.harness.element(identifier: EditorKitPromptEditor.identifier)?.hint?.contains("No session named foo")
+      thread.harness.element(identifier: EditorKitPromptEditor.identifier)?.hint?.contains(
+        "No session named foo")
         == true)
     #expect(session.promptTexts.isEmpty)
   }
@@ -409,10 +426,12 @@ struct RoutedComposerThreadHost: View {
     try await Self.type("ask @planner now", in: thread, editorSession: editorSession)
     // The editor removes the pending token in the same step that makes the
     // chip, so both checks together tell that the chip is there.
-    await thread.harness.render { calls.withLock { $0 } == 1 && editorSession.pendingMentionTokens.isEmpty }
+    await thread.harness.renderAfter {
+      calls.withLock { $0 } == 1 && editorSession.pendingMentionTokens.isEmpty
+    }
 
     try EditorKitPromptEditorHostedTests.pressReturn(in: thread.harness)
-    await thread.harness.render { !submissions.isEmpty }
+    await thread.harness.renderAfter { !submissions.isEmpty }
 
     #expect(submissions.first?.mentions.map(\.link) == [link])
   }
@@ -468,7 +487,7 @@ struct RoutedComposerThreadHost: View {
     try EditorKitPromptEditorHostedTests.pressReturn(in: thread.harness)
 
     #expect(editorSession.model.text.isEmpty)
-    await ObservationWait.until { !session.promptTexts.isEmpty }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { !session.promptTexts.isEmpty }
     #expect(session.promptTexts == [fixture.firstAccepted])
   }
 
@@ -513,10 +532,12 @@ struct RoutedComposerThreadHost: View {
 
     let textView = try #require(thread.harness.firstEditableTextView(of: NSTextView.self))
     let caret = textView.firstRect(forCharacterRange: textView.selectedRange(), actualRange: nil)
-    let list = try #require(thread.harness.frame(identifier: EditorKitPromptEditor.completionListIdentifier))
+    let list = try #require(
+      thread.harness.frame(identifier: EditorKitPromptEditor.completionListIdentifier))
     let field = try #require(thread.harness.frame(identifier: PromptFieldSurface.identifier))
     let margin = EditorStyle.default.spacing.xs
-    #expect(abs(list.minX - caret.minX - margin) <= Self.caretTolerance, "list \(list), caret \(caret)")
+    #expect(
+      abs(list.minX - caret.minX - margin) <= Self.caretTolerance, "list \(list), caret \(caret)")
     #expect(list.minY > field.maxY, "list \(list), field \(field)")
   }
 }

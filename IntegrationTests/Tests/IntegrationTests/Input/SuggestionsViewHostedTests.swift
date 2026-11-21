@@ -36,8 +36,12 @@ import Testing
     let harness = Self.mount(PromptInputHostedTestModel())
     defer { harness.close() }
 
-    #expect(harness.element(identifier: SuggestionsView.chipIdentifier(at: 0))?.label == "Explain this code")
-    #expect(harness.element(identifier: SuggestionsView.chipIdentifier(at: 1))?.label == "Write the tests")
+    #expect(
+      harness.element(identifier: SuggestionsView.chipIdentifier(at: 0))?.label
+        == "Explain this code")
+    #expect(
+      harness.element(identifier: SuggestionsView.chipIdentifier(at: 1))?.label == "Write the tests"
+    )
   }
 
   @Test func aTapOnASuggestionSetsTheComposerText() throws {
@@ -68,13 +72,13 @@ import Testing
     let chip = SuggestionsView.chipIdentifier(at: 0)
 
     try await session.sendUpdate(ScriptedSession.runningState)
-    await harness.render {
+    await harness.renderAfter {
       if case .running = model.agentState { true } else { false }
     }
     #expect(harness.element(identifier: chip) == nil)
 
     try await session.sendUpdate(ScriptedSession.idleState)
-    await harness.render { CancelFixtures.isIdle(model.agentState) }
+    await harness.renderAfter { CancelFixtures.isIdle(model.agentState) }
     #expect(harness.element(identifier: chip) != nil)
   }
 

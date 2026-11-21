@@ -36,8 +36,8 @@ extension ScriptedSession {
   /// Sends one `session/update` from the agent, and waits until the session
   /// model holds the entry that `lookup` finds.
   ///
-  /// The wait is ``ObservationWait/until(_:)`` on the session model, with no
-  /// clock: the model folds each update that the agent sends, so the entry
+  /// The wait is ``ObservationWait/until(within:sourceLocation:_:)`` on the session model, with a
+  /// bound: the model folds each update that the agent sends, so the entry
   /// is certain to come when `lookup` reads the observable values of the
   /// model.
   ///
@@ -53,7 +53,7 @@ extension ScriptedSession {
   ) async throws -> Entry {
     try await sendUpdate(update)
     let model = model
-    await ObservationWait.until { lookup(model) != nil }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { lookup(model) != nil }
     return try #require(lookup(model))
   }
 }

@@ -62,7 +62,8 @@
     ///   - messageID: The `messageId` of the chunk.
     /// - Returns: The JSON text of the update.
     static func chunk(_ kind: String, messageID: String) -> String {
-      WireBlockJSON.makeChunk(kind, messageID: messageID, block: WireBlockJSON.makeText("Text of \(messageID)."))
+      WireBlockJSON.makeChunk(
+        kind, messageID: messageID, block: WireBlockJSON.makeText("Text of \(messageID)."))
     }
 
     /// Opens a scripted session whose connection model reads `clock`.
@@ -81,7 +82,9 @@
     ///   - model: The session model.
     ///   - showsTiming: Whether the host attaches the decorator.
     /// - Returns: The harness.
-    static func mountThread(_ model: SessionModel, showsTiming: Bool) -> HostedViewHarness<some View> {
+    static func mountThread(_ model: SessionModel, showsTiming: Bool) -> HostedViewHarness<
+      some View
+    > {
       HostedViewHarness(size: tallSize) {
         AgentThreadView(session: model)
           .transcriptTiming(showsTiming)
@@ -100,10 +103,14 @@
     /// - Returns: The row key of the last entry.
     /// - Throws: The error of the transport, or an issue when the transcript
     ///   has no entry.
-    static func send(_ update: String, expecting count: Int, to session: ScriptedSession) async throws -> String {
+    static func send(_ update: String, expecting count: Int, to session: ScriptedSession)
+      async throws -> String
+    {
       try await session.sendUpdate(update)
       let model = session.model
-      await ObservationWait.until { model.transcript.count == count }
+      await ObservationWait.until(within: BoundedWait.defaultBound) {
+        model.transcript.count == count
+      }
       return try #require(model.transcript.last?.rowKey)
     }
 
@@ -115,7 +122,9 @@
     static func sendIdleState(to session: ScriptedSession) async throws {
       try await session.sendUpdate(ScriptedSession.idleState)
       let model = session.model
-      await ObservationWait.until { CancelFixtures.isIdle(model.agentState) }
+      await ObservationWait.until(within: BoundedWait.defaultBound) {
+        CancelFixtures.isIdle(model.agentState)
+      }
     }
 
     /// The label of the time view of the row of `key`.
@@ -160,11 +169,13 @@
       let session = try await Self.openSession(clock: clock)
       defer { session.close() }
 
-      _ = try await Self.send(Self.chunk("agent_message_chunk", messageID: Self.messageID), expecting: 1, to: session)
+      _ = try await Self.send(
+        Self.chunk("agent_message_chunk", messageID: Self.messageID), expecting: 1, to: session)
       let entry = try #require(session.model.transcript.last)
 
       try FontRoleExpectations.expectText(
-        of: EntryTimingView(entry: entry), identifier: EntryTimingView.identifier(for: entry.rowKey), drawsIn: .ui)
+        of: EntryTimingView(entry: entry),
+        identifier: EntryTimingView.identifier(for: entry.rowKey), drawsIn: .ui)
     }
 
     @Test func aToolCallShowsTheTimeFromItsStartToItsCompletion() async throws {
@@ -176,11 +187,11 @@
       let model = session.model
 
       try await session.sendToolCallUpdate(title: Self.callTitle, status: .inProgress)
-      await ObservationWait.until { !model.transcript.isEmpty }
+      await ObservationWait.until(within: BoundedWait.defaultBound) { !model.transcript.isEmpty }
       let key = try #require(model.transcript.last?.rowKey)
       clock.advance(by: Self.toolCallSeconds)
       try await session.sendToolCallUpdate(title: Self.callTitle, status: .completed)
-      await harness.render {
+      await harness.renderAfter {
         ToolCallEntryViewHostedTests.toolCallEntry(Self.callTitle, in: model)?.status == .completed
       }
 
@@ -200,7 +211,8 @@
         Self.chunk("user_message_chunk", messageID: Self.userMessageID), expecting: 1, to: session)
       harness.render()
 
-      let expected = EntryTimingView.accessibilityLabel(startedAt: Self.start, duration: nil, locale: Self.locale)
+      let expected = EntryTimingView.accessibilityLabel(
+        startedAt: Self.start, duration: nil, locale: Self.locale)
       #expect(Self.timingLabel(of: key, in: harness) == expected)
     }
 
@@ -266,7 +278,8 @@
 
     @Test func aReplayedEntryShowsNoTime() async throws {
       let clock = FixedClock(start: Self.start)
-      let replayedChunk = try JSONValue(json: Self.chunk("agent_message_chunk", messageID: Self.messageID))
+      let replayedChunk = try JSONValue(
+        json: Self.chunk("agent_message_chunk", messageID: Self.messageID))
       let session = try await ScriptedSession.open(
         configure: { agent in
           agent.leadIns[ScriptedSession.resumeMethod] = { _, _ in
@@ -279,7 +292,7 @@
       let model = try await session.connection.resumeSession(ScriptedSession.replayFromStartRequest)
       let harness = Self.mountThread(model, showsTiming: true)
       defer { harness.close() }
-      await harness.render { !model.transcript.isEmpty }
+      await harness.renderAfter { !model.transcript.isEmpty }
       let key = try #require(model.transcript.last?.rowKey)
 
       #expect(model.transcript.last?.timing.startedAt == nil)
@@ -299,7 +312,7 @@
     static func sendAgentMessage(to session: ScriptedSession) async throws -> TranscriptEntry {
       let model = session.model
       try await session.sendUpdate(chunk("agent_message_chunk", messageID: messageID))
-      await ObservationWait.until { !model.transcript.isEmpty }
+      await ObservationWait.until(within: BoundedWait.defaultBound) { !model.transcript.isEmpty }
       return try #require(model.transcript.last)
     }
 
@@ -309,7 +322,9 @@
     ///   - entry: The entry whose time the decorator shows.
     ///   - timeZone: The time zone of the environment of the view.
     /// - Returns: The harness, after one render pass.
-    static func mountHostRow(_ entry: TranscriptEntry, timeZone: TimeZone = .current) -> HostedViewHarness<some View> {
+    static func mountHostRow(_ entry: TranscriptEntry, timeZone: TimeZone = .current)
+      -> HostedViewHarness<some View>
+    {
       let harness = HostedViewHarness(size: tallSize) {
         Text(hostText)
           .entryTiming(entry)
@@ -329,7 +344,8 @@
       let harness = Self.mountHostRow(entry)
       defer { harness.close() }
 
-      let expected = EntryTimingView.accessibilityLabel(startedAt: Self.start, duration: nil, locale: Self.locale)
+      let expected = EntryTimingView.accessibilityLabel(
+        startedAt: Self.start, duration: nil, locale: Self.locale)
       #expect(Self.timingLabel(of: entry.rowKey, in: harness) == expected)
       #expect(harness.hasElement(label: Self.hostText))
     }

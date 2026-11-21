@@ -61,7 +61,9 @@ import Testing
   ///   - text: The text to find.
   ///   - harness: The harness that shows the indicator.
   /// - Returns: `true` when a label holds the text.
-  static func showsText<Content: View>(_ text: String, in harness: HostedViewHarness<Content>) -> Bool {
+  static func showsText<Content: View>(_ text: String, in harness: HostedViewHarness<Content>)
+    -> Bool
+  {
     harness.accessibilityElements().compactMap(\.label).contains { $0.contains(text) }
   }
 
@@ -88,16 +90,18 @@ import Testing
     let model = session.model
 
     try await session.sendUpdate(ScriptedSession.runningState)
-    await harness.render { ComposerSessionModelHostedTests.isRunning(model) }
+    await harness.renderAfter { ComposerSessionModelHostedTests.isRunning(model) }
     #expect(harness.element(identifier: ShimmerView.identifier) != nil)
 
     try await session.sendToolCallUpdate(title: Self.toolName, status: .inProgress)
-    await harness.render { BackgroundRunsHostedTests.toolCall(id: Self.toolName, in: model)?.status == .inProgress }
+    await harness.renderAfter {
+      BackgroundRunsHostedTests.toolCall(id: Self.toolName, in: model)?.status == .inProgress
+    }
     #expect(Self.showsText(Self.toolName, in: harness))
     #expect(harness.element(identifier: ShimmerView.identifier) == nil)
 
     try await session.sendUpdate(ScriptedSession.idleState)
-    await harness.render { CancelFixtures.isIdle(model.agentState) }
+    await harness.renderAfter { CancelFixtures.isIdle(model.agentState) }
     #expect(!Self.showsText(Self.toolName, in: harness))
     #expect(harness.element(identifier: ShimmerView.identifier) == nil)
   }

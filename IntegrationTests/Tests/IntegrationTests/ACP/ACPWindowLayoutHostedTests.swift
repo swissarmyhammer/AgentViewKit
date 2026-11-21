@@ -80,7 +80,7 @@
       harness.render()
 
       _ = try await session.prompt([.text(TextContent(text: promptText))])
-      await harness.render { firstTurnEnded(in: session) }
+      await harness.renderAfter { firstTurnEnded(in: session) }
       return FirstTurn(agent: agent, session: session, harness: harness)
     }
 
@@ -90,7 +90,9 @@
 
       let list = try #require(turn.harness.frame(identifier: ConversationLayout.listIdentifier))
       let rowsOutOfView = turn.session.transcript.map(\.rowKey).filter { key in
-        guard let row = turn.harness.frame(identifier: ItemRow.identifier(for: key)) else { return true }
+        guard let row = turn.harness.frame(identifier: ItemRow.identifier(for: key)) else {
+          return true
+        }
         return !list.contains(row)
       }
       #expect(rowsOutOfView.isEmpty, "The list \(list) does not show the rows \(rowsOutOfView).")

@@ -1,10 +1,11 @@
-@testable import AgentViewKit
 import AgentViewKitTestSupport
 import EditorTestSupport
 import Foundation
 import SwiftUI
 import Testing
 import UniformTypeIdentifiers
+
+@testable import AgentViewKit
 
 /// The attachment of the kit. Swift Testing declares a type with the same
 /// name.
@@ -74,7 +75,8 @@ struct AttachmentComposerHost: View {
   /// - Returns: The location of the directory.
   static func makeDirectory() throws -> URL {
     let directory = FileManager.default.temporaryDirectory
-      .appending(path: "AttachmentChipsHostedTests-\(UUID().uuidString)", directoryHint: .isDirectory)
+      .appending(
+        path: "AttachmentChipsHostedTests-\(UUID().uuidString)", directoryHint: .isDirectory)
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     return directory
   }
@@ -202,7 +204,8 @@ struct AttachmentComposerHost: View {
   static func pastedImage(_ data: Data?) -> NSItemProvider {
     let provider = NSItemProvider()
     let error = NSError(domain: loadErrorDomain, code: loadErrorCode)
-    provider.registerDataRepresentation(forTypeIdentifier: UTType.png.identifier, visibility: .all) { completion in
+    provider.registerDataRepresentation(forTypeIdentifier: UTType.png.identifier, visibility: .all)
+    { completion in
       completion(data, data == nil ? error : nil)
       return nil
     }
@@ -264,7 +267,7 @@ struct AttachmentComposerHost: View {
     // The composer clears its attachments in the same step as it starts the
     // prompt task, so a submit that sent nothing stops the test here.
     try #require(model.attachments.isEmpty)
-    await ObservationWait.until { !session.promptBlocks.isEmpty }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { !session.promptBlocks.isEmpty }
 
     #expect(session.promptBlocks.count == 1)
     #expect(Self.linkedFiles(of: session) == [Self.sourceURL, Self.pdfURL].map(\.absoluteString))
@@ -287,7 +290,7 @@ struct AttachmentComposerHost: View {
 
     try harness.perform(.press, on: DefaultPromptAccessory.submitIdentifier)
     try #require(model.attachments.isEmpty)
-    await ObservationWait.until { !session.promptBlocks.isEmpty }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { !session.promptBlocks.isEmpty }
 
     #expect(session.promptBlocks.count == 1)
     #expect(Self.linkedFiles(of: session) == [Self.sourceURL, Self.pdfURL].map(\.absoluteString))

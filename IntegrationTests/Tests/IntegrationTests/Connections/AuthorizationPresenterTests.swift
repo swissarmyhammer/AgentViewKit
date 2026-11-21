@@ -96,7 +96,7 @@ import Testing
     presenter.cancel()
 
     await #expect(throws: AuthorizationPresenterError.cancelled) {
-      try await present.value
+      try await present.boundedValue()
     }
     #expect(factory.calls.last == .cancel)
     #expect(!presenter.isPresenting)
@@ -114,7 +114,7 @@ import Testing
     present.cancel()
 
     await #expect(throws: AuthorizationPresenterError.cancelled) {
-      try await present.value
+      try await present.boundedValue()
     }
     #expect(factory.calls.last == .cancel)
   }
@@ -134,7 +134,8 @@ import Testing
   @Test func theDefaultFactoryMakesASystemSession() {
     let factory = SystemWebAuthSessionFactory()
 
-    let session = factory.makeSession(url: Self.authorizationURL, callbackScheme: Self.callbackScheme)
+    let session = factory.makeSession(
+      url: Self.authorizationURL, callbackScheme: Self.callbackScheme)
     session.prefersEphemeralWebBrowserSession = true
 
     #expect(session is SystemWebAuthSession)
@@ -143,7 +144,8 @@ import Testing
   }
 
   @Test func aSystemSessionThatIsCancelledBeforeStartThrowsCancelled() async {
-    let session = SystemWebAuthSession(url: Self.authorizationURL, callbackScheme: Self.callbackScheme)
+    let session = SystemWebAuthSession(
+      url: Self.authorizationURL, callbackScheme: Self.callbackScheme)
 
     session.cancel()
 
@@ -162,6 +164,8 @@ import Testing
   ///
   /// - Parameter factory: The factory that made the session.
   private func waitForTheWaitingSession(of factory: FakeWebAuthSession) async {
-    await ObservationWait.until { factory.sessions.first?.isWaiting == true }
+    await ObservationWait.until(within: BoundedWait.defaultBound) {
+      factory.sessions.first?.isWaiting == true
+    }
   }
 }

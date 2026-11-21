@@ -32,12 +32,14 @@ import Testing
   /// The row identifiers of the first page, in list order.
   static let allRows = [
     SessionPickerConnectionModelHostedTests.row(ScriptedSession.sessionID),
-    SessionPickerConnectionModelHostedTests.row(SessionPickerConnectionModelHostedTests.closedSessionID),
+    SessionPickerConnectionModelHostedTests.row(
+      SessionPickerConnectionModelHostedTests.closedSessionID),
   ]
 
   /// The row identifiers that ``query`` keeps.
   static let matchingRows = [
-    SessionPickerConnectionModelHostedTests.row(SessionPickerConnectionModelHostedTests.closedSessionID)
+    SessionPickerConnectionModelHostedTests.row(
+      SessionPickerConnectionModelHostedTests.closedSessionID)
   ]
 
   /// Shows the picker of `session` in the root command scope of a new
@@ -58,8 +60,9 @@ import Testing
       .environment(\.sessionListCallReport, calls.report)
       .environment(\.sessionListPressReport, presses.report)
     let harness = HostedViewHarness(
-      SingleLineFieldChecks.scoped(picker, in: system), size: SessionPickerConnectionModelHostedTests.listSize)
-    await harness.render { !calls.values.isEmpty }
+      SingleLineFieldChecks.scoped(picker, in: system),
+      size: SessionPickerConnectionModelHostedTests.listSize)
+    await harness.renderAfter { !calls.values.isEmpty }
     return try SingleLineFieldChecks.window(of: harness, system: system)
   }
 
@@ -77,8 +80,11 @@ import Testing
     let window = try await Self.mount(session)
     defer { window.harness.close() }
 
-    try SingleLineFieldChecks.expectOneTextViewCarries(SessionListView.searchIdentifier, in: window.harness)
-    #expect(window.harness.element(identifier: SessionListView.searchIdentifier)?.label == Self.placeholder)
+    try SingleLineFieldChecks.expectOneTextViewCarries(
+      SessionListView.searchIdentifier, in: window.harness)
+    #expect(
+      window.harness.element(identifier: SessionListView.searchIdentifier)?.label
+        == Self.placeholder)
   }
 
   /// EditorKit gives the empty field its placeholder as the accessibility
@@ -89,7 +95,8 @@ import Testing
     let window = try await Self.mount(session)
     defer { window.harness.close() }
 
-    let hint = try SingleLineFieldChecks.hint(ofFieldWith: SessionListView.searchIdentifier, in: window.harness)
+    let hint = try SingleLineFieldChecks.hint(
+      ofFieldWith: SessionListView.searchIdentifier, in: window.harness)
 
     #expect(hint == Self.placeholder)
   }
@@ -122,7 +129,8 @@ import Testing
     defer { window.harness.close() }
 
     let textView = try SingleLineFieldChecks.type(
-      Self.query, intoFieldWith: SessionListView.searchIdentifier, in: window.harness, thenPress: .escape)
+      Self.query, intoFieldWith: SessionListView.searchIdentifier, in: window.harness,
+      thenPress: .escape)
 
     #expect(textView.string == Self.query)
     #expect(Self.rows(in: window) == Self.matchingRows)

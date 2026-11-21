@@ -78,7 +78,8 @@
       defer { harness.close() }
       harness.render()
 
-      #expect(harness.element(identifier: TerminalView.identifier)?.label == "Terminal, \(Self.command)")
+      #expect(
+        harness.element(identifier: TerminalView.identifier)?.label == "Terminal, \(Self.command)")
       #expect(harness.element(identifier: TerminalView.commandIdentifier)?.label == Self.command)
       #expect(
         harness.element(identifier: TerminalView.cwdIdentifier)?.label
@@ -131,7 +132,8 @@
     }
 
     @Test func invalidUTF8OutputShowsReplacementCharacters() async throws {
-      let (session, terminal) = try await Self.openTerminal(Self.outputField(Data([0x61, 0xC3, 0x28])))
+      let (session, terminal) = try await Self.openTerminal(
+        Self.outputField(Data([0x61, 0xC3, 0x28])))
       defer { session.close() }
       let model = EditorModel("")
       let harness = HostedViewHarness(TerminalView(entry: terminal, model: model))
@@ -143,10 +145,12 @@
 
     @Test func longOutputShowsTheCapAndShowAllExpandsIt() async throws {
       let lines = (1...Self.longLineCount).map { "line \($0)" }
-      let (session, terminal) = try await Self.openTerminal(Self.outputField(lines.joined(separator: "\n")))
+      let (session, terminal) = try await Self.openTerminal(
+        Self.outputField(lines.joined(separator: "\n")))
       defer { session.close() }
       let model = EditorModel("")
-      let harness = HostedViewHarness(TerminalView(entry: terminal, rowLimit: Self.rowLimit, model: model))
+      let harness = HostedViewHarness(
+        TerminalView(entry: terminal, rowLimit: Self.rowLimit, model: model))
       defer { harness.close() }
       harness.render()
 
@@ -173,8 +177,9 @@
       #expect(harness.element(identifier: TerminalView.footerIdentifier) == nil)
 
       try await session.sendUpdate(
-        SessionEntryRowsHostedTests.terminalUpdate(#""exitStatus": {"exitCode": \#(Self.failureExitCode)}"#))
-      await harness.render { terminal.exitStatus != nil }
+        SessionEntryRowsHostedTests.terminalUpdate(
+          #""exitStatus": {"exitCode": \#(Self.failureExitCode)}"#))
+      await harness.renderAfter { terminal.exitStatus != nil }
 
       let footer = harness.element(identifier: TerminalView.footerIdentifier)
       #expect(footer?.label == "Exit code \(Self.failureExitCode)")
@@ -183,7 +188,8 @@
     }
 
     @Test func theFooterShowsTheSignal() async throws {
-      let (session, terminal) = try await Self.openTerminal(#""exitStatus": {"signal": "\#(Self.signal)"}"#)
+      let (session, terminal) = try await Self.openTerminal(
+        #""exitStatus": {"signal": "\#(Self.signal)"}"#)
       defer { session.close() }
       let harness = HostedViewHarness(TerminalView(entry: terminal))
       defer { harness.close() }
@@ -211,7 +217,9 @@
       (failureExitCode, signal, .signal(signal)),
       (nil, nil, .unknown),
     ])
-    func eachExitStatusHasItsSummary(code: Int?, signal: String?, expected: TerminalView.ExitSummary) {
+    func eachExitStatusHasItsSummary(
+      code: Int?, signal: String?, expected: TerminalView.ExitSummary
+    ) {
       #expect(TerminalView.ExitSummary(code: code, signal: signal) == expected)
     }
 

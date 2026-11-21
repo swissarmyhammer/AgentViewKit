@@ -17,8 +17,9 @@
   /// words, because the agent can run with no prompt open.
   ///
   /// After each step, a test waits for the event that the model has the
-  /// change (``ObservationWait/until(_:)``), does one layout pass, and reads
-  /// the banner. No test reads a clock, polls, or has a time limit.
+  /// change (``ObservationWait/until(within:sourceLocation:_:)``), does one layout pass, and reads
+  /// the banner. No test polls or has a time limit. Each wait has a
+  /// bound, so a change that does not come fails the test.
   @Suite(.serialized, .hostedSerially) @MainActor struct StateBannerPendingRequestsHostedTests {
     /// A size that shows the banner of the thread and a card of the deck.
     static let size = CGSize(width: 480, height: 640)
@@ -30,7 +31,8 @@
     static let endTurn = StateUpdate.idle(IdleStateUpdate(stopReason: .endTurn))
 
     /// The title of the banner for a request that waits for the user.
-    static let waitingTitle = StateBanner.message(for: .requiresAction(RequiresActionStateUpdate())).title
+    static let waitingTitle = StateBanner.message(for: .requiresAction(RequiresActionStateUpdate()))
+      .title
 
     /// The title of the banner for a prompt that ended with `end_turn`.
     static let endTurnTitle = StateBanner.message(for: endTurn).title

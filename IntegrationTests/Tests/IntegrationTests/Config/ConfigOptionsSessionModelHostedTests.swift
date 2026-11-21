@@ -1,5 +1,5 @@
-import AgentViewKitTestSupport
 import AgentViewKitDemoSupport
+import AgentViewKitTestSupport
 import EditorCommandsUI
 import EditorInspector
 import EditorInspectorTestSupport
@@ -61,7 +61,8 @@ import Testing
     """#
 
   /// A boolean option with no category, set off.
-  static let webOption = #"{"configId": "web", "name": "Web Search", "type": "boolean", "currentValue": false}"#
+  static let webOption =
+    #"{"configId": "web", "name": "Web Search", "type": "boolean", "currentValue": false}"#
 
   /// A mode option with two flat values.
   ///
@@ -181,7 +182,8 @@ import Testing
   /// - Returns: The id that the row carries.
   static func row(_ section: String, _ id: SessionConfigId, of model: SessionModel) -> String {
     InspectorRowID.field(
-      view: ConfigOptionsView.viewIdentifier, object: InspectedClientModel(model), group: section, field: id.rawValue)
+      view: ConfigOptionsView.viewIdentifier, object: InspectedClientModel(model), group: section,
+      field: id.rawValue)
   }
 
   /// The row of the model option.
@@ -208,7 +210,7 @@ import Testing
   ) async throws {
     try harness.inspectorDriver.press(webRow(model))
     // The row commits in a task of its own, which starts the request.
-    await ObservationWait.until { !starts.values.isEmpty }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { !starts.values.isEmpty }
     try #require(starts.values == [setMethod])
   }
 
@@ -225,7 +227,8 @@ import Testing
   /// - Throws: When the field is not there, has no action `name`, or sends
   ///   no request.
   static func choose(
-    _ name: String, in identifier: String, harness: HostedViewHarness<some View>, session: ScriptedSession
+    _ name: String, in identifier: String, harness: HostedViewHarness<some View>,
+    session: ScriptedSession
   ) async throws -> JSONValue {
     try harness.perform(.custom(name), on: identifier)
     return try await firstSetParams(in: session)
@@ -238,7 +241,9 @@ import Testing
   /// - Returns: The params.
   /// - Throws: When no frame comes.
   static func firstSetParams(in session: ScriptedSession) async throws -> JSONValue {
-    await ObservationWait.until { !setParams(in: session).isEmpty }
+    await ObservationWait.until(within: BoundedWait.defaultBound) {
+      !setParams(in: session).isEmpty
+    }
     return try #require(setParams(in: session).first)
   }
 
@@ -248,7 +253,9 @@ import Testing
   ///   - name: The name of the value.
   ///   - harness: The harness of the view.
   /// - Returns: The segment, or `nil` when the picker has none of the name.
-  static func modeSegment(_ name: String, in harness: HostedViewHarness<some View>) -> AccessibilityElementSnapshot? {
+  static func modeSegment(_ name: String, in harness: HostedViewHarness<some View>)
+    -> AccessibilityElementSnapshot?
+  {
     harness.elements(under: PermissionModePicker.pickerIdentifier).first { $0.label == name }
   }
 
@@ -332,7 +339,7 @@ import Testing
     #expect(harness.showsRow(Self.webRow(session.model)))
 
     try await session.sendUpdate(Self.configUpdate(options: []))
-    await harness.render { model.configOptions?.isEmpty == true }
+    await harness.renderAfter { model.configOptions?.isEmpty == true }
 
     #expect(!harness.showsRow(Self.webRow(session.model)))
     #expect(harness.element(identifier: PermissionModePicker.pickerIdentifier) == nil)
@@ -366,7 +373,10 @@ import Testing
     let harness = Self.mount(session: session)
     defer { harness.close() }
 
-    #expect(try harness.inspectorDriver.options(in: Self.modelRow(session.model)) == [Self.fastChoice, Self.deepChoice])
+    #expect(
+      try harness.inspectorDriver.options(in: Self.modelRow(session.model)) == [
+        Self.fastChoice, Self.deepChoice,
+      ])
   }
 
   // MARK: - Set config option
@@ -375,8 +385,11 @@ import Testing
   /// value that it reports. The report changes the options of the model, so
   /// the test waits for that change, and then renders the view.
   @Test func aChangeSendsSetConfigOptionAndTheViewShowsTheValueThatTheModelReports() async throws {
-    let reported = Self.webOption.replacingOccurrences(of: #""currentValue": false"#, with: #""currentValue": true"#)
-    let reportedFrame = try Self.configUpdateFrame(options: [Self.modelOption, reported, Self.modeOption(current: "ask")])
+    let reported = Self.webOption.replacingOccurrences(
+      of: #""currentValue": false"#, with: #""currentValue": true"#)
+    let reportedFrame = try Self.configUpdateFrame(options: [
+      Self.modelOption, reported, Self.modeOption(current: "ask"),
+    ])
     let session = try await Self.openSession { agent in
       agent.heldMethods = [Self.setMethod]
       agent.followUps[Self.setMethod] = { _, _ in [reportedFrame] }
@@ -388,7 +401,7 @@ import Testing
     let model = session.model
 
     try await Self.pressWebSearch(of: session.model, in: harness, starts: starts)
-    await harness.render { !Self.setParams(in: session).isEmpty }
+    await harness.renderAfter { !Self.setParams(in: session).isEmpty }
 
     let params = try #require(Self.setParams(in: session).first)
     #expect(params["sessionId"]?.stringValue == ScriptedSession.sessionID)
@@ -399,7 +412,7 @@ import Testing
 
     let optionsBefore = model.configOptions
     session.agent.releaseHeldAnswer()
-    await harness.render { model.configOptions != optionsBefore }
+    await harness.renderAfter { model.configOptions != optionsBefore }
 
     #expect(harness.rowValue(Self.webRow(session.model)) == Self.selected)
   }
@@ -422,8 +435,10 @@ import Testing
     try driver.choose(Self.deepChoice, in: Self.modelRow(model))
     // Each row commits in a task of its own, in order, so the start of the
     // fence comes after any start of the first choice.
-    await ObservationWait.until { !starts.values.isEmpty }
-    await ObservationWait.until { !Self.setParams(in: session).isEmpty }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { !starts.values.isEmpty }
+    await ObservationWait.until(within: BoundedWait.defaultBound) {
+      !Self.setParams(in: session).isEmpty
+    }
 
     #expect(starts.values == [Self.setMethod])
     #expect(Self.setParams(in: session).map { $0["configId"]?.stringValue } == ["model"])
@@ -454,7 +469,9 @@ import Testing
 
     selection.wrappedValue = SessionConfigValueId(rawValue: "ask")
     selection.wrappedValue = SessionConfigValueId(rawValue: "auto")
-    await ObservationWait.until { !Self.setParams(in: session).isEmpty }
+    await ObservationWait.until(within: BoundedWait.defaultBound) {
+      !Self.setParams(in: session).isEmpty
+    }
 
     #expect(selection.wrappedValue.rawValue == "ask")
     #expect(Self.setParams(in: session).map { $0["value"]?.stringValue } == ["auto"])
@@ -469,7 +486,7 @@ import Testing
     let model = session.model
 
     try await Self.pressWebSearch(of: session.model, in: harness, starts: starts)
-    await harness.render { TranscriptChecks.hasErrorEntry(model) }
+    await harness.renderAfter { TranscriptChecks.hasErrorEntry(model) }
 
     #expect(TranscriptChecks.hasErrorEntry(model))
     #expect(harness.rowValue(Self.webRow(session.model)) == Self.notSelected)
@@ -487,8 +504,10 @@ import Testing
 
     let optionsBefore = model.configOptions
     try await session.sendUpdate(
-      Self.configUpdate(options: [Self.modelOption, Self.webOption, Self.modeOption(current: "auto")]))
-    await harness.render { model.configOptions != optionsBefore }
+      Self.configUpdate(options: [
+        Self.modelOption, Self.webOption, Self.modeOption(current: "auto"),
+      ]))
+    await harness.renderAfter { model.configOptions != optionsBefore }
 
     #expect(Self.modeSegment(Self.autoChoice, in: harness)?.value == Self.selected)
     #expect(harness.rowValue(Self.modeRow(session.model)) == Self.autoChoice)
@@ -516,7 +535,8 @@ import Testing
     defer { harness.close() }
 
     let params = try await Self.choose(
-      Self.deepChoice, in: ConfigOptionsView.controlIdentifier(for: Self.modelID), harness: harness, session: session)
+      Self.deepChoice, in: ConfigOptionsView.controlIdentifier(for: Self.modelID), harness: harness,
+      session: session)
 
     #expect(params["configId"]?.stringValue == "model")
     #expect(params["value"]?.stringValue == "deep-1")
@@ -575,7 +595,8 @@ import Testing
     defer { harness.close() }
 
     let params = try await Self.choose(
-      Self.autoChoice, in: PermissionModePicker.pickerIdentifier, harness: harness, session: session)
+      Self.autoChoice, in: PermissionModePicker.pickerIdentifier, harness: harness, session: session
+    )
 
     #expect(params["configId"]?.stringValue == "mode")
     #expect(params["value"]?.stringValue == "auto")

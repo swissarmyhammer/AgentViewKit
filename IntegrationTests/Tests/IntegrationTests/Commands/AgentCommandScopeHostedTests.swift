@@ -1,13 +1,14 @@
-@testable import AgentViewKit
+import AgentViewKitDemoSupport
 import AgentViewKitTestSupport
 import AppKit
-import AgentViewKitDemoSupport
 import EditorCommands
 import EditorCommandsUI
 import EditorTestSupport
 import FoundationModelsACPClient
 import SwiftUI
 import Testing
+
+@testable import AgentViewKit
 
 /// Tests for the agent command scope in a window: the registration of a
 /// mounted thread view, and the composer that runs the commands.
@@ -160,9 +161,11 @@ import Testing
   static func sendScopeMessage(
     to session: ScriptedSession, rendering harness: some RenderedMount
   ) async throws {
-    try await send([ChunkMessage(kind: "user_message_chunk", messageID: "scope-message", text: message)], to: session)
+    try await send(
+      [ChunkMessage(kind: "user_message_chunk", messageID: "scope-message", text: message)],
+      to: session)
     let model = session.model
-    await harness.render { !model.transcript.isEmpty }
+    await harness.renderAfter { !model.transcript.isEmpty }
   }
 
   /// Sends a `state_update` from the agent, waits until the agent state of
@@ -183,7 +186,7 @@ import Testing
     let model = session.model
     let before = model.agentState
     try await session.sendUpdate(update)
-    await harness.render { model.agentState != before }
+    await harness.renderAfter { model.agentState != before }
   }
 
   /// The test mounts no outer agent command scope on purpose. The session
@@ -233,7 +236,8 @@ import Testing
 
     // Fork from Here is in the registry only with the action of a host
     // (`.onForkFromHere`), and this host gives none (D164).
-    let verbs = AgentCommandVerb.allCases.filter { $0.group != .navigate && $0 != .forkFromHere }.map(\.id)
+    let verbs = AgentCommandVerb.allCases.filter { $0.group != .navigate && $0 != .forkFromHere }
+      .map(\.id)
     #expect(ids == Set(verbs))
     try WindowUndoChecks.expectUnavailableOnAnEmptyStack(at: path, in: system)
   }
@@ -252,7 +256,8 @@ import Testing
       $0.path.segments.last?.kind == AgentCommandTarget.segmentKind
     }
     #expect(scopes.map(\.path) == [Self.path(of: session.model)])
-    #expect(system.registry.perform(AgentCommandVerb.scrollToBottom.id, at: Self.path(of: session.model)))
+    #expect(
+      system.registry.perform(AgentCommandVerb.scrollToBottom.id, at: Self.path(of: session.model)))
   }
 
   @Test func sendSubmitsTheComposerInTheScopeOfASessionAsAPrompt() async throws {
@@ -262,7 +267,8 @@ import Testing
     let composer = PromptInputHostedTestModel()
     let submits = ReportRecorder<PromptSubmitOutcome>()
     let harness = Self.mount(
-      session: session, system: system, outerScope: true, composer: composer, submitReport: submits.report)
+      session: session, system: system, outerScope: true, composer: composer,
+      submitReport: submits.report)
     defer { harness.close() }
     harness.render()
     let path = Self.path(of: session.model)
@@ -275,7 +281,9 @@ import Testing
     // dispatch that started nothing stops the test here.
     try #require(submits.values == [.sent])
     let agent = session.agent
-    await ObservationWait.until { !agent.messages(method: ScriptedSession.promptMethod).isEmpty }
+    await ObservationWait.until(within: BoundedWait.defaultBound) {
+      !agent.messages(method: ScriptedSession.promptMethod).isEmpty
+    }
 
     let prompts = agent.messages(method: ScriptedSession.promptMethod)
     #expect(prompts.map(ScriptedWireAgent.promptText(of:)) == [Self.message])
@@ -299,7 +307,7 @@ import Testing
     // The composer calls the host closure in the same step as it starts the
     // prompt task, so a press that sent nothing stops the test here.
     try #require(model.submitCount == 1)
-    await ObservationWait.until { !session.promptTexts.isEmpty }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { !session.promptTexts.isEmpty }
 
     #expect(session.promptTexts == [Self.message])
     #expect(model.submitCount == 1)
@@ -317,7 +325,8 @@ import Testing
     harness.window.makeFirstResponder(nil)
     harness.render()
 
-    #expect(system.registry.perform(AgentCommandVerb.focusComposer.id, at: Self.path(of: session.model)))
+    #expect(
+      system.registry.perform(AgentCommandVerb.focusComposer.id, at: Self.path(of: session.model)))
     harness.render()
 
     #expect(harness.window.firstResponder === editor)
@@ -350,7 +359,9 @@ import Testing
   /// The teardown of the old view clears the store of the expanded items of
   /// the old target, so `toggleExpandAll` acts only through the target of
   /// the new view.
-  @Test func theTeardownOfAnOldThreadViewKeepsTheCommandsOfANewThreadViewAtTheSamePath() async throws {
+  @Test func theTeardownOfAnOldThreadViewKeepsTheCommandsOfANewThreadViewAtTheSamePath()
+    async throws
+  {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let system = CommandSystem()
@@ -380,13 +391,16 @@ import Testing
   /// The teardown of the newer window clears the store of the expanded items
   /// of its own target, so `toggleExpandAll` acts only through the target of
   /// the older window.
-  @Test func closingTheNewerOfTwoWindowsAtOnePathHandsTheCommandsBackToTheOlderWindow() async throws {
+  @Test func closingTheNewerOfTwoWindowsAtOnePathHandsTheCommandsBackToTheOlderWindow() async throws
+  {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let system = CommandSystem()
-    let older = SwitchedWindow(AgentThreadView(session: session.model), system: system, size: Self.windowSize)
+    let older = SwitchedWindow(
+      AgentThreadView(session: session.model), system: system, size: Self.windowSize)
     defer { older.harness.close() }
-    let newer = SwitchedWindow(AgentThreadView(session: session.model), system: system, size: Self.windowSize)
+    let newer = SwitchedWindow(
+      AgentThreadView(session: session.model), system: system, size: Self.windowSize)
     try await Self.sendScopeMessage(to: session, rendering: older.harness)
     newer.harness.render()
     let path = Self.path(of: session.model)
@@ -451,7 +465,8 @@ import Testing
     defer { session.close() }
     let system = CommandSystem()
     let starts = ReportRecorder<String>()
-    let harness = Self.mount(session: session, system: system, outerScope: false, requestStartReport: starts.report)
+    let harness = Self.mount(
+      session: session, system: system, outerScope: false, requestStartReport: starts.report)
     defer { harness.close() }
     harness.render()
     let path = Self.path(of: session.model)
@@ -463,7 +478,9 @@ import Testing
     // dispatch that started nothing stops the test here.
     try #require(starts.values == [ScriptedSession.cancelMethod])
     let agent = session.agent
-    await ObservationWait.until { !agent.messages(method: ScriptedSession.cancelMethod).isEmpty }
+    await ObservationWait.until(within: BoundedWait.defaultBound) {
+      !agent.messages(method: ScriptedSession.cancelMethod).isEmpty
+    }
 
     let cancels = agent.messages(method: ScriptedSession.cancelMethod)
     #expect(cancels.count == 1)
@@ -478,19 +495,22 @@ import Testing
     defer { session.close() }
     let system = CommandSystem()
     let starts = ReportRecorder<String>()
-    let harness = Self.mount(session: session, system: system, outerScope: false, requestStartReport: starts.report)
+    let harness = Self.mount(
+      session: session, system: system, outerScope: false, requestStartReport: starts.report)
     defer { harness.close() }
-    let pending = try await session.sendPermissionRequest(id: Self.agentRequestID, rendering: harness)
+    let pending = try await session.sendPermissionRequest(
+      id: Self.agentRequestID, rendering: harness)
     let card = RequestDeck.identifier(for: pending.uuidString)
     #expect(harness.element(identifier: card) != nil)
 
-    try #require(system.registry.perform(AgentCommandVerb.approvePending.id, at: Self.path(of: session.model)))
+    try #require(
+      system.registry.perform(AgentCommandVerb.approvePending.id, at: Self.path(of: session.model)))
     // The command starts the answer in the same step as the dispatch, so a
     // dispatch that started nothing stops the test here.
     try #require(starts.values == [ScriptedSession.permissionMethod])
     let result = await session.result(ofRequest: Self.agentRequestID)
     let model = session.model
-    await harness.render { model.pendingPermissions.isEmpty }
+    await harness.renderAfter { model.pendingPermissions.isEmpty }
 
     #expect(result?["outcome"]?["optionId"]?.stringValue == Self.allowOptionID)
     #expect(model.pendingPermissions.isEmpty)
@@ -502,7 +522,8 @@ import Testing
     defer { session.close() }
     let system = CommandSystem()
     try await NSPasteboard.withIsolatedAsync { pasteboard in
-      let harness = Self.mount(session: session, system: system, outerScope: false, pasteboard: pasteboard)
+      let harness = Self.mount(
+        session: session, system: system, outerScope: false, pasteboard: pasteboard)
       defer { harness.close() }
       let messages = [
         ChunkMessage(kind: "user_message_chunk", messageID: "copy-u1", text: "Hi."),
@@ -511,11 +532,12 @@ import Testing
       ]
       try await Self.send(messages, to: session)
       let model = session.model
-      await harness.render { model.transcript.count == messages.count }
+      await harness.renderAfter { model.transcript.count == messages.count }
 
       #expect(system.registry.perform(AgentCommandVerb.copyThread.id, at: Self.path(of: model)))
 
-      #expect(pasteboard.string(forType: .string) == "User:\nHi.\n\nAssistant:\nHello.\n\nUser:\nAgain.")
+      #expect(
+        pasteboard.string(forType: .string) == "User:\nHi.\n\nAssistant:\nHello.\n\nUser:\nAgain.")
     }
   }
 
@@ -558,7 +580,9 @@ import Testing
       ChunkMessage(kind: "agent_message_chunk", messageID: "jump-m2", text: "Two."),
     ]
     try await Self.send(messages, to: session)
-    await ObservationWait.until { model.transcript.count == messages.count }
+    await ObservationWait.until(within: BoundedWait.defaultBound) {
+      model.transcript.count == messages.count
+    }
     harness.hostingView.layoutSubtreeIfNeeded()
     let keys = model.transcript.map(\.rowKey)
     #expect(keys.allSatisfy { harness.element(identifier: ItemRow.identifier(for: $0)) != nil })

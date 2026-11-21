@@ -36,7 +36,8 @@ private struct OpenURLButton: View {
 
   /// The first source.
   static let alpha = CitationSource(
-    id: "alpha", title: "Alpha Guide", url: URL(filePath: "/docs/alpha.html"), snippet: "About alpha.")
+    id: "alpha", title: "Alpha Guide", url: URL(filePath: "/docs/alpha.html"),
+    snippet: "About alpha.")
 
   /// The second source.
   static let beta = CitationSource(
@@ -98,7 +99,9 @@ private struct OpenURLButton: View {
   ///   - harness: The harness.
   ///   - index: The one-based number of the row.
   /// - Returns: `true` when the number of the row has the highlighted value.
-  static func isHighlighted<Content: View>(_ harness: HostedViewHarness<Content>, index: Int) -> Bool {
+  static func isHighlighted<Content: View>(_ harness: HostedViewHarness<Content>, index: Int)
+    -> Bool
+  {
     harness.element(identifier: SourcesView.numberIdentifier(index: index))?.value
       == SourcesView.highlightedValue
   }
@@ -114,7 +117,8 @@ private struct OpenURLButton: View {
     #expect(harness.element(identifier: SourcesView.rowIdentifier(index: 1)) != nil)
     #expect(harness.element(identifier: SourcesView.rowIdentifier(index: 2)) != nil)
     #expect(harness.element(identifier: SourcesView.rowIdentifier(index: 3)) == nil)
-    #expect(harness.element(identifier: SourcesView.numberIdentifier(index: 2))?.label == "Source 2")
+    #expect(
+      harness.element(identifier: SourcesView.numberIdentifier(index: 2))?.label == "Source 2")
     let labels = harness.accessibilityElements().compactMap(\.label)
     #expect(labels.contains("Alpha Guide"))
     #expect(labels.contains("Beta Notes"))
@@ -247,7 +251,7 @@ private struct OpenURLButton: View {
     // The pill selects its row in the same step, and the row then starts the
     // scroll task. A press that selected nothing stops the test here.
     try #require(Self.isHighlighted(harness, index: 2))
-    await ObservationWait.until { !scrolls.values.isEmpty }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { !scrolls.values.isEmpty }
 
     #expect(scrolls.values.count == 1)
     #expect(scrollView.contentView.bounds.minY > 0)

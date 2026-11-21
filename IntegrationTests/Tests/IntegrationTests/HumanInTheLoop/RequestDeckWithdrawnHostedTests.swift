@@ -1,4 +1,3 @@
-@testable import AgentViewKit
 import AgentViewKitTestSupport
 import EditorCommandsUI
 import EditorStyle
@@ -8,6 +7,8 @@ import FoundationModelsACPClient
 import SwiftUI
 import Testing
 
+@testable import AgentViewKit
+
 /// The notices of the requests that the agent withdraws, in a ``RequestDeck``
 /// in a window (card 39a design section 3, test plan 5C).
 ///
@@ -16,7 +17,7 @@ import Testing
 /// (``ScriptedSession/sendCancelRequest(id:reason:)``). The record of the
 /// withdrawal comes into the model in a later main-actor step than the
 /// removal of the request. Thus the test waits with
-/// ``ObservationWait/until(_:)`` on the count of the records, which the frame
+/// ``ObservationWait/until(within:sourceLocation:_:)`` on the count of the records, which the frame
 /// is certain to change, and then makes one render pass. A press of Dismiss is
 /// followed by a synchronous check of the model, before any wait.
 @Suite(.serialized, .hostedSerially) @MainActor struct RequestDeckWithdrawnHostedTests {
@@ -31,7 +32,8 @@ import Testing
   static let noticeWithReason = "Your name? was withdrawn: The run ended."
 
   /// The announcement of the form elicitation of the scripted session.
-  static let actionRequired = RecordingAnnouncer.Announcement(message: "Action required: Your name?", priority: .high)
+  static let actionRequired = RecordingAnnouncer.Announcement(
+    message: "Action required: Your name?", priority: .high)
 
   /// Sends the form elicitation of the scripted session, withdraws it, and
   /// waits until the session model holds the record of the withdrawal. Then
@@ -52,7 +54,9 @@ import Testing
     harness.render()
     let before = model.withdrawnRequests.count
     try await session.sendCancelRequest(id: firstRequestID, reason: reason)
-    await ObservationWait.until { model.withdrawnRequests.count == before + 1 }
+    await ObservationWait.until(within: BoundedWait.defaultBound) {
+      model.withdrawnRequests.count == before + 1
+    }
     harness.render()
     return try #require(model.withdrawnRequests.last)
   }
@@ -64,7 +68,9 @@ import Testing
   ///   - harness: The harness.
   /// - Returns: The label, or `nil` when the deck shows no notice for the
   ///   record.
-  static func noticeLabel(of record: WithdrawnRequest, in harness: HostedViewHarness<some View>) -> String? {
+  static func noticeLabel(of record: WithdrawnRequest, in harness: HostedViewHarness<some View>)
+    -> String?
+  {
     RequestDeckHostedTests.label(of: RequestDeck.identifier(forWithdrawn: record.id), in: harness)
   }
 
@@ -73,16 +79,19 @@ import Testing
     defer { session.close() }
     let announcer = RecordingAnnouncer()
     let reporter = RecordingFocusReporter()
-    let harness = RequestDeckAccessibilityHostedTests.mountDeck(of: session, announcer: announcer, reporter: reporter)
+    let harness = RequestDeckAccessibilityHostedTests.mountDeck(
+      of: session, announcer: announcer, reporter: reporter)
     defer { harness.close() }
 
-    let record = try await Self.sendAndWithdrawElicitation(reason: Self.reason, to: session, rendering: harness)
+    let record = try await Self.sendAndWithdrawElicitation(
+      reason: Self.reason, to: session, rendering: harness)
 
     #expect(Self.noticeLabel(of: record, in: harness) == Self.noticeWithReason)
     #expect(harness.element(identifier: RequestDeck.identifier(for: record.id.uuidString)) == nil)
     #expect(
       announcer.announcements == [
-        Self.actionRequired, RecordingAnnouncer.Announcement(message: Self.noticeWithReason, priority: .medium),
+        Self.actionRequired,
+        RecordingAnnouncer.Announcement(message: Self.noticeWithReason, priority: .medium),
       ])
     // The front request left, so the focus goes to the prompt editor, as
     // before. The notice takes no focus.
@@ -94,9 +103,11 @@ import Testing
     defer { session.close() }
     let announcer = RecordingAnnouncer()
     let reporter = RecordingFocusReporter()
-    let harness = RequestDeckAccessibilityHostedTests.mountDeck(of: session, announcer: announcer, reporter: reporter)
+    let harness = RequestDeckAccessibilityHostedTests.mountDeck(
+      of: session, announcer: announcer, reporter: reporter)
     defer { harness.close() }
-    let record = try await Self.sendAndWithdrawElicitation(reason: Self.reason, to: session, rendering: harness)
+    let record = try await Self.sendAndWithdrawElicitation(
+      reason: Self.reason, to: session, rendering: harness)
     let announcements = announcer.announcements
     let moves = reporter.moves
 
@@ -117,7 +128,8 @@ import Testing
     let harness = RequestDeckAccessibilityHostedTests.mountDeck(of: session)
     defer { harness.close() }
 
-    let record = try await Self.sendAndWithdrawElicitation(reason: nil, to: session, rendering: harness)
+    let record = try await Self.sendAndWithdrawElicitation(
+      reason: nil, to: session, rendering: harness)
 
     #expect(record.reason == nil)
     #expect(Self.noticeLabel(of: record, in: harness) == "Your name? was withdrawn.")
@@ -128,13 +140,15 @@ import Testing
     defer { session.close() }
     let harness = RequestDeckAccessibilityHostedTests.mountDeck(of: session)
     defer { harness.close() }
-    let record = try await Self.sendAndWithdrawElicitation(reason: Self.reason, to: session, rendering: harness)
+    let record = try await Self.sendAndWithdrawElicitation(
+      reason: Self.reason, to: session, rendering: harness)
 
     try await session.sendInOrder([.permission(id: Self.firstRequestID + 1)])
     harness.render()
 
     let permission = try #require(session.model.pendingPermissions.first)
-    #expect(harness.element(identifier: RequestDeck.identifier(for: permission.id.uuidString)) != nil)
+    #expect(
+      harness.element(identifier: RequestDeck.identifier(for: permission.id.uuidString)) != nil)
     #expect(Self.noticeLabel(of: record, in: harness) == Self.noticeWithReason)
   }
 
@@ -147,12 +161,15 @@ import Testing
     defer { session.close() }
     let harness = RequestDeckAccessibilityHostedTests.mountDeck(of: session)
     defer { harness.close() }
-    let record = try await Self.sendAndWithdrawElicitation(reason: Self.reason, to: session, rendering: harness)
+    let record = try await Self.sendAndWithdrawElicitation(
+      reason: Self.reason, to: session, rendering: harness)
     try #require(session.model.pendingRequests.isEmpty)
 
     let deck = try #require(harness.frame(identifier: RequestDeck.identifier))
-    let text = try #require(harness.frame(identifier: RequestDeck.identifier(forWithdrawn: record.id)))
-    let dismiss = try #require(harness.frame(identifier: RequestDeck.dismissIdentifier(forWithdrawn: record.id)))
+    let text = try #require(
+      harness.frame(identifier: RequestDeck.identifier(forWithdrawn: record.id)))
+    let dismiss = try #require(
+      harness.frame(identifier: RequestDeck.dismissIdentifier(forWithdrawn: record.id)))
 
     // The deck pads its tiles by the tile margin, and the notice pads its
     // own content by the tile padding.
@@ -170,7 +187,8 @@ import Testing
     defer { session.close() }
     let harness = RequestDeckAccessibilityHostedTests.mountDeck(of: session)
     defer { harness.close() }
-    _ = try await Self.sendAndWithdrawElicitation(reason: Self.reason, to: session, rendering: harness)
+    _ = try await Self.sendAndWithdrawElicitation(
+      reason: Self.reason, to: session, rendering: harness)
 
     #expect(harness.accessibilityElements().contains { $0.label == WithdrawnNoticeRow.title })
   }
@@ -193,11 +211,15 @@ import Testing
     // The agent sends the elicitation before it holds its answer to the
     // login, so the elicitation is certain to come.
     let login = session.startLogin()
-    await ObservationWait.until { !connection.pendingRequests.isEmpty }
+    await ObservationWait.until(within: BoundedWait.defaultBound) {
+      !connection.pendingRequests.isEmpty
+    }
     harness.render()
 
     try await session.sendCancelRequest(id: Self.firstRequestID, reason: Self.reason)
-    await ObservationWait.until { !connection.withdrawnRequests.isEmpty }
+    await ObservationWait.until(within: BoundedWait.defaultBound) {
+      !connection.withdrawnRequests.isEmpty
+    }
     harness.render()
     let record = try #require(connection.withdrawnRequests.first)
     let notice = "Your code? was withdrawn: The run ended."
@@ -215,6 +237,6 @@ import Testing
     #expect(Self.noticeLabel(of: record, in: harness) == nil)
 
     session.agent.releaseHeldAnswer()
-    try await login.value
+    try await login.boundedValue()
   }
 }

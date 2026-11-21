@@ -135,7 +135,9 @@
     /// - Parameters:
     ///   - key: The row key of the thought.
     ///   - harness: The harness that shows the thread.
-    static func expectCompleteThought<Content: View>(key: String, in harness: HostedViewHarness<Content>) {
+    static func expectCompleteThought<Content: View>(
+      key: String, in harness: HostedViewHarness<Content>
+    ) {
       #expect(SessionTranscriptViewHostedTests.showsText(thoughtText, in: harness))
       #expect(harness.element(identifier: ReasoningView.titleIdentifier(for: key)) != nil)
       #expect(
@@ -201,8 +203,9 @@
 
       try await session.sendUpdate(ScriptedSession.runningState)
       try await session.sendUpdate(
-        SessionTranscriptViewHostedTests.chunk("agent_thought_chunk", messageID: Self.thoughtID, text: Self.thoughtText))
-      await ObservationWait.until {
+        SessionTranscriptViewHostedTests.chunk(
+          "agent_thought_chunk", messageID: Self.thoughtID, text: Self.thoughtText))
+      await ObservationWait.until(within: BoundedWait.defaultBound) {
         SessionTranscriptViewHostedTests.entryText(of: model, at: 0) == Self.thoughtText
       }
       let entry = try #require(model.transcript.first)
@@ -213,7 +216,7 @@
       Self.expectCompleteThought(key: key, in: harness)
 
       try await session.sendUpdate(ScriptedSession.idleState)
-      await harness.render { !ComposerSessionModelHostedTests.isRunning(model) }
+      await harness.renderAfter { !ComposerSessionModelHostedTests.isRunning(model) }
 
       Self.expectCompleteThought(key: key, in: harness)
     }
@@ -229,8 +232,11 @@
       let model = session.model
 
       try await session.sendUpdate(
-        SessionTranscriptViewHostedTests.chunk("agent_thought_chunk", messageID: Self.thoughtID, text: Self.thoughtText))
-      await harness.render { SessionTranscriptViewHostedTests.entryText(of: model, at: 0) == Self.thoughtText }
+        SessionTranscriptViewHostedTests.chunk(
+          "agent_thought_chunk", messageID: Self.thoughtID, text: Self.thoughtText))
+      await harness.renderAfter {
+        SessionTranscriptViewHostedTests.entryText(of: model, at: 0) == Self.thoughtText
+      }
 
       let entry = try #require(model.transcript.first)
       #expect(store.decision(for: entry) == nil)
@@ -251,10 +257,14 @@
       let model = session.model
 
       try await session.sendUpdate(
-        SessionTranscriptViewHostedTests.chunk("agent_thought_chunk", messageID: Self.thoughtID, text: Self.thoughtText))
+        SessionTranscriptViewHostedTests.chunk(
+          "agent_thought_chunk", messageID: Self.thoughtID, text: Self.thoughtText))
       try await session.sendUpdate(
-        WireBlockJSON.makeChunk("agent_thought_chunk", messageID: Self.thoughtID, block: Self.linkBlock))
-      await ObservationWait.until { Self.thought(in: model)?.content.count == Self.textAndLinkBlockCount }
+        WireBlockJSON.makeChunk(
+          "agent_thought_chunk", messageID: Self.thoughtID, block: Self.linkBlock))
+      await ObservationWait.until(within: BoundedWait.defaultBound) {
+        Self.thought(in: model)?.content.count == Self.textAndLinkBlockCount
+      }
       let entry = try #require(model.transcript.first)
       store.expand(entry: entry)
       harness.render()
@@ -279,11 +289,11 @@
           compactionID: compactionID, block: WireBlockJSON.makeText(summaryText)))
       try await session.sendUpdate(
         WireBlockJSON.makeCompactionSummaryChunk(compactionID: compactionID, block: Self.linkBlock))
-      await harness.render {
+      await harness.renderAfter {
         Self.compaction(in: model)?.summary.count == Self.textAndLinkBlockCount
       }
 
-      #expect(Self.labels(in: harness).contains { $0.contains(summaryText) })
+      #expect(ResponseTextChecks.texts(in: harness).contains { $0.contains(summaryText) })
       #expect(harness.element(identifier: LinkView.cardIdentifier)?.label == Self.linkName)
     }
 
@@ -299,7 +309,7 @@
       try await session.sendUpdate(Self.terminalUpdate(#""command": "\#(Self.command)""#))
       // The container element of the terminal merges into the element of its
       // row, so the test reads the command element of the header.
-      await harness.render { TerminalViewHostedTests.firstTerminal(in: model) != nil }
+      await harness.renderAfter { TerminalViewHostedTests.firstTerminal(in: model) != nil }
 
       #expect(harness.element(identifier: TerminalView.commandIdentifier)?.label == Self.command)
       #expect(harness.element(identifier: TerminalView.progressIdentifier) != nil)
@@ -316,16 +326,24 @@
       defer { harness.close() }
       let model = session.model
 
-      try await session.sendUpdate(Self.terminalUpdate(#""output": {"data": "\#(Self.base64("one\n"))"}"#))
-      await harness.render { TerminalViewHostedTests.firstTerminal(in: model)?.text == "one\n" }
+      try await session.sendUpdate(
+        Self.terminalUpdate(#""output": {"data": "\#(Self.base64("one\n"))"}"#))
+      await harness.renderAfter {
+        TerminalViewHostedTests.firstTerminal(in: model)?.text == "one\n"
+      }
       #expect(editor.text == "one\n")
 
       try await session.sendUpdate(Self.terminalChunk("two\n"))
-      await harness.render { TerminalViewHostedTests.firstTerminal(in: model)?.text == "one\ntwo\n" }
+      await harness.renderAfter {
+        TerminalViewHostedTests.firstTerminal(in: model)?.text == "one\ntwo\n"
+      }
       #expect(editor.text == "one\ntwo\n")
 
-      try await session.sendUpdate(Self.terminalUpdate(#""output": {"data": "\#(Self.base64("fresh"))"}"#))
-      await harness.render { TerminalViewHostedTests.firstTerminal(in: model)?.text == "fresh" }
+      try await session.sendUpdate(
+        Self.terminalUpdate(#""output": {"data": "\#(Self.base64("fresh"))"}"#))
+      await harness.renderAfter {
+        TerminalViewHostedTests.firstTerminal(in: model)?.text == "fresh"
+      }
       #expect(editor.text == "fresh")
     }
 
@@ -342,13 +360,15 @@
       try await session.sendUpdate(Self.agentChunk)
       try await session.sendUpdate(Self.planUpdate(firstStatus: "completed"))
       let planKey = TranscriptEntry.ID.wire(.plan(PlanId(rawValue: Self.planID))).rowKey
-      await harness.render { Self.firstPlanStatus(in: model) == .completed }
+      await harness.renderAfter { Self.firstPlanStatus(in: model) == .completed }
 
       let keys = model.transcript.map(\.rowKey)
       #expect(keys.count == 2)
       #expect(keys.first == planKey)
       #expect(SessionTranscriptViewHostedTests.rowKeys(in: harness) == keys)
-      #expect(harness.element(identifier: TaskListView.planIdentifier(row: planKey))?.label == "1 of 2 done")
+      #expect(
+        harness.element(identifier: TaskListView.planIdentifier(row: planKey))?.label
+          == "1 of 2 done")
       #expect(
         harness.element(identifier: TaskListView.entryIdentifier(row: planKey, index: 0))?.label
           == "Read, Completed, High priority")
@@ -367,12 +387,12 @@
       let completed = "Read, Completed, High priority"
 
       try await session.sendUpdate(Self.planUpdate(firstStatus: "in_progress"))
-      await harness.render { Self.firstPlanStatus(in: model) == .inProgress }
+      await harness.renderAfter { Self.firstPlanStatus(in: model) == .inProgress }
       #expect(harness.element(identifier: firstRow)?.label == running)
       #expect(harness.element(identifier: secondRow)?.label == Self.shipEntryLabel)
 
       try await session.sendUpdate(Self.planUpdate(firstStatus: "completed"))
-      await harness.render { Self.firstPlanStatus(in: model) == .completed }
+      await harness.renderAfter { Self.firstPlanStatus(in: model) == .completed }
 
       #expect(harness.element(identifier: firstRow)?.label == completed)
       #expect(harness.element(identifier: secondRow)?.label == Self.shipEntryLabel)
@@ -389,7 +409,7 @@
       let running = Self.runningReadEntryLabel
 
       try await session.sendUpdate(Self.planUpdate(firstStatus: "in_progress"))
-      await harness.render { Self.firstPlanStatus(in: model) == .inProgress }
+      await harness.renderAfter { Self.firstPlanStatus(in: model) == .inProgress }
 
       #expect(harness.element(identifier: firstRow)?.label == running)
       #expect(harness.progressIndicatorCount() == 0)
@@ -401,11 +421,12 @@
       let harness = Self.mountThread(session)
       defer { harness.close() }
       let model = session.model
-      let update = ##"{"sessionUpdate": "plan_update", "plan": {"type": "markdown", "text": "# Plan"}}"##
+      let update =
+        ##"{"sessionUpdate": "plan_update", "plan": {"type": "markdown", "text": "# Plan"}}"##
 
       try await session.sendUpdate(update)
       try await session.sendUpdate(update)
-      await harness.render { model.transcript.count == Self.unnamedPlanRowCount }
+      await harness.renderAfter { model.transcript.count == Self.unnamedPlanRowCount }
 
       let keys = model.transcript.map(\.rowKey)
       #expect(keys.count == 2)
@@ -425,8 +446,9 @@
       defer { harness.close() }
       let model = session.model
 
-      try await session.sendUpdate(#"{"sessionUpdate": "\#(Self.unknownType)", "note": "\#(Self.unknownNote)"}"#)
-      await harness.render { !model.transcript.isEmpty }
+      try await session.sendUpdate(
+        #"{"sessionUpdate": "\#(Self.unknownType)", "note": "\#(Self.unknownNote)"}"#)
+      await harness.renderAfter { !model.transcript.isEmpty }
       #expect(harness.element(identifier: UnknownItemView.identifier) != nil)
       #expect(Self.labels(in: harness).contains { $0.contains(Self.unknownType) })
 
@@ -445,8 +467,9 @@
       let model = session.model
       let member = #""note" : "\#(Self.unknownNote)""#
 
-      try await session.sendUpdate(#"{"sessionUpdate": "\#(Self.unknownType)", "note": "\#(Self.unknownNote)"}"#)
-      await ObservationWait.until { !model.transcript.isEmpty }
+      try await session.sendUpdate(
+        #"{"sessionUpdate": "\#(Self.unknownType)", "note": "\#(Self.unknownNote)"}"#)
+      await ObservationWait.until(within: BoundedWait.defaultBound) { !model.transcript.isEmpty }
       let entry = try #require(model.transcript.first)
       store.expand(entry: entry)
       harness.render()
@@ -468,7 +491,7 @@
       if case .success = await prompt.result {
         Issue.record("The prompt did not fail.")
       }
-      await harness.render { TranscriptChecks.hasErrorEntry(model) }
+      await harness.renderAfter { TranscriptChecks.hasErrorEntry(model) }
 
       #expect(
         harness.element(identifier: identifier)?.label
@@ -510,9 +533,11 @@
       let clientText = RequestError(reporting: ConnectionError.closed).message
 
       try await config.pressWebSearch(of: session.model, in: harness, starts: starts)
-      await ObservationWait.until { !config.setParams(in: session).isEmpty }
+      await ObservationWait.until(within: BoundedWait.defaultBound) {
+        !config.setParams(in: session).isEmpty
+      }
       session.close()
-      await harness.render { TranscriptChecks.hasErrorEntry(model) }
+      await harness.renderAfter { TranscriptChecks.hasErrorEntry(model) }
 
       let label = try #require(harness.element(identifier: ErrorView.identifier)?.label)
       #expect(label.contains(clientText), "The error row shows \"\(label)\".")
@@ -524,7 +549,9 @@
     /// - Parameter harness: The harness that shows the thread.
     /// - Returns: `true` when the label of the data element contains
     ///   `errorDataField`.
-    private static func showsErrorData<Content: View>(in harness: HostedViewHarness<Content>) -> Bool {
+    private static func showsErrorData<Content: View>(in harness: HostedViewHarness<Content>)
+      -> Bool
+    {
       harness.element(identifier: ErrorView.dataIdentifier)?.label?.contains(errorDataField) == true
     }
   }

@@ -92,18 +92,23 @@
     ///   - model: The session model.
     ///   - harness: The harness that shows the thread.
     /// - Returns: `true` when the view shows what the model reports.
-    static func showsTheModel<Content: View>(_ model: SessionModel, in harness: HostedViewHarness<Content>) -> Bool {
-      let rowsMatch = SessionTranscriptViewHostedTests.rowKeys(in: harness) == model.transcript.map(\.rowKey)
+    static func showsTheModel<Content: View>(
+      _ model: SessionModel, in harness: HostedViewHarness<Content>
+    ) -> Bool {
+      let rowsMatch =
+        SessionTranscriptViewHostedTests.rowKeys(in: harness) == model.transcript.map(\.rowKey)
       let messages = model.transcript.filter { AgentMessageLookup.agentMessage(of: $0) != nil }
       let messagesMatch = messages.allSatisfy { entry in
         harness.element(identifier: AssistantMessageView.identifier(for: entry.rowKey)) != nil
       }
       let toolCallsMatch = model.transcript.allSatisfy { entry in
         toolCall(of: entry).map { toolCall in
-          harness.element(identifier: ToolCallView.identifier(for: entry.rowKey))?.label == expectedLabel(of: toolCall)
+          harness.element(identifier: ToolCallView.identifier(for: entry.rowKey))?.label
+            == expectedLabel(of: toolCall)
         } ?? true
       }
-      let bannerMatches = harness.stateBannerLabel == model.agentState.map { StateBanner.message(for: $0).title }
+      let bannerMatches =
+        harness.stateBannerLabel == model.agentState.map { StateBanner.message(for: $0).title }
       return rowsMatch && messagesMatch && toolCallsMatch && bannerMatches
     }
 
@@ -124,7 +129,7 @@
       let model = session.model
       for step in BackgroundRunScript.steps {
         try await session.send(update: step.update)
-        await harness.render { isReported(change: step.change, by: model) }
+        await harness.renderAfter { isReported(change: step.change, by: model) }
         afterStep(step)
       }
     }
@@ -155,11 +160,15 @@
       try await Self.playScript(session: session, harness: harness)
 
       let transcript = model.transcript
-      let messagePositions = transcript.indices.filter { AgentMessageLookup.agentMessage(of: transcript[$0]) != nil }
+      let messagePositions = transcript.indices.filter {
+        AgentMessageLookup.agentMessage(of: transcript[$0]) != nil
+      }
       let toolPositions = transcript.indices.filter { Self.toolCall(of: transcript[$0]) != nil }
       #expect(messagePositions.count == Self.agentMessageCount)
       #expect(
-        messagePositions.map { AgentMessageLookup.agentMessage(of: transcript[$0])?.messageId?.rawValue }
+        messagePositions.map {
+          AgentMessageLookup.agentMessage(of: transcript[$0])?.messageId?.rawValue
+        }
           == [BackgroundRunScript.streamedMessageID, BackgroundRunScript.fullMessageID])
       let first = try #require(messagePositions.first)
       let last = try #require(messagePositions.last)
@@ -167,7 +176,9 @@
       #expect(toolPositions.allSatisfy { first < $0 && $0 < last })
       #expect(SessionTranscriptViewHostedTests.rowKeys(in: harness) == transcript.map(\.rowKey))
       for position in messagePositions {
-        #expect(harness.element(identifier: AssistantMessageView.identifier(for: transcript[position].rowKey)) != nil)
+        #expect(
+          harness.element(
+            identifier: AssistantMessageView.identifier(for: transcript[position].rowKey)) != nil)
       }
     }
   }

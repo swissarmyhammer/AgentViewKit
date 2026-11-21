@@ -51,7 +51,7 @@
       defer { harness.close() }
 
       try await session.sendUpdate(CompactionAndNoticeHostedTests.notice(severity: "warning"))
-      await harness.render { !model.notices.isEmpty }
+      await harness.renderAfter { !model.notices.isEmpty }
       let notice = try #require(model.notices.first)
 
       #expect(

@@ -1,4 +1,3 @@
-@testable import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
 import EditorCommands
@@ -8,6 +7,8 @@ import EditorTestSupport
 import FoundationModelsACP
 import SwiftUI
 import Testing
+
+@testable import AgentViewKit
 
 /// Hosted tests of the comment field of a ``PermissionView``: a one-line
 /// EditorKit field (`SingleLineField`) in a card of the ``RequestDeck``.
@@ -64,9 +65,12 @@ import Testing
     let thread = AgentCommandScopeHostedTests.path(of: session.model)
     let request = try await session.sendPermissionRequest(id: requestID, rendering: harness)
     try harness.perform(
-      .press, on: PermissionView.optionIdentifier(for: PermissionOptionId(rawValue: AgentCommandFixtures.rejectOptionID)))
+      .press,
+      on: PermissionView.optionIdentifier(
+        for: PermissionOptionId(rawValue: AgentCommandFixtures.rejectOptionID)))
     let window = try SingleLineFieldChecks.window(of: harness, system: system, path: thread)
-    return OpenComment(window: window, card: thread.appending(AgentScopeKind.request(request)), request: request)
+    return OpenComment(
+      window: window, card: thread.appending(AgentScopeKind.request(request)), request: request)
   }
 
   /// The value of the comment field that the accessibility tree shows.
@@ -83,8 +87,11 @@ import Testing
     let open = try await Self.openComment(in: session)
     defer { open.window.harness.close() }
 
-    try SingleLineFieldChecks.expectOneTextViewCarries(PermissionView.commentIdentifier, in: open.window.harness)
-    #expect(open.window.harness.element(identifier: PermissionView.commentIdentifier)?.label == Self.placeholder)
+    try SingleLineFieldChecks.expectOneTextViewCarries(
+      PermissionView.commentIdentifier, in: open.window.harness)
+    #expect(
+      open.window.harness.element(identifier: PermissionView.commentIdentifier)?.label
+        == Self.placeholder)
   }
 
   /// EditorKit gives the empty field its placeholder as the accessibility
@@ -95,7 +102,8 @@ import Testing
     let open = try await Self.openComment(in: session)
     defer { open.window.harness.close() }
 
-    let hint = try SingleLineFieldChecks.hint(ofFieldWith: PermissionView.commentIdentifier, in: open.window.harness)
+    let hint = try SingleLineFieldChecks.hint(
+      ofFieldWith: PermissionView.commentIdentifier, in: open.window.harness)
 
     #expect(hint == Self.placeholder)
   }
@@ -113,11 +121,14 @@ import Testing
   }
 
   @Test(arguments: SingleLineFieldChecks.submitModifiers)
-  func returnInTheCommentFieldSendsTheRejectOptionWithTheComment(modifiers: SwiftUI.EventModifiers) async throws {
+  func returnInTheCommentFieldSendsTheRejectOptionWithTheComment(modifiers: SwiftUI.EventModifiers)
+    async throws
+  {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     var answers: [PermissionAnswer] = []
-    let open = try await Self.openComment(in: session, answers: ObservationReport { answers.append($0) })
+    let open = try await Self.openComment(
+      in: session, answers: ObservationReport { answers.append($0) })
     defer { open.window.harness.close() }
     try SingleLineFieldChecks.type(
       Self.comment, intoFieldWith: PermissionView.commentIdentifier, in: open.window.harness)
@@ -128,7 +139,7 @@ import Testing
     let reject = PermissionOptionId(rawValue: AgentCommandFixtures.rejectOptionID)
     try #require(answers == [PermissionAnswer(option: reject, comment: Self.comment)])
     let result = await session.result(ofRequest: Self.requestID)
-    await ObservationWait.until { !session.promptTexts.isEmpty }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { !session.promptTexts.isEmpty }
 
     #expect(result?["outcome"]?["optionId"]?.stringValue == reject.rawValue)
     #expect(session.promptTexts == [Self.comment])
@@ -140,11 +151,13 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     var answers: [PermissionAnswer] = []
-    let open = try await Self.openComment(in: session, answers: ObservationReport { answers.append($0) })
+    let open = try await Self.openComment(
+      in: session, answers: ObservationReport { answers.append($0) })
     defer { open.window.harness.close() }
 
     let textView = try SingleLineFieldChecks.type(
-      Self.comment, intoFieldWith: PermissionView.commentIdentifier, in: open.window.harness, thenPress: .escape)
+      Self.comment, intoFieldWith: PermissionView.commentIdentifier, in: open.window.harness,
+      thenPress: .escape)
 
     #expect(textView.string == Self.comment)
     #expect(Self.commentValue(in: open.window.harness) == Self.comment)
@@ -157,7 +170,8 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     var answers: [PermissionAnswer] = []
-    let open = try await Self.openComment(in: session, answers: ObservationReport { answers.append($0) })
+    let open = try await Self.openComment(
+      in: session, answers: ObservationReport { answers.append($0) })
     defer { open.window.harness.close() }
 
     let textView = try SingleLineFieldChecks.typeAndLeaveByFocusLoss(
@@ -174,7 +188,8 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     var answers: [PermissionAnswer] = []
-    let open = try await Self.openComment(in: session, answers: ObservationReport { answers.append($0) })
+    let open = try await Self.openComment(
+      in: session, answers: ObservationReport { answers.append($0) })
     defer { open.window.harness.close() }
 
     let textView = try SingleLineFieldChecks.typeAndRevertField(
@@ -214,7 +229,8 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     var answers: [PermissionAnswer] = []
-    let open = try await Self.openComment(in: session, answers: ObservationReport { answers.append($0) })
+    let open = try await Self.openComment(
+      in: session, answers: ObservationReport { answers.append($0) })
     defer { open.window.harness.close() }
     let model = session.model
 
@@ -265,7 +281,8 @@ import Testing
     try open.window.harness.requireKeyboardFocusOutsideText()
     #expect(
       AgentNavigationHostedTests.focusedItem(
-        among: [open.card], in: open.window.system, window: open.window.harness.window) == open.card)
+        among: [open.card], in: open.window.system, window: open.window.harness.window) == open.card
+    )
   }
 
   /// A jump that lands on the own scope of the comment field focuses the
@@ -277,7 +294,8 @@ import Testing
     defer { open.window.harness.close() }
     let field = open.card.appending(.editor(id: PermissionView.commentIdentifier))
 
-    try AgentItemFocusHostedTests.land(on: field, in: open.window.path, system: open.window.system, by: .jump)
+    try AgentItemFocusHostedTests.land(
+      on: field, in: open.window.path, system: open.window.system, by: .jump)
     open.window.harness.render()
 
     let textView = try SingleLineFieldChecks.textView(

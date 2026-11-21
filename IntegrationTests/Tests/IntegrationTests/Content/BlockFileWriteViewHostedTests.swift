@@ -30,7 +30,7 @@ import Testing
     let harness = HostedViewHarness(
       Self.makeWriteView(report: writes.report) { Self.fileBytes }, size: Self.hostSize)
     defer { harness.close() }
-    await harness.render { writes.values.contains(where: Self.isEnded) }
+    await harness.renderAfter { writes.values.contains(where: Self.isEnded) }
 
     let url = try #require(Self.loadedURL(in: writes.values))
     #expect(url == ContentBlockFile.url(of: Self.fileBytes, named: Self.fileName))
@@ -43,7 +43,7 @@ import Testing
     let harness = HostedViewHarness(
       Self.makeWriteView(report: writes.report) { nil }, size: Self.hostSize)
     defer { harness.close() }
-    await harness.render { writes.values.contains(where: Self.isEnded) }
+    await harness.renderAfter { writes.values.contains(where: Self.isEnded) }
 
     #expect(writes.values.contains(where: WireContentBlockViewHostedTests.isFailed))
     #expect(harness.element(identifier: Self.failedIdentifier) != nil)
@@ -54,7 +54,7 @@ import Testing
     let harness = HostedViewHarness(
       Self.makeWriteView(report: writes.report) { Self.fileBytes }, size: Self.hostSize)
     defer { harness.close() }
-    await harness.render { writes.values.contains(where: Self.isEnded) }
+    await harness.renderAfter { writes.values.contains(where: Self.isEnded) }
 
     #expect(writes.values.first.map(Self.isLoading) == true)
   }

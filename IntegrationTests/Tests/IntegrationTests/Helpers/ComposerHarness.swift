@@ -1,4 +1,3 @@
-@testable import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
 import EditorCommands
@@ -7,6 +6,8 @@ import EditorTestSupport
 import FoundationModelsACPClient
 import SwiftUI
 import Testing
+
+@testable import AgentViewKit
 
 /// The thread of a scripted session in a hosted window, the command system of
 /// the window, and the window undo stack.
@@ -84,9 +85,10 @@ struct MountedThread<Content: View> {
     _ prompt: String, in harness: HostedViewHarness<some View>,
     sourceLocation: SourceLocation = #_sourceLocation, until typed: () -> String
   ) async throws {
-    try #require(harness.focusFirstEditableTextView(of: NSTextView.self), sourceLocation: sourceLocation)
+    try #require(
+      harness.focusFirstEditableTextView(of: NSTextView.self), sourceLocation: sourceLocation)
     harness.type(prompt)
     try harness.requireTextViewShows(prompt, sourceLocation: sourceLocation)
-    await ObservationWait.until { typed() == prompt }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { typed() == prompt }
   }
 }

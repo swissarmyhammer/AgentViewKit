@@ -1,11 +1,12 @@
-@testable import AgentViewKit
+import AgentViewKitDemoSupport
 import AgentViewKitTestSupport
 import AppKit
-import AgentViewKitDemoSupport
 import EditorTestSupport
 import Foundation
 import SwiftUI
 import Testing
+
+@testable import AgentViewKit
 
 /// A host view that owns the text of a composer with the default editor,
 /// ``EditorKitPromptEditor``.
@@ -102,8 +103,10 @@ struct PromptInputHost: View {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let harness = HostedViewHarness(size: Self.composerSize) {
-      PromptInputView(text: Bindable(PromptInputHostedTestModel(text: Self.message)).text, onSubmit: {})
-        .environment(\.sessionModel, session.model)
+      PromptInputView(
+        text: Bindable(PromptInputHostedTestModel(text: Self.message)).text, onSubmit: {}
+      )
+      .environment(\.sessionModel, session.model)
     }
     defer { harness.close() }
     harness.render()
@@ -120,15 +123,19 @@ struct PromptInputHost: View {
     defer { harness.close() }
     harness.render()
 
-    #expect(harness.element(identifier: DefaultPromptAccessory.submitIdentifier)?.isEnabled == false)
+    #expect(
+      harness.element(identifier: DefaultPromptAccessory.submitIdentifier)?.isEnabled == false)
   }
 
   @Test func theSubmitButtonIsDisabledWithNoSessionModel() {
-    let harness = HostedViewHarness(PromptInputHost(model: PromptInputHostedTestModel(text: Self.message)), size: Self.composerSize)
+    let harness = HostedViewHarness(
+      PromptInputHost(model: PromptInputHostedTestModel(text: Self.message)),
+      size: Self.composerSize)
     defer { harness.close() }
     harness.render()
 
-    #expect(harness.element(identifier: DefaultPromptAccessory.submitIdentifier)?.isEnabled == false)
+    #expect(
+      harness.element(identifier: DefaultPromptAccessory.submitIdentifier)?.isEnabled == false)
   }
 
   @Test func theAccessoryShowsThePermissionModePickerOfTheSessionModel() async throws {
@@ -182,7 +189,9 @@ struct PromptInputHost: View {
     // The composer takes the text in the same step as it starts the prompt
     // task, so a press that sent nothing stops the test here.
     try #require(model.plainText.isEmpty)
-    await ObservationWait.until { !session.agent.messages(method: ScriptedSession.promptMethod).isEmpty }
+    await ObservationWait.until(within: BoundedWait.defaultBound) {
+      !session.agent.messages(method: ScriptedSession.promptMethod).isEmpty
+    }
 
     let prompts = session.agent.messages(method: ScriptedSession.promptMethod)
     #expect(prompts.map(ScriptedWireAgent.promptText(of:)) == [Self.message])
@@ -222,7 +231,7 @@ struct PromptInputHost: View {
 
     try harness.perform(.press, on: DefaultPromptAccessory.submitIdentifier)
     try #require(model.submitCount == 1)
-    await ObservationWait.until { !session.promptTexts.isEmpty }
+    await ObservationWait.until(within: BoundedWait.defaultBound) { !session.promptTexts.isEmpty }
 
     #expect(session.promptTexts == [Self.message])
     #expect(model.plainText.isEmpty)

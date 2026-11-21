@@ -20,7 +20,8 @@ import Testing
   nonisolated static let loadingRenderers: [AttachmentView.Renderer] = [.text, .pdf]
 
   @Test(arguments: loadingRenderers)
-  func eachPartReadsItsFileThroughTheLoaderOfTheEnvironment(renderer: AttachmentView.Renderer) async {
+  func eachPartReadsItsFileThroughTheLoaderOfTheEnvironment(renderer: AttachmentView.Renderer) async
+  {
     let attachment = PreviewFixtures.logFileAttachment
     let reads = ReportRecorder<URL>()
     let loader = AttachmentPreviewLoader(
@@ -38,7 +39,7 @@ import Testing
         .environment(\.attachmentPreviewLoader, loader))
     defer { harness.close() }
 
-    await harness.render { !reads.values.isEmpty }
+    await harness.renderAfter { !reads.values.isEmpty }
 
     #expect(reads.values == [attachment.url])
   }
@@ -48,6 +49,7 @@ import Testing
     defer { directory.remove() }
     let url = try directory.write("build.log", contents: Data(PreviewFixtures.buildLogText.utf8))
 
-    #expect(await EnvironmentValues().attachmentPreviewLoader.text(url) == PreviewFixtures.buildLogText)
+    #expect(
+      await EnvironmentValues().attachmentPreviewLoader.text(url) == PreviewFixtures.buildLogText)
   }
 }

@@ -115,7 +115,9 @@ import Testing
   ///   - group: The group part, such as `tool-call`.
   ///   - field: The field part, such as `title`.
   /// - Returns: The id that the row carries.
-  static func row<Model: InspectableClientModel>(of model: Model, group: String, field: String) -> String {
+  static func row<Model: InspectableClientModel>(of model: Model, group: String, field: String)
+    -> String
+  {
     row(of: InspectedClientModel(model), group: group, field: field)
   }
 
@@ -127,9 +129,13 @@ import Testing
   ///   - session: The scripted session.
   /// - Returns: The entry.
   /// - Throws: When no entry of the type arrives.
-  static func entry<Entry: AnyObject>(_ type: Entry.Type, in session: ScriptedSession) async throws -> Entry {
+  static func entry<Entry: AnyObject>(_ type: Entry.Type, in session: ScriptedSession) async throws
+    -> Entry
+  {
     let model = session.model
-    await ObservationWait.until { PreviewFixtures.firstEntry(in: model, as: type) != nil }
+    await ObservationWait.until(within: BoundedWait.defaultBound) {
+      PreviewFixtures.firstEntry(in: model, as: type) != nil
+    }
     return try #require(PreviewFixtures.firstEntry(in: model, as: type))
   }
 
@@ -139,7 +145,8 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     try await session.sendUpdate(
-      WireBlockJSON.makeToolCallUpdate(id: Self.toolCallID, fields: #""title": "Read", "status": "pending""#))
+      WireBlockJSON.makeToolCallUpdate(
+        id: Self.toolCallID, fields: #""title": "Read", "status": "pending""#))
     let entry = try await Self.entry(ToolCallEntry.self, in: session)
     let harness = Self.mount(entry)
     defer { harness.close() }
@@ -147,8 +154,9 @@ import Testing
     #expect(harness.rowValue(row) == "Read")
 
     try await session.sendUpdate(
-      WireBlockJSON.makeToolCallUpdate(id: Self.toolCallID, fields: #""title": "Read Package.swift""#))
-    await harness.render { entry.title == "Read Package.swift" }
+      WireBlockJSON.makeToolCallUpdate(
+        id: Self.toolCallID, fields: #""title": "Read Package.swift""#))
+    await harness.renderAfter { entry.title == "Read Package.swift" }
 
     #expect(harness.rowValue(row) == "Read Package.swift")
   }
@@ -164,7 +172,7 @@ import Testing
     #expect(harness.rowValue(row) == EditorStatus(EditorSymbol.Status.inProgress).label)
 
     try await session.sendToolCallUpdate(title: Self.timedCallTitle, status: .completed)
-    await harness.render { entry.shownStatus == .completed }
+    await harness.renderAfter { entry.shownStatus == .completed }
 
     #expect(harness.rowValue(row) == EditorStatus(EditorSymbol.Status.completed).label)
   }
@@ -180,11 +188,13 @@ import Testing
 
     try await session.sendUpdate(
       MCPServersHostedTests.makeStatusUpdate(
-        name: MCPServersHostedTests.filesName, transport: MCPServersHostedTests.stdioTransport, status: "failed",
+        name: MCPServersHostedTests.filesName, transport: MCPServersHostedTests.stdioTransport,
+        status: "failed",
         reason: MCPServersHostedTests.failureReason))
-    await harness.render {
+    await harness.renderAfter {
       MCPServersHostedTests.server(
-        MCPServersHostedTests.filesName, has: .failed(reason: MCPServersHostedTests.failureReason), in: model)
+        MCPServersHostedTests.filesName, has: .failed(reason: MCPServersHostedTests.failureReason),
+        in: model)
     }
 
     #expect(harness.rowValue(row) == EditorStatus(EditorSymbol.Status.failed).label)
@@ -195,15 +205,17 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     try await session.sendUpdate(
-      #"{"sessionUpdate": "terminal_update", "terminalId": "\#(Self.terminalID)", "command": "ls"}"#)
+      #"{"sessionUpdate": "terminal_update", "terminalId": "\#(Self.terminalID)", "command": "ls"}"#
+    )
     let entry = try await Self.entry(TerminalEntry.self, in: session)
     let harness = Self.mount(entry)
     defer { harness.close() }
     #expect(harness.rowValue(Self.row(of: entry, group: "terminal", field: "command")) == "ls")
 
     try await session.sendUpdate(
-      #"{"sessionUpdate": "terminal_update", "terminalId": "\#(Self.terminalID)", "exitStatus": {"exitCode": 0}}"#)
-    await harness.render { entry.exitStatus != nil }
+      #"{"sessionUpdate": "terminal_update", "terminalId": "\#(Self.terminalID)", "exitStatus": {"exitCode": 0}}"#
+    )
+    await harness.renderAfter { entry.exitStatus != nil }
 
     #expect(
       harness.rowValue(Self.row(of: entry, group: "terminal", field: "exit-status"))
@@ -255,7 +267,9 @@ import Testing
   ///   - row: The scheme id of the paths row.
   ///   - harness: The harness that shows the row.
   /// - Returns: The paths.
-  static func chipPaths<Content: View>(in row: String, of harness: HostedViewHarness<Content>) -> [String] {
+  static func chipPaths<Content: View>(in row: String, of harness: HostedViewHarness<Content>)
+    -> [String]
+  {
     chipText(in: row, of: harness, accessibilityValue(of:))
   }
 
@@ -266,7 +280,9 @@ import Testing
   ///   - row: The scheme id of the paths row.
   ///   - harness: The harness that shows the row.
   /// - Returns: The names.
-  static func chipNames<Content: View>(in row: String, of harness: HostedViewHarness<Content>) -> [String] {
+  static func chipNames<Content: View>(in row: String, of harness: HostedViewHarness<Content>)
+    -> [String]
+  {
     chipText(in: row, of: harness, accessibilityLabel(of:))
   }
 
@@ -287,7 +303,8 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     try await session.sendUpdate(
-      WireBlockJSON.makeToolCallUpdate(id: Self.toolCallID, fields: #""title": "Read", "status": "pending""#))
+      WireBlockJSON.makeToolCallUpdate(
+        id: Self.toolCallID, fields: #""title": "Read", "status": "pending""#))
     let entry = try await Self.entry(ToolCallEntry.self, in: session)
     let harness = Self.mount(entry, labels: .visible)
     defer { harness.close() }
@@ -295,7 +312,7 @@ import Testing
     #expect(harness.rowValue(row) == EditorInspectorStrings.noValue)
 
     try await session.sendUpdate(Self.locationsUpdate)
-    await harness.render { entry.locations.count == Self.locationFiles.count }
+    await harness.renderAfter { entry.locations.count == Self.locationFiles.count }
 
     #expect(Self.chipPaths(in: row, of: harness) == Self.locationFiles)
   }
@@ -314,14 +331,17 @@ import Testing
   }
 
   @Test func theAdditionalDirectoriesRowOfASessionShowsAChipForEachFolder() async throws {
-    let session = try await ScriptedSession.open(additionalDirectories: Self.additionalFolders.map(AbsolutePath.init))
+    let session = try await ScriptedSession.open(
+      additionalDirectories: Self.additionalFolders.map(AbsolutePath.init))
     defer { session.close() }
     let model = session.model
     let harness = Self.mount(model)
     defer { harness.close() }
 
     let row = Self.row(of: model, group: "session", field: "additional-directories")
-    let folders = Self.additionalFolders.map { InspectionPath.folder(AbsolutePath(rawValue: $0)).path(percentEncoded: false) }
+    let folders = Self.additionalFolders.map {
+      InspectionPath.folder(AbsolutePath(rawValue: $0)).path(percentEncoded: false)
+    }
     #expect(Self.chipPaths(in: row, of: harness) == folders)
   }
 
@@ -374,7 +394,8 @@ import Testing
     let harness = Self.mount(entry, opening: service)
     defer { harness.close() }
 
-    try harness.inspectorDriver.open(Self.row(of: entry, group: "terminal", field: "working-directory"))
+    try harness.inspectorDriver.open(
+      Self.row(of: entry, group: "terminal", field: "working-directory"))
 
     #expect(service.calls == [Self.openCall(of: InspectionPath.folder(entry.cwd))])
   }
@@ -387,7 +408,8 @@ import Testing
     let harness = Self.mount(model, opening: service)
     defer { harness.close() }
 
-    try harness.inspectorDriver.open(Self.row(of: model, group: "session", field: "working-directory"))
+    try harness.inspectorDriver.open(
+      Self.row(of: model, group: "session", field: "working-directory"))
 
     #expect(service.calls == [Self.openCall(of: InspectionPath.folder(model.cwd))])
   }
@@ -402,14 +424,16 @@ import Testing
     defer { harness.close() }
     let index = Self.locationFiles.count - 1
 
-    try harness.inspectorDriver.openPath(at: index, in: Self.row(of: entry, group: "tool-call", field: "locations"))
+    try harness.inspectorDriver.openPath(
+      at: index, in: Self.row(of: entry, group: "tool-call", field: "locations"))
 
     let file = InspectionPath.file(AbsolutePath(rawValue: Self.locationFiles[index]))
     #expect(service.calls == [Self.openCall(of: file)])
   }
 
   @Test func openingAnAdditionalDirectoryOfASessionOpensItsFolder() async throws {
-    let session = try await ScriptedSession.open(additionalDirectories: Self.additionalFolders.map(AbsolutePath.init))
+    let session = try await ScriptedSession.open(
+      additionalDirectories: Self.additionalFolders.map(AbsolutePath.init))
     defer { session.close() }
     let model = session.model
     let service = RecordingAttachmentFileService()
@@ -428,7 +452,8 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     try await session.sendUpdate(
-      WireBlockJSON.makeChunk("agent_message_chunk", messageID: Self.messageID, block: WireBlockJSON.makeText("Hello")))
+      WireBlockJSON.makeChunk(
+        "agent_message_chunk", messageID: Self.messageID, block: WireBlockJSON.makeText("Hello")))
     let entry = try await Self.entry(AgentMessageEntry.self, in: session)
     let harness = Self.mount(entry)
     defer { harness.close() }
@@ -436,8 +461,9 @@ import Testing
     #expect(harness.rowValue(row) == "Hello")
 
     try await session.sendUpdate(
-      WireBlockJSON.makeChunk("agent_message_chunk", messageID: Self.messageID, block: WireBlockJSON.makeText(" there")))
-    await harness.render { InspectionText.text(of: entry.content) == "Hello there" }
+      WireBlockJSON.makeChunk(
+        "agent_message_chunk", messageID: Self.messageID, block: WireBlockJSON.makeText(" there")))
+    await harness.renderAfter { InspectionText.text(of: entry.content) == "Hello there" }
 
     #expect(harness.rowValue(row) == "Hello there")
   }
@@ -446,14 +472,16 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     try await session.sendUpdate(
-      WireBlockJSON.makeChunk("agent_thought_chunk", messageID: Self.messageID, block: WireBlockJSON.makeText("Think")))
+      WireBlockJSON.makeChunk(
+        "agent_thought_chunk", messageID: Self.messageID, block: WireBlockJSON.makeText("Think")))
     let entry = try await Self.entry(ThoughtEntry.self, in: session)
     let harness = Self.mount(entry)
     defer { harness.close() }
 
     try await session.sendUpdate(
-      WireBlockJSON.makeChunk("agent_thought_chunk", messageID: Self.messageID, block: WireBlockJSON.makeText("ing")))
-    await harness.render { InspectionText.text(of: entry.content) == "Thinking" }
+      WireBlockJSON.makeChunk(
+        "agent_thought_chunk", messageID: Self.messageID, block: WireBlockJSON.makeText("ing")))
+    await harness.renderAfter { InspectionText.text(of: entry.content) == "Thinking" }
 
     #expect(harness.rowValue(Self.row(of: entry, group: "message", field: "text")) == "Thinking")
   }
@@ -467,9 +495,11 @@ import Testing
     defer { harness.close() }
 
     try await session.sendUpdate(Self.planUpdate(status: "completed"))
-    await harness.render { entry.entries.first?.status == .completed }
+    await harness.renderAfter { entry.entries.first?.status == .completed }
 
-    #expect(harness.rowValue(Self.row(of: entry, group: "plan", field: "steps")) == "\(EditorStatus(EditorSymbol.Status.completed).label): Read")
+    #expect(
+      harness.rowValue(Self.row(of: entry, group: "plan", field: "steps"))
+        == "\(EditorStatus(EditorSymbol.Status.completed).label): Read")
   }
 
   @Test func theContextRowOfASessionFollowsItsUsage() async throws {
@@ -482,7 +512,7 @@ import Testing
     #expect(harness.rowValue(row) == EditorInspectorStrings.noValue)
 
     try await session.sendUpdate(#"{"sessionUpdate": "usage_update", "used": 48, "size": 200}"#)
-    await harness.render { model.usage != nil }
+    await harness.renderAfter { model.usage != nil }
 
     #expect(harness.rowValue(row) == "48")
   }
@@ -520,7 +550,9 @@ import Testing
   ///   - entry: The inspected tool call.
   ///   - timeZone: The time zone of the environment of the view.
   /// - Returns: The harness. The caller closes it.
-  static func mountTimed(_ entry: ToolCallEntry, timeZone: TimeZone = .current) -> HostedViewHarness<some View> {
+  static func mountTimed(_ entry: ToolCallEntry, timeZone: TimeZone = .current)
+    -> HostedViewHarness<some View>
+  {
     let harness = HostedViewHarness(size: size) {
       InspectorView(InspectedClientModel(entry))
         .inspectorFieldLabels(.visible)
@@ -553,12 +585,13 @@ import Testing
   ///   - harness: The harness that shows the inspection of `entry`.
   /// - Throws: The error of the transport.
   static func completeTimedCall<Content: View>(
-    _ entry: ToolCallEntry, after seconds: TimeInterval, clock: FixedClock, in session: ScriptedSession,
+    _ entry: ToolCallEntry, after seconds: TimeInterval, clock: FixedClock,
+    in session: ScriptedSession,
     shownBy harness: HostedViewHarness<Content>
   ) async throws {
     clock.advance(by: seconds)
     try await session.sendToolCallUpdate(title: timedCallTitle, status: .completed)
-    await harness.render { entry.timing.endedAt != nil }
+    await harness.renderAfter { entry.timing.endedAt != nil }
   }
 
   @Test(arguments: timedCalls)
@@ -572,7 +605,8 @@ import Testing
     let row = Self.timeRow(of: entry, field: "duration")
     #expect(harness.rowValue(row) == nil)
 
-    try await Self.completeTimedCall(entry, after: call.seconds, clock: clock, in: session, shownBy: harness)
+    try await Self.completeTimedCall(
+      entry, after: call.seconds, clock: clock, in: session, shownBy: harness)
 
     let style = EntryTimingView.lineDurationStyle(locale: Self.timedLocale)
     let expected = call.showsDuration ? style.format(.seconds(call.seconds)) : nil
@@ -589,7 +623,9 @@ import Testing
     defer { harness.close() }
 
     let style = EntryTimingView.startStyle(locale: Self.timedLocale, timeZone: zone)
-    #expect(harness.rowValue(Self.timeRow(of: entry, field: "started")) == style.format(TimedSessionClock.start))
+    #expect(
+      harness.rowValue(Self.timeRow(of: entry, field: "started"))
+        == style.format(TimedSessionClock.start))
   }
 
   @Test func theEndedRowOfARunningToolCallShowsNoValue() async throws {
@@ -600,10 +636,12 @@ import Testing
     let harness = Self.mountTimed(entry)
     defer { harness.close() }
 
-    #expect(harness.rowValue(Self.timeRow(of: entry, field: "ended")) == EditorInspectorStrings.noValue)
+    #expect(
+      harness.rowValue(Self.timeRow(of: entry, field: "ended")) == EditorInspectorStrings.noValue)
   }
 
-  @Test func theEndedRowOfACompletedToolCallShowsItsEndInTheTimeOfDayOfTheEnvironment() async throws {
+  @Test func theEndedRowOfACompletedToolCallShowsItsEndInTheTimeOfDayOfTheEnvironment() async throws
+  {
     let zone = try #require(TimedSessionClock.zoneOtherThanTheMachines())
     let clock = FixedClock(start: TimedSessionClock.start)
     let session = try await ScriptedSession.open(now: clock.now)
@@ -613,7 +651,8 @@ import Testing
     defer { harness.close() }
 
     let seconds = TimedSessionClock.stepSeconds
-    try await Self.completeTimedCall(entry, after: seconds, clock: clock, in: session, shownBy: harness)
+    try await Self.completeTimedCall(
+      entry, after: seconds, clock: clock, in: session, shownBy: harness)
 
     let end = TimedSessionClock.start.addingTimeInterval(seconds)
     let style = EntryTimingView.startStyle(locale: Self.timedLocale, timeZone: zone)
@@ -645,7 +684,8 @@ import Testing
 
   @Test func anErrorShowsItsMessage() throws {
     let entry = try #require(
-      PreviewFixtures.entry(.error(code: .internalError, message: "It broke."), as: ErrorEntry.self))
+      PreviewFixtures.entry(.error(code: .internalError, message: "It broke."), as: ErrorEntry.self)
+    )
     let harness = Self.mount(entry)
     defer { harness.close() }
 
@@ -657,7 +697,9 @@ import Testing
     let harness = Self.mount(entry)
     defer { harness.close() }
 
-    #expect(harness.rowValue(Self.row(of: entry, group: "message", field: "send-state")) == EditorStatus(entry.sendState).label)
+    #expect(
+      harness.rowValue(Self.row(of: entry, group: "message", field: "send-state"))
+        == EditorStatus(entry.sendState).label)
   }
 
   @Test func aConnectionShowsItsState() {
@@ -676,6 +718,8 @@ import Testing
     let harness = Self.mount(server)
     defer { harness.close() }
 
-    #expect(harness.rowValue(Self.row(of: server, group: "server", field: "transport")) == ConnectionRow.label(for: transport))
+    #expect(
+      harness.rowValue(Self.row(of: server, group: "server", field: "transport"))
+        == ConnectionRow.label(for: transport))
   }
 }

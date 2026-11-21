@@ -40,14 +40,16 @@ extension View {
   func applyOverride(_ kind: OverrideKind) -> some View {
     switch kind {
     case .userMessage: userMessageView { entry in marker(kind.markerIdentifier(for: entry.id)) }
-    case .assistantMessage: assistantMessageView { entry in marker(kind.markerIdentifier(for: entry.id)) }
+    case .assistantMessage:
+      assistantMessageView { entry in marker(kind.markerIdentifier(for: entry.id)) }
     case .reasoning: reasoningView { entry in marker(kind.markerIdentifier(for: entry.id)) }
     case .toolCall: toolCallView { entry in marker(kind.markerIdentifier(for: entry.id)) }
     case .terminal: terminalView { entry in marker(kind.markerIdentifier(for: entry.id)) }
     case .plan: planView { entry in marker(kind.markerIdentifier(for: entry.id)) }
     case .error: errorView { entry in marker(kind.markerIdentifier(for: entry.id)) }
     case .unknownItem: unknownItemView { entry in marker(kind.markerIdentifier(for: entry.id)) }
-    case .compactionEntry: compactionEntryView { entry in marker(kind.markerIdentifier(for: entry.id)) }
+    case .compactionEntry:
+      compactionEntryView { entry in marker(kind.markerIdentifier(for: entry.id)) }
     }
   }
 }
@@ -178,7 +180,8 @@ func marker(_ identifier: String) -> some View {
   }
 
   @Test func contentBlockViewResolvesForAnACPBlockByItsKind() {
-    let link = FoundationModelsACP.ContentBlock.resourceLink(FoundationModelsACP.ResourceLink(name: "n", uri: "u"))
+    let link = FoundationModelsACP.ContentBlock.resourceLink(
+      FoundationModelsACP.ResourceLink(name: "n", uri: "u"))
     let harness = Self.mount(
       ContentBlockRegistryReader(block: link)
         .contentBlockView(for: .resourceLink) { _ in marker("link") }
@@ -277,11 +280,12 @@ func marker(_ identifier: String) -> some View {
 
   // MARK: - Tool call registry
 
-  @Test(arguments: [
-    ("read_file", true),
-    ("write_file", false),
-    (nil, false),
-  ] as [(String?, Bool)])
+  @Test(
+    arguments: [
+      ("read_file", true),
+      ("write_file", false),
+      (nil, false),
+    ] as [(String?, Bool)])
   func toolCallRegistryResolvesOnlyTheRegisteredName(name: String?, resolves: Bool) {
     var registry = ToolCallRegistry()
     registry.register("read_file") { _ in AnyView(EmptyView()) }
@@ -319,80 +323,86 @@ func marker(_ identifier: String) -> some View {
   }
 
   #if DEBUG
-  // MARK: - Entry rows
+    // MARK: - Entry rows
 
-  /// The `messageId` of the message and thought entries of the entry row
-  /// test.
-  static let entryMessageID = "override-m"
+    /// The `messageId` of the message and thought entries of the entry row
+    /// test.
+    static let entryMessageID = "override-m"
 
-  /// The `toolCallId` of the tool call entry of the entry row test.
-  static let entryToolCallID = "override-call"
+    /// The `toolCallId` of the tool call entry of the entry row test.
+    static let entryToolCallID = "override-call"
 
-  /// The text of the message, thought and compaction entries of the entry
-  /// row test.
-  static let entryText = "Override."
+    /// The text of the message, thought and compaction entries of the entry
+    /// row test.
+    static let entryText = "Override."
 
-  /// The `session/update` value that makes an entry of `kind`.
-  ///
-  /// - Parameter kind: The entry case.
-  /// - Returns: The JSON text of the update, or `nil` for an error entry,
-  ///   which the client makes itself.
-  static func update(making kind: OverrideKind) -> String? {
-    let text = WireBlockJSON.makeText(entryText)
-    switch kind {
-    case .userMessage:
-      return WireBlockJSON.makeChunk("user_message_chunk", messageID: entryMessageID, block: text)
-    case .assistantMessage:
-      return WireBlockJSON.makeChunk("agent_message_chunk", messageID: entryMessageID, block: text)
-    case .reasoning:
-      return WireBlockJSON.makeChunk("agent_thought_chunk", messageID: entryMessageID, block: text)
-    case .toolCall:
-      return WireBlockJSON.makeToolCallUpdate(id: entryToolCallID, fields: #""status": "pending""#)
-    case .terminal:
-      return SessionEntryRowsHostedTests.terminalUpdate(#""command": "\#(SessionEntryRowsHostedTests.command)""#)
-    case .plan:
-      return SessionEntryRowsHostedTests.planUpdate(firstStatus: "pending")
-    case .unknownItem:
-      return #"{"sessionUpdate": "\#(SessionEntryRowsHostedTests.unknownType)"}"#
-    case .compactionEntry:
-      return WireBlockJSON.makeCompactionSummaryChunk(
-        compactionID: CompactionAndNoticeHostedTests.compactionID, block: text)
-    case .error:
-      return nil
+    /// The `session/update` value that makes an entry of `kind`.
+    ///
+    /// - Parameter kind: The entry case.
+    /// - Returns: The JSON text of the update, or `nil` for an error entry,
+    ///   which the client makes itself.
+    static func update(making kind: OverrideKind) -> String? {
+      let text = WireBlockJSON.makeText(entryText)
+      switch kind {
+      case .userMessage:
+        return WireBlockJSON.makeChunk("user_message_chunk", messageID: entryMessageID, block: text)
+      case .assistantMessage:
+        return WireBlockJSON.makeChunk(
+          "agent_message_chunk", messageID: entryMessageID, block: text)
+      case .reasoning:
+        return WireBlockJSON.makeChunk(
+          "agent_thought_chunk", messageID: entryMessageID, block: text)
+      case .toolCall:
+        return WireBlockJSON.makeToolCallUpdate(
+          id: entryToolCallID, fields: #""status": "pending""#)
+      case .terminal:
+        return SessionEntryRowsHostedTests.terminalUpdate(
+          #""command": "\#(SessionEntryRowsHostedTests.command)""#)
+      case .plan:
+        return SessionEntryRowsHostedTests.planUpdate(firstStatus: "pending")
+      case .unknownItem:
+        return #"{"sessionUpdate": "\#(SessionEntryRowsHostedTests.unknownType)"}"#
+      case .compactionEntry:
+        return WireBlockJSON.makeCompactionSummaryChunk(
+          compactionID: CompactionAndNoticeHostedTests.compactionID, block: text)
+      case .error:
+        return nil
+      }
     }
-  }
 
-  /// Makes the one entry of `kind` in the transcript of `session`.
-  ///
-  /// The helper waits for the event that the model holds the entry.
-  ///
-  /// - Parameters:
-  ///   - kind: The entry case.
-  ///   - session: A scripted session with an empty transcript.
-  /// - Returns: The entry.
-  /// - Throws: The error of the transport.
-  static func makeEntry(_ kind: OverrideKind, in session: ScriptedSession) async throws -> TranscriptEntry {
-    if let update = update(making: kind) {
-      try await session.sendUpdate(update)
-    } else {
-      session.model.appendError(code: .invalidParams, message: entryText, data: nil)
+    /// Makes the one entry of `kind` in the transcript of `session`.
+    ///
+    /// The helper waits for the event that the model holds the entry.
+    ///
+    /// - Parameters:
+    ///   - kind: The entry case.
+    ///   - session: A scripted session with an empty transcript.
+    /// - Returns: The entry.
+    /// - Throws: The error of the transport.
+    static func makeEntry(_ kind: OverrideKind, in session: ScriptedSession) async throws
+      -> TranscriptEntry
+    {
+      if let update = update(making: kind) {
+        try await session.sendUpdate(update)
+      } else {
+        session.model.appendError(code: .invalidParams, message: entryText, data: nil)
+      }
+      let model = session.model
+      await ObservationWait.until(within: BoundedWait.defaultBound) { !model.transcript.isEmpty }
+      return try #require(model.transcript.first)
     }
-    let model = session.model
-    await ObservationWait.until { !model.transcript.isEmpty }
-    return try #require(model.transcript.first)
-  }
 
-  @Test(arguments: OverrideKind.allCases)
-  func theOverrideOfEachEntryCaseShowsInTheRowOfTheEntry(kind: OverrideKind) async throws {
-    let session = try await ScriptedSession.open()
-    defer { session.close() }
-    let entry = try await Self.makeEntry(kind, in: session)
+    @Test(arguments: OverrideKind.allCases)
+    func theOverrideOfEachEntryCaseShowsInTheRowOfTheEntry(kind: OverrideKind) async throws {
+      let session = try await ScriptedSession.open()
+      defer { session.close() }
+      let entry = try await Self.makeEntry(kind, in: session)
 
-    let harness = Self.mount(ItemRow(entry: entry).applyOverride(kind))
-    defer { harness.close() }
+      let harness = Self.mount(ItemRow(entry: entry).applyOverride(kind))
+      defer { harness.close() }
 
-    #expect(harness.element(identifier: kind.markerIdentifier(for: entry.id)) != nil)
-    #expect(harness.element(identifier: ItemRow.identifier(for: entry.rowKey)) != nil)
-  }
+      #expect(harness.element(identifier: kind.markerIdentifier(for: entry.id)) != nil)
+      #expect(harness.element(identifier: ItemRow.identifier(for: entry.rowKey)) != nil)
+    }
   #endif
 }

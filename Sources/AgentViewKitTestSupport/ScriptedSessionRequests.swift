@@ -32,14 +32,16 @@ extension ScriptedSession {
   public static let runningState = #"{"sessionUpdate":"state_update","state":"running"}"#
 
   /// The `session/update` value that tells that the agent waits for the user.
-  public static let requiresActionState = #"{"sessionUpdate":"state_update","state":"requires_action"}"#
+  public static let requiresActionState =
+    #"{"sessionUpdate":"state_update","state":"requires_action"}"#
 
   /// The `session/update` value that tells that the agent is idle.
   public static let idleState = #"{"sessionUpdate":"state_update","state":"idle"}"#
 
   /// The `session/update` value that tells that the agent is idle because
   /// the turn ended (`end_turn`).
-  public static let endTurnState = #"{"sessionUpdate":"state_update","state":"idle","stopReason":"end_turn"}"#
+  public static let endTurnState =
+    #"{"sessionUpdate":"state_update","state":"idle","stopReason":"end_turn"}"#
 
   /// The method of a resume request.
   ///
@@ -60,7 +62,8 @@ extension ScriptedSession {
   /// The `initialize` result of an agent with the one agent auth method
   /// ``loginAuthMethodID``.
   public static let loginInitializeResult = makeInitializeResult(
-    info: agentInfo, authMethods: #"[{"type": "agent", "methodId": "agent-login", "name": "Sign in"}]"#)
+    info: agentInfo,
+    authMethods: #"[{"type": "agent", "methodId": "agent-login", "name": "Sign in"}]"#)
 
   /// The message of the form elicitation that the agent of
   /// ``openWithLoginElicitation(id:)`` sends during the login.
@@ -113,10 +116,13 @@ extension ScriptedSession {
   ///   - title: The title of the tool call.
   ///   - status: The new status of the tool call.
   /// - Throws: The error of the encoder or of the transport.
-  public func sendToolCallUpdate(title: String, status: FoundationModelsACP.ToolCallStatus) async throws {
+  public func sendToolCallUpdate(title: String, status: FoundationModelsACP.ToolCallStatus)
+    async throws
+  {
     try await send(
       update: .toolCallUpdate(
-        ToolCallUpdate(toolCallId: ToolCallId(rawValue: title), status: .value(status), title: .value(title))))
+        ToolCallUpdate(
+          toolCallId: ToolCallId(rawValue: title), status: .value(status), title: .value(title))))
   }
 
   /// One request of the agent to the client.
@@ -213,8 +219,8 @@ extension ScriptedSession {
   /// The model keeps the wire order in `pendingRequests`. The function
   /// gives the point at which the model holds each request, so the test can
   /// read the request at that point. It sends a request only after the model
-  /// holds the request before it. The wait is ``ObservationWait/until(_:)``
-  /// on the count of the pending requests, with no clock: each request is
+  /// holds the request before it. The wait is ``ObservationWait/until(within:sourceLocation:_:)``
+  /// on the count of the pending requests, with a bound: each request is
   /// certain to add one pending request. The caller makes the render pass.
   ///
   /// - Parameters:
@@ -226,7 +232,9 @@ extension ScriptedSession {
     for request in requests {
       let before = target.pendingRequests.count
       try await sendRequest(request.method, id: request.id, params: request.params)
-      await ObservationWait.until { target.pendingRequests.count == before + 1 }
+      await ObservationWait.until(within: BoundedWait.defaultBound) {
+        target.pendingRequests.count == before + 1
+      }
     }
   }
 
@@ -282,20 +290,24 @@ extension ScriptedSession {
     if let reason {
       params["_meta"] = .object([CancelRequestNotification.reasonMetaKey: .string(reason)])
     }
-    try await agent.send(#"{"jsonrpc":"2.0","method":"\#(Self.cancelRequestMethod)","params":\#(JSONValue.object(params).jsonString)}"#)
+    try await agent.send(
+      #"{"jsonrpc":"2.0","method":"\#(Self.cancelRequestMethod)","params":\#(JSONValue.object(params).jsonString)}"#
+    )
   }
 
   /// Waits until the agent has the response to its request with `id`.
   ///
-  /// The wait is ``ObservationWait/until(_:)`` on the frames that the
-  /// observable agent got, with no clock. Call it only after an action that
+  /// The wait is ``ObservationWait/until(within:sourceLocation:_:)`` on the frames that the
+  /// observable agent got, with a bound. Call it only after an action that
   /// answers the request.
   ///
   /// - Parameter id: The JSON-RPC id of the request of the agent.
   /// - Returns: The `result` member of the response, or `nil` when the
   ///   response has no `result` member.
   public func result(ofRequest id: Int) async -> JSONValue? {
-    await ObservationWait.until { agent.response(to: Double(id)) != nil }
+    await ObservationWait.until(within: BoundedWait.defaultBound) {
+      agent.response(to: Double(id)) != nil
+    }
     return agent.response(to: Double(id))?["result"]
   }
 

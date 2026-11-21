@@ -1,4 +1,3 @@
-@testable import AgentViewKit
 import AgentViewKitTestSupport
 import AppKit
 import EditorCommands
@@ -9,6 +8,8 @@ import FoundationModelsACPClient
 import SwiftUI
 import Synchronization
 import Testing
+
+@testable import AgentViewKit
 
 /// Tests for the live subjects of the agent scopes in a window (AVK-7b,
 /// AVK-7c).
@@ -63,10 +64,12 @@ import Testing
     defer { session.close() }
     let model = session.model
     let system = CommandSystem()
-    let harness = AgentCommandScopeHostedTests.mount(session: session, system: system, outerScope: false)
+    let harness = AgentCommandScopeHostedTests.mount(
+      session: session, system: system, outerScope: false)
     defer { harness.close() }
     try await AgentCommandScopeHostedTests.sendScopeMessage(to: session, rendering: harness)
-    let log = Self.registerProbe(of: AgentScopeKind.message, as: TranscriptEntry.self, at: model, in: system)
+    let log = Self.registerProbe(
+      of: AgentScopeKind.message, as: TranscriptEntry.self, at: model, in: system)
     let entry = try #require(model.transcript.first)
     let path = AgentCommandScopeHostedTests.path(of: model)
       .appending(AgentScopeKind.message(rowKey: entry.rowKey))
@@ -93,7 +96,9 @@ import Testing
   ) async throws -> ToolCallEntry {
     try await session.sendToolCallUpdate(title: toolCallTitle, status: .inProgress)
     let model = session.model
-    await harness.render { BackgroundRunsHostedTests.toolCall(id: toolCallTitle, in: model) != nil }
+    await harness.renderAfter {
+      BackgroundRunsHostedTests.toolCall(id: toolCallTitle, in: model) != nil
+    }
     return try #require(BackgroundRunsHostedTests.toolCall(id: toolCallTitle, in: model))
   }
 
@@ -105,12 +110,14 @@ import Testing
     defer { session.close() }
     let model = session.model
     let system = CommandSystem()
-    let harness = AgentCommandScopeHostedTests.mount(session: session, system: system, outerScope: false)
+    let harness = AgentCommandScopeHostedTests.mount(
+      session: session, system: system, outerScope: false)
     defer { harness.close() }
 
     let entry = try await Self.sendScopeToolCall(to: session, rendering: harness)
 
-    let path = AgentCommandScopeHostedTests.path(of: model).appending(AgentScopeKind.toolCall(entry.toolCallId.rawValue))
+    let path = AgentCommandScopeHostedTests.path(of: model).appending(
+      AgentScopeKind.toolCall(entry.toolCallId.rawValue))
     #expect(system.registry.tree.nodes.contains { $0.path == path })
   }
 
@@ -119,10 +126,12 @@ import Testing
     defer { session.close() }
     let model = session.model
     let system = CommandSystem()
-    let harness = AgentCommandScopeHostedTests.mount(session: session, system: system, outerScope: false)
+    let harness = AgentCommandScopeHostedTests.mount(
+      session: session, system: system, outerScope: false)
     defer { harness.close() }
     let entry = try await Self.sendScopeToolCall(to: session, rendering: harness)
-    let log = Self.registerProbe(of: AgentScopeKind.toolCall, as: ToolCallEntry.self, at: model, in: system)
+    let log = Self.registerProbe(
+      of: AgentScopeKind.toolCall, as: ToolCallEntry.self, at: model, in: system)
     let path = AgentCommandScopeHostedTests.path(of: model)
       .appending(AgentScopeKind.toolCall(entry.toolCallId.rawValue))
 
@@ -137,10 +146,12 @@ import Testing
     defer { session.close() }
     let model = session.model
     let system = CommandSystem()
-    let harness = AgentCommandScopeHostedTests.mount(session: session, system: system, outerScope: false)
+    let harness = AgentCommandScopeHostedTests.mount(
+      session: session, system: system, outerScope: false)
     defer { harness.close() }
     harness.render()
-    let log = Self.registerProbe(of: AgentScopeKind.thread, as: SessionModel.self, at: model, in: system)
+    let log = Self.registerProbe(
+      of: AgentScopeKind.thread, as: SessionModel.self, at: model, in: system)
     let path = AgentCommandScopeHostedTests.path(of: model)
 
     try #require(system.registry.perform(Self.probeID, at: path))
@@ -156,13 +167,15 @@ import Testing
     let system = CommandSystem()
     // The deck is beside the thread view, so the outer scope puts the cards
     // in the scope of the thread.
-    let harness = AgentCommandScopeHostedTests.mount(session: session, system: system, outerScope: true)
+    let harness = AgentCommandScopeHostedTests.mount(
+      session: session, system: system, outerScope: true)
     defer { harness.close() }
     let pending = try await session.sendPermissionRequest(
       id: AgentCommandScopeHostedTests.agentRequestID, rendering: harness)
     let log = Self.registerProbe(
       of: AgentScopeKind.request, as: PendingPermissionRequest.self, at: model, in: system)
-    let path = AgentCommandScopeHostedTests.path(of: model).appending(AgentScopeKind.request(pending))
+    let path = AgentCommandScopeHostedTests.path(of: model).appending(
+      AgentScopeKind.request(pending))
 
     try #require(system.registry.perform(Self.probeID, at: path, clicked: path))
 
@@ -216,7 +229,8 @@ import Testing
   /// - Returns: The log of the recording command.
   static func bindProbeChord(at model: SessionModel, in system: CommandSystem) -> CommandRunLog {
     let thread = AgentCommandScopeHostedTests.path(of: model)
-    return FallbackKeyBinding.bind(probeChord, to: probeID, at: thread, fallbackAt: thread, in: system)
+    return FallbackKeyBinding.bind(
+      probeChord, to: probeID, at: thread, fallbackAt: thread, in: system)
   }
 
   /// The decision for the fixture (^zb5td6w): the probe declines only where
@@ -228,10 +242,12 @@ import Testing
     defer { session.close() }
     let model = session.model
     let system = CommandSystem()
-    let harness = AgentCommandScopeHostedTests.mount(session: session, system: system, outerScope: false)
+    let harness = AgentCommandScopeHostedTests.mount(
+      session: session, system: system, outerScope: false)
     defer { harness.close() }
     harness.render()
-    let log = Self.registerProbe(of: AgentScopeKind.message, as: TranscriptEntry.self, at: model, in: system)
+    let log = Self.registerProbe(
+      of: AgentScopeKind.message, as: TranscriptEntry.self, at: model, in: system)
     let fallbacks = Self.bindProbeChord(at: model, in: system)
 
     #expect(
@@ -247,13 +263,16 @@ import Testing
     defer { session.close() }
     let model = session.model
     let system = CommandSystem()
-    let harness = AgentCommandScopeHostedTests.mount(session: session, system: system, outerScope: false)
+    let harness = AgentCommandScopeHostedTests.mount(
+      session: session, system: system, outerScope: false)
     defer { harness.close() }
     try await AgentCommandScopeHostedTests.sendScopeMessage(to: session, rendering: harness)
-    let log = Self.registerProbe(of: AgentScopeKind.message, as: TranscriptEntry.self, at: model, in: system)
+    let log = Self.registerProbe(
+      of: AgentScopeKind.message, as: TranscriptEntry.self, at: model, in: system)
     let fallbacks = Self.bindProbeChord(at: model, in: system)
     let entry = try #require(model.transcript.first)
-    let message = AgentCommandScopeHostedTests.path(of: model).appending(AgentScopeKind.message(rowKey: entry.rowKey))
+    let message = AgentCommandScopeHostedTests.path(of: model).appending(
+      AgentScopeKind.message(rowKey: entry.rowKey))
 
     #expect(system.registry.performKey(Self.probeChord.asSequence, mode: .cua, at: message))
 
