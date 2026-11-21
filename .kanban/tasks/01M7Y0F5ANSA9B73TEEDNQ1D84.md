@@ -37,6 +37,16 @@ comments:
     - AgentViewKit gets FoundationModelsCodeContext only as a dependency of a dependency (through Multitool). Package.resolved is not tracked, thus CI resolves the newest main on each run.
     - This fix does not fix the stop of the tests. The 30-minute timeout with the stack sample (d2b5ffb3) shows the cause on the next run.
   timestamp: 2026-11-21T11:08:31.865809+00:00
+- actor: claude-code
+  id: 01m7zzcdayf6vdnk24qk8gkx27
+  text: |-
+    ### Integration run with the 30-minute limit (2026-11-21)
+    - Run 44906413428, job 136859513205, commit 59d61e00, runner m3u1. The test step ran 13:38:54 to 13:59:00 UTC. At 13:58:55 the job sampled the process swiftpm-testing-helper (pid 32768) and stopped it. Artifact: integration-hang-samples (local copy: scratchpad/hang/32768.txt).
+    - The same tests fail as in job 136420732846 (about 18): AgentItemFocus (theFirstResponderCoversAFocusedItem, theBeaconOfAnItemWithNoFocusableViewHoldsTheFocus .message), TranscriptSearchStep escape, AgentRowListRename (3, textView.string == text), accessibility text labels (compaction summary, agent message chunks, wire text block, math, linked blocks, Markdown attachment "json"), ThreadHeaderContextMenu empty part, ThreadBarBannerOverlap, submit hook mentions.
+    - After about 13:41 no test event comes until the sample. The main thread does not block: it waits in the run loop (OutermostRunLoopGuard.runAgain, OutermostRunLoopGuard.swift:83, mach_msg) and gets no event. The other threads are idle: the CodeContext index loop (GRDB reader, Store.drainLspDirty) and the cooperative pool. Thus one test awaits an event that never comes. It is not a deadlock and not the font server.
+    - The output of Swift Testing is buffered, so the start times do not show which test waits. 20 tests started and did not end before 13:41. Tests that are open in both hangs (job 136741707622 and this job): aFocusedItemWithNoSurfaceShowsItsScopeRing(kind:) (in both runs, the .message case of an AgentItemFocus test fails just before the stop), theFocusedInspectorShowsItsScopeRing(), aSubmitPassesTheAttachmentsAndClearsTheRow(), aJumpOnTheCardFocusesTheCardAndNotItsCommentField(), aSubmitAttemptShowsTheErrorOfEachFieldThatIsNotValid().
+    - Next: find the await with no bound in those tests (for example in AgentScopeSubjectHostedTests.sendScopeToolCall, used by the .toolCall case after the .message case fails), and fix the failing tests.
+  timestamp: 2026-11-21T21:14:48.030177+00:00
 position_column: todo
 position_ordinal: '8280'
 title: Integration CI job on main is red (run 44757895393, a60d101a)
