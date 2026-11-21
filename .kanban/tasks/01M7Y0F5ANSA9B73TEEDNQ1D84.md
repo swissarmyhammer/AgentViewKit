@@ -29,6 +29,14 @@ comments:
       - The case kind .toolCall of aFocusedItemWithNoSurfaceShowsItsScopeRing(kind:) started, then rpc initialize and session/new. This is the last line.
     - Thus the process stopped during the case .toolCall of aFocusedItemWithNoSurfaceShowsItsScopeRing(kind:), or during aSubmitPassesTheAttachmentsAndClearsTheRow(), both after session/new. The log does not show which test holds the stop. A timeout with stack samples (workflows 9b5f96b) is necessary to find it.
   timestamp: 2026-11-21T10:54:34.922476+00:00
+- actor: claude-code
+  id: 01m7ywp9qs6n0j7vamgy529x7b
+  text: |-
+    ### The index.pass lines — fix in a dependency (2026-11-21)
+    - FoundationModelsCodeContext 90f3003 (main): the idle index loop runs a pass only when a file waits. Thus the "index.pass" lines go away from the Integration log.
+    - AgentViewKit gets FoundationModelsCodeContext only as a dependency of a dependency (through Multitool). Package.resolved is not tracked, thus CI resolves the newest main on each run.
+    - This fix does not fix the stop of the tests. The 30-minute timeout with the stack sample (d2b5ffb3) shows the cause on the next run.
+  timestamp: 2026-11-21T11:08:31.865809+00:00
 position_column: todo
 position_ordinal: '8280'
 title: Integration CI job on main is red (run 44757895393, a60d101a)
