@@ -131,7 +131,24 @@ comments:
     - evidence: 2 files — IntegrationTests/Tests/IntegrationTests/Helpers/ComposerHarness.swift, IntegrationTests/Tests/IntegrationTests/Helpers/SingleLineFieldChecks.swift. `swift test` (root, headless): 1586 tests in 180 suites passed, and 54 tests in 11 suites passed, rc=0. `cd IntegrationTests && swift build --build-tests`: Build complete, 0 errors. `swift format lint --strict` on the 2 files: 0 findings. The finding at ComposerHarness.swift:92 is flipped to [x]. Hosted suites not run (user rule).
     - next: /review. The task stays in doing.
   timestamp: 2026-11-21T22:03:48.241984+00:00
-position_column: doing
+- actor: claude-code
+  id: 01m802b8f9bxxtfs24evkpk6ym
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (7580673b): 0 findings, 0 confirmed, 0 refuted (7 validator runs, 0 failed). 2 files examined; 2 files in .kanban/ not examined (ignore rule). The 1 earlier finding (ComposerHarness.swift:92) is checked.
+    - next: The task stays in Review, not done. 5 hosted tests are not fixed, and CI on main is not green. Fix the 5 hosted tests and get a green Integration job on main.
+  timestamp: 2026-11-21T22:06:36.009446+00:00
+- actor: claude-code
+  id: 01m802bwegmnabvrha85626txw
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — 2 files (sourceLocation of the bounded waits in two helpers)
+    - test: green — swift test, 1586 tests in 180 suites passed; IntegrationTests and ScreenshotTests build passed (not run)
+    - commit: 7580673b
+    - review: clean — 0 findings, 1 of 1 earlier item checked
+    - The task stays in review: the next CI run on main must show the result of the bounded waits. 5 hosted tests stay open (3 on ^6386krf, 2 need a hosted run).
+  timestamp: 2026-11-21T22:06:56.464307+00:00
+position_column: review
 position_ordinal: '80'
 title: Integration CI job on main is red (run 44757895393, a60d101a)
 ---
@@ -168,5 +185,13 @@ Do:
 > - `Input/PromptInputViewHostedTests.swift:234` (duplication)
 > - `Items/MessageActionsHostedTests.swift:215` (test-integrity/no-test-cheating; the test and its expected value were at HEAD~1, and this change only changed the format of the line)
 > - `Thread/ThreadBottomBarHostedTests.swift:57` (reuse)
+
+> Status: This task stays open in Review. It is not done. 5 hosted tests are not fixed, and CI on main is not green.
+
+## Review Findings (2026-11-21 16:05)
+
+> Scope: `review sha HEAD~1..HEAD` (7580673b). The review examined only the lines that the change added or changed. 2 files were examined. 2 files in `.kanban/` were not examined (ignore rule).
+
+> Result: 0 new findings (7 validator runs, 0 failed, 0 skipped). The 1 earlier finding is checked.
 
 > Status: This task stays open in Review. It is not done. 5 hosted tests are not fixed, and CI on main is not green.
