@@ -1,6 +1,17 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m7y415w9vr7b47srms3tew9m
+  text: |-
+    ### implement — changed
+    - New public modifier `AgentRowList.rowAccessibilityLabel(_:)`: the host gives a `Text` for each item, and the row element (the container with the row identifier) gets it as its accessibility label. With no label, the row element has no label of its own, as before. The content elements stay as they are.
+    - Files: Sources/AgentViewKit/Lists/AgentRowList.swift (`rowLabel`, `AgentRowListRow.label`, `AgentRowClicks.label`, `OptionalAccessibilityLabel`, docs). swift format also wrapped long lines in this file, and the row content is now a named argument (OnlyOneTrailingClosureArgument, which was in the file before).
+    - Tests: new unit suite AgentRowListRowLabelTests (3 tests, pass). New hosted suite AgentRowListRowLabelHostedTests (3 tests, compile only, not run).
+    - evidence: swift test: 1556 tests in 178 suites and 54 tests in 11 suites passed. IntegrationTests swift build --build-tests: Build complete. swift format lint -s: 0 findings.
+    - next: commit, push, send the sha to testudoapp-9a. Testudo must call `.rowAccessibilityLabel` on its lists.
+  timestamp: 2026-11-21T03:57:33.961500+00:00
 position_column: todo
 position_ordinal: '8180'
 title: The row container of AgentRowList has the label of the row (Testudo)

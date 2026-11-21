@@ -45,7 +45,8 @@ public struct AgentRowListScope: Hashable, Sendable {
   /// - Parameter id: The id of the row.
   /// - Returns: `agent-row-<list>/<rowKind>:<id>`.
   public func rowIdentifier(for id: String) -> String {
-    AccessibilityIdentifier.make(prefix: Self.rowIdentifierPrefix, value: "\(list)/\(rowSegment(for: id))")
+    AccessibilityIdentifier.make(
+      prefix: Self.rowIdentifierPrefix, value: "\(list)/\(rowSegment(for: id))")
   }
 }
 
@@ -86,7 +87,8 @@ public enum AgentRowDensity: Hashable, Sendable {
         trailing: style.tile.padding)
     case .compact:
       EdgeInsets(
-        top: style.spacing.xs, leading: style.spacing.s, bottom: style.spacing.xs, trailing: style.spacing.s)
+        top: style.spacing.xs, leading: style.spacing.s, bottom: style.spacing.xs,
+        trailing: style.spacing.s)
     }
   }
 
@@ -167,7 +169,10 @@ public enum AgentRowDensity: Hashable, Sendable {
 /// When no ancestor installs a command system, the list uses one of its own.
 ///
 /// Each row is one accessibility element that contains the elements of its
-/// content, so VoiceOver reads each row as the content tells. The row element
+/// content, so VoiceOver reads each row as the content tells. Give the row
+/// element a name with ``rowAccessibilityLabel(_:)``: with no label, the row
+/// element has no name of its own, and only its content tells what the row
+/// is. The row element
 /// has the identifier ``AgentRowListScope/rowIdentifier(for:)`` and the
 /// accessibility action Open, which opens the row as Return does, or Select in
 /// a list with no `onOpen`, which selects the row. VoiceOver lists it in the
@@ -210,6 +215,10 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
   /// (``wrappingRows(_:)``).
   var rowWrapper: ((AnyView, Item) -> AnyView)?
 
+  /// The accessibility label of the element of each row, or `nil` for a row
+  /// element with no label of its own (``rowAccessibilityLabel(_:)``).
+  var rowLabel: ((Item) -> Text)?
+
   @Environment(\.commandSystem) private var ambientSystem
   @Environment(\.commandScopePath) private var parentPath
   @Environment(\.editorStyle) private var editorStyle
@@ -248,7 +257,8 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
     @ViewBuilder row: @escaping (Item) -> Row, @ViewBuilder footer: () -> Footer
   ) {
     self.init(
-      entries: AgentRowListEntry.rows(of: items, id: id), scope: scope, openTrigger: openTrigger, density: density,
+      entries: AgentRowListEntry.rows(of: items, id: id), scope: scope, openTrigger: openTrigger,
+      density: density,
       current: current, onOpen: onOpen, row: row, footer: footer())
   }
 
@@ -278,7 +288,8 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
     @ViewBuilder row: @escaping (Item) -> Row, @ViewBuilder footer: () -> Footer
   ) {
     self.init(
-      entries: AgentRowListEntry.entries(of: sections, id: id), scope: scope, openTrigger: openTrigger,
+      entries: AgentRowListEntry.entries(of: sections, id: id), scope: scope,
+      openTrigger: openTrigger,
       density: density, current: current, onOpen: onOpen, row: row, footer: footer())
   }
 
@@ -296,7 +307,8 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
   ///   - footer: The view after the last row.
   private init(
     entries: [AgentRowListEntry<Item>], scope: AgentRowListScope, openTrigger: AgentRowOpenTrigger,
-    density: AgentRowDensity, current: String?, onOpen: ((Item) -> Void)?, row: @escaping (Item) -> Row,
+    density: AgentRowDensity, current: String?, onOpen: ((Item) -> Void)?,
+    row: @escaping (Item) -> Row,
     footer: Footer
   ) {
     self.entries = entries
@@ -318,8 +330,10 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
           ForEach(entries) { entry in
             switch entry {
             case .header(let sectionID, let title):
-              AgentRowSectionHeader(title: title, identifier: AgentRowSectionHeader.identifier(for: sectionID))
-                .padding(density.headerInsets(in: editorStyle))
+              AgentRowSectionHeader(
+                title: title, identifier: AgentRowSectionHeader.identifier(for: sectionID)
+              )
+              .padding(density.headerInsets(in: editorStyle))
             case .row(let id, let item):
               rowView(for: item, id: id, in: path, system: system)
             }
@@ -327,7 +341,9 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
           footer
         }
       }
-      .background(AgentRowListMount(target: target, values: values(system: system, path: path, proxy: proxy)))
+      .background(
+        AgentRowListMount(target: target, values: values(system: system, path: path, proxy: proxy))
+      )
       .onChange(of: focusedPath) { previous, focused in
         showHeader(of: focused, movingFrom: previous, in: path, proxy: proxy)
       }
@@ -348,17 +364,19 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
   ///   - system: The system that the list registers in, whose geometry
   ///     gives the focus to the row on a click.
   /// - Returns: The row.
-  private func rowView(for item: Item, id: String, in listPath: FocusPath, system: CommandSystem) -> some View {
+  private func rowView(for item: Item, id: String, in listPath: FocusPath, system: CommandSystem)
+    -> some View
+  {
     let segment = scope.rowSegment(for: id)
     let rowPath = listPath.appending(segment)
     return AgentRowListRow(
       segment: segment, identifier: scope.rowIdentifier(for: id),
       isSelected: isSelected(rowWithID: id, at: rowPath),
       select: { _ = system.geometry.requestFocus(at: rowPath) }, open: opener(of: item),
-      openTrigger: openTrigger, density: density, wrapper: rowWrapper.map { wrap in { wrap($0, item) } }
-    ) {
-      row(item)
-    }
+      openTrigger: openTrigger, density: density, label: rowLabel?(item),
+      wrapper: rowWrapper.map { wrap in { wrap($0, item) } },
+      content: { row(item) }
+    )
   }
 
   /// Tells if a row wears the selection: the current row of the host, or the
@@ -387,9 +405,11 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
   ///   - listPath: The path of the scope of the list.
   ///   - proxy: The proxy of the scroll view of the list.
   private func showHeader(
-    of focused: FocusPath?, movingFrom previous: FocusPath?, in listPath: FocusPath, proxy: ScrollViewProxy
+    of focused: FocusPath?, movingFrom previous: FocusPath?, in listPath: FocusPath,
+    proxy: ScrollViewProxy
   ) {
-    guard let focused, let previous, listPath.isAncestor(of: focused), let rowID = target.rowID(on: focused),
+    guard let focused, let previous, listPath.isAncestor(of: focused),
+      let rowID = target.rowID(on: focused),
       let previousID = target.rowID(on: previous), let index = target.rowIDs.firstIndex(of: rowID),
       let previousIndex = target.rowIDs.firstIndex(of: previousID), index < previousIndex,
       let header = AgentRowListEntry.headerID(above: rowID, in: entries)
@@ -413,7 +433,9 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
   ///   - path: The path of the scope of the list.
   ///   - proxy: The proxy of the scroll view of the list.
   /// - Returns: The values.
-  private func values(system: CommandSystem, path: FocusPath, proxy: ScrollViewProxy) -> AgentRowListMount.Values {
+  private func values(system: CommandSystem, path: FocusPath, proxy: ScrollViewProxy)
+    -> AgentRowListMount.Values
+  {
     let rows = entries.compactMap(\.row)
     let open = onOpen.map { open in
       { (rowID: String) in
@@ -423,7 +445,8 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
       }
     }
     return AgentRowListMount.Values(
-      system: system, path: path, rowKind: scope.rowKind, rowIDs: rows.map(\.id), open: open, proxy: proxy)
+      system: system, path: path, rowKind: scope.rowKind, rowIDs: rows.map(\.id), open: open,
+      proxy: proxy)
   }
 }
 
@@ -451,7 +474,8 @@ extension AgentRowList where Footer == EmptyView {
     @ViewBuilder row: @escaping (Item) -> Row
   ) {
     self.init(
-      items, id: id, scope: scope, openOn: openTrigger, density: density, current: current, onOpen: onOpen, row: row
+      items, id: id, scope: scope, openOn: openTrigger, density: density, current: current,
+      onOpen: onOpen, row: row
     ) {
       EmptyView()
     }
@@ -482,7 +506,8 @@ extension AgentRowList where Footer == EmptyView {
     @ViewBuilder row: @escaping (Item) -> Row
   ) {
     self.init(
-      sections: sections, id: id, scope: scope, openOn: openTrigger, density: density, current: current,
+      sections: sections, id: id, scope: scope, openOn: openTrigger, density: density,
+      current: current,
       onOpen: onOpen, row: row
     ) {
       EmptyView()
@@ -517,6 +542,30 @@ extension AgentRowList {
   ) -> Self {
     var list = self
     list.rowWrapper = { row, item in AnyView(wrapper(row, item)) }
+    return list
+  }
+
+  /// Gives the accessibility element of each row a label: the name that
+  /// VoiceOver reads for the row, and the `label` of the row element in a UI
+  /// test.
+  ///
+  /// The row element contains the elements of its content, so a label on
+  /// the content, or in a wrapper of ``wrappingRows(_:)``, names the content
+  /// and not the row. This label names the row element itself:
+  ///
+  /// ```swift
+  /// AgentRowList(sessions, id: \.id, scope: scope) { session in
+  ///   SessionRow(session)
+  /// }
+  /// .rowAccessibilityLabel { session in Text(session.title) }
+  /// ```
+  ///
+  /// - Parameter label: The label of the row of an item. Give localized
+  ///   text.
+  /// - Returns: The list, with a label on each row element.
+  public func rowAccessibilityLabel(_ label: @escaping (_ item: Item) -> Text) -> Self {
+    var list = self
+    list.rowLabel = label
     return list
   }
 }
@@ -581,6 +630,10 @@ struct AgentRowListRow<Content: View>: View {
   /// How tight the rows of the list stand.
   let density: AgentRowDensity
 
+  /// The accessibility label of the row element, or `nil` for no label of
+  /// its own.
+  let label: Text?
+
   /// The wrapper of the whole row, or `nil` for a bare row.
   let wrapper: ((AnyView) -> AnyView)?
 
@@ -594,7 +647,10 @@ struct AgentRowListRow<Content: View>: View {
 
   var body: some View {
     wrappedSurface
-      .modifier(AgentRowClicks(trigger: openTrigger, select: select, open: open, identifier: identifier))
+      .modifier(
+        AgentRowClicks(
+          trigger: openTrigger, select: select, open: open, identifier: identifier, label: label)
+      )
       .focusEffectDisabled()
       .focused($isFocused)
       .commandScope(segment: segment)
@@ -609,7 +665,8 @@ struct AgentRowListRow<Content: View>: View {
       content
       .padding(density.rowInsets(in: editorStyle))
       .frame(maxWidth: .infinity, alignment: .leading)
-      .selectableSurface(isSelected, isFocused: isFocused, corners: .rounded(AgentRowListLayout.radius))
+      .selectableSurface(
+        isSelected, isFocused: isFocused, corners: .rounded(AgentRowListLayout.radius))
     if let wrapper {
       wrapper(AnyView(surface))
     } else {
@@ -648,6 +705,10 @@ struct AgentRowClicks: ViewModifier {
   /// The accessibility identifier of the row element.
   let identifier: String
 
+  /// The accessibility label of the row element, or `nil` for no label of
+  /// its own.
+  let label: Text?
+
   /// The name of the accessibility action of a row that opens.
   static var openActionName: String { String(localized: "Open", bundle: .module) }
 
@@ -664,7 +725,9 @@ struct AgentRowClicks: ViewModifier {
       .overlay { Color.clear.accessibilityHidden(true).allowsHitTesting(false) }
       .accessibilityElement(children: .contain)
       .accessibilityIdentifier(identifier)
-      .accessibilityAction(named: Text(open == nil ? Self.selectActionName : Self.openActionName), activate)
+      .modifier(OptionalAccessibilityLabel(label: label))
+      .accessibilityAction(
+        named: Text(open == nil ? Self.selectActionName : Self.openActionName), activate)
   }
 
   /// `content` with the clicks of the trigger.
@@ -717,8 +780,10 @@ struct AgentRowClicks: ViewModifier {
 #Preview("Sections") {
   AgentRowList(
     sections: [
-      AgentRowSection(id: "pinned", title: "Pinned", items: Array(PreviewFixtures.suggestions.prefix(1))),
-      AgentRowSection(id: "recent", title: "Recent", items: Array(PreviewFixtures.suggestions.dropFirst())),
+      AgentRowSection(
+        id: "pinned", title: "Pinned", items: Array(PreviewFixtures.suggestions.prefix(1))),
+      AgentRowSection(
+        id: "recent", title: "Recent", items: Array(PreviewFixtures.suggestions.dropFirst())),
     ],
     id: \.self,
     scope: AgentRowListScope(list: FocusSegment(kind: "previewList"), rowKind: "previewRow"),
@@ -752,4 +817,20 @@ struct AgentRowClicks: ViewModifier {
     Text(suggestion)
   }
   .scrollContentMargins(\.tile.margin)
+}
+
+/// An accessibility label on the element of the content, or no change for
+/// `nil`. A `nil` label leaves the element with no label of its own, and does
+/// not set an empty one.
+struct OptionalAccessibilityLabel: ViewModifier {
+  /// The label, or `nil` for no label.
+  let label: Text?
+
+  func body(content: Content) -> some View {
+    if let label {
+      content.accessibilityLabel(label)
+    } else {
+      content
+    }
+  }
 }
