@@ -1,6 +1,34 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m7yvsdzjhx5z4wawh6ax96rd
+  text: |-
+    ### Integration job hang — facts (2026-11-21)
+    - Run 44863705973, job 136741707622, commit dda19651. Runner: m3u1.
+    - The step "Run the selected integration tests" started at 05:32:39 UTC. The job was cancelled at 08:28:55 UTC (duration 10,575 s). I did not cancel it: it was already cancelled when I looked.
+    - The last test event is at 05:34:48 UTC. 40 tests started and did not end. The last ones: aSubmitPassesTheAttachmentsAndClearsTheRow(), theFocusedInspectorShowsItsScopeRing(), aLandingOnTheCardWhileTheCommentFieldHasTheFocusFocusesTheCard(landing:), aFocusedItemWithNoSurfaceShowsItsScopeRing(kind:).
+    - From 05:34:48 to 08:28:51 UTC, the log shows only one line, about 6 times each second (66,138 lines in all): "info FoundationModelsCodeContext.index: [FoundationModelsExtras] enter FoundationModelsCodeContext.index.pass". The first one is at 05:33:29 UTC.
+    - No AgentViewKit source or test uses FoundationModelsCodeContext. The line comes from a dependency, possibly the real agent that an integration test starts.
+    - This is not the same as the EditorKit hang (font server): here a process continues to write the index log.
+    - At the cleanup, the runner stopped the orphan processes swiftpm-testing (22393) and swift-package (21717).
+    - Next: the user decides if the runners get a restart of fontd. Then run the job again. The card stays open.
+  timestamp: 2026-11-21T10:52:45.938671+00:00
+- actor: claude-code
+  id: 01m7yvwrdawq8x22fh0jzjqw3r
+  text: |-
+    ### Integration job hang — the last lines before the stop (2026-11-21)
+    - FoundationModelsExtras says that the "index.pass" lines are an idle poll of each CodeContext (300 ms sleep). They do not block the tests. They are only noise after the stop.
+    - The log lines at 05:34:48 UTC are one flush of the output. Their own time stamps are 05:34:45 to 05:34:46 UTC. After log line 18589, the log has no other line than "index.pass", up to the cancel at 08:28:55 UTC.
+    - The last lines that are not "index.pass" (log lines 18565 to 18589):
+      - 05:34:46 rpc.method=session/close session.id=scripted-session.
+      - aFocusedViewWithASurfaceShowsNoScopeRing(surface:) passed. AttachmentCommandsHostedTests passed. theComposerShowsTheRowOnlyWhenItHasAttachments() passed.
+      - aSubmitPassesTheAttachmentsAndClearsTheRow() started, then rpc initialize and session/new.
+      - aFocusedItemWithNoSurfaceShowsItsScopeRing(kind:) failed for kind .message at AgentItemFocusHostedTests.swift:168: the responder is EditorText.EditorInputTextView (472 x 16), not GeometryProbeView. This is the AgentItemFocus failure of the earlier red job 136420732846.
+      - The case kind .toolCall of aFocusedItemWithNoSurfaceShowsItsScopeRing(kind:) started, then rpc initialize and session/new. This is the last line.
+    - Thus the process stopped during the case .toolCall of aFocusedItemWithNoSurfaceShowsItsScopeRing(kind:), or during aSubmitPassesTheAttachmentsAndClearsTheRow(), both after session/new. The log does not show which test holds the stop. A timeout with stack samples (workflows 9b5f96b) is necessary to find it.
+  timestamp: 2026-11-21T10:54:34.922476+00:00
 position_column: todo
 position_ordinal: '8280'
 title: Integration CI job on main is red (run 44757895393, a60d101a)
