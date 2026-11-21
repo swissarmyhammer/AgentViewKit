@@ -126,6 +126,69 @@ import Testing
   }
 }
 
+#if DEBUG
+  // MARK: - Symbol column
+
+  /// The header of a code block has its symbol in the symbol column, as the
+  /// header of a terminal has (task ^dsh1gqf). So the title of a code block
+  /// and the command of a terminal of the same width start at the same x.
+  extension CodeBlockViewHostedTests {
+    /// The space from the leading edge of a mounted code block to the start
+    /// of its header title.
+    ///
+    /// - Parameters:
+    ///   - block: The code block to mount.
+    ///   - title: The text of the header title.
+    /// - Returns: The space, in points.
+    /// - Throws: An issue when no element has the label `title`.
+    static func titleLeading(of block: CodeBlockView, title: String) throws -> CGFloat {
+      let harness = HostedViewHarness(block)
+      defer { harness.close() }
+      harness.render()
+
+      let node = try #require(ResponseTextChecks.node(labeled: title, in: harness))
+      let frame = try #require(accessibilityFrame(of: node))
+      let view = try #require(harness.screenFrame(of: harness.hostingView))
+      return frame.minX - view.minX
+    }
+
+    /// The space from the leading edge of a mounted terminal to the start of
+    /// the command in its header.
+    ///
+    /// - Returns: The space, in points.
+    /// - Throws: The error of the scripted session, or an issue when the
+    ///   terminal shows no command.
+    static func terminalCommandLeading() async throws -> CGFloat {
+      let (session, terminal) = try await TerminalViewHostedTests.openTerminal(
+        TerminalViewHostedTests.headerFields)
+      defer { session.close() }
+      let harness = HostedViewHarness(TerminalView(entry: terminal))
+      defer { harness.close() }
+      harness.render()
+
+      let frame = try #require(harness.frame(identifier: TerminalView.commandIdentifier))
+      let view = try #require(harness.screenFrame(of: harness.hostingView))
+      return frame.minX - view.minX
+    }
+
+    @Test func theTitleOfACodeBlockStartsAtTheXOfTheCommandOfATerminal() async throws {
+      let block = CodeBlockView(code: Self.swiftCode, language: "swift")
+
+      let title = try Self.titleLeading(of: block, title: "swift")
+
+      #expect(title == (try await Self.terminalCommandLeading()))
+    }
+
+    @Test func thePlainTextTitleOfACodeBlockStartsAtTheXOfTheCommandOfATerminal() async throws {
+      let block = CodeBlockView(code: Self.swiftCode, language: nil)
+
+      let title = try Self.titleLeading(of: block, title: CodeBlockView.plainTextName)
+
+      #expect(title == (try await Self.terminalCommandLeading()))
+    }
+  }
+#endif
+
 /// The code of a hosted test view, which a test can change.
 @Observable
 final class CodeSource {

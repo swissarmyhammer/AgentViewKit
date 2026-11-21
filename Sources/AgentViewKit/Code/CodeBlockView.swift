@@ -4,8 +4,8 @@ import SwiftUI
 
 /// A read-only code block on EditorKit (plan.md §4.1, §9).
 ///
-/// The view shows a header with the filename or the language and a Copy
-/// button, in a ``BlockHeader``. Below the header, an EditorKit editor shows the code with line
+/// The view shows a header with a code symbol, the filename or the language
+/// and a Copy button, in a ``BlockHeader``. Below the header, an EditorKit editor shows the code with line
 /// numbers. The editor takes the height of the code and wraps a long line to
 /// its width, with no scroll of its own, so its host scrolls the block
 /// (`EditorView.sizedToContent()`). When EditorKit has a
@@ -100,9 +100,19 @@ public struct CodeBlockView: View {
       comment: "The VoiceOver label of a code block: the name of its language, such as swift.")
   }
 
-  /// The header with the title and the Copy button: a ``BlockHeader``.
+  /// The header with the symbol, the title and the Copy button: a
+  /// ``BlockHeader``.
+  ///
+  /// The symbol (``AgentSymbol/codeBlock``) is the same for each language.
+  /// It is in the symbol column, as the symbol of the header of
+  /// ``TerminalView`` is, so the title starts at the x of the command of a
+  /// terminal. The ``BlockHeader`` gives the symbol the color of the title,
+  /// and the small spacing of the style between the symbol and the title.
   private var header: some View {
     BlockHeader {
+      Image(systemName: AgentSymbol.codeBlock)
+        .symbolColumn()
+        .accessibilityHidden(true)
       Text(filename ?? language ?? Self.plainTextName)
     } actions: {
       EditorToolbarButton(

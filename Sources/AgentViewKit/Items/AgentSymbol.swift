@@ -247,6 +247,10 @@ nonisolated enum AgentSymbol {
   /// The symbol of the sources of an answer.
   static let sources = "books.vertical"
 
+  /// The symbol of a code block: the header of ``CodeBlockView`` shows it
+  /// in the symbol column, the same symbol for each language.
+  static let codeBlock = "chevron.left.forwardslash.chevron.right"
+
   /// The symbol of a compaction of the context.
   static let compaction = "arrow.down.right.and.arrow.up.left"
 
