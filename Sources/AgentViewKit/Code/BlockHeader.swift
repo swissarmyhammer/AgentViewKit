@@ -96,6 +96,10 @@ struct BlockHeaderLayout: Layout {
   /// The tile gap, with the line in its middle.
   let gap: CGFloat
 
+  /// The fraction of a length at its middle. A part that is centered on a
+  /// position has this fraction of its length on each side of the position.
+  nonisolated static let middle: CGFloat = 0.5
+
   /// Whether the title and the buttons fit on one line.
   ///
   /// - Parameters:
@@ -229,13 +233,24 @@ struct BlockHeaderLayout: Layout {
     let titleWidth = min(title.width, bounds.width - spacing(before: actions) - actions.width)
     return Frames(
       title: CGRect(
-        x: bounds.minX, y: bounds.minY + (rowHeight - title.height) / 2, width: titleWidth,
-        height: title.height),
+        x: bounds.minX, y: bounds.minY + centeringOffset(of: title.height, in: rowHeight),
+        width: titleWidth, height: title.height),
       line: lineFrame(centeredAt: bounds.minY + rowHeight, height: lineHeight, in: bounds),
       actions: CGRect(
-        x: bounds.maxX - actions.width, y: bounds.minY + (rowHeight - actions.height) / 2,
-        width: actions.width,
-        height: actions.height))
+        x: bounds.maxX - actions.width,
+        y: bounds.minY + centeringOffset(of: actions.height, in: rowHeight),
+        width: actions.width, height: actions.height))
+  }
+
+  /// The offset that centers a length in a longer extent.
+  ///
+  /// - Parameters:
+  ///   - length: The length of the part, such as the height of the title.
+  ///   - extent: The length that holds the part, such as the height of the row.
+  /// - Returns: The space before the part, so that the part is in the middle
+  ///   of `extent`.
+  private func centeringOffset(of length: CGFloat, in extent: CGFloat) -> CGFloat {
+    (extent - length) * Self.middle
   }
 
   /// The frames in a column: the title at the top, the line in the middle
@@ -271,7 +286,8 @@ struct BlockHeaderLayout: Layout {
   /// - Returns: The frame of the line.
   private func lineFrame(centeredAt top: CGFloat, height: CGFloat, in bounds: CGRect) -> CGRect {
     let center = top + gap * EditorBlockHeader.separatorPlacement
-    return CGRect(x: bounds.minX, y: center - height / 2, width: bounds.width, height: height)
+    return CGRect(
+      x: bounds.minX, y: center - height * Self.middle, width: bounds.width, height: height)
   }
 }
 
@@ -279,6 +295,19 @@ extension BlockHeaderLayout {
   /// The subviews of a header, with the ideal size of the title and of the
   /// buttons.
   private struct Parts {
+    /// The position of each part in the subviews of a header. The raw value
+    /// is the index of the subview.
+    enum Position: Int {
+      /// The title, the first subview.
+      case title
+
+      /// The line, the second subview.
+      case line
+
+      /// The buttons, the third subview.
+      case actions
+    }
+
     /// The title, or `nil` when the header has no subview.
     let title: LayoutSubview?
 
@@ -293,9 +322,21 @@ extension BlockHeaderLayout {
     /// - Parameter subviews: The title, the line and the buttons.
     init(_ subviews: LayoutSubviews) {
       let parts = Array(subviews)
-      title = parts.first
-      line = parts.dropFirst().first
-      actions = parts.dropFirst(2).first
+      title = Self.subview(at: .title, of: parts)
+      line = Self.subview(at: .line, of: parts)
+      actions = Self.subview(at: .actions, of: parts)
+    }
+
+    /// The subview at a position.
+    ///
+    /// - Parameters:
+    ///   - position: The position of the part.
+    ///   - parts: The subviews of the header.
+    /// - Returns: The subview, or `nil` when the header has no subview at
+    ///   `position`.
+    private static func subview(at position: Position, of parts: [LayoutSubview]) -> LayoutSubview?
+    {
+      parts.indices.contains(position.rawValue) ? parts[position.rawValue] : nil
     }
 
     /// The ideal size of the title, or zero with no title.

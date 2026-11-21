@@ -811,9 +811,17 @@ enum PreviewFixtures {
   /// ``codeSampleLanguage``.
   static let codeSampleFilename = "tax.py"
 
-  /// The widths of the block header preview, in points: a width where the
-  /// title and the button fit on one line, and a width where they do not.
-  static let blockHeaderWidths: [CGFloat] = [320, 60]
+  /// A width of the block header preview, in points, where the title and the
+  /// button fit on one line.
+  static let blockHeaderWideWidth: CGFloat = 320
+
+  /// A width of the block header preview, in points, where the title and the
+  /// button do not fit on one line.
+  static let blockHeaderNarrowWidth: CGFloat = 60
+
+  /// The widths of the block header preview: ``blockHeaderWideWidth`` and
+  /// ``blockHeaderNarrowWidth``.
+  static let blockHeaderWidths = [blockHeaderWideWidth, blockHeaderNarrowWidth]
 
   /// A short Python function that adds the tax to the sum of some prices,
   /// and a call of it.
