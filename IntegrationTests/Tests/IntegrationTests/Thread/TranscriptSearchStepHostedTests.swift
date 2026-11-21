@@ -17,6 +17,13 @@ import Testing
 /// by a wait for the model value that the frame is certain to change, and
 /// then by one render pass. No test takes the focus or shows the window.
 @Suite(.serialized, .hostedSerially) @MainActor struct TranscriptSearchStepHostedTests {
+  /// The announcement of the first hit of
+  /// ``showHits(in:host:announcer:rendering:)``:
+  /// the user message is hit 1 of 2.
+  static var firstHitAnnouncement: String {
+    TranscriptSearchDriver.announcement(number: 1, count: 2, author: MessageRole.user.title)
+  }
+
   /// The hits of the host.
   @Observable final class HostHits {
     /// The hits, or `nil` for no hits.
@@ -33,15 +40,17 @@ import Testing
   /// - Parameters:
   ///   - session: The scripted session.
   ///   - host: The hits of the host.
+  ///   - announcer: The announcer that records the announcement of each new
+  ///     current hit.
   ///   - system: The command system of the window.
   /// - Returns: The harness.
   static func mount(
-    session: ScriptedSession, host: HostHits, system: CommandSystem
+    session: ScriptedSession, host: HostHits, announcer: RecordingAnnouncer, system: CommandSystem
   ) -> HostedViewHarness<some View> {
     HostedViewHarness(size: AgentCommandScopeHostedTests.windowSize) {
       AgentThreadView(session: session.model)
         .transcriptSearchHits(host.binding)
-        .environment(\.announcer, RecordingAnnouncer())
+        .environment(\.announcer, announcer)
         .commandSystem(system)
         .transaction { $0.disablesAnimations = true }
     }
@@ -50,16 +59,23 @@ import Testing
   /// Sends a user message and an agent message, and gives the host one hit
   /// in each, the user message first.
   ///
-  /// At the end, no view has the focus, so the find verbs can run.
+  /// The hits of the host reach the search of the thread in an update that
+  /// SwiftUI queues on the main run loop, and not in the render pass after
+  /// the change. The search announces its first current hit when it has the
+  /// hits, so the step waits for that announcement in `announcer`. At the
+  /// end, the search has the hits, and no view has the focus, so the find
+  /// verbs can run.
   ///
   /// - Parameters:
   ///   - session: The scripted session.
   ///   - host: The hits of the host.
+  ///   - announcer: The announcer of the thread view.
   ///   - harness: The harness that renders the view after each change.
   /// - Throws: The error of the transport, or an issue when the window does not
   ///   take the focus out of the composer.
   static func showHits(
-    in session: ScriptedSession, host: HostHits, rendering harness: HostedViewHarness<some View>
+    in session: ScriptedSession, host: HostHits, announcer: RecordingAnnouncer,
+    rendering harness: HostedViewHarness<some View>
   ) async throws {
     try await AgentCommandScopeHostedTests.send(
       [
@@ -74,7 +90,9 @@ import Testing
     }
     host.hits = TranscriptSearchHits(
       ids.map { TranscriptSearchHit(entryID: $0, terms: ["parser"]) })
-    harness.render()
+    await harness.renderAfter {
+      announcer.announcements.contains { $0.message == firstHitAnnouncement }
+    }
     // The harness gives the focus to its first key view, the text view of the
     // composer. The find verbs are off while a text input has the focus
     // (D133), so the test takes the focus out of the composer.
@@ -87,9 +105,10 @@ import Testing
     defer { session.close() }
     let system = CommandSystem()
     let host = HostHits()
-    let harness = Self.mount(session: session, host: host, system: system)
+    let announcer = RecordingAnnouncer()
+    let harness = Self.mount(session: session, host: host, announcer: announcer, system: system)
     defer { harness.close() }
-    try await Self.showHits(in: session, host: host, rendering: harness)
+    try await Self.showHits(in: session, host: host, announcer: announcer, rendering: harness)
 
     let path = AgentCommandScopeHostedTests.path(of: session.model)
     #expect(system.registry.perform(AgentCommandVerb.findNextHit.id, at: path))
@@ -100,9 +119,10 @@ import Testing
     defer { session.close() }
     let system = CommandSystem()
     let host = HostHits()
-    let harness = Self.mount(session: session, host: host, system: system)
+    let announcer = RecordingAnnouncer()
+    let harness = Self.mount(session: session, host: host, announcer: announcer, system: system)
     defer { harness.close() }
-    try await Self.showHits(in: session, host: host, rendering: harness)
+    try await Self.showHits(in: session, host: host, announcer: announcer, rendering: harness)
 
     let path = AgentCommandScopeHostedTests.path(of: session.model)
     try #require(system.registry.performKey(KeyChord.escape.asSequence, mode: .cua, at: path))

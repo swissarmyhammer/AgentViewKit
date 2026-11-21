@@ -459,19 +459,16 @@ public struct AgentThreadView<Composer: View>: View {
   /// gave the connection model, the header of the host
   /// (``SwiftUI/View/threadHeader(_:)``), then the ``banners``.
   ///
-  /// The status line floats on glass in its own container. The header of the
-  /// host and the banners are out of the container, so they are content with
-  /// no glass (D110), and their buttons keep the place of content. The
-  /// status line has no padding of its own (^rgsq3k4): the bar insets it in
-  /// its glass with the steps of the style (``headerInset``).
+  /// The status line floats on glass in its own container
+  /// (``ThreadStatusHeader``). The header of the host and the banners are out
+  /// of the container, so they are content with no glass (D110), and their
+  /// buttons keep the place of content.
   @ViewBuilder private var topBarParts: some View {
     if let connection {
       FloatingGlassContainer(spacing: editorStyle.spacing.s) {
-        StatusLineView(
-          session: session, connection: connection, sessionTitle: sessionTitle, select: show
-        )
-        .padding(headerInset).floatingGlass()
-        .hostPathContextMenu(headerContextMenuPath)
+        ThreadStatusHeader(
+          session: session, connection: connection, sessionTitle: sessionTitle,
+          contextMenuPath: headerContextMenuPath, select: show)
       }
     }
     if let threadHeader {
@@ -490,15 +487,6 @@ public struct AgentThreadView<Composer: View>: View {
     UnconfirmedSessionBanner(session: session)
     WaitingDescendantBanner(session: session, jump: show)
     SessionStreamBanner(session: session, connection: connection)
-  }
-
-  /// The inset of the ``StatusLineView`` in its glass: the medium spacing
-  /// step on the leading and the trailing edge, and the small step on the
-  /// top and the bottom edge. The header has no padding of its own
-  /// (^rgsq3k4).
-  private var headerInset: EdgeInsets {
-    let spacing = editorStyle.spacing
-    return EdgeInsets(top: spacing.s, leading: spacing.m, bottom: spacing.s, trailing: spacing.m)
   }
 
   /// The content of the bottom bar: the state banner, the login prompt, the

@@ -75,18 +75,29 @@
 
     /// At rest, the list follows the bottom, and the last row ends above the
     /// failure banner and the sign-in card of the bottom bar.
-    @Test func theLastRowAtRestIsAboveTheBannersOfTheBottomBar() throws {
+    ///
+    /// The list comes to rest after the render passes: the text of each
+    /// message is an EditorKit text view (a92da599), and the scroll to the
+    /// bottom of ``ScrollAnchorManager`` runs in a task. The updates of the
+    /// list and of its insets come in blocks that SwiftUI adds to the main
+    /// run loop, and a render pass does not run them. So the test waits for
+    /// the first report of the rows in view, which the list sends for certain
+    /// after its first layout, and then for the blocks of the main run loop
+    /// (``RenderedMount/renderAfter(within:sourceLocation:_:)``).
+    @Test func theLastRowAtRestIsAboveTheBannersOfTheBottomBar() async throws {
       let session = Self.failedTurnSession
       let lastKey = try #require(session.transcript.last?.rowKey)
+      let anchors = ScrollAnchorManager()
       let harness = HostedViewHarness(
-        Self.failedTurnThread(session, anchors: ScrollAnchorManager()),
-        size: FailedTurnFixtures.threadSize)
+        Self.failedTurnThread(session, anchors: anchors), size: FailedTurnFixtures.threadSize)
       defer { harness.close() }
       harness.render()
+      await harness.renderAfter { !anchors.visibleIDs.isEmpty }
       harness.render()
 
       #expect(harness.frame(identifier: StateBanner.showErrorIdentifier) != nil)
       #expect(harness.frame(identifier: AgentAuthView.identifier) != nil)
+      #expect(anchors.isPinnedToBottom)
       try Self.expectRow(
         lastKey, clearOf: AgentThreadLayout.floatingControlsIdentifier, in: harness)
     }

@@ -148,7 +148,54 @@ comments:
     - review: clean — 0 findings, 1 of 1 earlier item checked
     - The task stays in review: the next CI run on main must show the result of the bounded waits. 5 hosted tests stay open (3 on ^6386krf, 2 need a hosted run).
   timestamp: 2026-11-21T22:06:56.464307+00:00
-position_column: review
+- actor: claude-code
+  id: 01m80473dpfahcstx51hcdx373
+  text: |-
+    ### Integration run 44955039142 on bf0f47e7 — facts (2026-11-21)
+    - The hang is gone. 1067 tests in 157 suites ran in 223.380 s, with 17 issues (5 known issues).
+    - Failures on the AVK side (this card):
+      - TranscriptSearchStepHostedTests.swift:95 findNextHitRunsInAMountedThreadWithHits: `system.registry.perform(AgentCommandVerb.findNextHit.id, at: path)` is false.
+      - TranscriptSearchStepHostedTests.swift:108 escapeInAMountedThreadWithHitsRemovesTheHitsOfTheHost: `performKey(KeyChord.escape...)` is false. The earlier fix (move the focus out of the composer) did not fix these 2 tests.
+      - ThreadHeaderContextMenuHostedTests.swift:145 theEmptyPartOfTheHeaderShowsTheContextMenuOfTheHostPath: `harness.contextMenu(at: point)` is nil.
+      - ThreadBarBannerOverlapHostedTests.swift:90 theLastRowAtRestIsAboveTheBannersOfTheBottomBar: row (-20000.5, -19710.5, 481.0, 60.0), bar (-20000.0, -20000.0, 480.0, 317.0). The row is 27.5 pt inside the bar.
+    - Failures for EditorKit (task ^6386krf, not this card): AgentItemFocus `.message` cases (theFirstResponderCoversAFocusedItem nav/jump :149, theBeaconOfAnItemWithNoFocusableViewHoldsTheFocus nav/jump :158, aFocusedItemWithNoSurfaceShowsItsScopeRing :168, theFocusLandsOnAnItemUnderFocusEffectDisabled :208), the math value (ThreadAccessibilityHostedTests:267), linked texts (ThreadAccessibilityHostedTests:229).
+  timestamp: 2026-11-21T22:39:16.918613+00:00
+- actor: claude-code
+  id: 01m805091vjapv08dmgezng0qk
+  text: |-
+    ### Three AVK failures of run 44955039142: cause and fix (2026-11-21)
+
+    1. TranscriptSearchStep (findNext :95, Esc :108)
+    - Log facts: the bindings at /agentThread:scripted-session include agent.findNextHit (reach focusPath, ⌘G), and ⎋ maps to [agent.cancel, agent.clearSearchHits]. Thus the command is registered, and `perform` is false because the availability is false.
+    - Availability of the find verbs (AgentCommandTarget.availability, AgentFindCommands): the target has a `transcriptSearch`, no text input has the focus, and `hasSearchHits` (`transcriptSearch.hits` not empty). The earlier fix took the focus out of the composer, and the failure stayed. Thus the cause is `hasSearchHits` false.
+    - Cause: `TranscriptSearchDriver` gives the hits of the host to the search in `.onChange(of: hits)`. The test set `host.hits` in its task and made one `render()`. A change made outside a SwiftUI update reaches the view in a block that SwiftUI adds to the main run loop (EditorKit doc of `render(when:)`), so the render pass did not run the onChange, and the search had no hits. The test is stale (it was never green in CI).
+    - Fix (test): the test keeps the `RecordingAnnouncer` (observable). The search announces its first current hit ("Hit 1 of 2, You", `TranscriptSearchDriver.announcement`) when it has the hits. `showHits` now waits for that announcement with `renderAfter` (bounded wait, then the run loop fence, then render). The `makeFirstResponder(nil)` step stays: the D133 rule still applies.
+
+    2. ThreadHeaderContextMenu empty part (:145)
+    - Cause (from the code, not proven by a hosted run): EditorKit GlassAccessibilityShape says that an accessibility element on Liquid Glass gets the frame of the glass. So `frame(identifier: StatusLineView.identifier)` is the frame of the glass with the inset (leading and trailing inset 12 pt), and the point `line.maxX - 4` is in the inset of the line in its glass. The `.contentShape(Rectangle())` of af0b24c8 covers only the line inside the inset. The glass takes no hit, so the right click went through the glass to the list: no menu. The center of the element is on the line, so the other header tests pass. This is a production defect: a right click on the inset of the header shows no menu.
+    - Fix (production): new `ThreadStatusHeader` (Sources/AgentViewKit/Thread/ThreadStatusHeader.swift) holds the status line, its inset, the glass and the context menu, which were in `AgentThreadView.topBarParts`. It adds `.contentShape(EditorSurface.shape(radius: editorStyle.radii.l))` after the padding and before `floatingGlass()`: the whole glass shape takes the click. New unit test ThreadStatusHeaderTests (type of the body, the pattern of StatusLineHitShapeTests): RED, then GREEN.
+
+    3. ThreadBarBannerOverlap last row at rest (:90)
+    - Facts: the same numbers in 4 runs (row bottom 289.5 pt above the window bottom, bar top 317 pt). The sibling test theLastRowStaysAboveTheBottomBarWhenTheFailureBannerShows passes, and it waits with `renderAfter` (run loop fence). This test made only two synchronous render passes.
+    - Cause (most probable, not proven by a hosted run): since a92da599 the text of each message is an EditorKit text view, and `ScrollAnchorManager.requestScrollToBottom` sends its scroll in a task. The updates of the list come in run loop blocks and tasks, and a render pass does not run them. The test is stale.
+    - Other possibility that I could not exclude: the list unpins at the mount, so the pill shows (ConversationPill shows only while not pinned) and the follow anchor stops. The pill is in the overlay of the floating controls; 27.5 pt can be the pill plus the small spacing (8 pt).
+    - Fix (test): the test waits for the first report of the rows in view (`renderAfter { !anchors.visibleIDs.isEmpty }`, bounded, then the fence, then render) and makes one more render. It also expects `anchors.isPinnedToBottom` (the doc of the test says that at rest the list follows the bottom). If the next run fails on that expectation, the second cause is true and production must change.
+
+    ### Checks
+    - `swift test` (root, headless): 1605 tests in 182 suites passed, and 54 tests in 11 suites passed, rc=0. ThreadStatusHeaderTests failed first (RED), then passed (GREEN).
+    - `cd IntegrationTests && swift build --build-tests`: Build complete, 0 errors, 0 warnings.
+    - `swift format lint --strict` on the 5 touched Swift files: 0 findings.
+    - Hosted suites not run (user rule). The next CI Integration run must confirm items 1 to 3.
+  timestamp: 2026-11-21T22:53:01.883330+00:00
+- actor: claude-code
+  id: 01m8050eyejsta4ddfc260evsp
+  text: |-
+    ### implement — changed
+    - evidence: 6 files — Sources/AgentViewKit/Thread/ThreadStatusHeader.swift (new), Sources/AgentViewKit/Thread/AgentThreadView.swift, Tests/AgentViewKitTests/Thread/ThreadStatusHeaderTests.swift (new), IntegrationTests/Tests/IntegrationTests/Thread/TranscriptSearchStepHostedTests.swift, IntegrationTests/Tests/IntegrationTests/Thread/ThreadBarBannerOverlapHostedTests.swift, plus the card. `swift test` 1605 + 54 passed; IntegrationTests build complete; lint 0 findings. Hosted suites not run.
+    - open: items 2 and 3 have a cause from the code, not proven by a hosted run. The EditorKit failures stay on ^6386krf.
+    - next: /review, then a CI Integration run. The task stays in doing.
+  timestamp: 2026-11-21T22:53:07.918466+00:00
+position_column: doing
 position_ordinal: '80'
 title: Integration CI job on main is red (run 44757895393, a60d101a)
 ---
