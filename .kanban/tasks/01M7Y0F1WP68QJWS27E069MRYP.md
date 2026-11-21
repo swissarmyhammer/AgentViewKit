@@ -40,8 +40,24 @@ comments:
     - files: Sources/AgentViewKit/Lists/AgentRowList.swift, Tests/AgentViewKitTests/Lists/AgentRowListRowLabelTests.swift, IntegrationTests/Tests/IntegrationTests/Lists/AgentRowListRowLabelHostedTests.swift
     - next: review. The push and the sha message to testudoapp-9a are still open; this step does not push.
   timestamp: 2026-11-21T11:53:50.395890+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m7yzmxamvs1j5c5exxwgcfw1
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (2dd59b39). 0 findings, 0 confirmed, 0 refuted. 7 validator runs, 0 failed. 3 files reviewed. 6 .kanban files not reviewed (.reviewignore).
+    - next: none. The task is in done.
+  timestamp: 2026-11-21T12:00:12.116531+00:00
+- actor: claude-code
+  id: 01m7z2vh995t8qbw5dbavzw503
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 3 files (a row with no host label has the text of its content as its label)
+    - test: green — swift test passed, 0 failures; IntegrationTests build passed (not run)
+    - commit: 2dd59b39
+    - review: clean — 0 findings
+  timestamp: 2026-11-21T12:56:14.889300+00:00
+position_column: done
+position_ordinal: ffffffff8b80
 title: The row container of AgentRowList has the label of the row (Testudo)
 ---
 Request from testudoapp-9a (2026-11-20), proven with a hosted accessibility snapshot in Testudo.
