@@ -80,7 +80,25 @@ comments:
     - evidence: 2 files — Tests/AgentViewKitTests/Accessibility/ThreadAccessibilityTests.swift, .kanban/tasks/01M800TE2ZFE13NZFAA6386KRF.md (finding flipped to [x]). `swift test` in the root: 1613 tests in 183 suites passed, and 54 tests in 11 suites passed; exit 0; no compiler warning (only the known llbuild note "missing creator for mutated node" of the mlx-swift bundle, which other cards track).
     - next: review
   timestamp: 2026-11-22T16:51:47.347989+00:00
-position_column: doing
+- actor: claude-code
+  id: 01m822ta9fr37fczn0ttk8j3fj
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 2c3c8556). The engine reviewed 1 file (Tests/AgentViewKitTests/Accessibility/ThreadAccessibilityTests.swift). 7 validator runs, 0 failed. Counts: findings 0, confirmed 0, refuted 0. The 2 .kanban files are excluded by .reviewignore. All 4 prior checklist items are checked, and 0 items are open.
+    - column: the task stays in review. Do not move it to done yet. The effects of this card show only in a window. The hosted suites (IntegrationTests, ScreenshotTests) are not allowed to run on this Mac, and this review did not run them.
+    - next: CI on main must run the hosted tests and show that they pass (AgentItemFocusHostedTests .message cases, ThreadAccessibilityHostedTests math value and linked text). When CI is green, move the task to done.
+  timestamp: 2026-11-22T16:53:18.255965+00:00
+- actor: claude-code
+  id: 01m822tses9vahhem30a8b510j
+  text: |-
+    ### finish iteration 2 — clean
+    - implement: changed — ThreadAccessibilityTests.swift (2 tests for the success direction)
+    - test: green — swift test, 1613 + 54 passed
+    - commit: 2c3c8556
+    - review: clean — 0 findings, 4 of 4 earlier items checked
+    - The task stays in review until CI on main proves the hosted tests.
+  timestamp: 2026-11-22T16:53:33.785440+00:00
+position_column: review
 position_ordinal: '80'
 title: EditorKit gaps that keep three AVK hosted tests red (message focus, math value, linked text)
 ---
