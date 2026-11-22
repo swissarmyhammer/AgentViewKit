@@ -300,8 +300,20 @@ comments:
     - review: clean — 0 findings, 3 of 3 earlier items checked
     - The task stays in review until CI on main is green.
   timestamp: 2026-11-22T12:38:27.872368+00:00
-position_column: review
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m81qmegtx0256vqxpm0g2pv7
+  text: |-
+    ### CI on d4a425be (2026-11-22)
+    - Run 45023348204. Build & test: success. Examples: success. Integration (job 137218559252): failure, 1069 tests in 224 s, no hang.
+    - The TranscriptSearchStep tests (findNextHit, escape) pass. The two CodeBlockView alignment tests pass.
+    - Only these tests fail. Each one is an EditorKit gap that ^6386krf records:
+      - AgentItemFocusHostedTests, kind .message: :149 (2 cases), :158 (2 cases), :168, :208. The responder is the read-only text view, not GeometryProbeView.
+      - ThreadAccessibilityHostedTests:267 (the math value) and :229 (the linked texts).
+    - No AgentViewKit test calls becomeKey() directly. Thus the EditorKit note of 71e99953 (call takeKeyFocus() before becomeKey()) does not apply here.
+    - Decision: the AgentViewKit part of this card is done. ^6386krf owns the failures that stay. The card moves to done.
+  timestamp: 2026-11-22T13:37:51.642817+00:00
+position_column: done
+position_ordinal: ffffffff9080
 title: Integration CI job on main is red (run 44757895393, a60d101a)
 ---
 Request from testudoapp-9a (2026-11-20). Job "Integration (opt-in, real dependencies)" on mini-01 failed. The user cleared the runner screens, and the job runs again (rerun started 2026-11-20).
