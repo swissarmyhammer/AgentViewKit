@@ -25,8 +25,24 @@ comments:
     - evidence: 3 files — Sources/AgentViewKit/Content/MarkdownFence.swift, Sources/AgentViewKit/Content/MarkdownCodeFences.swift (doc comment), Tests/AgentViewKitTests/Content/MarkdownParagraphsTests.swift. `swift test` (root): 1609 tests in 183 suites passed, plus 54 tests in 11 suites passed, 0 failures. `swift build --build-tests` in IntegrationTests and ScreenshotTests: Build complete. `swift format lint --strict` on the 3 files: exit 0.
     - next: /review
   timestamp: 2026-11-22T12:08:42.655951+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m81jqzc7fh663xdyck9x2wxr
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (cfe536b8): 0 findings, 0 confirmed, 0 refuted; 3 files reviewed, 4 .kanban files not reviewed (ignore rule); no prior Review Findings sections.
+    - next: none. The task moved to done.
+  timestamp: 2026-11-22T12:12:24.327664+00:00
+- actor: claude-code
+  id: 01m81jrdk0t6c8zkp7q473mk79
+  text: |-
+    ### finish iteration 1 — clean
+    - implement: changed — 3 files (MarkdownFence uses CodeFenceLine, backtick run only; new tilde test)
+    - test: green — swift test, 1609 tests in 183 suites passed; IntegrationTests and ScreenshotTests build passed (not run)
+    - commit: cfe536b8
+    - review: clean — 0 findings
+  timestamp: 2026-11-22T12:12:38.880693+00:00
+position_column: done
+position_ordinal: ffffffff8f80
 title: MarkdownFence uses the fence run of CodeFenceLine, so the two fence scanners have one run rule
 ---
 ## What
