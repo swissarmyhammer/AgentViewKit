@@ -212,6 +212,17 @@ comments:
     - review: clean — 0 findings
     - The task stays in review until CI on main shows the result. The EditorKit tests wait on ^6386krf.
   timestamp: 2026-11-21T22:56:57.057401+00:00
+- actor: claude-code
+  id: 01m81jb70ds2bmbx822qpkj74p
+  text: |-
+    ### CI run 44960075631 on 526e615f (2026-11-21 23:31 UTC)
+    - Integration: 1069 tests in 157 suites, 285 s, 19 issues (5 known). No hang. Log: scratchpad/integration-526e.log.
+    - Now pass: ThreadHeaderContextMenu empty part (c15817bd), ThreadBarBannerOverlap (c15817bd).
+    - Still red, AVK side:
+      - TranscriptSearchStepHostedTests.swift:93 (findNextHit and escape): the wait for the hits announcement times out after 30 s ("the change never came"). Thus the hits of the host never reach the search of the mounted thread, or the announcement is not sent. Then :114 and :128 fail (the verbs are not available).
+      - New, from the code symbol task ^dsh1gqf (dfdd324a): CodeBlockViewHostedTests.swift:149, theTitleOfACodeBlockStartsAtTheXOfTheCommandOfATerminal and thePlainTextTitleOfACodeBlockStartsAtTheXOfTheCommandOfATerminal: `ResponseTextChecks.node(labeled: title, in: harness)` is nil for "swift" and "plain text". The test does not find the title element of the code block header.
+    - Still red, EditorKit side (^6386krf): AgentItemFocus .message (4 tests), math value, linked texts.
+  timestamp: 2026-11-22T12:05:26.157956+00:00
 position_column: review
 position_ordinal: '80'
 title: Integration CI job on main is red (run 44757895393, a60d101a)

@@ -49,6 +49,10 @@ import Testing
     #expect(paragraphs.map(\.isFence) == [false, true])
   }
 
+  @Test func aTildeFenceIsProseForTheParagraphIndex() {
+    #expect(Self.texts(of: "intro\n~~~\ncode\n\nmore\n~~~") == ["intro\n~~~\ncode", "more\n~~~"])
+  }
+
   @Test func anOpenFenceRunsToTheEndOfTheText() {
     #expect(Self.texts(of: "intro\n\n```\ncode\n\nmore") == ["intro", "```\ncode\n\nmore"])
   }

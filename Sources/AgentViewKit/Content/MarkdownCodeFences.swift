@@ -176,7 +176,8 @@ nonisolated enum MarkdownCodeFences {
   }
 }
 
-/// The fence line rules of ``MarkdownCodeFences``.
+/// The fence line rules of ``MarkdownCodeFences``. ``MarkdownFence`` also
+/// reads its fence lines with these rules, and keeps only a backtick run.
 nonisolated enum CodeFenceLine {
   /// The data of an opening fence line.
   struct Opening: Equatable, Sendable {
