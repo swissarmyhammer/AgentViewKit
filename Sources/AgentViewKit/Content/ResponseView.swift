@@ -42,7 +42,9 @@ import SwiftUI
 /// The text of each prose segment is one accessibility element with the
 /// identifier ``textIdentifier``, in one linked reading group (plan.md §6).
 /// A text with no fence is one such element. In a message, the group is the
-/// group of the message. The view applies
+/// group of the message. The EditorKit text view of each prose segment joins
+/// the group too (``RenderedMarkdownView``), so the text of each block of a
+/// message links the text of the other blocks. The view applies
 /// ``SwiftUI/View/accessibilityReadingScope()``, so the group works also
 /// outside an ``AgentThreadView``.
 public struct ResponseView: View {
@@ -207,7 +209,7 @@ public struct ResponseView: View {
       // A new id is a new response, with a model of its own.
       .id(id)
       .frame(maxWidth: .infinity, alignment: .leading)
-      .accessibilityReadingGroup(messageGroupID ?? id)
+      .accessibilityReadingGroup(messageGroupID ?? id, includingEditorText: true)
       .accessibilityReadingScope()
   }
 

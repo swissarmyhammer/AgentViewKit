@@ -353,6 +353,36 @@ extension EnvironmentValues {
   /// The id of the linked group of the message that holds this subtree, or
   /// `nil` outside a message.
   @Entry var accessibilityMessageGroupID: String? = nil
+
+  /// The linked reading group that the EditorKit text views of this subtree
+  /// join, or `nil` when they join no group.
+  ///
+  /// Only ``SwiftUI/View/accessibilityReadingGroup(_:includingEditorText:)``
+  /// with `includingEditorText` set gives this value.
+  /// ``RenderedMarkdownView`` reads it.
+  @Entry var accessibilityEditorTextReadingGroup: AccessibilityReadingGroup? = nil
+}
+
+/// One linked reading group: an id in the reading namespace of a scope.
+struct AccessibilityReadingGroup: Hashable {
+  /// The id of the group in its namespace.
+  let id: String
+
+  /// The reading namespace of the scope.
+  let namespace: Namespace.ID
+
+  /// Makes the group `id` in `namespace`, or gives `nil` when one of them is
+  /// missing.
+  ///
+  /// - Parameters:
+  ///   - id: The id of the group, or `nil` for no group.
+  ///   - namespace: The reading namespace of the scope, or `nil` outside a
+  ///     reading scope.
+  init?(id: String?, namespace: Namespace.ID?) {
+    guard let id, let namespace else { return nil }
+    self.id = id
+    self.namespace = namespace
+  }
 }
 
 extension View {
@@ -372,10 +402,20 @@ extension View {
   ///
   /// Outside a reading scope, the modifier does nothing.
   ///
-  /// - Parameter id: The id of the group.
+  /// The SwiftUI linked group does not reach the `NSTextView` of an
+  /// EditorKit editor. With `includingEditorText`, the modifier also gives
+  /// the group to the environment of its subtree, and each
+  /// ``RenderedMarkdownView`` there puts its text view in the group. A row of
+  /// a thread does not set it, so the text of an attachment in a row does not
+  /// link the text of the other rows.
+  ///
+  /// - Parameters:
+  ///   - id: The id of the group.
+  ///   - includingEditorText: Whether the EditorKit text views of the
+  ///     subtree also join the group.
   /// - Returns: A view in the group.
-  func accessibilityReadingGroup(_ id: String?) -> some View {
-    modifier(ReadingGroupModifier(id: id))
+  func accessibilityReadingGroup(_ id: String?, includingEditorText: Bool = false) -> some View {
+    modifier(ReadingGroupModifier(id: id, includesEditorText: includingEditorText))
   }
 }
 
@@ -396,11 +436,20 @@ private struct ReadingGroupModifier: ViewModifier {
   /// The id of the group, or `nil` for no group.
   let id: String?
 
+  /// Whether the EditorKit text views of the subtree also join the group.
+  let includesEditorText: Bool
+
   @Environment(\.accessibilityReadingNamespace) private var namespace
 
+  /// The group that the EditorKit text views join above this modifier.
+  @Environment(\.accessibilityEditorTextReadingGroup) private var hostEditorTextGroup
+
   func body(content: Content) -> some View {
-    if let id, let namespace {
-      content.accessibilityLinkedGroup(id: id, in: namespace)
+    if let group = AccessibilityReadingGroup(id: id, namespace: namespace) {
+      content
+        .accessibilityLinkedGroup(id: group.id, in: group.namespace)
+        .environment(
+          \.accessibilityEditorTextReadingGroup, includesEditorText ? group : hostEditorTextGroup)
     } else {
       content
     }

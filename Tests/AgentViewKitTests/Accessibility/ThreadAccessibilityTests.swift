@@ -207,4 +207,13 @@ import Testing
 
     #expect(MathSpans.spans(in: model.state.document).map(\.tex) == ["y"])
   }
+
+  // MARK: - Reading groups
+
+  /// A production change that fails this test: a group id with no reading
+  /// namespace gives a reading group, so the text view of an editor outside
+  /// a reading scope joins a linked group.
+  @Test func aGroupIDWithNoReadingNamespaceGivesNoReadingGroup() {
+    #expect(AccessibilityReadingGroup(id: "message", namespace: nil) == nil)
+  }
 }

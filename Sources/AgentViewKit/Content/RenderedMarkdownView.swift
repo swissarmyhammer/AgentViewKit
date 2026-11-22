@@ -22,6 +22,17 @@ import SwiftUI
 /// element is the text, with each formula at its place as EditorKit speaks
 /// it: the label "Math" and the TeX source ("Math, x^2").
 ///
+/// The text view joins the linked reading group of the environment
+/// (``SwiftUI/EnvironmentValues/accessibilityEditorTextReadingGroup``), so
+/// VoiceOver moves from the text of one block of a message to the text of
+/// the next block. The SwiftUI linked group does not reach the text view.
+///
+/// The text view is no focus target of the command scope that holds it
+/// (`editorTakesScopeFocus(false)`). A `nav.*` move or a jump to the item of
+/// a message thus gives the first responder to the beacon of the item scope,
+/// and the item shows its focus ring. A click in the text still selects
+/// text.
+///
 /// In the row of an entry with a search hit, the view draws the find marks
 /// of the matched words of the hit (``TranscriptSearchMatches``).
 ///
@@ -53,6 +64,9 @@ struct RenderedMarkdownView: View {
 
   /// The search mark of the row around the view, or `nil`.
   @Environment(\.transcriptSearchMark) private var searchMark
+
+  /// The linked reading group that the text view joins, or `nil`.
+  @Environment(\.accessibilityEditorTextReadingGroup) private var readingGroup
 
   /// Makes the view of Markdown text.
   ///
@@ -89,6 +103,10 @@ struct RenderedMarkdownView: View {
       .citing(citations) { citation in selection?.select(citation.number) }
       .transcriptSearchMarks(searchMark)
       .editorTextAccessibilityIdentifier(identifier)
+      .linkingText(in: readingGroup)
+      // The beacon of the item scope takes the focus of a nav move or a
+      // jump, so the item shows its ring.
+      .editorTakesScopeFocus(false)
       .editorImageSource(FileImageSource(), relativeTo: Self.imageFolder(of: session))
       .sizedToContent()
       .editorSyntax(.markdown)
@@ -168,5 +186,15 @@ extension EditorSlotComposing {
   func citing(_ citations: [EditorCitation], onActivate: @escaping (EditorCitation) -> Void) -> Self
   {
     citations.isEmpty ? self : editorCitations(citations, onActivate: onActivate)
+  }
+
+  /// Puts the text view in the linked reading group `group`, or adds
+  /// nothing when there is no group.
+  ///
+  /// - Parameter group: The linked reading group, or `nil`.
+  /// - Returns: The same view value, with the group when there is one.
+  func linkingText(in group: AccessibilityReadingGroup?) -> Self {
+    guard let group else { return self }
+    return editorAccessibilityLinkedGroup(id: group.id, in: group.namespace)
   }
 }
