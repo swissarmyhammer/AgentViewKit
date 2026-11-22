@@ -223,7 +223,39 @@ comments:
       - New, from the code symbol task ^dsh1gqf (dfdd324a): CodeBlockViewHostedTests.swift:149, theTitleOfACodeBlockStartsAtTheXOfTheCommandOfATerminal and thePlainTextTitleOfACodeBlockStartsAtTheXOfTheCommandOfATerminal: `ResponseTextChecks.node(labeled: title, in: harness)` is nil for "swift" and "plain text". The test does not find the title element of the code block header.
     - Still red, EditorKit side (^6386krf): AgentItemFocus .message (4 tests), math value, linked texts.
   timestamp: 2026-11-22T12:05:26.157956+00:00
-position_column: review
+- actor: claude-code
+  id: 01m81kgx9319vgxsv4twmrdcn2
+  text: |-
+    ### Two AVK failures of run 44960075631: cause and fix (2026-11-22)
+
+    1. TranscriptSearchStep (findNextHit, Esc; the wait at :93)
+    - Path: `transcriptSearchHits(_:)` puts the Binding in the environment. `TranscriptSearchDriver` reads `hostHits?.wrappedValue` in its body and gives the hits to the search in `.onChange(of: hits)`. `show` sets `search.hits` (this makes agent.findNextHit and agent.clearSearchHits available) and makes hit 1 current. `.onChange(of: search.revealSerial)` then announces "Hit 1 of 2, You".
+    - Cause (test): the test made the binding one time, outside a body (`HostHits.binding`, in the harness content closure, which runs one time at the mount). SwiftUI returns the value that a Binding had when it was made when a view reads it during an update, and the getter closure does not run, so Observation does not track `host.hits`. The driver saw `nil` for all time. Thus the round-2 `render()` and the round-3 wait both failed: the hits never reached the search. The production host (TestudoApp `WorkAreas`) makes `Binding { tab.searchHits } set: {...}` in its body. The init of the Binding reads the hits, so a change evaluates the host body again and gives a new binding. Production is correct.
+    - Proof (headless): an experiment test with a binding made outside a body gave `search.hits.count == 0` after the change and a layout pass. The same driver under a host that makes the binding in its body announced "Hit 1 of 2, You" after one layout pass (both onChange steps run in that pass).
+    - Fix (test): new `HostSearchHits` and `TranscriptSearchHitsHost` in AgentViewKitTestSupport (the host makes the binding in its body, as WorkAreas does). The hosted test mounts the thread in that host. `showHits` sets the hits, renders one time, then waits with a bound (`renderAfter`) for the announcement. The render makes the announcement certain.
+    - New unit test `TranscriptSearchLookupTests.hitsThatAHostGivesAfterTheMountAnnounceTheFirstHitInOneLayoutPass`. It passed on its first run (production was correct). A mutation (the driver does not call `search.show`) made it fail, so it can fail.
+    - Doc: `transcriptSearchHits(_:)` now tells the host to make the binding in its body.
+
+    2. CodeBlockView title (:149)
+    - Cause (test): `ResponseTextChecks.node(labeled:)` reads the raw `accessibilityLabel`. The BlockHeader title `Text` is a static text element: its text is its `accessibilityValue`, and its raw label is empty. `harness.accessibilityElements()` uses the value as the label for static text, so `theHeaderShowsTheFilename` passes and this lookup fails.
+    - Fix: `CodeBlockView.titleIdentifier = "code-block-title"` on the title Text. The test now checks `element(identifier: titleIdentifier)?.label == title`, then reads `harness.frame(identifier: titleIdentifier)`. This is the same method as the terminal side (`TerminalView.commandIdentifier`), so the test still compares the x of the title and the x of the command.
+    - Also removed the redundant `#require` on `harness.screenFrame(of:)` (non-optional). It gave 2 compiler warnings in the CI log at :151 and :170.
+
+    ### Checks
+    - `swift test` (root, headless): 1610 tests in 183 suites passed, and 54 tests in 11 suites passed, rc=0.
+    - `cd IntegrationTests && swift build --build-tests`: Build complete. The only warning is the SwiftPM "missing creator for mutated node" note for the mlx-swift_Cmlx bundle, which was there before. It is not a compiler warning.
+    - `swift format lint --strict` on the 6 touched Swift files: 0 findings.
+    - Hosted suites not run (user rule). The next CI Integration run must confirm the two fixes.
+  timestamp: 2026-11-22T12:26:01.379912+00:00
+- actor: claude-code
+  id: 01m81kh09sf5ppqcbbgnc0v0cd
+  text: |-
+    ### implement — changed
+    - evidence: 7 files — Sources/AgentViewKitTestSupport/TranscriptSearchHitsHost.swift (new), Sources/AgentViewKit/Code/CodeBlockView.swift, Sources/AgentViewKit/Thread/TranscriptSearchHits.swift (doc), Tests/AgentViewKitTests/Thread/TranscriptSearchLookupTests.swift, IntegrationTests/Tests/IntegrationTests/Thread/TranscriptSearchStepHostedTests.swift, IntegrationTests/Tests/IntegrationTests/Code/CodeBlockViewHostedTests.swift, plus the card. `swift test` 1610 + 54 passed; IntegrationTests build complete; lint 0 findings. Hosted suites not run.
+    - open: CI must confirm. The EditorKit failures stay on ^6386krf.
+    - next: /review. The task stays in doing.
+  timestamp: 2026-11-22T12:26:04.473140+00:00
+position_column: doing
 position_ordinal: '80'
 title: Integration CI job on main is red (run 44757895393, a60d101a)
 ---

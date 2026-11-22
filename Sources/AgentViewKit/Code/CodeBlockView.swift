@@ -25,6 +25,10 @@ public struct CodeBlockView: View {
   /// The accessibility identifier of the Copy button.
   public static let copyIdentifier = "code-block-copy"
 
+  /// The accessibility identifier of the title of the header: the filename,
+  /// the language, or ``plainTextName``.
+  public static let titleIdentifier = "code-block-title"
+
   /// The name of the language in the header when the block has no language.
   public static let plainTextName = "plain text"
 
@@ -114,6 +118,7 @@ public struct CodeBlockView: View {
         .symbolColumn()
         .accessibilityHidden(true)
       Text(filename ?? language ?? Self.plainTextName)
+        .accessibilityIdentifier(Self.titleIdentifier)
     } actions: {
       EditorToolbarButton(
         String(localized: "Copy code", bundle: .module), systemImage: AgentSymbol.copy

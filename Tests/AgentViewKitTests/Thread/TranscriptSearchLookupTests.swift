@@ -195,4 +195,33 @@ import Testing
     try #require(answer?.content != content)
     #expect(!fired)
   }
+
+  /// A production change that fails this test: the driver does not read the
+  /// binding of the host in its body, so hits that the host gives after the
+  /// mount do not reach the search, and the first hit is not announced. The
+  /// host makes its binding in its body, as a host app does
+  /// (``TranscriptSearchHitsHost``). One layout pass gives the hits to the
+  /// search and announces the first hit.
+  @Test func hitsThatAHostGivesAfterTheMountAnnounceTheFirstHitInOneLayoutPass() {
+    let session = SessionModel.preview(transcript: [
+      .user(Self.promptText), .agent("The parser fails."),
+    ])
+    let ids = session.transcript.compactMap(TranscriptSearchTests.wireID)
+    let host = HostSearchHits()
+    let announcer = RecordingAnnouncer()
+    let hosting = NSHostingView(
+      rootView: TranscriptSearchHitsHost(host: host) {
+        TranscriptSearchDriver(
+          session: session, search: TranscriptSearch(), store: ExpandedBlocksStore())
+      }
+      .environment(\.announcer, announcer))
+    StyleViewHost.layOut(hosting)
+
+    host.hits = TranscriptSearchTests.hits(ids)
+    StyleViewHost.layOut(hosting)
+
+    let expected = TranscriptSearchDriver.announcement(
+      number: 1, count: 2, author: MessageRole.user.title)
+    #expect(announcer.announcements.map(\.message) == [expected])
+  }
 }

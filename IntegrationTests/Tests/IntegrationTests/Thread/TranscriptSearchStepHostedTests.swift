@@ -13,26 +13,17 @@ import Testing
 /// thread view (TestudoApp D207 (f)).
 ///
 /// The host gives the hits through a binding of an observable box, so that
-/// a test reads the binding after the Esc. A frame of the agent is followed
-/// by a wait for the model value that the frame is certain to change, and
-/// then by one render pass. No test takes the focus or shows the window.
+/// a test reads the binding after the Esc. The host makes the binding in its
+/// body, as a host app does (``TranscriptSearchHitsHost``). A frame of the
+/// agent is followed by a wait for the model value that the frame is certain
+/// to change, and then by one render pass. No test takes the focus or shows
+/// the window.
 @Suite(.serialized, .hostedSerially) @MainActor struct TranscriptSearchStepHostedTests {
   /// The announcement of the first hit of
   /// ``showHits(in:host:announcer:rendering:)``:
   /// the user message is hit 1 of 2.
   static var firstHitAnnouncement: String {
     TranscriptSearchDriver.announcement(number: 1, count: 2, author: MessageRole.user.title)
-  }
-
-  /// The hits of the host.
-  @Observable final class HostHits {
-    /// The hits, or `nil` for no hits.
-    var hits: TranscriptSearchHits?
-
-    /// The binding of the hits that the thread view gets.
-    var binding: Binding<TranscriptSearchHits?> {
-      Binding(get: { self.hits }, set: { self.hits = $0 })
-    }
   }
 
   /// Shows the thread view of a session with the hits of `host`.
@@ -45,11 +36,11 @@ import Testing
   ///   - system: The command system of the window.
   /// - Returns: The harness.
   static func mount(
-    session: ScriptedSession, host: HostHits, announcer: RecordingAnnouncer, system: CommandSystem
+    session: ScriptedSession, host: HostSearchHits, announcer: RecordingAnnouncer,
+    system: CommandSystem
   ) -> HostedViewHarness<some View> {
     HostedViewHarness(size: AgentCommandScopeHostedTests.windowSize) {
-      AgentThreadView(session: session.model)
-        .transcriptSearchHits(host.binding)
+      TranscriptSearchHitsHost(host: host) { AgentThreadView(session: session.model) }
         .environment(\.announcer, announcer)
         .commandSystem(system)
         .transaction { $0.disablesAnimations = true }
@@ -59,12 +50,12 @@ import Testing
   /// Sends a user message and an agent message, and gives the host one hit
   /// in each, the user message first.
   ///
-  /// The hits of the host reach the search of the thread in an update that
-  /// SwiftUI queues on the main run loop, and not in the render pass after
-  /// the change. The search announces its first current hit when it has the
-  /// hits, so the step waits for that announcement in `announcer`. At the
-  /// end, the search has the hits, and no view has the focus, so the find
-  /// verbs can run.
+  /// The change of the hits evaluates the body of the host again, and the
+  /// render pass after the change gives the new hits to the search of the
+  /// thread. The search then makes its first hit current and announces it
+  /// ("Hit 1 of 2, You"). The step waits for that announcement in
+  /// `announcer`, with a bound. At the end, the search has the hits, and no
+  /// view has the focus, so the find verbs can run.
   ///
   /// - Parameters:
   ///   - session: The scripted session.
@@ -74,7 +65,7 @@ import Testing
   /// - Throws: The error of the transport, or an issue when the window does not
   ///   take the focus out of the composer.
   static func showHits(
-    in session: ScriptedSession, host: HostHits, announcer: RecordingAnnouncer,
+    in session: ScriptedSession, host: HostSearchHits, announcer: RecordingAnnouncer,
     rendering harness: HostedViewHarness<some View>
   ) async throws {
     try await AgentCommandScopeHostedTests.send(
@@ -90,6 +81,7 @@ import Testing
     }
     host.hits = TranscriptSearchHits(
       ids.map { TranscriptSearchHit(entryID: $0, terms: ["parser"]) })
+    harness.render()
     await harness.renderAfter {
       announcer.announcements.contains { $0.message == firstHitAnnouncement }
     }
@@ -104,7 +96,7 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let system = CommandSystem()
-    let host = HostHits()
+    let host = HostSearchHits()
     let announcer = RecordingAnnouncer()
     let harness = Self.mount(session: session, host: host, announcer: announcer, system: system)
     defer { harness.close() }
@@ -118,7 +110,7 @@ import Testing
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let system = CommandSystem()
-    let host = HostHits()
+    let host = HostSearchHits()
     let announcer = RecordingAnnouncer()
     let harness = Self.mount(session: session, host: host, announcer: announcer, system: system)
     defer { harness.close() }

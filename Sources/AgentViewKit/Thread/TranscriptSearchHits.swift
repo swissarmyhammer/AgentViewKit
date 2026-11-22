@@ -86,6 +86,14 @@ extension View {
   ///   .transcriptSearchHits($hits)
   /// ```
   ///
+  /// Make the binding in the body of the host view, such as
+  /// `Binding { model.hits } set: { model.hits = $0 }` over an observable
+  /// model. A view reads the value that a binding had when it was made. The
+  /// binding reads the hits when it is made, so a change of the hits
+  /// evaluates the body of the host again and gives the thread a new binding.
+  /// A binding made one time, outside a body, does not show a later change of
+  /// the hits.
+  ///
   /// - Parameter hits: The hits, or `nil` for no hits. The thread can set
   ///   the binding to `nil` to remove the hits.
   /// - Returns: A view whose thread views show the hits.

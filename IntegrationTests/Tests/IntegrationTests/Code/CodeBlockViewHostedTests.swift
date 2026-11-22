@@ -136,19 +136,24 @@ import Testing
     /// The space from the leading edge of a mounted code block to the start
     /// of its header title.
     ///
+    /// The title is a static text element. Its text is its value, not its
+    /// label, so the step finds it by its identifier
+    /// (``CodeBlockView/titleIdentifier``), as the terminal step finds the
+    /// command, and first checks that it shows `title`.
+    ///
     /// - Parameters:
     ///   - block: The code block to mount.
     ///   - title: The text of the header title.
     /// - Returns: The space, in points.
-    /// - Throws: An issue when no element has the label `title`.
+    /// - Throws: An issue when no title element shows `title`.
     static func titleLeading(of block: CodeBlockView, title: String) throws -> CGFloat {
       let harness = HostedViewHarness(block)
       defer { harness.close() }
       harness.render()
 
-      let node = try #require(ResponseTextChecks.node(labeled: title, in: harness))
-      let frame = try #require(accessibilityFrame(of: node))
-      let view = try #require(harness.screenFrame(of: harness.hostingView))
+      try #require(harness.element(identifier: CodeBlockView.titleIdentifier)?.label == title)
+      let frame = try #require(harness.frame(identifier: CodeBlockView.titleIdentifier))
+      let view = harness.screenFrame(of: harness.hostingView)
       return frame.minX - view.minX
     }
 
@@ -167,7 +172,7 @@ import Testing
       harness.render()
 
       let frame = try #require(harness.frame(identifier: TerminalView.commandIdentifier))
-      let view = try #require(harness.screenFrame(of: harness.hostingView))
+      let view = harness.screenFrame(of: harness.hostingView)
       return frame.minX - view.minX
     }
 
