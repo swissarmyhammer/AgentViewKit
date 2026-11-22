@@ -283,7 +283,24 @@ comments:
     - evidence: 2 files — IntegrationTests/Tests/IntegrationTests/Code/CodeBlockViewHostedTests.swift, Sources/AgentViewKitTestSupport/TranscriptSearchHitsHost.swift. `swift test` (root, headless): 1610 tests in 183 suites and 54 tests in 11 suites passed, rc=0. `cd IntegrationTests && swift build --build-tests`: Build complete, 0 errors, 0 compiler warnings. `swift format lint --strict` on the 2 files: 0 findings. Both findings flipped to [x]. Hosted suites not run (user rule).
     - next: /review. The task stays in doing.
   timestamp: 2026-11-22T12:34:33.394040+00:00
-position_column: doing
+- actor: claude-code
+  id: 01m81m5wqg4b4kd35acd8p67p7
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (3bac2b08): 0 findings, 0 confirmed, 0 refuted; 7 validator runs, 0 failed, 0 skipped. 2 files examined, 2 files in .kanban/ not examined (ignore rule). All 3 earlier findings are checked. No finding was dropped.
+    - next: The task stays in Review. CI on main is not green. Move the task to done only after CI on main is green.
+  timestamp: 2026-11-22T12:37:28.944194+00:00
+- actor: claude-code
+  id: 01m81m7p90rmd8s0txmkxmv4mn
+  text: |-
+    ### finish iteration 5 — clean
+    - implement: changed — 2 files (leading(ofIdentifier:in:) helper; docs of TranscriptSearchHitsHost)
+    - test: green — swift test, 1610 tests in 183 suites passed; IntegrationTests and ScreenshotTests build passed (not run)
+    - commit: 3bac2b08
+    - review: clean — 0 findings, 3 of 3 earlier items checked
+    - The task stays in review until CI on main is green.
+  timestamp: 2026-11-22T12:38:27.872368+00:00
+position_column: review
 position_ordinal: '80'
 title: Integration CI job on main is red (run 44757895393, a60d101a)
 ---
@@ -349,3 +366,11 @@ Do:
 - [x] `Sources/AgentViewKitTestSupport/TranscriptSearchHitsHost.swift:41` `code-hygiene/missing-docs-swift` — AllPublicDeclarationsHaveDocumentation: add a documentation comment for `body`. Make sure that each public declaration in the file has a documentation comment.
 
 > Status: This task stays open in Review. It is not done. There are 2 open findings, and CI on main is not green.
+
+## Review Findings (2026-11-22 06:36)
+
+> Scope: `review sha HEAD~1..HEAD` (3bac2b08). The review examined only the lines that the change added or changed. 2 files were examined. 2 files in `.kanban/` were not examined (ignore rule).
+
+> Result: 0 new findings (7 validator runs, 0 failed, 0 skipped). No finding was dropped. All 3 earlier findings are checked.
+
+> Status: This task stays open in Review. It is not done. CI on main is not green.
