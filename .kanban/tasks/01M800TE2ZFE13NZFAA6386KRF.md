@@ -52,6 +52,34 @@ comments:
     - RED: the new unit test did not compile (no `AccessibilityReadingGroup`). GREEN: it passes. The other effects are only visible in a window (EditorKit slot fields are internal, `CommandScopeTextViews` is package), so the hosted tests (ThreadAccessibilityHostedTests theTextsOfTheBlocksOfOneMessageLinkEachOther and anAnswerReadsItsMathAtItsPlaceAndKeepsTheMathElement, AgentItemFocusHostedTests .message cases) must prove them in CI. They were not run here, by the rule of the user.
     - next: /review, then a CI run of the integration suite.
   timestamp: 2026-11-22T16:44:57.674031+00:00
+- actor: claude-code
+  id: 01m822fgn4xtf35gawf666cfm3
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (commit 4d2349b3). 1 finding (confirmed 1, refuted 1): Tests/AgentViewKitTests/Accessibility/ThreadAccessibilityTests.swift:217 completeness/inverse-operation-coverage. The 2 .kanban files are out of scope (.reviewignore).
+    - hosted tests: The effects of this card show only in a window. The hosted suites (IntegrationTests, ScreenshotTests) must not run on this Mac, and this review did not run them. CI on main must still prove these hosted tests: ThreadAccessibilityHostedTests.theTextsOfTheBlocksOfOneMessageLinkEachOther, ThreadAccessibilityHostedTests.anAnswerReadsItsMathAtItsPlaceAndKeepsTheMathElement, and the .message cases of AgentItemFocusHostedTests. When a later review is clean, keep the task in review (do not move it to done) until CI on main is green for these tests.
+    - next: Add a unit test of the success direction of the AccessibilityReadingGroup failable init (an id and a namespace give a group with that id and that namespace). Keep the nil test. Then run the headless unit suite and review again.
+  timestamp: 2026-11-22T16:47:24.324504+00:00
+- actor: claude-code
+  id: 01m822g3bsa6dtkvg2yv2y9zqt
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 4 files (ThreadAccessibility.swift, RenderedMarkdownView.swift, ResponseView.swift, ThreadAccessibilityTests.swift)
+    - test: green — swift test, 1611 + 54 passed, 0 warnings; IntegrationTests and ScreenshotTests build passed (not run)
+    - commit: 4d2349b3
+    - review: findings — Tests/AgentViewKitTests/Accessibility/ThreadAccessibilityTests.swift:217
+  timestamp: 2026-11-22T16:47:43.481283+00:00
+- actor: claude-code
+  id: 01m822qf3kqf1wkecn2f6jztyx
+  text: 'Finding of 2026-11-22 10:45 (inverse-operation-coverage on the AccessibilityReadingGroup init) is done. ThreadAccessibilityTests now has a NamespaceProbe view with its own @Namespace. The probe records the namespace in onChange(of:initial:true). StyleViewHost.layOut lays out the probe one time in a host with no window, so the test gets a real Namespace.ID with no window, no focus and no wait (the same pattern as SlotProbe). Two new tests, one assertion each: the group has the id "message", and the group has that namespace. The nil test stays. The literal "message" is now the constant messageGroupID in all three tests. The other pure functions of the file already have tests of both directions. RED check: a temporary change of the init to always give nil made the two new tests fail (the probe gave its namespace); the source was then put back with no change.'
+  timestamp: 2026-11-22T16:51:44.883909+00:00
+- actor: claude-code
+  id: 01m822qhgkfvra90dmmbygjp2d
+  text: |-
+    ### implement — changed
+    - evidence: 2 files — Tests/AgentViewKitTests/Accessibility/ThreadAccessibilityTests.swift, .kanban/tasks/01M800TE2ZFE13NZFAA6386KRF.md (finding flipped to [x]). `swift test` in the root: 1613 tests in 183 suites passed, and 54 tests in 11 suites passed; exit 0; no compiler warning (only the known llbuild note "missing creator for mutated node" of the mlx-swift bundle, which other cards track).
+    - next: review
+  timestamp: 2026-11-22T16:51:47.347989+00:00
 position_column: doing
 position_ordinal: '80'
 title: EditorKit gaps that keep three AVK hosted tests red (message focus, math value, linked text)
@@ -61,3 +89,12 @@ Found on ^dnq1d84 (Integration CI red). AVK cannot fix these alone. Each needs a
 - [x] Message focus. Since AVK a92da599, the text of a message is a read-only, selectable EditorView. `GeometryProbeView.requestFocus(yieldingTo:)` (EditorCommandsUI/GeometryRegistry.swift) gives the focus of the item scope to that text view (`contentResponder` or `ownTextView`), not to the beacon. Thus a message has no focus ring. EditorKit 905d321a fixed the same symptom for the SwiftUI text selection overlay. Proposal: an opt-in modifier (for example `.editorTakesScopeFocus(false)`) that keeps a reading text view out of the scope focus; AVK sets it in `RenderedMarkdownView`. Tests: AgentItemFocusHostedTests `.message` cases (theFirstResponderCoversAFocusedItem, theBeaconOfAnItemWithNoFocusableViewHoldsTheFocus, aFocusedItemWithNoSurfaceShowsItsScopeRing).
 - [x] Math value. The "Math" element of `MathWidget` (EditorSwiftUI/Math/MathWidget.swift) has a nil value in the hosted tree. The old AVK MathView added `.accessibilityAddTraits(.isStaticText)`. Probable fix: add that trait, with an EditorKit hosted test of the value. Test: ThreadAccessibilityHostedTests.anAnswerReadsItsMathAtItsPlaceAndKeepsTheMathElement (the value check).
 - [x] Linked text elements. `.accessibilityLinkedGroup` on the SwiftUI frame does not reach the hosted NSTextView. EditorKit needs an API for the linked elements of its text view (as `accessibilityValueProvider`). Then AVK `RenderedMarkdownView` passes the reading group. Or the user decides that the links are no longer required, and the test and Docs/decisions/accessibility.md change. Test: ThreadAccessibilityHostedTests.theTextsOfTheBlocksOfOneMessageLinkEachOther.
+
+## Review Findings (2026-11-22 10:45)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 4 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Tests/AgentViewKitTests/Accessibility/ThreadAccessibilityTests.swift:217` `completeness/inverse-operation-coverage` — The only test of the new AccessibilityReadingGroup failure init checks the nil direction: a nil namespace gives nil. The success direction, where both an id and a namespace give a group with those values, is not tested. A regression that makes the init always return nil would still pass this test. The init's main job, giving the group that RenderedMarkdownView and the modifier need, is therefore unproven. Add a test that builds a Namespace.ID in a test (for example with @Namespace in a view, or by the shortest route the test target allows) and asserts that AccessibilityReadingGroup(id: "message", namespace: ns) has id "message" and that namespace. Keep the existing nil test as the other direction.

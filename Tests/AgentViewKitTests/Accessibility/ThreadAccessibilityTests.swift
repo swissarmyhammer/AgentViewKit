@@ -5,6 +5,7 @@ import EditorText
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
+import SwiftUI
 import Testing
 
 /// Tests of the pure functions of the thread accessibility (plan.md §6).
@@ -210,10 +211,72 @@ import Testing
 
   // MARK: - Reading groups
 
+  /// The id of the reading group of the reading group tests.
+  static let messageGroupID = "message"
+
+  /// The record of a ``NamespaceProbe``: the namespace that the probe gave.
+  @MainActor final class NamespaceRecord {
+    /// The namespace of the probe, or `nil` before the probe shows.
+    var namespace: Namespace.ID?
+  }
+
+  /// A view that records its own `@Namespace`, so that a test gets a real
+  /// `Namespace.ID`.
+  ///
+  /// The probe records in `onChange(of:initial:)`, not in its body, so a
+  /// layout pass of a host with no window records it one time.
+  struct NamespaceProbe: View {
+    /// The record that gets the namespace.
+    let record: NamespaceRecord
+
+    /// The namespace that the probe records.
+    @Namespace private var namespace
+
+    var body: some View {
+      Color.clear
+        .onChange(of: namespace, initial: true) {
+          record.namespace = namespace
+        }
+    }
+  }
+
+  /// Makes a real namespace: the `@Namespace` of a probe that a host with no
+  /// window lays out. The host shows no window and takes no focus.
+  ///
+  /// - Returns: The namespace of the probe.
+  /// - Throws: An error when the layout pass did not record a namespace.
+  static func makeNamespace() throws -> Namespace.ID {
+    let record = NamespaceRecord()
+    StyleViewHost.layOut(NamespaceProbe(record: record))
+    return try #require(record.namespace)
+  }
+
   /// A production change that fails this test: a group id with no reading
   /// namespace gives a reading group, so the text view of an editor outside
   /// a reading scope joins a linked group.
   @Test func aGroupIDWithNoReadingNamespaceGivesNoReadingGroup() {
-    #expect(AccessibilityReadingGroup(id: "message", namespace: nil) == nil)
+    #expect(AccessibilityReadingGroup(id: Self.messageGroupID, namespace: nil) == nil)
+  }
+
+  /// A production change that fails this test: a group id and a reading
+  /// namespace give no reading group, so the rows of a message and the text
+  /// views of its editors join no linked group.
+  @Test func aGroupIDAndAReadingNamespaceGiveTheGroupWithThatID() throws {
+    let namespace = try Self.makeNamespace()
+
+    let group = AccessibilityReadingGroup(id: Self.messageGroupID, namespace: namespace)
+
+    #expect(group?.id == Self.messageGroupID)
+  }
+
+  /// A production change that fails this test: the reading group of a group
+  /// id and a reading namespace keeps a different namespace, so its
+  /// elements link to the elements of a different scope.
+  @Test func aGroupIDAndAReadingNamespaceGiveTheGroupInThatNamespace() throws {
+    let namespace = try Self.makeNamespace()
+
+    let group = AccessibilityReadingGroup(id: Self.messageGroupID, namespace: namespace)
+
+    #expect(group?.namespace == namespace)
   }
 }
