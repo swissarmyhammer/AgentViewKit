@@ -98,8 +98,17 @@ comments:
     - review: clean — 0 findings, 4 of 4 earlier items checked
     - The task stays in review until CI on main proves the hosted tests.
   timestamp: 2026-11-22T16:53:33.785440+00:00
-position_column: review
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m824e3fp9h2ctbr6jsr1hf89
+  text: |-
+    ### CI on a10146f1 — green (2026-11-22)
+    - Run 45046351668: Build & test success, Examples success, Integration (job 137285286919) success.
+    - Integration: 1069 tests in 157 suites passed in 238 s, with 5 known issues.
+    - theTextsOfTheBlocksOfOneMessageLinkEachOther passed. anAnswerReadsItsMathAtItsPlaceAndKeepsTheMathElement passed. The suite AgentItemFocusHostedTests passed, with each .message case.
+    - The hosted proof is complete. The card moves to done.
+  timestamp: 2026-11-22T17:21:35.222745+00:00
+position_column: done
+position_ordinal: ffffffff9180
 title: EditorKit gaps that keep three AVK hosted tests red (message focus, math value, linked text)
 ---
 Found on ^dnq1d84 (Integration CI red). AVK cannot fix these alone. Each needs an EditorKit change, then AVK uses it.
