@@ -271,7 +271,19 @@ comments:
     - commit: fbc92ad9 (pushed, so CI tests it)
     - review: findings — IntegrationTests/Tests/IntegrationTests/Code/CodeBlockViewHostedTests.swift:175, Sources/AgentViewKitTestSupport/TranscriptSearchHitsHost.swift:41
   timestamp: 2026-11-22T12:30:56.680293+00:00
-position_column: review
+- actor: claude-code
+  id: 01m81m0h9jy5nt053k4b1p9f0n
+  text: |-
+    Implement pass for the 2 findings of 2026-11-22 06:29.
+    - reuse (CodeBlockViewHostedTests.swift:175): new helper `leading(ofIdentifier:in:)` (generic over the harness content). It reads the frame of the element with the identifier and subtracts the screen minX of the hosting view. `titleLeading` and `terminalCommandLeading` keep only their setup and identifier, and call the helper. No other leading-edge measurement is in the file.
+    - missing-docs-swift (TranscriptSearchHitsHost.swift:41): `body` has a doc comment. Each public declaration in the file (HostSearchHits, hits, init, TranscriptSearchHitsHost, init, body) now has a doc comment.
+    - TDD note: no new test. The change is a refactor of a hosted test helper and a doc comment; behavior does not change. The build of the hosted test tree checks the helper.
+
+    ### implement — changed
+    - evidence: 2 files — IntegrationTests/Tests/IntegrationTests/Code/CodeBlockViewHostedTests.swift, Sources/AgentViewKitTestSupport/TranscriptSearchHitsHost.swift. `swift test` (root, headless): 1610 tests in 183 suites and 54 tests in 11 suites passed, rc=0. `cd IntegrationTests && swift build --build-tests`: Build complete, 0 errors, 0 compiler warnings. `swift format lint --strict` on the 2 files: 0 findings. Both findings flipped to [x]. Hosted suites not run (user rule).
+    - next: /review. The task stays in doing.
+  timestamp: 2026-11-22T12:34:33.394040+00:00
+position_column: doing
 position_ordinal: '80'
 title: Integration CI job on main is red (run 44757895393, a60d101a)
 ---
@@ -333,7 +345,7 @@ Do:
 
 > Result: 2 new findings (7 validator runs, 0 failed, 0 skipped). No finding was dropped: this change wrote the duplicate measurement in `titleLeading`. At HEAD~1, `titleLeading` measured the title with `ResponseTextChecks.node(labeled:in:)` and `accessibilityFrame(of:)`, not with `harness.frame(identifier:)`. The earlier finding is checked.
 
-- [ ] `IntegrationTests/Tests/IntegrationTests/Code/CodeBlockViewHostedTests.swift:175` `reuse/reuse` — `terminalCommandLeading` repeats the measurement of the leading edge in `titleLeading`. Each helper mounts a harness, renders it, reads a frame by identifier, and then subtracts the screen minX of the hosting view. These shared steps are not in one helper. Thus, if you change how the leading edge is measured, you must make the change in two locations. The only real differences are the identifier and the fixture (the code block or the terminal). Extract a helper, for example `leading(ofIdentifier:in harness:)`, that returns the frame minX minus the screen minX of the hosting view for an identifier. Then `titleLeading` and `terminalCommandLeading` keep only their setup and their identifier, and call the helper.
-- [ ] `Sources/AgentViewKitTestSupport/TranscriptSearchHitsHost.swift:41` `code-hygiene/missing-docs-swift` — AllPublicDeclarationsHaveDocumentation: add a documentation comment for `body`. Make sure that each public declaration in the file has a documentation comment.
+- [x] `IntegrationTests/Tests/IntegrationTests/Code/CodeBlockViewHostedTests.swift:175` `reuse/reuse` — `terminalCommandLeading` repeats the measurement of the leading edge in `titleLeading`. Each helper mounts a harness, renders it, reads a frame by identifier, and then subtracts the screen minX of the hosting view. These shared steps are not in one helper. Thus, if you change how the leading edge is measured, you must make the change in two locations. The only real differences are the identifier and the fixture (the code block or the terminal). Extract a helper, for example `leading(ofIdentifier:in harness:)`, that returns the frame minX minus the screen minX of the hosting view for an identifier. Then `titleLeading` and `terminalCommandLeading` keep only their setup and their identifier, and call the helper.
+- [x] `Sources/AgentViewKitTestSupport/TranscriptSearchHitsHost.swift:41` `code-hygiene/missing-docs-swift` — AllPublicDeclarationsHaveDocumentation: add a documentation comment for `body`. Make sure that each public declaration in the file has a documentation comment.
 
 > Status: This task stays open in Review. It is not done. There are 2 open findings, and CI on main is not green.

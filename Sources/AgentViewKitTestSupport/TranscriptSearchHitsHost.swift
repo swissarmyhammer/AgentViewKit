@@ -38,6 +38,8 @@ public struct TranscriptSearchHitsHost<Content: View>: View {
     self.content = content()
   }
 
+  /// The content, with a binding to the hits of the host that the body
+  /// makes on each evaluation.
   public var body: some View {
     content.transcriptSearchHits(Binding(get: { host.hits }, set: { host.hits = $0 }))
   }

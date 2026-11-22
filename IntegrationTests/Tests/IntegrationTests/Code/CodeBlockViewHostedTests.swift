@@ -152,9 +152,7 @@ import Testing
       harness.render()
 
       try #require(harness.element(identifier: CodeBlockView.titleIdentifier)?.label == title)
-      let frame = try #require(harness.frame(identifier: CodeBlockView.titleIdentifier))
-      let view = harness.screenFrame(of: harness.hostingView)
-      return frame.minX - view.minX
+      return try leading(ofIdentifier: CodeBlockView.titleIdentifier, in: harness)
     }
 
     /// The space from the leading edge of a mounted terminal to the start of
@@ -171,7 +169,21 @@ import Testing
       defer { harness.close() }
       harness.render()
 
-      let frame = try #require(harness.frame(identifier: TerminalView.commandIdentifier))
+      return try leading(ofIdentifier: TerminalView.commandIdentifier, in: harness)
+    }
+
+    /// The space from the leading edge of the hosting view of a rendered
+    /// harness to the leading edge of the element with an identifier.
+    ///
+    /// - Parameters:
+    ///   - identifier: The accessibility identifier of the element.
+    ///   - harness: The rendered harness that shows the element.
+    /// - Returns: The space, in points.
+    /// - Throws: An issue when no element has `identifier`.
+    static func leading<Content: View>(
+      ofIdentifier identifier: String, in harness: HostedViewHarness<Content>
+    ) throws -> CGFloat {
+      let frame = try #require(harness.frame(identifier: identifier))
       let view = harness.screenFrame(of: harness.hostingView)
       return frame.minX - view.minX
     }
