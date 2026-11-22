@@ -255,7 +255,23 @@ comments:
     - open: CI must confirm. The EditorKit failures stay on ^6386krf.
     - next: /review. The task stays in doing.
   timestamp: 2026-11-22T12:26:04.473140+00:00
-position_column: doing
+- actor: claude-code
+  id: 01m81ksfa678zgrr53j2w1bda7
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (fbc92ad9); 2 findings, 2 confirmed, 0 refuted, 7 validator runs, 0 failed, 0 skipped — IntegrationTests/Tests/IntegrationTests/Code/CodeBlockViewHostedTests.swift:175 (reuse/reuse), Sources/AgentViewKitTestSupport/TranscriptSearchHitsHost.swift:41 (code-hygiene/missing-docs-swift). No finding was dropped. The earlier finding is checked.
+    - next: Fix the 2 open findings in the 2026-11-22 06:29 section. The task stays in Review. CI on main is not green.
+  timestamp: 2026-11-22T12:30:41.990169+00:00
+- actor: claude-code
+  id: 01m81ksxn8y42mp4z2ergr7mt5
+  text: |-
+    ### finish iteration 4 — findings
+    - implement: changed — 6 files (find step tests: the hits binding in a host body, TranscriptSearchHitsHost; CodeBlockView.titleIdentifier for the alignment tests)
+    - test: green — swift test, 1610 tests in 183 suites and 54 tests in 11 suites passed; IntegrationTests and ScreenshotTests build passed (not run)
+    - commit: fbc92ad9 (pushed, so CI tests it)
+    - review: findings — IntegrationTests/Tests/IntegrationTests/Code/CodeBlockViewHostedTests.swift:175, Sources/AgentViewKitTestSupport/TranscriptSearchHitsHost.swift:41
+  timestamp: 2026-11-22T12:30:56.680293+00:00
+position_column: review
 position_ordinal: '80'
 title: Integration CI job on main is red (run 44757895393, a60d101a)
 ---
@@ -310,3 +326,14 @@ Do:
 > Result: 0 new findings (7 validator runs, 0 failed, 0 skipped). No finding was dropped. The 1 earlier finding is checked.
 
 > Status: This task stays open in Review. It is not done. CI on main is not green.
+
+## Review Findings (2026-11-22 06:29)
+
+> Scope: `review sha HEAD~1..HEAD` (fbc92ad9). The review examined only the lines that the change added or changed. 6 files were examined. 2 files in `.kanban/` were not examined (ignore rule).
+
+> Result: 2 new findings (7 validator runs, 0 failed, 0 skipped). No finding was dropped: this change wrote the duplicate measurement in `titleLeading`. At HEAD~1, `titleLeading` measured the title with `ResponseTextChecks.node(labeled:in:)` and `accessibilityFrame(of:)`, not with `harness.frame(identifier:)`. The earlier finding is checked.
+
+- [ ] `IntegrationTests/Tests/IntegrationTests/Code/CodeBlockViewHostedTests.swift:175` `reuse/reuse` — `terminalCommandLeading` repeats the measurement of the leading edge in `titleLeading`. Each helper mounts a harness, renders it, reads a frame by identifier, and then subtracts the screen minX of the hosting view. These shared steps are not in one helper. Thus, if you change how the leading edge is measured, you must make the change in two locations. The only real differences are the identifier and the fixture (the code block or the terminal). Extract a helper, for example `leading(ofIdentifier:in harness:)`, that returns the frame minX minus the screen minX of the hosting view for an identifier. Then `titleLeading` and `terminalCommandLeading` keep only their setup and their identifier, and call the helper.
+- [ ] `Sources/AgentViewKitTestSupport/TranscriptSearchHitsHost.swift:41` `code-hygiene/missing-docs-swift` — AllPublicDeclarationsHaveDocumentation: add a documentation comment for `body`. Make sure that each public declaration in the file has a documentation comment.
+
+> Status: This task stays open in Review. It is not done. There are 2 open findings, and CI on main is not green.
