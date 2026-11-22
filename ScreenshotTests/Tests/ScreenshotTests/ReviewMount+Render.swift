@@ -1,5 +1,6 @@
 import AppKit
 import EditorTestSupport
+import Testing
 
 extension ReviewMount {
   /// Makes SwiftUI update the view now: a layout pass of the hosting view,

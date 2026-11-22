@@ -2,6 +2,7 @@ import AgentViewKitTestSupport
 import EditorCommandsUI
 import EditorTestSupport
 import SwiftUI
+import Testing
 
 /// The root of a ``SwitchedWindow``: its content while the switch is on,
 /// under the command system that the windows of a test share.
