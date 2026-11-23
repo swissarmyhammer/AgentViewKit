@@ -75,7 +75,7 @@ struct ComposerDraftHost: View {
   /// - Parameter session: The scripted session.
   /// - Returns: The plain text of the draft.
   static func draftText(of session: ScriptedSession) -> String {
-    String(PromptDraftStore.shared.draft(for: session.model).text.characters)
+    ComposerHarness.draftText(of: session.model)
   }
 
   /// Focuses the editor, types ``message`` into it, and waits until the draft

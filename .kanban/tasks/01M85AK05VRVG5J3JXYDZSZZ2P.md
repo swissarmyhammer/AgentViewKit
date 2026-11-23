@@ -23,8 +23,29 @@ comments:
     - not run (the screen is in use): `cd IntegrationTests && swift test --filter ThreadComposerHostedTests`; `HOME=<temp> swift test --package-path ScreenshotTests --filter theExternalThreadWithTheComposerOfTheHost` (image thread-external-composer-{light,dark}.png).
     - next: run the hosted test and the gallery when the screen is free, then /review.
   timestamp: 2026-11-23T23:20:25.616080+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m85bjpfgg7mtdk0ax9m54qjr
+  text: |-
+    ### review — findings
+    - evidence: `review sha HEAD~1..HEAD` (commit 5ff277d7): 1 finding (1 confirmed, 2 refuted). `IntegrationTests/Tests/IntegrationTests/Thread/ThreadComposerHostedTests.swift:99` `reuse/reuse`. The headless evidence (swift test 1704 + 59 pass; ThreadComposerTests 15, 7 failed on stubs first; builds clean) satisfies the boxes of the work items 1 to 4, the 3 acceptance criteria, and the first 2 test items. These boxes are ticked.
+    - open: the reuse finding; the gallery screen thread-external-composer (written and built, not run); ThreadComposerHostedTests (3 tests, written and built, not run). The screen is in use, so no hosted test and no gallery ran.
+    - next: move draftText(of:) to one shared helper in the IntegrationTests target and delete the copy, then run ThreadComposerHostedTests and the gallery screen when the screen is free, then /review again. The task stays in review.
+  timestamp: 2026-11-23T23:24:09.072147+00:00
+- actor: claude-code
+  id: 01m85bmqm081e1vtf0gxvwsw83
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 11 files
+    - test: green — swift test 1704 + 59; builds clean; hosted and gallery not run (screen in use)
+    - commit: 5ff277d7
+    - review: findings — IntegrationTests/Tests/IntegrationTests/Thread/ThreadComposerHostedTests.swift:99
+
+    ### implement — changed
+    - evidence: `ComposerHarness.draftText(of: SessionModel)` is the one helper. ThreadComposerHostedTests calls it, and its copy is removed. `ComposerDraftHostedTests.draftText(of: ScriptedSession)` is now a one-line call to it. IntegrationTests build complete.
+    - open: ThreadComposerHostedTests (3) and the gallery screen thread-external-composer run on CI or when the screen is free.
+  timestamp: 2026-11-23T23:25:15.776119+00:00
+position_column: review
+position_ordinal: '8280'
 title: A read-only thread can show a composer whose submit goes to a host closure (TestudoApp D212 5.3/5.4)
 ---
 ## What
@@ -33,21 +54,33 @@ TestudoApp D212 (design `/Users/wballard/github/swissarmyhammer/TestudoApp/featu
 Today `Sources/AgentViewKit/Thread/AgentThreadView.swift` shows no composer slot for a read-only session (see the doc near "TestudoApp D208 (i)", lines near 62 and 656).
 
 Work:
-- [ ] Add a public option for a read-only thread to show the composer, with a submit that goes to a host closure, not to an ACP session. For example `.threadComposer(placeholder: String, onSubmit: @escaping (String) async -> Void)`. Read how the default composer (`DefaultThreadComposer`, `PromptInput`) submits today, and reuse it. Do not make a second composer.
-- [ ] The placeholder text comes from the host, for example "Message to continue in Testudo".
-- [ ] A submit calls the host closure one time with the text, and then the composer clears. An empty text does not submit.
-- [ ] A read-only thread with no such option still shows no composer (no change for D208 shared sessions).
+- [x] Add a public option for a read-only thread to show the composer, with a submit that goes to a host closure, not to an ACP session. For example `.threadComposer(placeholder: String, onSubmit: @escaping (String) async -> Void)`. Read how the default composer (`DefaultThreadComposer`, `PromptInput`) submits today, and reuse it. Do not make a second composer.
+- [x] The placeholder text comes from the host, for example "Message to continue in Testudo".
+- [x] A submit calls the host closure one time with the text, and then the composer clears. An empty text does not submit.
+- [x] A read-only thread with no such option still shows no composer (no change for D208 shared sessions).
 - [ ] A gallery screen of a read-only thread with this composer.
 
 ## Acceptance Criteria
-- [ ] With the option, a read-only thread shows the composer with the host placeholder.
-- [ ] A submit calls the host closure exactly one time with the text, and the composer clears.
-- [ ] Without the option, a read-only thread shows no composer.
+- [x] With the option, a read-only thread shows the composer with the host placeholder.
+- [x] A submit calls the host closure exactly one time with the text, and the composer clears.
+- [x] Without the option, a read-only thread shows no composer.
 
 ## Tests
-- [ ] Headless unit tests first (they fail before the change): the option sets the environment or slot; a submit calls the host one time with the text; the text clears; an empty text does not call the host.
-- [ ] `swift test` in the root: all pass, no code warnings.
+- [x] Headless unit tests first (they fail before the change): the option sets the environment or slot; a submit calls the host one time with the text; the text clears; an empty text does not call the host.
+- [x] `swift test` in the root: all pass, no code warnings.
 - [ ] A hosted test (type, press Return, the host closure gets the text) and the gallery screen: write and build them; run them when the screen is free (`cd IntegrationTests && swift test --filter <Name>`; `HOME=<temp> swift test --package-path ScreenshotTests`).
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass. #d212
+
+## Review Findings (2026-11-23 17:21)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 9 file(s) reviewed, 5 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+> 1 file(s) not reviewed — no validator matched:
+> - `ARCHITECTURE.md` — no validator matches this file
+
+- [x] `IntegrationTests/Tests/IntegrationTests/Thread/ThreadComposerHostedTests.swift:99` `reuse/reuse` — The new static func draftText(of:) repeats the body of ComposerDraftHostedTests.draftText. Both files are in the same IntegrationTests target. Two copies can drift apart, and a fix to one will not reach the other. Move draftText(of:) to one shared helper in the target, such as ComposerHarness beside mountThread and typePrompt, and call it from both test suites. Delete the copy in ThreadComposerHostedTests.

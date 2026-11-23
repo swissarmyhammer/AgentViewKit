@@ -37,6 +37,15 @@ struct MountedThread<Content: View> {
   /// The size of a window that shows a thread and its composer.
   static let windowSize = CGSize(width: windowWidth, height: windowHeight)
 
+  /// The plain text of the draft that the default composer keeps for
+  /// `session`.
+  ///
+  /// - Parameter session: The session model.
+  /// - Returns: The text of the draft.
+  static func draftText(of session: SessionModel) -> String {
+    String(PromptDraftStore.shared.draft(for: session).text.characters)
+  }
+
   /// Shows the view that `content` builds under a new command system, with no
   /// animations, and renders it.
   ///

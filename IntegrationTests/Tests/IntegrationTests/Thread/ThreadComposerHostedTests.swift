@@ -92,14 +92,6 @@ import Testing
     }
   }
 
-  /// The plain text of the draft of the default composer for `session`.
-  ///
-  /// - Parameter session: The session model.
-  /// - Returns: The text.
-  static func draftText(of session: SessionModel) -> String {
-    String(PromptDraftStore.shared.draft(for: session).text.characters)
-  }
-
   /// The text view of the editor carries the placeholder of the host as its
   /// label.
   @Test func theEditorOfAReadOnlyThreadShowsThePlaceholderOfTheHost() throws {
@@ -117,10 +109,10 @@ import Testing
     let host = ThreadComposerHostRecord()
     let thread = try Self.mount(session, host: host)
     defer { thread.harness.close() }
-    try await ComposerHarness.typePrompt(Self.message, in: thread.harness) { Self.draftText(of: session) }
+    try await ComposerHarness.typePrompt(Self.message, in: thread.harness) { ComposerHarness.draftText(of: session) }
 
     try EditorKitPromptEditorHostedTests.pressReturn(in: thread.harness)
-    await ObservationWait.until { Self.draftText(of: session).isEmpty }
+    await ObservationWait.until { ComposerHarness.draftText(of: session).isEmpty }
 
     #expect(host.texts == [Self.message])
     try thread.harness.requireTextViewShows("")
@@ -134,7 +126,7 @@ import Testing
     let host = ThreadComposerHostRecord(holdsSubmit: true)
     let thread = try Self.mount(session, host: host)
     defer { thread.harness.close() }
-    try await ComposerHarness.typePrompt(Self.message, in: thread.harness) { Self.draftText(of: session) }
+    try await ComposerHarness.typePrompt(Self.message, in: thread.harness) { ComposerHarness.draftText(of: session) }
     // The field is disabled while the host runs, so the test keeps the text
     // view and sends the second Return straight to it.
     let editor = try #require(thread.harness.firstEditableTextView(of: NSTextView.self))
@@ -145,7 +137,7 @@ import Testing
 
     try thread.harness.sendKeyDown(.return, to: editor)
     host.openGate()
-    await ObservationWait.until { Self.draftText(of: session).isEmpty }
+    await ObservationWait.until { ComposerHarness.draftText(of: session).isEmpty }
 
     #expect(host.texts == [Self.message])
   }
