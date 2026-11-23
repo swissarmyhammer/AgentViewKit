@@ -162,7 +162,7 @@ struct RenderedMarkdownView: View {
   /// - Parameter markdown: The Markdown text of the model.
   /// - Returns: `rendered-markdown-model-<markdown>`.
   static func modelCounterKey(for markdown: String) -> String {
-    modelCounterKeyPrefix + markdown
+    EditorModel.readOnlyCounterKey(for: markdown, keyPrefix: modelCounterKeyPrefix)
   }
 
   /// Makes the read-only model of Markdown text, in the rendered
@@ -174,10 +174,7 @@ struct RenderedMarkdownView: View {
   /// - Parameter markdown: The Markdown text.
   /// - Returns: The model.
   static func makeModel(_ markdown: String) -> EditorModel {
-    #if DEBUG
-      BodyEvaluationCounter.note(modelCounterKey(for: markdown))
-    #endif
-    let model = EditorModel.makeReadOnly(markdown)
+    let model = EditorModel.makeCountedReadOnly(markdown, keyPrefix: modelCounterKeyPrefix)
     model.presentation = .rendered
     return model
   }

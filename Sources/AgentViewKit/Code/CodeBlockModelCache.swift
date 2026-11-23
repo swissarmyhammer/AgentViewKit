@@ -177,6 +177,38 @@ extension EditorModel {
     return model
   }
 
+  /// Makes a read-only model that holds `text`, as ``makeReadOnly(_:)``
+  /// does.
+  ///
+  /// In a debug build, each call adds one count to the
+  /// ``BodyEvaluationCounter`` key ``readOnlyCounterKey(for:keyPrefix:)`` of
+  /// `text`. Thus a test can count the models that a view makes.
+  ///
+  /// - Parameters:
+  ///   - text: The text of the model.
+  ///   - keyPrefix: The start of the counter key, one for each kind of view.
+  /// - Returns: The model.
+  static func makeCountedReadOnly(_ text: String, keyPrefix: String) -> EditorModel {
+    #if DEBUG
+      BodyEvaluationCounter.note(readOnlyCounterKey(for: text, keyPrefix: keyPrefix))
+    #endif
+    return makeReadOnly(text)
+  }
+
+  /// The ``BodyEvaluationCounter`` key of the models that
+  /// ``makeCountedReadOnly(_:keyPrefix:)`` makes for `text`.
+  ///
+  /// The key holds the whole text, so a test that uses texts of its own does
+  /// not see the models of other tests.
+  ///
+  /// - Parameters:
+  ///   - text: The text of the model.
+  ///   - keyPrefix: The start of the key.
+  /// - Returns: `<keyPrefix><text>`.
+  static func readOnlyCounterKey(for text: String, keyPrefix: String) -> String {
+    keyPrefix + text
+  }
+
   /// Makes the model read-only and changes its text to `text`.
   ///
   /// A write to an observed property notifies each observer, also when the

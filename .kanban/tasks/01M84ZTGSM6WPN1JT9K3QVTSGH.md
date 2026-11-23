@@ -33,6 +33,40 @@ comments:
     - files: ARCHITECTURE.md; Sources/AgentViewKit/Code/CodeBlockModelCache.swift, Code/CodeBlockView.swift, Content/RenderedMarkdownView.swift, Content/ResponseView.swift, Thread/ConversationView.swift, Thread/LiveRowRange.swift; Tests/AgentViewKitTests/Code/CodeBlockModelCacheTests.swift, Thread/LiveRowRangeTests.swift, Thread/LiveRowModelsTests.swift; new IntegrationTests/Tests/IntegrationTests/Thread/ThreadModelCacheHostedTests.swift.
     - next: run the gallery when the computer is free; /review.
   timestamp: 2026-11-23T21:00:21.612061+00:00
+- actor: claude-code
+  id: 01m853g5wb0y6v76wme51jp6r9
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (461c37a6): 1 finding (1 confirmed, 1 refuted) — Sources/AgentViewKit/Code/CodeBlockView.swift:121 duplication/duplication.
+    - next: implement the finding (one shared counted make-model function for CodeBlockView and RenderedMarkdownView). Then run the screenshot gallery when the computer is free. The gallery run is also an open item. The task stays in review.
+  timestamp: 2026-11-23T21:02:57.931752+00:00
+- actor: claude-code
+  id: 01m853gwpmkx19dncgz1pfcakm
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 11 files
+    - test: green — swift test 1660 + 59; 15 hosted suites (before the screen stop)
+    - commit: 461c37a6
+    - review: findings — Sources/AgentViewKit/Code/CodeBlockView.swift:121
+  timestamp: 2026-11-23T21:03:21.300242+00:00
+- actor: claude-code
+  id: 01m853sbj9wn1hfmdp6pytzw1z
+  text: |-
+    Fix of the duplication finding at Sources/AgentViewKit/Code/CodeBlockView.swift:121:
+    - Added two functions to the EditorModel extension in Sources/AgentViewKit/Code/CodeBlockModelCache.swift: `makeCountedReadOnly(_:keyPrefix:)` holds the `#if DEBUG` BodyEvaluationCounter note and returns `makeReadOnly(text)`. `readOnlyCounterKey(for:keyPrefix:)` is the one key format, `<keyPrefix><text>`.
+    - CodeBlockView.makeModel and RenderedMarkdownView.makeModel now call `makeCountedReadOnly` with their prefix constants. RenderedMarkdownView sets `presentation = .rendered` on the returned model.
+    - The two `modelCounterKey(for:)` functions are now one-line calls to `readOnlyCounterKey`. The prefixes and the keys did not change, so ThreadModelCacheHostedTests uses the same keys.
+    - New unit tests: Tests/AgentViewKitTests/Code/CountedReadOnlyModelTests.swift (4 tests). RED was a compile failure (members missing). GREEN after the change.
+    - swift test: 1664 + 59 tests pass, no code warnings. swift build --build-tests is complete in IntegrationTests and ScreenshotTests. No hosted suite ran (the user needs the screen).
+    - Finding flipped to - [x].
+  timestamp: 2026-11-23T21:07:58.665386+00:00
+- actor: claude-code
+  id: 01m853sdqcxcrw6x6wa15hgke5
+  text: |-
+    ### implement — changed
+    - evidence: 4 files — Sources/AgentViewKit/Code/CodeBlockModelCache.swift, Sources/AgentViewKit/Code/CodeBlockView.swift, Sources/AgentViewKit/Content/RenderedMarkdownView.swift, Tests/AgentViewKitTests/Code/CountedReadOnlyModelTests.swift; swift test 1664 + 59 pass; build-tests complete in IntegrationTests and ScreenshotTests
+    - next: test, then review
+  timestamp: 2026-11-23T21:08:00.876067+00:00
 position_column: doing
 position_ordinal: '80'
 title: Keep the EditorKit models of thread rows in a thread-level cache so rows that come back do not rebuild
@@ -71,3 +105,15 @@ Use /tdd.
 - [x] Make the hosted test pass.
 
 Files: ConversationView.swift, LiveRowRange.swift, RenderedMarkdownView.swift, CodeBlockView.swift, one new test file. #scroll-perf
+
+## Review Findings (2026-11-23 15:01)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 10 file(s) reviewed, 3 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+> 1 file(s) not reviewed — no validator matched:
+> - `ARCHITECTURE.md` — no validator matches this file
+
+- [x] `Sources/AgentViewKit/Code/CodeBlockView.swift:121` `duplication/duplication` — The new static function `makeModel` repeats the debug counter pattern of `RenderedMarkdownView.makeModel`: a `#if DEBUG` call to `BodyEvaluationCounter.note` with a key from a prefix constant and a `modelCounterKey(for:)` helper, then a call to `EditorModel.makeReadOnly`. Two copies of this scheme can drift, for example when one key format changes and the other does not, and the counts in the tests then stop matching. Extract one shared function in an `EditorModel` extension, for example `static func makeCountedReadOnly(_ text: String, keyPrefix: String) -> EditorModel`. It holds the `#if DEBUG` note of `keyPrefix + text` and then returns `makeReadOnly(text)`. `CodeBlockView.makeModel` and `RenderedMarkdownView.makeModel` each call it with their own prefix constant. `RenderedMarkdownView` then sets `presentation = .rendered` on the returned model. Remove the duplicated `modelCounterKey(for:)` bodies, or make them one-line calls to the shared helper.

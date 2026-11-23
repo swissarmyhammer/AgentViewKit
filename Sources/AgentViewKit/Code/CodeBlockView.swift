@@ -106,7 +106,7 @@ public struct CodeBlockView: View {
   /// - Parameter code: The code of the model.
   /// - Returns: `code-block-model-<code>`.
   static func modelCounterKey(for code: String) -> String {
-    modelCounterKeyPrefix + code
+    EditorModel.readOnlyCounterKey(for: code, keyPrefix: modelCounterKeyPrefix)
   }
 
   /// Makes the read-only model of a code block: the model that the view
@@ -119,10 +119,7 @@ public struct CodeBlockView: View {
   /// - Parameter code: The code.
   /// - Returns: The read-only model.
   static func makeModel(_ code: String) -> EditorModel {
-    #if DEBUG
-      BodyEvaluationCounter.note(modelCounterKey(for: code))
-    #endif
-    return EditorModel.makeReadOnly(code)
+    EditorModel.makeCountedReadOnly(code, keyPrefix: modelCounterKeyPrefix)
   }
 
   /// The label that VoiceOver reads for the block.
