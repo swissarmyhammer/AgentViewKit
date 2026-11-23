@@ -27,6 +27,20 @@ import SwiftUI
     fittingSize(of: view.frame(width: width))
   }
 
+  /// The size that `view` takes when its parent proposes `width`, and no
+  /// limit of height.
+  ///
+  /// The view chooses its size in the proposal: a `ViewThatFits` shows the
+  /// first child that fits the width.
+  ///
+  /// - Parameters:
+  ///   - view: The view to measure.
+  ///   - width: The proposed width, in points.
+  /// - Returns: The size that the view takes in the proposal.
+  public static func size(of view: some View, proposedWidth width: CGFloat) -> CGSize {
+    NSHostingController(rootView: view).sizeThatFits(in: CGSize(width: width, height: .greatestFiniteMagnitude))
+  }
+
   /// Lays out `view` once, so that its body and the bodies under it run.
   ///
   /// - Parameter view: The view to lay out.

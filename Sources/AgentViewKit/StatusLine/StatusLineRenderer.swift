@@ -50,6 +50,10 @@ nonisolated public struct StatusLinePiece: Hashable, Sendable {
   public var module: StatusLineModuleID?
   /// The runs of the part.
   public var spans: [StatusLineSpan]
+  /// The narrower forms of the runs, from the widest to the narrowest. The
+  /// line shows the widest form that fits its width. The `directory` module
+  /// gives its path with fewer names of the middle.
+  public var narrowerSpans: [[StatusLineSpan]]
   /// The tooltip and the accessibility value of the part, or `nil`. The
   /// `directory` module gives the full POSIX path of the folder.
   public var help: String?
@@ -59,10 +63,14 @@ nonisolated public struct StatusLinePiece: Hashable, Sendable {
   /// - Parameters:
   ///   - module: The module, or `nil` for literal text.
   ///   - spans: The runs.
+  ///   - narrowerSpans: The narrower forms of the runs, from the widest.
   ///   - help: The tooltip and the accessibility value, or `nil`.
-  public init(module: StatusLineModuleID?, spans: [StatusLineSpan], help: String? = nil) {
+  public init(
+    module: StatusLineModuleID?, spans: [StatusLineSpan], narrowerSpans: [[StatusLineSpan]] = [], help: String? = nil
+  ) {
     self.module = module
     self.spans = spans
+    self.narrowerSpans = narrowerSpans
     self.help = help
   }
 
@@ -177,9 +185,10 @@ nonisolated public enum StatusLineRenderer {
   public static func render(_ definition: StatusLineDefinition, input: StatusLineInput) -> StatusLineRendering {
     let output = definition.format.render { name -> StatusLinePiece? in
       guard let id = StatusLineModuleID(rawValue: name),
-        let spans = moduleSpans(id, definition: definition, input: input), !spans.isEmpty
+        let forms = moduleForms(id, definition: definition, input: input), let spans = forms.first, !spans.isEmpty
       else { return nil }
-      return StatusLinePiece(module: id, spans: spans, help: id == .directory ? input.cwd : nil)
+      return StatusLinePiece(
+        module: id, spans: spans, narrowerSpans: Array(forms.dropFirst()), help: id == .directory ? input.cwd : nil)
     }
     let pieces = StatusLineFormat.normalized(output).map { part -> StatusLinePiece in
       switch part {
@@ -190,12 +199,29 @@ nonisolated public enum StatusLineRenderer {
     return StatusLineRendering(pieces: pieces)
   }
 
-  /// The runs of one module, or `nil` when it shows nothing.
+  /// The forms of the runs of one module, from the widest to the narrowest,
+  /// or `nil` when it shows nothing. The `directory` module has a form for
+  /// each name of the middle of its path. Each other module has one form.
+  ///
+  /// - Parameters:
+  ///   - id: The module.
+  ///   - definition: The definition.
+  ///   - input: The data.
+  /// - Returns: The forms, or `nil`.
+  public static func moduleForms(_ id: StatusLineModuleID, definition: StatusLineDefinition, input: StatusLineInput)
+    -> [[StatusLineSpan]]?
+  {
+    guard id == .directory else { return moduleSpans(id, definition: definition, input: input).map { [$0] } }
+    return directory(definition.directory, input: input)
+  }
+
+  /// The runs of one module in its widest form, or `nil` when it shows
+  /// nothing.
   public static func moduleSpans(_ id: StatusLineModuleID, definition: StatusLineDefinition, input: StatusLineInput)
     -> [StatusLineSpan]?
   {
     switch id {
-    case .directory: directory(definition.directory, input: input)
+    case .directory: directory(definition.directory, input: input)?.first
     case .gitBranch: gitBranch(definition.gitBranch, git: input.git)
     case .gitStatus: gitStatus(definition.gitStatus, git: input.git)
     case .gitState: gitState(definition.gitState, git: input.git)
@@ -234,14 +260,19 @@ nonisolated public enum StatusLineRenderer {
 
   // MARK: - Modules
 
-  private static func directory(_ module: DirectoryModule, input: StatusLineInput) -> [StatusLineSpan]? {
+  /// The forms of the runs of the `directory` module, from the whole path.
+  private static func directory(_ module: DirectoryModule, input: StatusLineInput) -> [[StatusLineSpan]]? {
     guard !module.disabled, let cwd = input.cwd else { return nil }
-    let parts = StatusLineDirectory.parts(
+    let forms = StatusLineDirectory.forms(
       cwd: cwd, homeFolder: input.homeFolder, repositoryRoot: input.git?.root, module: module,
       displayName: { input.displayNames[$0] })
-    guard !parts.isEmpty else { return nil }
-    let path = parts.map { part in StatusLineSpan.text(part.text, part.isRepositoryRoot ? module.repoRootStyle : module.style) }
-    return render(module.format, style: module.style, references: ["path": path])
+    let rendered = forms.filter { !$0.isEmpty }.compactMap { parts in
+      let path = parts.map { part in
+        StatusLineSpan.text(part.text, part.isRepositoryRoot ? module.repoRootStyle : module.style)
+      }
+      return render(module.format, style: module.style, references: ["path": path])
+    }
+    return rendered.isEmpty ? nil : rendered
   }
 
   private static func gitBranch(_ module: GitBranchModule, git: StatusLineGitSnapshot?) -> [StatusLineSpan]? {

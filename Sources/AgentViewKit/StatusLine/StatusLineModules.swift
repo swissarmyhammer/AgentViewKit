@@ -121,8 +121,9 @@ nonisolated public struct DirectoryModule: StatusLineModuleOptions {
   public var style: StatusLineStyle = "bold"
   public var disabled = false
   /// The most parts of the path that show, or 0 for no limit. The default
-  /// shows the whole path: a long path removes whole names from its middle
-  /// (``StatusLineDirectory/lengthLimit``).
+  /// shows the whole path. When the path does not fit the width of the
+  /// line, the line removes whole names from its middle
+  /// (``StatusLineDirectory/forms(cwd:homeFolder:repositoryRoot:module:displayName:)``).
   public var truncationLength = 0
   /// `true` to start the path at the folder of the git repository root. The
   /// default shows the path from `~` or `/`, so that it reads as a path

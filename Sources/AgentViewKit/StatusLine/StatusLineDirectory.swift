@@ -7,8 +7,9 @@ import Foundation
 /// folders. The home folder is `~`. An iCloud Drive folder shows as
 /// ``iCloudDriveName``, and the folder of an app container in iCloud Drive
 /// shows as ``iCloudDriveName`` and the display name of the container. A
-/// long path removes whole names from its middle and shows one ``ellipsis``
-/// in their place.
+/// path has narrower forms that remove whole names from its middle and show
+/// one ``ellipsis`` in their place. The status line shows the widest form
+/// that fits its width.
 nonisolated public enum StatusLineDirectory {
   /// The text between two folders: the separator of the path bar of Finder.
   public static let separator = " › "
@@ -19,12 +20,10 @@ nonisolated public enum StatusLineDirectory {
   /// The name of iCloud Drive, as Finder shows it.
   public static let iCloudDriveName = "iCloud Drive"
 
-  /// The most characters of a path. A longer path removes folders from its
-  /// middle.
-  public static let lengthLimit = 60
-
-  /// The count of the last folders that a long path always keeps.
-  public static let keptLastFolders = 2
+  /// The count of the last folders that each form of a path keeps. The
+  /// narrowest form keeps the last folder only, so that it fits a narrow top
+  /// bar (the user, 2026-11-23: "Keep last folder").
+  public static let keptLastFolders = 1
 
   /// The path of the folder of iCloud Drive, relative to the home folder.
   /// Each app container and the iCloud Drive folder itself are in it.
@@ -99,7 +98,8 @@ nonisolated public enum StatusLineDirectory {
     }
   }
 
-  /// The parts of the shown path of a folder.
+  /// The forms of the shown path of a folder, from the whole path to the
+  /// narrowest form.
   ///
   /// 1. With `truncate_to_repo`, a folder in a repository starts at the
   ///    folder of the repository root. Otherwise the home folder becomes
@@ -114,9 +114,10 @@ nonisolated public enum StatusLineDirectory {
   /// 6. Each parent part other than the repository root and the home symbol
   ///    keeps `fish_style_pwd_dir_length` characters (and a leading `.`).
   ///    The default 0 keeps each part whole.
-  /// 7. With no `truncation_length`, a path longer than ``lengthLimit``
-  ///    characters keeps its first part and its last folders, and shows one
-  ///    ``ellipsis`` in place of the folders between them.
+  /// 7. With no `truncation_length`, each next form removes one more name
+  ///    from the middle of the path, and shows one ``ellipsis`` in place of
+  ///    the removed names. Each form keeps the first part and the last
+  ///    ``keptLastFolders`` folders.
   ///
   /// - Parameters:
   ///   - cwd: The folder.
@@ -127,12 +128,12 @@ nonisolated public enum StatusLineDirectory {
   ///   - displayName: The display name of a folder, or `nil` for the name
   ///     of the folder. The model of the line reads the names with
   ///     ``finderDisplayName(of:)``.
-  /// - Returns: The parts, with ``separator`` parts between the folder
-  ///   parts.
-  public static func parts(
+  /// - Returns: The forms, each with ``separator`` parts between the folder
+  ///   parts. A path with no name to remove has one form.
+  public static func forms(
     cwd: String, homeFolder: String, repositoryRoot: String?, module: DirectoryModule,
     displayName: (String) -> String? = { _ in nil }
-  ) -> [Part] {
+  ) -> [[Part]] {
     let home = trimmed(homeFolder)
     let root = repositoryRoot.map(trimmed)
     let path = substituted(start(folder: trimmed(cwd), home: home, root: root, module: module), module.substitutions)
@@ -148,12 +149,14 @@ nonisolated public enum StatusLineDirectory {
       return component
     }
     let styled = fishStyled(named, module: module)
-    let components = module.truncationLength <= 0 ? elided(styled) : styled
+    let forms = module.truncationLength <= 0 ? elisions(styled) : [styled]
     let symbol = isTruncated && !module.truncationSymbol.isEmpty ? [Part(module.truncationSymbol)] : []
-    let folders = components.enumerated().flatMap { index, component in
-      (index > 0 ? [Part(separator)] : []) + [Part(component.text, isRepositoryRoot: component.isRepositoryRoot)]
+    return forms.map { components in
+      symbol
+        + components.enumerated().flatMap { index, component in
+          (index > 0 ? [Part(separator)] : []) + [Part(component.text, isRepositoryRoot: component.isRepositoryRoot)]
+        }
     }
-    return symbol + folders
   }
 
   /// The display name of a folder, as Finder shows it.
@@ -255,25 +258,18 @@ nonisolated public enum StatusLineDirectory {
     }
   }
 
-  /// The parts of a long path: the first part, one ``ellipsis``, and the
-  /// last folders that fit in ``lengthLimit`` characters. The path always
-  /// keeps its last ``keptLastFolders`` folders whole.
-  static func elided(_ components: [Component]) -> [Component] {
-    guard components.count > keptLastFolders + 1, width(of: components) > lengthLimit else { return components }
-    let head = [components[0], Component(text: ellipsis, isFixed: true)]
-    // The tail starts after the first folder of the middle at the earliest,
-    // so that the ellipsis stands for at least one folder. A tail that
-    // starts later is narrower, thus the first start that fits is the
-    // longest tail that fits.
+  /// The forms of a path: the whole path, then one form for each name of
+  /// the middle. Each next form removes one more name after the first part,
+  /// and shows one ``ellipsis`` in place of the removed names. Each form
+  /// keeps the first part and the last ``keptLastFolders`` folders.
+  static func elisions(_ components: [Component]) -> [[Component]] {
+    guard let first = components.first else { return [components] }
+    let head = [first, Component(text: ellipsis, isFixed: true)]
+    // The tail of a narrower form starts after the first name of the
+    // middle at the earliest, so that the ellipsis stands for at least one
+    // name.
     let latestStart = components.count - keptLastFolders
-    let tailStart =
-      (head.count..<latestStart).first { width(of: head + components[$0...]) <= lengthLimit } ?? latestStart
-    return head + components[tailStart...]
-  }
-
-  /// The count of the characters of the shown parts, with the separators.
-  private static func width(of components: [Component]) -> Int {
-    components.reduce(0) { $0 + $1.text.count } + separator.count * (components.count - 1)
+    return [components] + stride(from: head.count, through: latestStart, by: 1).map { head + components[$0...] }
   }
 
   /// A part cut to `length` characters, and the leading `.` of a hidden

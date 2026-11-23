@@ -15,22 +15,45 @@ import Testing
     "Documentation", "Architecture",
   ]
 
-  /// The shown path, and the repository root part.
+  /// The shown forms of the path, from the whole path to the narrowest
+  /// form.
+  static func forms(
+    _ cwd: String, root: String? = nil, names: [String: String] = [:],
+    _ change: (inout DirectoryModule) -> Void = { _ in }
+  ) -> [[StatusLineDirectory.Part]] {
+    var module = DirectoryModule()
+    change(&module)
+    return StatusLineDirectory.forms(
+      cwd: cwd, homeFolder: home, repositoryRoot: root, module: module, displayName: { names[$0] })
+  }
+
+  /// The shown forms of the path as text.
+  static func formTexts(_ cwd: String, _ change: (inout DirectoryModule) -> Void = { _ in }) -> [String] {
+    forms(cwd, change).map { $0.map(\.text).joined() }
+  }
+
+  /// The whole shown path, and the repository root part.
   static func shown(
     _ cwd: String, root: String? = nil, names: [String: String] = [:],
     _ change: (inout DirectoryModule) -> Void = { _ in }
   ) -> (text: String, root: String?) {
-    var module = DirectoryModule()
-    change(&module)
-    let parts = StatusLineDirectory.parts(
-      cwd: cwd, homeFolder: home, repositoryRoot: root, module: module, displayName: { names[$0] })
+    let parts = forms(cwd, root: root, names: names, change).first ?? []
     return (parts.map(\.text).joined(), parts.first(where: \.isRepositoryRoot)?.text)
   }
 
-  /// The shown folder names, with no separators.
+  /// The shown folder names of the whole path, with no separators.
   static func folders(_ cwd: String, names: [String: String] = [:]) -> [String] {
     shown(cwd, names: names).text.components(separatedBy: StatusLineDirectory.separator)
   }
+
+  /// The folder names of each narrower form of a long path, with no
+  /// separators.
+  static func narrowerFolders(_ cwd: String) -> [[String]] {
+    formTexts(cwd).dropFirst().map { $0.components(separatedBy: StatusLineDirectory.separator) }
+  }
+
+  /// The path below the home folder with the eight ``longNames``.
+  static let longPath = home + "/" + longNames.joined(separator: "/")
 
   @Test func homeFolderIsTheHomeSymbol() {
     #expect(Self.shown("/Users/me").text == "~")
@@ -141,34 +164,49 @@ import Testing
 
   // MARK: - A long path
 
-  @Test func longPathHasExactlyOneEllipsis() {
-    let folders = Self.folders(Self.home + "/" + Self.longNames.joined(separator: "/"))
-    #expect(folders.filter { $0 == StatusLineDirectory.ellipsis }.count == 1)
+  @Test func eachNarrowerFormRemovesOneMoreMiddleName() {
+    #expect(
+      Self.formTexts("/Users/me/a/b/c/d") == ["~ › a › b › c › d", "~ › … › b › c › d", "~ › … › c › d", "~ › … › d"])
   }
 
-  @Test func longPathShowsOnlyWholeNames() {
-    let folders = Self.folders(Self.home + "/" + Self.longNames.joined(separator: "/"))
-    let shownNames = folders.filter { $0 != "~" && $0 != StatusLineDirectory.ellipsis }
+  /// The user, 2026-11-23: "Keep last folder".
+  @Test func narrowestFormKeepsTheLastFolderOnly() {
+    #expect(Self.formTexts("/Users/me/code/AgentViewKit/Sources/AgentViewKit").last == "~ › … › AgentViewKit")
+  }
+
+  @Test func longPathHasAFormForEachMiddleName() {
+    #expect(Self.forms(Self.longPath).count == Self.longNames.count - StatusLineDirectory.keptLastFolders + 1)
+  }
+
+  @Test func eachNarrowerFormHasExactlyOneEllipsis() {
+    #expect(Self.narrowerFolders(Self.longPath).allSatisfy { $0.filter { $0 == StatusLineDirectory.ellipsis }.count == 1 })
+  }
+
+  @Test func eachNarrowerFormShowsOnlyWholeNames() {
+    let shownNames = Self.narrowerFolders(Self.longPath).flatMap { $0.filter { $0 != "~" && $0 != StatusLineDirectory.ellipsis } }
     #expect(!shownNames.isEmpty && shownNames.allSatisfy(Self.longNames.contains))
   }
 
-  @Test func longPathKeepsTheHomeAndTheLastFolders() {
-    let folders = Self.folders(Self.home + "/" + Self.longNames.joined(separator: "/"))
-    #expect(folders.first == "~")
-    #expect(Array(folders.suffix(2)) == Array(Self.longNames.suffix(2)))
+  @Test func eachNarrowerFormKeepsTheHomeAndTheLastFolders() {
+    let lastFolders = Array(Self.longNames.suffix(StatusLineDirectory.keptLastFolders))
+    #expect(Self.narrowerFolders(Self.longPath).allSatisfy { $0.first == "~" && Array($0.suffix(lastFolders.count)) == lastFolders })
   }
 
-  @Test func shortPathHasNoEllipsis() {
-    #expect(!Self.folders("/Users/me/code/project").contains(StatusLineDirectory.ellipsis))
+  @Test func pathWithNoMiddleNameHasOneForm() {
+    #expect(Self.formTexts("/Users/me/project") == ["~ › project"])
+  }
+
+  @Test func truncationLengthGivesOneForm() {
+    #expect(Self.forms(Self.longPath) { $0.truncationLength = 4 }.count == 1)
   }
 
   // MARK: - The home folder
 
   @Test func userDatabaseHomeIsTheHomeNotTheSandboxContainer() {
     let home = UserHomeFolder.path(userDatabase: "/Users/me", process: "/Users/me/Library/Containers/app.testudo/Data")
-    let parts = StatusLineDirectory.parts(
+    let forms = StatusLineDirectory.forms(
       cwd: "/Users/me/Documents/Agents", homeFolder: home, repositoryRoot: nil, module: DirectoryModule())
-    #expect(parts.first?.text == "~")
+    #expect(forms.first?.first?.text == "~")
   }
 
   @Test func processHomeIsTheHomeWithNoUserDatabaseEntry() {

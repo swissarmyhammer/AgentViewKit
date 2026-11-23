@@ -21,8 +21,9 @@ import SwiftUI
 /// The view is one accessibility element with the plain text of the line as
 /// its label, the full path of the working folder as its value, and the
 /// identifier ``identifier``. With crumbs, it is a container, so that each
-/// crumb is an element. The `directory` module shows the full path of the
-/// working folder as its tooltip and its accessibility value.
+/// crumb is an element. The `directory` module shows the widest form of its
+/// path that fits the width of the line, with whole names only, and the full
+/// path of the working folder as its tooltip and its accessibility value.
 public struct StatusLineView: View {
   /// The accessibility identifier of the line.
   public static let identifier = "agent-status-line"
@@ -209,7 +210,7 @@ struct StatusLineContent: View {
         .environment(\.editorStyle, Self.lineCrumbStyle(editorStyle))
         .accessibilityIdentifier(StatusLineView.identifier(for: .session))
     } else if let module = piece.module {
-      StatusLineText(spans: piece.spans)
+      StatusLinePieceText(piece: piece)
         .contentShape(Rectangle())
         .onTapGesture { actions?(module, folder: input.cwd.map { AbsolutePath(rawValue: $0) }) }
         .statusLineHelp(piece.help)
@@ -243,6 +244,21 @@ extension View {
       accessibilityValue(Text(verbatim: text))
     } else {
       self
+    }
+  }
+}
+
+/// The runs of one part of the line in the widest form that fits the width
+/// that the line gives to the part.
+struct StatusLinePieceText: View {
+  let piece: StatusLinePiece
+
+  var body: some View {
+    let forms = [piece.spans] + piece.narrowerSpans
+    ViewThatFits(in: .horizontal) {
+      ForEach(forms.indices, id: \.self) { index in
+        StatusLineText(spans: forms[index])
+      }
     }
   }
 }
