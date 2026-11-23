@@ -29,8 +29,15 @@ comments:
     - hosted tests: none written; the card makes none necessary. No hosted suite was run.
     - next: /review. Task stays in doing.
   timestamp: 2026-11-23T21:45:35.165423+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m85631xt8nte2m89vtce6ycs
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (commit 42965097). 5 files reviewed. 0 findings, 0 confirmed, 1 refuted, 7 attempted, 0 failed. The 2 .kanban files are not reviewed (ignore rule). No prior review findings sections. All acceptance criteria and subtasks are checked.
+    - next: the task moves to done.
+  timestamp: 2026-11-23T21:48:13.626593+00:00
+position_column: done
+position_ordinal: ffffffff9c80
 title: 'Make the visible-rows report cheap: a rowKey position index and no equal visibleIDs writes'
 ---
 ## Rule
