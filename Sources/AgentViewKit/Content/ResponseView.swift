@@ -37,6 +37,11 @@ import SwiftUI
 /// segment has a model of its own (``segmentModelID(for:index:isCode:)``). A
 /// text with no fence shows in one ``RenderedMarkdownView``.
 ///
+/// The view finds the fences of its text, and makes its citation chips, one
+/// time for each change of the text (``ParseMemo``, task ^0g7ftka). A new
+/// evaluation of its body with the same text, such as when its row enters or
+/// leaves the ``LiveRowRange``, parses nothing.
+///
 /// EditorKit shows each formula and each image of the text. When the view
 /// has a ``CitationPayload``, EditorKit shows a citation chip at each
 /// ``CitationMarker``, in the prose segment that holds it. A press on a chip
@@ -66,6 +71,14 @@ public struct ResponseView: View {
   /// The start of the ``BodyEvaluationCounter`` key of each response.
   public static let counterKeyPrefix = "response-"
 
+  /// The start of the ``BodyEvaluationCounter`` key of the fence parses of
+  /// each response.
+  static let piecesCounterKeyPrefix = "response-fences-"
+
+  /// The start of the ``BodyEvaluationCounter`` key of the citation chip
+  /// parses of each response.
+  static let chipsCounterKeyPrefix = "response-chips-"
+
   /// The id that keys the model of the text, unique in the thread.
   let id: String
 
@@ -87,6 +100,13 @@ public struct ResponseView: View {
   /// The selection region of the editor, which records whether the editor
   /// holds the selection of the thread.
   @State private var selectionClaim = ResponseSelectionClaim()
+
+  /// The segments of the last text, kept for that text.
+  @State private var piecesMemo = ParseMemo<String, [MarkdownCodeFences.Piece]>()
+
+  /// The citation chips of the last text, kept for that text and its
+  /// citations.
+  @State private var chipsMemo = ParseMemo<CitedText, [EditorCitation]>()
 
   /// Makes the body of one Markdown text, such as the text of an ACP text
   /// block of a transcript entry.
@@ -113,9 +133,45 @@ public struct ResponseView: View {
     counterKeyPrefix + id
   }
 
+  /// The ``BodyEvaluationCounter`` key of the fence parses of the response
+  /// `id`.
+  ///
+  /// - Parameter id: The id of the response.
+  /// - Returns: `response-fences-<id>`.
+  static func piecesCounterKey(for id: String) -> String {
+    piecesCounterKeyPrefix + id
+  }
+
+  /// The ``BodyEvaluationCounter`` key of the citation chip parses of the
+  /// response `id`.
+  ///
+  /// - Parameter id: The id of the response.
+  /// - Returns: `response-chips-<id>`.
+  static func chipsCounterKey(for id: String) -> String {
+    chipsCounterKeyPrefix + id
+  }
+
   /// The citation chips of the text.
+  ///
+  /// The response makes the chips one time for each change of the text or
+  /// of its citations (``ParseMemo``).
   var chips: [EditorCitation] {
-    citations?.editorCitations(in: markdown) ?? []
+    chipsMemo.value(
+      for: CitedText(markdown: markdown, citations: citations),
+      counterKey: Self.chipsCounterKey(for: id)
+    ) { cited in
+      cited.citations?.editorCitations(in: cited.markdown) ?? []
+    }
+  }
+
+  /// The segments of the text and their ranges.
+  ///
+  /// The response finds the fences one time for each change of the text
+  /// (``ParseMemo``).
+  var pieces: [MarkdownCodeFences.Piece] {
+    piecesMemo.value(
+      for: markdown, counterKey: Self.piecesCounterKey(for: id),
+      parse: MarkdownCodeFences.pieces(in:))
   }
 
   /// The model of the text of the response `id` in `cache`.
@@ -252,7 +308,7 @@ public struct ResponseView: View {
   /// The text: one ``RenderedMarkdownView`` for a text with no fence, or a
   /// stack of its segments for a text with a fence.
   @ViewBuilder private var text: some View {
-    let pieces = MarkdownCodeFences.pieces(in: markdown)
+    let pieces = self.pieces
     if pieces.contains(where: \.segment.isCode) {
       // A segment is keyed by its index, so a streamed chunk changes only
       // the last segment.
@@ -320,6 +376,17 @@ public struct ResponseView: View {
       .accessibilityIdentifier(Self.textIdentifier)
       .accessibilityValue(Text(verbatim: markdown))
   }
+}
+
+/// A Markdown text and its citations: the input of the citation chips of a
+/// ``ResponseView``.
+struct CitedText: Equatable {
+  /// The Markdown text.
+  let markdown: String
+
+  /// The sources of the text and the places that cite them, or `nil` when
+  /// the text has no citations.
+  let citations: CitationPayload?
 }
 
 /// The height of the text of a ``ResponseView`` at its last layout with its
