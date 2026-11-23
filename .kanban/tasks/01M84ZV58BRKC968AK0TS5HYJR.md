@@ -53,6 +53,13 @@ comments:
     - evidence: new `BodyEvaluationKey.make(prefix:object:)` makes the key of an object from its identity. AgentThreadLayout.floatingControlsCounterKey(for:) and the two pill keys call it; ConversationPill.counterKeyID(of:) is removed. The keys did not change. swift test 1689 + 59 passed; IntegrationTests build complete.
     - open: the 7 hosted tests of ConversationPillMountHostedTests and the 2 snapshots run when the screen is free.
   timestamp: 2026-11-23T22:10:47.724020+00:00
+- actor: claude-code
+  id: 01m857eedgjnbja4vgk5gkwwcw
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 7f9320cc). 0 findings, 0 confirmed, 0 refuted, 7 attempted, 0 failed. The engine reviewed 3 source files. It did not review 2 .kanban files because of .reviewignore. The prior finding at AgentThreadView.swift:685 (reuse/reuse) is checked.
+    - next: The task stays in review. Two subtasks are open: "Add the hosted test (it fails first)" and "Update snapshot images if the look changes and give the paths". Do the hosted runs only when the user permits them. Then move the task to done.
+  timestamp: 2026-11-23T22:11:55.440858+00:00
 position_column: review
 position_ordinal: '8180'
 title: Keep the conversation pill mounted so an unpin from the bottom does not hitch
