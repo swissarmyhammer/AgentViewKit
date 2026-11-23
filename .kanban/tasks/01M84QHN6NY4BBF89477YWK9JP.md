@@ -1,0 +1,32 @@
+---
+assignees:
+- claude-code
+position_column: todo
+position_ordinal: '8280'
+title: Read-only thread header with a title and one EditorKit command action
+---
+## What
+TestudoApp decision D212 (design /Users/wballard/github/swissarmyhammer/TestudoApp/features/session-import-redesign.md, 5.3, 5.4 and 6): the read-only tab of an external session has a header that shows the source, "read-only", the date of the last record, and the button "Continue in Testudo". Today `.threadHeader { ... }` (TestudoApp D208 (i)) takes only a host view.
+
+Change /Users/wballard/github/swissarmyhammer/AgentViewKit/Sources/AgentViewKit/Thread/ThreadHeader.swift:
+- Add a public overload `threadHeader(_ title: String, action command: String) -> some View` (`title` is the host text, already localized, for example "Claude Code · read-only · Nov 21, 2026"; `command` is the id of an EditorKit command, for example the id of Continue in Testudo). It sets `\.threadHeader` to a new view `ThreadHeaderBar`.
+- Add `struct ThreadHeaderBar: View`: an `HStack` with `Text(title)` (one line, truncates at its tail, lower layout priority) and, at the trailing edge, `EditorToolbarButton(command: command)`, as Sources/AgentViewKit/Items/MessageActions.swift and Sources/AgentViewKit/Thread/SideQuestionCard.swift bind a command. The command registry gives the button title, the state and the disabled reason. The kit writes no source name, date format or button text.
+- The view goes in the same `ThreadHeaderSlot`, so it keeps the identifier `AgentThreadLayout.headerIdentifier`, the content button surface and no glass.
+- Update the doc comment of `threadHeader(_:)` with the new overload and an example.
+
+Do not change Sources/AgentViewKit/StatusLine/*.
+
+## Acceptance Criteria
+- [ ] `.threadHeader("<title>", action: "<command id>")` compiles and shows the title and one command button in the header of `AgentThreadView`.
+- [ ] The button runs the command through the EditorKit registry and is disabled when the command is not available, as other `EditorToolbarButton(command:)` buttons are.
+- [ ] At a narrow width, the title truncates and the button stays whole.
+- [ ] The view overload `threadHeader { ... }` works as before.
+- [ ] VoiceOver reads the header group with the title text, and the button keeps its own label.
+
+## Tests
+- [ ] Unit tests first (headless `swift test`), in /Users/wballard/github/swissarmyhammer/AgentViewKit/Tests/AgentViewKitTests/Thread/ThreadHeaderTests.swift: the overload sets the header environment value (use the probe of SlotProbe.swift); the header contains the title text; the button binds the given command id; the old overload still gives the host view.
+- [ ] Screenshot gallery screen in /Users/wballard/github/swissarmyhammer/AgentViewKit/ScreenshotTests/Tests/ScreenshotTests: a read-only thread with the header "Claude Code · read-only · Nov 21, 2026" and the action "Continue in Testudo" (extend SharedThreadFixtures.swift and add a snapshot in HostedSnapshotTests.swift beside `thread-shared`), at the normal width and at a narrow width. Run: `HOME=$(mktemp -d) swift test --package-path ScreenshotTests`. Give the PNG paths for review.
+- [ ] `swift test` passes with no new warning.
+
+## Workflow
+- Use /tdd -- write failing tests first, then implement to make them pass. #d212
