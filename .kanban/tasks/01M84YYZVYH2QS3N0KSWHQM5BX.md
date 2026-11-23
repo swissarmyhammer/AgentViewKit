@@ -21,8 +21,15 @@ comments:
     - files: Sources/AgentViewKitStyle/Status/StatusBarPlacement.swift, Sources/AgentViewKitStyle/Status/StatusBar.swift, Sources/AgentViewKitStyle/AgentViewKitStyle.docc/AgentViewKitStyle.md, Sources/AgentViewKit/Connections/AgentAuthView.swift, Sources/AgentViewKit/Connections/AgentLoginPrompt.swift, Sources/AgentViewKit/Thread/AgentThreadView.swift, Tests/AgentViewKitStyleTests/StatusBarPlacementTests.swift, ScreenshotTests/Tests/ScreenshotTests/FloatingNoteGalleryFixtures.swift, ScreenshotTests/Tests/ScreenshotTests/GlassSnapshotTests.swift, Docs/decisions/visual-audit.md, README.md, ARCHITECTURE.md
     - next: /review
   timestamp: 2026-11-23T20:03:55.477446+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m8507z8jxzawzy7zvfkh2vmz
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (commit 9df942d2): 0 findings, 0 confirmed, 0 refuted; 7 validator runs, 0 failed. 8 files were reviewed. No validator matches 4 Markdown files: ARCHITECTURE.md, README.md, Docs/decisions/visual-audit.md, AgentViewKitStyle.docc/AgentViewKitStyle.md. The implement evidence: swift test 1657 + 59 passed; hosted AgentAuthView 21, ThreadBottomBar 6, BannerOverlap 3, ConnectionModelViews 10, BarControlJump 6 passed; gallery 45 passed; images floating-sign-in*.png.
+    - next: none. The task is in done.
+  timestamp: 2026-11-23T20:06:03.282581+00:00
+position_column: done
+position_ordinal: ffffffff9880
 title: Decide if the sign-in card in the bottom bar of a thread gets the glass of the floating notes (D213 follow-up)
 ---
 ## What
