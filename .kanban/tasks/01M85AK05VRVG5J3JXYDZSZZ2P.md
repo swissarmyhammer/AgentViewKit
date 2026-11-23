@@ -44,6 +44,13 @@ comments:
     - evidence: `ComposerHarness.draftText(of: SessionModel)` is the one helper. ThreadComposerHostedTests calls it, and its copy is removed. `ComposerDraftHostedTests.draftText(of: ScriptedSession)` is now a one-line call to it. IntegrationTests build complete.
     - open: ThreadComposerHostedTests (3) and the gallery screen thread-external-composer run on CI or when the screen is free.
   timestamp: 2026-11-23T23:25:15.776119+00:00
+- actor: claude-code
+  id: 01m85bq11r70tvm629d7xc21hj
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (commit 9aea30e7): 0 findings, 0 confirmed, 0 refuted; 7 attempted, 0 failed. 3 files reviewed. The one prior finding (ThreadComposerHostedTests.swift:99 reuse/reuse) is checked.
+    - next: The task stays in review. Two items are open: (1) the gallery screen of a read-only thread with this composer (thread-external-composer), and (2) the hosted test run of ThreadComposerHostedTests and the gallery run. Do these items on CI or when the screen is free. Then move the task to done.
+  timestamp: 2026-11-23T23:26:30.968133+00:00
 position_column: review
 position_ordinal: '8280'
 title: A read-only thread can show a composer whose submit goes to a host closure (TestudoApp D212 5.3/5.4)

@@ -721,6 +721,15 @@ extension ConversationView where EmptyState == DefaultConversationEmptyState {
 /// ^ts5hyjr, #scroll-perf). The hidden button keeps its size. The pill is in
 /// an overlay, of the list or of the floating controls of a thread, so the
 /// button does not change the layout around it.
+///
+/// The hidden button also has a scale of zero. In the floating controls of a
+/// thread, the button is in a `GlassEffectContainer`. The container does the
+/// hit test of the glass of each child, and `.allowsHitTesting(false)` and
+/// an opacity of zero do not remove the glass from that hit test. Thus the
+/// hidden glass took each click and each right click over the last row, and
+/// the text of the last answer gave no context menu (task ^8nv3d2k). With a
+/// scale of zero, the glass has no area, but the layout size of the button
+/// does not change.
 struct ConversationPill: View {
   /// The manager of the conversation.
   let anchors: ScrollAnchorManager
@@ -756,6 +765,7 @@ struct ConversationPill: View {
     let isHidden = anchors.isPinnedToBottom
     return ConversationPillButton(anchors: anchors)
       .opacity(isHidden ? 0 : 1)
+      .scaleEffect(isHidden ? 0 : 1)
       .allowsHitTesting(!isHidden)
       .accessibilityHidden(isHidden)
       .disabled(isHidden)
