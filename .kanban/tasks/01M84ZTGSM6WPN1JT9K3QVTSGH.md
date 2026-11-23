@@ -67,7 +67,14 @@ comments:
     - evidence: 4 files — Sources/AgentViewKit/Code/CodeBlockModelCache.swift, Sources/AgentViewKit/Code/CodeBlockView.swift, Sources/AgentViewKit/Content/RenderedMarkdownView.swift, Tests/AgentViewKitTests/Code/CountedReadOnlyModelTests.swift; swift test 1664 + 59 pass; build-tests complete in IntegrationTests and ScreenshotTests
     - next: test, then review
   timestamp: 2026-11-23T21:08:00.876067+00:00
-position_column: doing
+- actor: claude-code
+  id: 01m853wf3rafrhga04wexmt41a
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (ec04b89e): 0 findings (0 confirmed, 0 refuted; 7 attempted, 0 failed). 4 files reviewed. All prior review items are checked.
+    - next: run the screenshot gallery when the computer is free. The gallery run is the last open item. The task stays in review until the gallery run is done.
+  timestamp: 2026-11-23T21:09:40.600066+00:00
+position_column: review
 position_ordinal: '80'
 title: Keep the EditorKit models of thread rows in a thread-level cache so rows that come back do not rebuild
 ---
