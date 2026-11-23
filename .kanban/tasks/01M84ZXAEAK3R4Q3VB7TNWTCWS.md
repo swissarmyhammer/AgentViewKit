@@ -20,8 +20,15 @@ comments:
     - evidence: root `swift test` 1653 + 59 tests pass, no code warnings; `swift test --filter SessionStateBannersHostedTests` 13 pass; `swift build --build-tests` in IntegrationTests and ScreenshotTests pass; gallery 45 tests pass. 12 files: Sources/AgentViewKit/Status/SessionStreamBanner.swift, Sources/AgentViewKit/Items/AgentSymbol.swift, Sources/AgentViewKit/Thread/AgentThreadView.swift, Sources/AgentViewKit/Resources/Localizable.xcstrings, Tests/AgentViewKitTests/Status/PartialHistoryNoteTests.swift (deleted), Tests/AgentViewKitTests/Status/StatusBarEffectTests.swift, Tests/AgentViewKitTests/Items/SymbolConceptTests.swift, IntegrationTests/Tests/IntegrationTests/Status/SessionStateBannersHostedTests.swift, ScreenshotTests/Tests/ScreenshotTests/ReviewGalleryNotes.swift, Docs/decisions/acp-version.md, README.md
     - next: /review
   timestamp: 2026-11-23T20:17:21.935960+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m851041f0gd7c3w9syj9cmm1
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (commit 7ed0132c): 0 findings, 0 confirmed, 0 refuted; 8 files reviewed. No validator matches Docs/decisions/acp-version.md, README.md and Localizable.xcstrings. The tool rules did not read PartialHistoryNoteTests.swift because the change deletes that file. Implement evidence: swift test 1653 + 59 pass; SessionStateBannersHostedTests 13 pass; the IntegrationTests and ScreenshotTests build-tests pass; gallery 45 pass.
+    - next: none. The task is in done.
+  timestamp: 2026-11-23T20:19:14.607921+00:00
+position_column: done
+position_ordinal: ffffffff9980
 title: Remove the partial-history note of SessionStreamBanner
 ---
 ## What
