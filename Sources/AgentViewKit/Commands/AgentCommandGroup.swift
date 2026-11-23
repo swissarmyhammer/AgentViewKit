@@ -23,7 +23,9 @@ import SwiftUI
 ///
 /// A scope of a read-only session (TestudoApp D208 (i)) does not register
 /// the verbs of the groups that change the session (``changesSession``):
-/// ``compose``, ``control`` and ``fork``.
+/// ``compose``, ``control`` and ``fork``. With the composer of the host
+/// (``SwiftUI/View/threadComposer(placeholder:onSubmit:)``), it registers the
+/// verbs of ``compose``, which give the prompt to the host.
 /// While a thread view shows the unavailable message of the host, the verbs
 /// that need the transcript (``AgentCommandVerb/needsTranscript``) are not
 /// available: the verbs of ``clipboard``, ``export`` and ``find``, and the
@@ -101,7 +103,11 @@ public nonisolated enum AgentCommandGroup: String, CaseIterable, Sendable {
   /// shared session of TestudoApp D208 (i)) does not register their verbs
   /// (``AgentCommandTarget/registers(_:)``). Thus no menu, context menu,
   /// palette row or key of the thread gives them. The other groups only
-  /// read the thread, so the read-only scope keeps them.
+  /// read the thread, so the read-only scope keeps them. When the host gives
+  /// its composer to the read-only thread
+  /// (``SwiftUI/View/threadComposer(placeholder:onSubmit:)``), the scope
+  /// registers the verbs of ``compose``: the composer gives each prompt to
+  /// the closure of the host, not to the session.
   public var changesSession: Bool {
     switch self {
     case .compose, .control, .fork: true

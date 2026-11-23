@@ -3470,6 +3470,16 @@
         }
       }
     },
+    "This session is read-only. Type the message in the composer." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This session is read-only. Type the message in the composer."
+          }
+        }
+      }
+    },
     "This sub-session did not restore" : {
       "localizations" : {
         "en" : {

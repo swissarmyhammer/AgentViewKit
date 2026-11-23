@@ -68,6 +68,16 @@ extension View {
   /// ``SwiftUI/View/onComposerSubmit(_:)``. Thus the host can turn the tab
   /// into a live session in `onSubmit`, and the prompt goes out one time.
   ///
+  /// Each action of the composer is a command (TestudoApp D108): the thread
+  /// scope of the read-only session registers Send Message, Focus Composer
+  /// and Mention…, as for a live thread, so the menus, the palette and the
+  /// keys run them. Send Message submits the composer, with the same guard
+  /// as the Return key: it is not available for a blank text and while
+  /// `onSubmit` runs. Stop, Approve, Reject and Fork from Here stay absent.
+  /// The scope reads the value of this modifier from the environment, so
+  /// apply the modifier above a scope of the host
+  /// (``SwiftUI/View/agentCommandScope(session:)``) that holds the thread.
+  ///
   /// The modifier sets an environment value that ``AgentThreadView`` reads.
   /// Thus it chains with the other modifiers of the thread, such as
   /// ``SwiftUI/View/threadHeader(_:)`` and

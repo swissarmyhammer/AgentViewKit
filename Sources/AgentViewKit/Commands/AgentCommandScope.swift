@@ -24,7 +24,11 @@ import SwiftUI
 /// ``SwiftUI/View/onForkFromHere(unavailableReason:_:)``. For a read-only
 /// session (`SessionModel.isReadOnly`, TestudoApp D208 (i)), it registers no
 /// verb of a group that changes the session
-/// (``AgentCommandGroup/changesSession``).
+/// (``AgentCommandGroup/changesSession``). When the host gives its composer
+/// to the read-only threads
+/// (``SwiftUI/View/threadComposer(placeholder:onSubmit:)``), the scope reads
+/// it from the environment, as the fork action, and registers the verbs of
+/// the group ``AgentCommandGroup/compose`` (TestudoApp D212 and D108).
 ///
 /// Each command reads its eligibility from the model directly: the
 /// `agentState`, the `pendingPermissions` and the `transcript` of a
@@ -84,6 +88,10 @@ struct AgentCommandScope: ViewModifier {
   /// The fork action of the host, or `nil`.
   @Environment(\.forkFromHere) private var forkFromHere
 
+  /// The composer of the host for the read-only threads, or `nil`
+  /// (``SwiftUI/View/threadComposer(placeholder:onSubmit:)``).
+  @Environment(\.threadComposerRoute) private var hostComposer
+
   /// The target of this scope.
   @State private var ownTarget = AgentCommandTarget()
 
@@ -104,7 +112,8 @@ struct AgentCommandScope: ViewModifier {
       let scope = AgentCommandMount.Scope(
         system: system, path: path, session: session,
         pasteboard: pasteboard, requestStartReport: reportRequestStart, groupsOff: groupsOff,
-        connection: connection ?? hostConnection, forkFromHere: forkFromHere)
+        connection: connection ?? hostConnection, forkFromHere: forkFromHere,
+        hasHostComposer: hostComposer != nil)
       content
         .environment(\.agentCommandTarget, ownTarget)
         .environment(\.agentCommandScopeSegment, segment)
@@ -325,6 +334,8 @@ struct AgentCommandMount: NSViewRepresentable {
     let connection: ConnectionModel?
     /// The fork action of the host, or `nil`.
     let forkFromHere: ForkFromHereAction?
+    /// Whether the host gives its composer to the read-only threads.
+    let hasHostComposer: Bool
   }
 
   /// The target to keep current.
@@ -458,6 +469,7 @@ struct AgentCommandMount: NSViewRepresentable {
       target.path = scope.path
       target.connection = scope.connection
       target.forkFromHere = scope.forkFromHere
+      target.hasHostComposer = scope.hasHostComposer
     }
     if let anchors {
       target.anchors = anchors

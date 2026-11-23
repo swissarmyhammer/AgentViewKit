@@ -96,7 +96,11 @@ final class AgentSessionNavigation {
 /// - A read-only session (`SessionModel.isReadOnly`, TestudoApp D208 (i))
 ///   has no verb of a group that changes the session in the registry
 ///   (``registers(_:)``): no Send, Focus Composer, Mention…, Stop, Approve,
-///   Reject or Fork from Here. The verbs that read stay.
+///   Reject or Fork from Here. The verbs that read stay. With the composer
+///   of the host (``hasHostComposer``), Send, Focus Composer and Mention…
+///   are in the registry, and Send submits the composer, which gives the
+///   prompt to the closure of the host. A Send with a text payload is not
+///   available there, because the model refuses a prompt.
 /// - Fork from Here is in the registry only with the fork action of the host
 ///   (``forkFromHere``). It is disabled with the reason of the host, with no
 ///   message, or for a message with no `MessageId`. It gives the
@@ -161,6 +165,13 @@ final class AgentCommandTarget {
   /// view gives the value through the mount of the scope.
   var isSessionUnavailable = false
 
+  /// Whether the host gives its composer to the read-only threads of the
+  /// scope (``SwiftUI/View/threadComposer(placeholder:onSubmit:)``, TestudoApp
+  /// D212). While it is `true`, the scope of a read-only session registers
+  /// the verbs of the group ``AgentCommandGroup/compose`` (``registers(_:)``).
+  /// The owned scope gives the value through its mount, before it registers.
+  var hasHostComposer = false
+
   /// Gives the first responder of the window of the scope, or `nil`. The
   /// mount of the scope gives it, and a test gives its own. The find verbs
   /// read it to learn if a text input has the focus (``TextInputFocus``).
@@ -220,10 +231,18 @@ final class AgentCommandTarget {
   /// Request and Fork from Here. The registry then shows no disabled row of
   /// them. The scope registers each other verb.
   ///
+  /// When the host gives its composer to the read-only thread
+  /// (``hasHostComposer``, TestudoApp D212 and D108), the scope also
+  /// registers the verbs of the group ``AgentCommandGroup/compose``: Send
+  /// Message, Focus Composer and Mention…. The composer gives each prompt to
+  /// the closure of the host, not to the session.
+  ///
   /// - Parameter verb: The verb.
   /// - Returns: `true` when the scope registers the verb.
   func registers(_ verb: AgentCommandVerb) -> Bool {
-    if verb.group.changesSession, session?.isReadOnly == true { return false }
+    if verb.group.changesSession, session?.isReadOnly == true {
+      return verb.group == .compose && hasHostComposer
+    }
     return verb != .forkFromHere || forkFromHere != nil
   }
 
@@ -286,6 +305,7 @@ final class AgentCommandTarget {
       return .unavailable(reason: String(localized: "The thread is not shown.", bundle: .module))
     }
     if let reason = unavailableSessionReason(of: verb)
+      ?? readOnlyReason(of: verb, payload: payload, in: session)
       ?? missingPartReason(of: verb, payload: payload)
       ?? hostReason(of: verb, payload: payload, in: session)
       ?? textInputReason(of: verb)
@@ -312,6 +332,28 @@ final class AgentCommandTarget {
   private func unavailableSessionReason(of verb: AgentCommandVerb) -> String? {
     guard isSessionUnavailable, verb.needsTranscript else { return nil }
     return String(localized: "The session is not available.", bundle: .module)
+  }
+
+  /// The reason when `verb` would send a text to a read-only session, or
+  /// `nil`.
+  ///
+  /// A read-only session refuses a prompt. In its scope, Send Message runs
+  /// only through the composer of the host, which gives the prompt to the
+  /// closure of the host. So a Send with a text payload is not available.
+  ///
+  /// - Parameters:
+  ///   - verb: The verb.
+  ///   - payload: The payload of the dispatch, or `nil`.
+  ///   - session: The session model of the scope.
+  /// - Returns: ``readOnlySendReason`` for a Send with a text payload in a
+  ///   read-only session, else `nil`.
+  private func readOnlyReason(
+    of verb: AgentCommandVerb, payload: CommandPayload?, in session: SessionModel
+  ) -> String? {
+    guard verb == .send, session.isReadOnly,
+      AgentCommandPayload.string(AgentCommandPayload.textKey, in: payload) != nil
+    else { return nil }
+    return Self.readOnlySendReason
   }
 
   /// The reason when a part of the view that `verb` needs is not in the
@@ -380,6 +422,13 @@ final class AgentCommandTarget {
   /// The reason when the composer is not in the scope.
   private static var composerNotShownReason: String {
     String(localized: "The composer is not shown.", bundle: .module)
+  }
+
+  /// The reason when Send has a text payload in a read-only session: the
+  /// session cannot get a prompt, and the composer of the host sends it.
+  static var readOnlySendReason: String {
+    String(
+      localized: "This session is read-only. Type the message in the composer.", bundle: .module)
   }
 
   /// The reason when the thread view gave no navigation to the scope.
