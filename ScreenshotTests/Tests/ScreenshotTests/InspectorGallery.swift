@@ -42,6 +42,12 @@ enum InspectorGallery {
   /// area with the inspector column at its trailing edge, in points.
   private static let builtInWidth: CGFloat = 900
 
+  /// The width of the narrow window of the built-in attachment inspector, in
+  /// points. The window holds the thread area and the inspector column, and
+  /// the two columns need 294 points or more. Thus this width is more than
+  /// ``narrowWidth``. The inspector column is then at its smallest width.
+  private static let builtInNarrowWidth: CGFloat = 300
+
   /// The name of the narrow width in the name of an image of the built-in
   /// attachment inspector.
   private static let narrowName = "narrow"
@@ -153,7 +159,7 @@ enum InspectorGallery {
 
     try await recordBuiltInAttachmentInspector([attachment], named: Self.oneName, in: gallery)
     try await recordBuiltInAttachmentInspector(
-      [attachment], named: "\(Self.narrowName)-\(Self.oneName)", width: Self.narrowWidth,
+      [attachment], named: "\(Self.narrowName)-\(Self.oneName)", width: Self.builtInNarrowWidth,
       in: gallery)
     try await recordBuiltInAttachmentInspector(
       [attachment, second], named: Self.twoName, in: gallery)
@@ -188,7 +194,7 @@ enum InspectorGallery {
   /// `.attachmentInspector(selection:)` beside a transcript, with one
   /// selected file or two, one block for each file (card ^4138tmp).
   ///
-  /// A window of the narrow panel width makes the inspector column narrow,
+  /// A window of ``builtInNarrowWidth`` makes the inspector column narrow,
   /// so the image shows the narrow form of the ``BlockHeader`` of each
   /// block when its title and its buttons do not fit on one line (card
   /// ^acb63es).
