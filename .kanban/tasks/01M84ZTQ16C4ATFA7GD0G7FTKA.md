@@ -53,8 +53,15 @@ comments:
     - evidence: new `BodyEvaluationKey.make(prefix:id:)` (Sources/AgentViewKit/Diagnostics/BodyEvaluationKey.swift) is the one form of a counter key. All 10 counter key functions of the kit call it: ResponseView (3), EntryContentView (2), ItemRow (2), ToolCallView (2), EditorModel.readOnlyCounterKey (1). The keys did not change. swift test 1676 + 59 passed; IntegrationTests build complete.
     - next: commit, then review.
   timestamp: 2026-11-23T21:32:13.028131+00:00
-position_column: review
-position_ordinal: '8180'
+- actor: claude-code
+  id: 01m8557vttvp3fdrzy49k8bxn5
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (0350d13b); 0 findings, 0 confirmed, 0 refuted; 7 validator runs, 0 failed; 6 files reviewed. All 3 prior findings are checked.
+    - next: none. The task moved to done.
+  timestamp: 2026-11-23T21:33:22.650869+00:00
+position_column: done
+position_ordinal: ffffffff9b80
 title: Memoize the markdown parses in row bodies on the input string
 ---
 ## Rule
