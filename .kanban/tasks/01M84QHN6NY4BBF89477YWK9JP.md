@@ -20,8 +20,15 @@ comments:
     - files: Sources/AgentViewKit/Thread/ThreadHeader.swift, Tests/AgentViewKitTests/Thread/ThreadHeaderTests.swift, ScreenshotTests/Tests/ScreenshotTests/SharedThreadFixtures.swift, ScreenshotTests/Tests/ScreenshotTests/HostedSnapshotTests.swift, IntegrationTests/Tests/IntegrationTests/Helpers/FailedTurnFixtures.swift (three size constants are now nonisolated, for the @Test arguments)
     - next: /review
   timestamp: 2026-11-23T18:34:22.835620+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m84v62hw1jdbvnqmpw8c60j2
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (commit e673e935): 0 findings, 0 confirmed, 0 refuted. 7 files attempted, 5 reviewed, 2 .kanban files not reviewed (ignore rule), 0 failed. The 8 card boxes are ticked from the implement evidence: headless `swift test` 1657 tests and 54 tests pass; the gallery passes 43 tests; the IntegrationTests build passes; the images are thread-external-{light,dark}.png and thread-external-narrow-{light,dark}.png.
+    - next: the task is done.
+  timestamp: 2026-11-23T18:37:38.236827+00:00
+position_column: done
+position_ordinal: ffffffff9680
 title: Read-only thread header with a title and one EditorKit command action
 ---
 ## What
@@ -36,16 +43,16 @@ Change /Users/wballard/github/swissarmyhammer/AgentViewKit/Sources/AgentViewKit/
 Do not change Sources/AgentViewKit/StatusLine/*.
 
 ## Acceptance Criteria
-- [ ] `.threadHeader("<title>", action: "<command id>")` compiles and shows the title and one command button in the header of `AgentThreadView`.
-- [ ] The button runs the command through the EditorKit registry and is disabled when the command is not available, as other `EditorToolbarButton(command:)` buttons are.
-- [ ] At a narrow width, the title truncates and the button stays whole.
-- [ ] The view overload `threadHeader { ... }` works as before.
-- [ ] VoiceOver reads the header group with the title text, and the button keeps its own label.
+- [x] `.threadHeader("<title>", action: "<command id>")` compiles and shows the title and one command button in the header of `AgentThreadView`.
+- [x] The button runs the command through the EditorKit registry and is disabled when the command is not available, as other `EditorToolbarButton(command:)` buttons are.
+- [x] At a narrow width, the title truncates and the button stays whole.
+- [x] The view overload `threadHeader { ... }` works as before.
+- [x] VoiceOver reads the header group with the title text, and the button keeps its own label.
 
 ## Tests
-- [ ] Unit tests first (headless `swift test`), in /Users/wballard/github/swissarmyhammer/AgentViewKit/Tests/AgentViewKitTests/Thread/ThreadHeaderTests.swift: the overload sets the header environment value (use the probe of SlotProbe.swift); the header contains the title text; the button binds the given command id; the old overload still gives the host view.
-- [ ] Screenshot gallery screen in /Users/wballard/github/swissarmyhammer/AgentViewKit/ScreenshotTests/Tests/ScreenshotTests: a read-only thread with the header "Claude Code · read-only · Nov 21, 2026" and the action "Continue in Testudo" (extend SharedThreadFixtures.swift and add a snapshot in HostedSnapshotTests.swift beside `thread-shared`), at the normal width and at a narrow width. Run: `HOME=$(mktemp -d) swift test --package-path ScreenshotTests`. Give the PNG paths for review.
-- [ ] `swift test` passes with no new warning.
+- [x] Unit tests first (headless `swift test`), in /Users/wballard/github/swissarmyhammer/AgentViewKit/Tests/AgentViewKitTests/Thread/ThreadHeaderTests.swift: the overload sets the header environment value (use the probe of SlotProbe.swift); the header contains the title text; the button binds the given command id; the old overload still gives the host view.
+- [x] Screenshot gallery screen in /Users/wballard/github/swissarmyhammer/AgentViewKit/ScreenshotTests/Tests/ScreenshotTests: a read-only thread with the header "Claude Code · read-only · Nov 21, 2026" and the action "Continue in Testudo" (extend SharedThreadFixtures.swift and add a snapshot in HostedSnapshotTests.swift beside `thread-shared`), at the normal width and at a narrow width. Run: `HOME=$(mktemp -d) swift test --package-path ScreenshotTests`. Give the PNG paths for review.
+- [x] `swift test` passes with no new warning.
 
 ## Workflow
 - Use /tdd -- write failing tests first, then implement to make them pass. #d212
