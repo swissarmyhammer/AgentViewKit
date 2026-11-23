@@ -35,8 +35,15 @@ comments:
     - evidence: root `swift test` 1657 + 57 tests pass, no code warning; ScreenshotTests 44 tests pass (one run); hosted single suites pass: SessionStateBannersHostedTests 13, ThreadBarBannerOverlapHostedTests 3, ThreadTopBarHostedTests 5 (after the measure fix), ThreadBarAccessibilityFrameHostedTests 2, ThreadBottomBarHostedTests 6, ThreadFloatingControlsHostedTests 10, ConversationViewHostedTests 12, ThreadBarControlJumpHostedTests 6, StateBannerPendingRequestsHostedTests 7. 16 files changed.
     - next: /review
   timestamp: 2026-11-23T19:43:56.080660+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m84z3gkex85sh0pvfn1pmd7m
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (commit aa609e3d): 0 findings, 0 confirmed, 0 refuted, 7 validator runs, 0 failed. 12 files reviewed. 4 Markdown files had no validator (ARCHITECTURE.md, Docs/decisions/visual-audit.md, README.md, AgentViewKitStyle.md). 6 .kanban files are ignored. The card has no prior review findings. Implement evidence: root `swift test` 1657 + 57 pass; 9 hosted suites pass one at a time; IntegrationTests build clean; ScreenshotTests gallery 44 pass; PNGs GlassSnapshotTests/floating-notes*.png.
+    - next: none. The task moved to done.
+  timestamp: 2026-11-23T19:46:08.622952+00:00
+position_column: done
+position_ordinal: ffffffff9780
 title: The status notes that float over the transcript have the glass of the status line (TestudoApp D213)
 ---
 ## What
