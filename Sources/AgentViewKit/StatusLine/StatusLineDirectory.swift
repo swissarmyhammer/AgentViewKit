@@ -220,8 +220,9 @@ nonisolated public enum StatusLineDirectory {
     guard components.first?.path == home, components.count > depth, components[depth].path == mobileDocuments
     else { return components }
     let drive = Component(text: iCloudDriveName, path: mobileDocuments, isFixed: true)
-    guard let container = components.dropFirst(depth + 1).first else { return [drive] }
-    let below = components.dropFirst(depth + 2)
+    let containerIndex = depth + 1
+    guard let container = components.dropFirst(containerIndex).first else { return [drive] }
+    let below = components.dropFirst(containerIndex + 1)
     guard container.text != iCloudDriveContainer else {
       return [Component(text: iCloudDriveName, path: container.path, isFixed: true)] + below
     }
