@@ -78,6 +78,23 @@ import Testing
       SharedThreadFixtures.sharedThread, named: "thread-shared", size: SnapshotFixtures.threadSize)
   }
 
+  /// The read-only tab of an external session (TestudoApp D212): the header
+  /// of the host shows the title "Claude Code · read-only · Nov 21, 2026" and
+  /// the button of the command Continue in Testudo, as content with no glass
+  /// (D110). In the narrow thread the title truncates at its tail, and the
+  /// button stays whole.
+  ///
+  /// - Parameters:
+  ///   - name: The name of the image.
+  ///   - size: The size of the thread.
+  @Test(arguments: [
+    ("thread-external", FailedTurnFixtures.threadSize),
+    ("thread-external-narrow", SharedThreadFixtures.narrowThreadSize),
+  ])
+  func theExternalThreadWithItsHeader(named name: String, size: CGSize) async throws {
+    try await Self.generate(SharedThreadFixtures.externalThread, named: name, size: size)
+  }
+
   /// The read-only chat of a shared session that the owner stopped sharing:
   /// the header of the host stays, and the unavailable message of the host
   /// shows in the center, in place of the transcript, with no glass (D110).

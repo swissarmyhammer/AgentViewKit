@@ -1,8 +1,27 @@
 ---
 assignees:
 - claude-code
-position_column: todo
-position_ordinal: '8280'
+comments:
+- actor: claude-code
+  id: 01m84tkqyvdkhk9hjftkfvdbgd
+  text: |-
+    Research and implementation notes:
+    - ThreadHeaderBar is an HStack: Text(verbatim: title) (secondary, one line, tail truncation, layout priority -1), Spacer(minLength: 0), EditorToolbarButton(command:). The overload calls threadHeader { ThreadHeaderBar(...) }, so the view goes in the same ThreadHeaderSlot.
+    - EditorToolbarButton(command:) shows nothing when no command system is installed, or when the registry has no visible row of the id at the scope path (EditorButtonPresentation.commandPresentation). The host must register the command at the scope of the thread or at a scope above it. AgentCommandScope appends its segment to the parent commandScopePath, so a host scope above AgentThreadView works.
+    - The unit tests read the accessibility tree of an NSHostingView with no window (withAccessibilityTree, accessibilityElements(identifiedAs:under:)), as AgentRowSectionHeaderTests does. performAccessibilityPress on the button runs the command headless, so no hosted IntegrationTests run was necessary for the press proof.
+    - The narrow tests first passed with an empty stub header. A require on a height above zero makes them fail correctly. A mutation check (lineLimit removed) made the one-line height test fail.
+    - Swift Testing arguments cannot read MainActor statics. FailedTurnFixtures.threadWidth/threadHeight/threadSize are now nonisolated (the file is a symlink shared by IntegrationTests and ScreenshotTests).
+  timestamp: 2026-11-23T18:27:37.563786+00:00
+- actor: claude-code
+  id: 01m84v03qkp89nkff6a49hs9wt
+  text: |-
+    ### implement — changed
+    - evidence: headless `swift test` green (1657 tests in 187 suites, and 54 tests in 11 suites; 0 failures; no code warnings). ThreadHeaderTests: 8 tests, 6 new, each seen RED first. Gallery `HOME=<temp> swift test --package-path ScreenshotTests`: 43 tests passed. Images: ~/Library/Caches/AgentViewKit/screenshot-check/generated/HostedSnapshotTests/thread-external-{light,dark}.png and thread-external-narrow-{light,dark}.png. Look checked: at the narrow width the title truncates and the button stays whole.
+    - files: Sources/AgentViewKit/Thread/ThreadHeader.swift, Tests/AgentViewKitTests/Thread/ThreadHeaderTests.swift, ScreenshotTests/Tests/ScreenshotTests/SharedThreadFixtures.swift, ScreenshotTests/Tests/ScreenshotTests/HostedSnapshotTests.swift, IntegrationTests/Tests/IntegrationTests/Helpers/FailedTurnFixtures.swift (three size constants are now nonisolated, for the @Test arguments)
+    - next: /review
+  timestamp: 2026-11-23T18:34:22.835620+00:00
+position_column: doing
+position_ordinal: '80'
 title: Read-only thread header with a title and one EditorKit command action
 ---
 ## What

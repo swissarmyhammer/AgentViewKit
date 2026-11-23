@@ -1,10 +1,13 @@
+import EditorCommands
 import EditorStyle
+import EditorSwiftUI
 import SwiftUI
 
 /// The environment value that carries the header of a thread.
 extension EnvironmentValues {
   /// The header that the nearest ``AgentThreadView`` shows above its
-  /// transcript, or `nil`. Set it with ``SwiftUI/View/threadHeader(_:)``.
+  /// transcript, or `nil`. Set it with ``SwiftUI/View/threadHeader(_:)`` or
+  /// with ``SwiftUI/View/threadHeader(_:action:)``.
   @Entry var threadHeader: AnyView? = nil
 }
 
@@ -38,11 +41,85 @@ extension View {
   ///   }
   /// ```
   ///
+  /// For a header of one line of text and one command button, use
+  /// ``SwiftUI/View/threadHeader(_:action:)``.
+  ///
   /// - Parameter header: The view of the host.
   /// - Returns: A view whose thread views show the header.
   public func threadHeader<Header: View>(@ViewBuilder _ header: () -> Header) -> some View {
     environment(\.threadHeader, AnyView(header()))
   }
+
+  /// Shows a title of the host and the button of one EditorKit command
+  /// above the transcript of the thread views in this view (TestudoApp
+  /// D212), such as the header of the read-only tab of an external session:
+  /// "Claude Code · read-only · Nov 21, 2026" and the button Continue in
+  /// Testudo.
+  ///
+  /// The host gives the title, and localizes it. The button is an
+  /// `EditorToolbarButton` of the command: the registry of the installed
+  /// command system gives its title, its state and the reason when it is
+  /// disabled, and a press runs the command at the scope of the thread. The
+  /// host registers the command at that scope or at a scope above it. The
+  /// kit writes no source name, no date and no button text.
+  ///
+  /// The header shows in the slot of ``SwiftUI/View/threadHeader(_:)``, with
+  /// the same place, look and identifier
+  /// ``AgentThreadLayout/headerIdentifier``. The title is one line at the
+  /// leading edge, and the button is at the trailing edge. When the width is
+  /// too small for the two, the title truncates at its tail and the button
+  /// stays whole. VoiceOver reads the group of the header with the title
+  /// text, and the button keeps its own label.
+  ///
+  /// ```swift
+  /// AgentThreadView(session: external) { EmptyView() }
+  ///   .threadHeader(
+  ///     "\(source) · \(readOnly) · \(lastRecord.formatted(date: .abbreviated, time: .omitted))",
+  ///     action: "app.continueInTestudo")
+  /// ```
+  ///
+  /// - Parameters:
+  ///   - title: The title of the host, already localized.
+  ///   - command: The id of the EditorKit command of the button.
+  /// - Returns: A view whose thread views show the header.
+  public func threadHeader(_ title: String, action command: String) -> some View {
+    threadHeader { ThreadHeaderBar(title: title, command: CommandID(command)) }
+  }
+}
+
+/// The header of a title and one command button
+/// (``SwiftUI/View/threadHeader(_:action:)``).
+///
+/// The title is one line that truncates at its tail, and it has a lower
+/// layout priority than the button, so the button stays whole at a narrow
+/// width. The button binds the command as the buttons of
+/// ``MessageActions`` and of ``SideQuestionCard`` do.
+struct ThreadHeaderBar: View {
+  /// The title of the host.
+  let title: String
+
+  /// The id of the command of the button.
+  let command: CommandID
+
+  /// The style of the kit, which gives the space between the title and the
+  /// button.
+  @Environment(\.editorStyle) private var editorStyle
+
+  var body: some View {
+    HStack(spacing: editorStyle.spacing.s) {
+      Text(verbatim: title)
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+        .truncationMode(.tail)
+        .layoutPriority(Self.titlePriority)
+      Spacer(minLength: 0)
+      EditorToolbarButton(command: command)
+    }
+  }
+
+  /// The layout priority of the title: lower than the button, so the title
+  /// gives its width first.
+  static let titlePriority: Double = -1
 }
 
 /// The header of the host in the top bar of a thread.

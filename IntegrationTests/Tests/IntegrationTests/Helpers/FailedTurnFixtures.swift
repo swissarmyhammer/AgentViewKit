@@ -10,13 +10,13 @@ import SwiftUI
 /// that the two packages keep one copy.
 enum FailedTurnFixtures {
   /// The width of a thread, in points.
-  static let threadWidth: CGFloat = 480
+  nonisolated static let threadWidth: CGFloat = 480
 
   /// The height of a thread, in points.
-  static let threadHeight: CGFloat = 640
+  nonisolated static let threadHeight: CGFloat = 640
 
   /// The size of a thread, in points.
-  static let threadSize = CGSize(width: threadWidth, height: threadHeight)
+  nonisolated static let threadSize = CGSize(width: threadWidth, height: threadHeight)
 
   /// The default number of the agent messages of
   /// ``failedTurnSession(messageCount:)``. With the error entry, they fit in
