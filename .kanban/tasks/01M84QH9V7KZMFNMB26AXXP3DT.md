@@ -22,8 +22,15 @@ comments:
     - evidence: 7 files and 1 asset catalog. New: Sources/AgentViewKit/Lists/AgentRowSourceIcon.swift, Tests/AgentViewKitTests/Lists/AgentRowSourceIconTests.swift, ScreenshotTests/Tests/ScreenshotTests/SourceIconGalleryFixtures.swift, ScreenshotTests/Tests/ScreenshotTests/Resources/GalleryAssets.xcassets (SampleSourceIcon). Changed: Sources/AgentViewKit/Items/AgentSymbol.swift (sizeTemplate), Sources/AgentViewKit/Lists/AgentRowList.swift (#Preview "Sections" only), ScreenshotTests/Package.swift (resources), ScreenshotTests/Tests/ScreenshotTests/HostedSnapshotTests.swift (theSourceIconsOfTheRowsOfARowList). Headless `swift test`: 1651 tests in 187 suites pass plus 54 tests in 11 suites, no code warning. Gallery (temp HOME): 42 tests in 4 suites pass. PNGs: ~/Library/Caches/AgentViewKit/screenshot-check/generated/HostedSnapshotTests/row-source-icons-light.png and row-source-icons-dark.png. In the PNGs, the symbol source, the image source and the kit symbols stand in one column, and the titles start at one x.
     - next: /review
   timestamp: 2026-11-23T18:13:13.014963+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m84swhk3dx4a03kqgfm9rvhq
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (commit 3318090e). 7 files reviewed. 0 findings, 0 confirmed, 0 refuted, 0 failed. No prior Review Findings section. Implement evidence: swift test 1651 + 54 pass; screenshot gallery 42 pass; PNGs row-source-icons-light and row-source-icons-dark.
+    - next: The task moves to done.
+  timestamp: 2026-11-23T18:14:57.379598+00:00
+position_column: done
+position_ordinal: ffffffff9580
 title: 'AgentRowSourceIcon: a leading source icon for a row in the symbol column'
 ---
 ## What
