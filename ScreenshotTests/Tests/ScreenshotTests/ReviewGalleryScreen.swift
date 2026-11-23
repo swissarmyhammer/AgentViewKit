@@ -369,16 +369,29 @@
       let session = PreviewFixtures.scrolledSession
       let anchors = ScrollAnchorManager()
       return try ReviewGalleryScreen.scrolled.reviewScreen(settle: { mount in
-        let key = session.transcript.map(\.rowKey)[scrolledRowIndex]
-        anchors.noteJump(to: key)
-        anchors.onScroll(.item(key))
-        mount.render()
-        try #require(!anchors.isPinnedToBottom, "The list of the scrolled screen did not leave the bottom.")
+        try scrollAway(anchors, in: session, mount: mount)
       }) { _ in
         AgentThreadView(session: session, connection: connection, anchors: anchors, sessionTitle: sessionTitle) {
           DefaultThreadComposer()
         }
       }
+    }
+
+    /// Moves the list of a thread to the row at ``scrolledRowIndex`` as the
+    /// Show Error button of the state banner moves it, so that rows are under
+    /// the top bar and under the bottom bar, and renders the mount.
+    ///
+    /// - Parameters:
+    ///   - anchors: The scroll manager of the thread.
+    ///   - session: The session of the thread, with a long transcript.
+    ///   - mount: The mounted thread.
+    /// - Throws: An error when the list does not leave the bottom.
+    static func scrollAway(_ anchors: ScrollAnchorManager, in session: SessionModel, mount: ReviewMount) throws {
+      let key = session.transcript.map(\.rowKey)[scrolledRowIndex]
+      anchors.noteJump(to: key)
+      anchors.onScroll(.item(key))
+      mount.render()
+      try #require(!anchors.isPinnedToBottom, "The list of the thread did not leave the bottom.")
     }
 
     /// Runs `body` with the screen of the thread with the attachment

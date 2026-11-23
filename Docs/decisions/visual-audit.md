@@ -42,6 +42,21 @@ select the glass variant. This is a breaking change of the public API of
 `AgentTheme`: the property `materialLevel`, the init parameter
 `materialLevel:`, and the type `AgentTheme.MaterialLevel` are removed.
 
+### Floating status notes
+
+TestudoApp D213 (2026-11-23) changes D110 (b), D122 (c) and D123 for the
+status notes that float over the transcript only. Such a note, for example
+"The agent is ready" or a notice of the top bar, is on the floating glass of
+the kit (`floatingGlass()` of EditorStyle), the same `.regular` glass as the
+status line, in one glass container with the status line or the composer
+where they touch. Thus the text of the transcript does not show through the
+note. Under Reduce Transparency, the system gives that glass an opaque
+background. A status text that does not float, for example in a list or an
+inspector, keeps no glass. A view sets the place of its bars with
+`.statusBarPlacement(_:)` (`StatusBarPlacement`), and a host gives its own
+floating notes the same look with `.statusBarPlacement(.floating)`. Testudo
+owns the text of the decision.
+
 ## Colors and the code font
 
 Decision of the owner, 2026-10-11: the EditorKit themes are the themes of the

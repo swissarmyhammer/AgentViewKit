@@ -398,10 +398,12 @@ public struct AgentThreadView<Composer: View>: View {
   /// the rows under that stack are washed out, and the fade is gradual only
   /// near the top of the list. The user accepted this system look on
   /// 2026-10-23 (^22wbz12). The top bar has no background
-  /// (D112 (e)). The header is a floating surface: it is on the floating
-  /// glass of the kit, in its own glass container. The banners are content
-  /// with no glass, out of that container, so their buttons keep the button
-  /// styles of content (`EditorStyle.ButtonSurface.content`). From the top, the
+  /// (D112 (e)). The status line and the banners float over the list: each
+  /// is on the floating glass of the kit, in one glass container, so the
+  /// text of the list does not show through them (TestudoApp D213). The
+  /// header of the host is in the same container with no glass, and its
+  /// buttons keep the button styles of content
+  /// (`EditorStyle.ButtonSurface.content`). From the top, the
   /// bar shows the header and the connection banner when the host gave the
   /// connection model, the notice banner and the stream banner. VoiceOver
   /// reads the top bar, the list and then the bottom bar.
@@ -421,11 +423,15 @@ public struct AgentThreadView<Composer: View>: View {
       // parts have no margin of their own (^rgsq3k4), and the bar has no
       // inset of its own: the host gives the inset of the bar where it mounts
       // the view (`\.barInsets`, ^e0wdpmg). With no part there is no stack,
-      // so a bar that shows nothing takes no space.
+      // so a bar that shows nothing takes no space. The glass of the status
+      // line and of the banners is in one container, so it blends where the
+      // parts touch (TestudoApp D213).
       Group(subviews: topBarParts) { subviews in
         if !subviews.isEmpty {
-          VStack(spacing: editorStyle.tile.margin) { subviews }
-            .padding(barInsets)
+          FloatingGlassContainer(spacing: editorStyle.spacing.s) {
+            VStack(spacing: editorStyle.tile.margin) { subviews }
+          }
+          .padding(barInsets)
         }
       }
     }
@@ -459,17 +465,15 @@ public struct AgentThreadView<Composer: View>: View {
   /// gave the connection model, the header of the host
   /// (``SwiftUI/View/threadHeader(_:)``), then the ``banners``.
   ///
-  /// The status line floats on glass in its own container
-  /// (``ThreadStatusHeader``). The header of the host and the banners are out
-  /// of the container, so they are content with no glass (D110), and their
-  /// buttons keep the place of content.
+  /// The status line (``ThreadStatusHeader``) and the banners float on the
+  /// glass of the kit, in the one container of the top bar. The header of the
+  /// host has no glass (D110), and its buttons keep the place of content
+  /// (``ThreadHeaderSlot``).
   @ViewBuilder private var topBarParts: some View {
     if let connection {
-      FloatingGlassContainer(spacing: editorStyle.spacing.s) {
-        ThreadStatusHeader(
-          session: session, connection: connection, sessionTitle: sessionTitle,
-          contextMenuPath: headerContextMenuPath, select: show)
-      }
+      ThreadStatusHeader(
+        session: session, connection: connection, sessionTitle: sessionTitle,
+        contextMenuPath: headerContextMenuPath, select: show)
     }
     if let threadHeader {
       ThreadHeaderSlot(header: threadHeader)
@@ -479,14 +483,21 @@ public struct AgentThreadView<Composer: View>: View {
 
   /// The banners of the top bar, from the top: the connection banner when the
   /// host gave the connection model, the notice banner and the stream banner.
+  ///
+  /// Each banner is a note that floats over the list, so each bar of a banner
+  /// is on the floating glass of the kit (``StatusBarPlacement/floating``,
+  /// TestudoApp D213).
   @ViewBuilder private var banners: some View {
-    if let connection {
-      AgentConnectionBanner(connection: connection)
+    Group {
+      if let connection {
+        AgentConnectionBanner(connection: connection)
+      }
+      SessionNoticeBanner(session: session)
+      UnconfirmedSessionBanner(session: session)
+      WaitingDescendantBanner(session: session, jump: show)
+      SessionStreamBanner(session: session, connection: connection)
     }
-    SessionNoticeBanner(session: session)
-    UnconfirmedSessionBanner(session: session)
-    WaitingDescendantBanner(session: session, jump: show)
-    SessionStreamBanner(session: session, connection: connection)
+    .statusBarPlacement(.floating)
   }
 
   /// The content of the bottom bar: the state banner, the login prompt, the
@@ -494,12 +505,16 @@ public struct AgentThreadView<Composer: View>: View {
   /// (D110 (c)).
   ///
   /// The list scrolls under the bar (EditorKit `style.md`, "Scroll
-  /// under the bars", D113 answer 7). The banner and the login prompt are
-  /// content: they have no glass, and a container with no glass child draws
-  /// nothing. Each of them declares the content surface for its buttons
+  /// under the bars", D113 answer 7). The state banner is a note that floats
+  /// over the list, so it is on the floating glass of the kit
+  /// (``StatusBarPlacement/floating``, TestudoApp D213), and its button
+  /// stands on that glass with the bordered style. The login prompt is
+  /// content with no glass: it declares the content surface for its buttons
   /// (`.editorButtonSurface(_:)`), so they keep the glass style (EditorKit
-  /// `style.md`, rule 4). Only the buttons on the glass of a request deck in the
-  /// composer slot use the bordered styles. From the top,
+  /// `style.md`, rule 4). The buttons on the glass of a request deck in the
+  /// composer slot also use the bordered styles. The placement is on the
+  /// banner only: a bar on the glass of the deck stays content, so no glass
+  /// stands on glass. From the top,
   /// the order is the pill, the banner, the login prompt when the host gave
   /// the connection model, and the composer. VoiceOver reads them in this
   /// order. The pill is an overlay that floats one small spacing above the
@@ -522,6 +537,7 @@ public struct AgentThreadView<Composer: View>: View {
         // The banner reads `agentState` in its own body, so a change of the
         // state evaluates only the banner.
         StateBanner(session: session) { showItem($0.rowKey) }
+          .statusBarPlacement(.floating)
         if let connection {
           AgentLoginPrompt(session: session, connection: connection)
         }

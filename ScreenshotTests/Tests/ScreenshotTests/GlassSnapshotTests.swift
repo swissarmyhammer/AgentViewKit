@@ -162,6 +162,24 @@ import Testing
     try await Self.generate(Self.floatingControls, named: "floating-controls", size: Self.controlsSize)
   }
 
+  /// The status notes of a thread that float over the transcript
+  /// (TestudoApp D213): the notice of the top bar and the state banner "The
+  /// agent is ready" of the bottom bar, each on the glass of the status line,
+  /// over rows of the list scrolled away from the bottom
+  /// (``FloatingNoteGalleryFixtures``). The second image shows the views
+  /// with Reduce Transparency, where the glass of each note is opaque.
+  ///
+  /// - Parameters:
+  ///   - name: The name of the image.
+  ///   - reducesTransparency: Whether the views read Reduce Transparency.
+  @Test(arguments: [
+    ("floating-notes", false),
+    ("floating-notes-reduce-transparency", true),
+  ])
+  func theFloatingNotesOverTheTranscript(named name: String, reducesTransparency: Bool) async throws {
+    try await FloatingNoteGalleryFixtures.record(named: name, reducesTransparency: reducesTransparency)
+  }
+
   /// The size of the image of a side card, in points.
   static let sideCardSize = CGSize(width: 400, height: 240)
 

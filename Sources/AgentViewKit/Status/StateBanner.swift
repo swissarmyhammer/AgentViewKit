@@ -5,9 +5,11 @@ import FoundationModelsACPClient
 import SwiftUI
 
 /// A bar that tells the user the state of the agent (plan.md §3.8 "Agent
-/// state and stop reasons", §9 A). The bar is a ``StatusBar``, so it has no
-/// fill, and the content edge of the kit marks its edge
-/// (`.inlineEdge(radius:)`).
+/// state and stop reasons", §9 A). The bar is a ``StatusBar``. In content it
+/// has no fill, and the content edge of the kit marks its edge
+/// (`.inlineEdge(radius:)`). The bottom bar of a thread floats the bar over
+/// the transcript, so there it is on the floating glass of the kit
+/// (``StatusBarPlacement/floating``, TestudoApp D213).
 ///
 /// ``init(session:onShowError:)`` binds the bar to a `SessionModel`. The
 /// body reads `SessionModel.agentState` directly, and the bar shows one
@@ -159,7 +161,9 @@ public struct StateBanner: View {
       }
     )
     .statusBarActionStyle(AgentStatusBarActionStyle())
-    // The bar has no glass surface, and the content scrolls under it.
+    // In content, the bar has no glass surface, and the content scrolls
+    // under it. A floating bar is on glass, and it declares the glass
+    // surface inside this one (``StatusBarPlacement/floating``).
     .editorButtonSurface(.content)
     .accessibilityIdentifier(Self.bannerIdentifier)
   }

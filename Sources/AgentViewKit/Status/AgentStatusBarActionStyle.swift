@@ -7,7 +7,7 @@ import SwiftUI
 /// The button is an EditorKit `EditorButton` in the action look, so the
 /// surface it stands on gives its button style: the glass style in content
 /// and in a bar with no glass, and the bordered style on the glass of the
-/// request deck (`.editorButtonSurface(_:)`). The button is a control of a bar
+/// request deck and of a floating note (`.editorButtonSurface(_:)`). The button is a control of a bar
 /// of a thread, so it takes the focus scope `agentControl:<identifier>`
 /// (``SwiftUI/View/agentControlScope(_:corners:yieldsToHostScope:)``), and it
 /// is a target of the EditorKit jump and navigation.

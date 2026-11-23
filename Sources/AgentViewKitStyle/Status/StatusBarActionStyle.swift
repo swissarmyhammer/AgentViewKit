@@ -92,9 +92,10 @@ public protocol StatusBarActionStyle {
 }
 
 /// The default look of the button of a ``StatusBar``: the button of the action
-/// as it is, in the action look of EditorKit's `EditorButton`. A bar is
-/// content, and the content scrolls under the bars of a view, so its button
-/// keeps the glass style there (EditorKit `style.md`, rule 4).
+/// as it is, in the action look of EditorKit's `EditorButton`. A bar in
+/// content has the content scrolling under the bars of a view, so its button
+/// keeps the glass style there. A floating note is on glass, so its button
+/// takes the bordered style there (EditorKit `style.md`, rule 4).
 public struct GlassStatusBarActionStyle: StatusBarActionStyle {
   /// Makes the default style.
   public init() {}

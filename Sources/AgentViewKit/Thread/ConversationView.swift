@@ -294,10 +294,15 @@ public struct ConversationView<EmptyState: View>: View {
     }
     .safeAreaBar(edge: .bottom) {
       // The banner reads `agentState` in its own body, so a change of the
-      // state evaluates only the banner and not the list.
+      // state evaluates only the banner and not the list. The banner floats
+      // over the list, so it is on the floating glass of the kit, in a glass
+      // container of its own (TestudoApp D213).
       if showsStateBanner {
-        StateBanner(session: session) { showItem($0.rowKey) }
-          .padding(barInsets)
+        FloatingGlassContainer(spacing: editorStyle.spacing.s) {
+          StateBanner(session: session) { showItem($0.rowKey) }
+            .statusBarPlacement(.floating)
+        }
+        .padding(barInsets)
       }
     }
     .environment(\.sessionModel, session)

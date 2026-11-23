@@ -80,6 +80,8 @@ button of a ``StatusBar`` the focus scope of a bar control with
 ### The status bar
 
 - ``StatusBar``
+- ``StatusBarPlacement``
+- ``SwiftUI/View/statusBarPlacement(_:)``
 - ``StatusBarActionButton``
 - ``StatusBarActionConfiguration``
 - ``StatusBarActionStyle``

@@ -3,7 +3,6 @@
   import AgentViewKitTestSupport
   import AppKit
   import EditorStyle
-  import EditorSwiftUI
   import EditorTestSupport
   import SwiftUI
   import Testing
@@ -49,33 +48,6 @@
       let model = session.model
       await ObservationWait.until(within: BoundedWait.defaultBound) { !model.notices.isEmpty }
       return session
-    }
-
-    /// The explanation of the disconnected banner.
-    static let disconnectedExplanation =
-      "No connection to the agent is open. The agent receives no messages."
-
-    /// The width that a test measures an explanation in: wide enough that the
-    /// explanation of a banner of the tests stays on one line.
-    static let explanationMeasureWidth: CGFloat = 800
-
-    /// The height that an explanation adds below the title line of a bar: the
-    /// space of the line and its text. The explanation has no element, so a
-    /// frame cannot read it.
-    ///
-    /// - Parameter explanation: The explanation of the bar.
-    /// - Returns: The height, in points.
-    static func explanationHeight(of explanation: String) -> CGFloat {
-      func height(_ text: String) -> CGFloat {
-        let message = StatusBar.Message(
-          title: "Title", explanation: text,
-          symbolName: EditorSymbol.severity(.information).systemImage,
-          identifier: "message")
-        return StyleViewHost.size(
-          of: StatusBar(message: message, action: nil), width: explanationMeasureWidth
-        ).height
-      }
-      return height(explanation) - height("")
     }
 
     /// The accessibility identifier of the banner of the first notice of
@@ -196,8 +168,10 @@
         "banner edge \(bannerEdge), controls \(controls)")
     }
 
-    /// Two adjacent banners stand one tile margin apart. The test reads the
-    /// edge of each banner from its text, one tile padding inside the edge.
+    /// Two adjacent banners stand one tile margin apart. Each banner floats on
+    /// the glass of the kit (TestudoApp D213), and the text of a bar on glass
+    /// has the frame of the glass (`glassAccessibilityShape`). So the test
+    /// reads the edge of each banner from the frame of its text.
     @Test func twoBannersStandOneTileMarginApart() async throws {
       let session = try await Self.openSessionWithNotice()
       defer { session.close() }
@@ -212,18 +186,13 @@
       let disconnected = try #require(
         harness.frame(identifier: AgentConnectionBanner.disconnectedIdentifier))
       let closed = try #require(harness.frame(identifier: SessionStreamBanner.closedIdentifier))
-      let style = EditorStyle.default
-
-      // The frame of a text is its title, the top of the bar with no button.
-      // The explanation and the tile padding stand below it. The y axis of the
-      // screen goes up.
-      let disconnectedBottom =
-        disconnected.minY - Self.explanationHeight(of: Self.disconnectedExplanation)
-        - style.tile.padding
-      let gap = disconnectedBottom - (closed.maxY + style.tile.padding)
+      // The y axis of the screen goes up, so the disconnected banner above
+      // ends at its least y.
+      let gap = disconnected.minY - closed.maxY
 
       #expect(
-        abs(gap - style.tile.margin) <= ThreadBottomBarHostedTests.edgeTolerance, "gap \(gap)")
+        abs(gap - EditorStyle.default.tile.margin) <= ThreadBottomBarHostedTests.edgeTolerance,
+        "gap \(gap)")
     }
   }
 #endif

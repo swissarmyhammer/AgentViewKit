@@ -14,13 +14,26 @@ import SwiftUI
 /// Each message has a title, a few words that stand alone on the title line.
 /// A longer text is the explanation.
 ///
-/// The bar is content, so it has no fill and no glass. A separator stroke
-/// marks its edge (`.inlineEdge(radius:)`, D113). Its button takes its look
-/// from the ``StatusBarActionStyle`` of the environment: by default
-/// ``GlassStatusBarActionStyle``, the `.glass` style of a button that the
-/// content scrolls under (EditorKit `style.md`, rule 4). A kit that
-/// gives the button more, such as the focus scope of a bar control, sets its
-/// own style with ``SwiftUI/View/statusBarActionStyle(_:)``.
+/// The surface of the bar comes from the ``StatusBarPlacement`` of the
+/// environment (``SwiftUI/View/statusBarPlacement(_:)``, TestudoApp D213):
+///
+/// - In content, the default, the bar has no fill and no glass. A separator
+///   stroke marks its edge (`.inlineEdge(radius:)`, D113).
+/// - A note that floats over content is on the floating glass of the kit
+///   (`.floatingGlass()` of EditorStyle), the glass of the status line, so
+///   the text under the note does not show through it. The glass has no
+///   separator stroke. Under Reduce Transparency, the system gives the glass
+///   an opaque background. The button of the bar stands on that glass
+///   (`.editorButtonSurface(.glass)`), so it takes the bordered style, and no
+///   glass stands on glass.
+///
+/// Its button takes its look from the ``StatusBarActionStyle`` of the
+/// environment: by default ``GlassStatusBarActionStyle``, the button of the
+/// action in the style of its surface: the `.glass` style of a button that
+/// the content scrolls under, and the bordered style on the glass of a
+/// floating note (EditorKit `style.md`, rule 4). A kit that gives the button
+/// more, such as the focus scope of a bar control, sets its own style with
+/// ``SwiftUI/View/statusBarActionStyle(_:)``.
 ///
 /// The text of the bar has the ``Message/identifier`` of its message. It is one
 /// accessibility element, the title, with the label of the title and the
@@ -221,6 +234,9 @@ public struct StatusBar: View {
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.statusBarActionStyle) private var actionStyle
 
+  /// The place of the bar, which gives its surface.
+  @Environment(\.statusBarPlacement) private var placement
+
   /// Makes the bar of one message.
   ///
   /// - Parameters:
@@ -253,7 +269,7 @@ public struct StatusBar: View {
     // foreground (D110).
     .onChrome()
     .contentTile()
-    .inlineEdge(radius: editorStyle.radii.l)
+    .modifier(StatusBarSurface(placement: placement, radius: editorStyle.radii.l))
     .accessibilityElement(children: .contain)
     .accessibilityLabel(message.title)
     .modifier(BarIdentifier(identifier: identifier))
@@ -271,6 +287,32 @@ public struct StatusBar: View {
       actionStyle.makeBody(configuration: configuration)
     } else {
       GlassStatusBarActionStyle().makeBody(configuration: configuration)
+    }
+  }
+}
+
+/// The surface of a bar in its place: the separator edge in content, and the
+/// floating glass of the kit for a floating note.
+private struct StatusBarSurface: ViewModifier {
+  /// The place of the bar.
+  let placement: StatusBarPlacement
+
+  /// The least corner radius of the edge in content. The floating glass
+  /// takes the same large radius of the style.
+  let radius: CGFloat
+
+  func body(content: Content) -> some View {
+    switch placement {
+    case .content:
+      content.inlineEdge(radius: radius)
+    case .floating:
+      // The button stands on the glass of the note, so it takes the
+      // bordered style, and no glass stands on glass (EditorKit `style.md`,
+      // rule 4). This surface is inside the surface that a banner declares
+      // around its bar, so it wins.
+      content
+        .editorButtonSurface(.glass)
+        .floatingGlass()
     }
   }
 }
