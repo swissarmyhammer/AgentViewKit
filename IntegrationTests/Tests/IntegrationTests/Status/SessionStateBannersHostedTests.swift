@@ -186,6 +186,8 @@
       #expect(Self.shows(SessionStreamBanner.replayingIdentifier, in: harness))
       #expect(!Self.shows(SessionStreamBanner.partialHistoryIdentifier, in: harness))
 
+      try await session.send(update: BackgroundRunScript.makeChunkUpdate(messageID: "replayed", text: "Replayed."))
+      await harness.renderAfter { !model.transcript.isEmpty }
       session.agent.releaseHeldAnswer()
       _ = try await resume.boundedValue()
       await harness.renderAfter { !model.isReplaying }
@@ -195,6 +197,30 @@
         harness.element(identifier: SessionStreamBanner.partialHistoryIdentifier)?.label)
       #expect(note.contains("can be partial"))
       #expect(!note.localizedCaseInsensitiveContains("complete"))
+    }
+
+    /// A resumed session whose replay gives no entry shows no partial-history
+    /// note: no history shows, so the user cannot act on the note.
+    @Test func aResumeWithNoReplayedEntryShowsNoPartialHistoryNote() async throws {
+      let session = try await ScriptedSession.open {
+        $0.heldMethods = [ScriptedSession.resumeMethod]
+      }
+      defer { session.close() }
+      let harness = Self.mount(session, draft: PromptInputHostedTestModel())
+      defer { harness.close() }
+      let model = session.model
+      let resume = Task {
+        try await session.connection.resumeSession(ScriptedSession.replayFromStartRequest)
+      }
+      await harness.renderAfter { model.isReplaying }
+
+      session.agent.releaseHeldAnswer()
+      _ = try await resume.boundedValue()
+      await harness.renderAfter { !model.isReplaying }
+
+      #expect(model.transcript.isEmpty)
+      #expect(!Self.shows(SessionStreamBanner.replayingIdentifier, in: harness))
+      #expect(!Self.shows(SessionStreamBanner.partialHistoryIdentifier, in: harness))
     }
 
     // MARK: - Missed updates
