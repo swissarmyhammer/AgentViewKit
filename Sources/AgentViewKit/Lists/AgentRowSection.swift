@@ -1,3 +1,4 @@
+import EditorStyle
 import EditorTheme
 import SwiftUI
 
@@ -18,16 +19,23 @@ public struct AgentRowSection<Item>: Identifiable {
   /// The items of the rows, in list order.
   public let items: [Item]
 
+  /// The secondary text of the header, already localized, such as the
+  /// progress of a read ("Reading 1,240 of 4,427"), or `nil` for no text.
+  public let detail: String?
+
   /// Makes a section.
   ///
   /// - Parameters:
   ///   - id: The id of the section. Each section of a list has its own id.
   ///   - title: The title of the header, already localized.
   ///   - items: The items of the rows, in list order.
-  public init(id: String, title: String, items: [Item]) {
+  ///   - detail: The secondary text of the header, already localized, or
+  ///     `nil` for no text.
+  public init(id: String, title: String, items: [Item], detail: String? = nil) {
     self.id = id
     self.title = title
     self.items = items
+    self.detail = detail
   }
 }
 
@@ -48,15 +56,16 @@ enum AgentRowEntryID: Hashable {
 
 /// One entry of the lazy stack of an ``AgentRowList``: a header or a row.
 enum AgentRowListEntry<Item>: Identifiable {
-  /// The header of a section.
-  case header(sectionID: String, title: String)
+  /// The header of a section, with the secondary text of the section or
+  /// `nil`.
+  case header(sectionID: String, title: String, detail: String?)
 
   /// The row of an item.
   case row(id: String, item: Item)
 
   var id: AgentRowEntryID {
     switch self {
-    case .header(let sectionID, _): .header(sectionID)
+    case .header(let sectionID, _, _): .header(sectionID)
     case .row(let id, _): .row(id)
     }
   }
@@ -103,7 +112,7 @@ enum AgentRowListEntry<Item>: Identifiable {
   /// - Returns: The entries, in list order.
   static func entries(of sections: [AgentRowSection<Item>], id: KeyPath<Item, String>) -> [Self] {
     sections.filter { !$0.items.isEmpty }.flatMap { section in
-      [.header(sectionID: section.id, title: section.title)] + rows(of: section.items, id: id)
+      [.header(sectionID: section.id, title: section.title, detail: section.detail)] + rows(of: section.items, id: id)
     }
   }
 }
@@ -112,23 +121,76 @@ enum AgentRowListEntry<Item>: Identifiable {
 /// the `ui` font role, as the header of a sidebar section is (EditorKit
 /// `style.md`, "Fonts").
 ///
+/// A section with a detail shows the detail after the title, in the regular
+/// subheadline of the `ui` font role, with digits of one width, so the numbers
+/// of a progress do not move while they change. When the title and the detail
+/// do not fit on one line, the detail moves below the title. The title and the
+/// detail each keep one line and truncate at the tail only when the width
+/// cannot hold them alone, so the header never makes the list wider. A section
+/// with no detail shows the title alone.
+///
+/// VoiceOver reads the header as one heading: "<title>, <detail>", or the
+/// title alone.
+///
 /// The header is bare (rule 10): the list gives it its place. It has no command
 /// scope and no focusable view, so no key, jump or click reaches it.
 struct AgentRowSectionHeader: View {
   /// The title of the section.
   let title: String
 
+  /// The secondary text of the section, or `nil` for no text.
+  let detail: String?
+
   /// The accessibility identifier of the header.
   let identifier: String
 
   @Environment(\.editorTheme) private var editorTheme
+  @Environment(\.editorStyle) private var editorStyle
 
   var body: some View {
-    Text(title)
-      .font(editorTheme.font(for: .ui, style: .subheadline).weight(.semibold))
+    content
       .foregroundStyle(.secondary)
+      .accessibilityElement(children: .combine)
       .accessibilityAddTraits(.isHeader)
       .accessibilityIdentifier(identifier)
+  }
+
+  /// The title, and the detail on the same line or below the title.
+  @ViewBuilder private var content: some View {
+    if let detail {
+      ViewThatFits(in: .horizontal) {
+        HStack(alignment: .firstTextBaseline, spacing: editorStyle.spacing.xs) {
+          titleText
+          detailText(detail)
+        }
+        VStack(alignment: .leading, spacing: .zero) {
+          titleText
+          detailText(detail)
+        }
+      }
+    } else {
+      titleText
+    }
+  }
+
+  /// The title, on one line, with the higher layout priority.
+  private var titleText: some View {
+    Text(title)
+      .font(editorTheme.font(for: .ui, style: .subheadline).weight(.semibold))
+      .lineLimit(1)
+      .layoutPriority(1)
+  }
+
+  /// The detail, on one line, which truncates at its tail.
+  ///
+  /// - Parameter detail: The secondary text of the section.
+  /// - Returns: The text.
+  private func detailText(_ detail: String) -> some View {
+    Text(detail)
+      .font(editorTheme.font(for: .ui, style: .subheadline))
+      .monospacedDigit()
+      .lineLimit(1)
+      .truncationMode(.tail)
   }
 
   /// The accessibility identifier of the header of a section.

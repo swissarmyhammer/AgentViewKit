@@ -1,7 +1,22 @@
 ---
 assignees:
 - claude-code
-position_column: todo
+comments:
+- actor: claude-code
+  id: 01m84r0nejqgcv1t8pk21er4s5
+  text: 'Research: `AgentRowListEntry.header` is matched in two places only (the `id` switch in AgentRowSection.swift and the `ForEach` switch in AgentRowList.swift). `AgentRowSection(id:title:items:)` is called in AgentRowList.swift previews and in two hosted test files; a default `detail: String? = nil` keeps them. The unit test reads the header element with `accessibilityElements(identifiedAs:under:includingScrollAreas:)` from EditorTestSupport, as `AgentRowListRowLabelTests` does. The hosted test `voiceOverHearsTheHeaderAsAHeading` reads role "AXHeading"; the unit test also reads the role with `accessibilityRole(of:)`, so no hosted run is necessary. The gallery fixture will follow `ChipRowsGalleryFixtures` and use `SnapshotFixtures.narrowWidth`.'
+  timestamp: 2026-11-23T17:42:15.250438+00:00
+- actor: claude-code
+  id: 01m84rmgjqvpr5vde6v4kzfgy9
+  text: |-
+    ### implement — changed
+    - evidence: TDD. RED 1: the new tests did not compile (no `detail`). RED 2: after the model change, `theHeaderReadsItsTitleAndItsDetail` failed (label "Other Agents" only). GREEN: 5/5 in AgentRowSectionHeaderTests. Headless `swift test`: 1645 tests in 186 suites and 54 tests in 11 suites passed, no code warning (only the build-system note "missing creator for mutated node" of mlx-swift, which existed before). Gallery `swift test --package-path ScreenshotTests` with a temp HOME: 42 tests in 4 suites passed. No hosted IntegrationTests run: no hosted test changed.
+    - layout: `ViewThatFits(in: .horizontal)` with the title and the detail on one line, else the title above the detail. The title has `.lineLimit(1)` and `.layoutPriority(1)`; the detail has `.lineLimit(1)`, `.truncationMode(.tail)` and `.monospacedDigit()`. A section with no detail shows the title alone. The header is one element (`.accessibilityElement(children: .combine)`) with `.isHeader` and its identifier; a unit test reads the role "AXHeading".
+    - files: Sources/AgentViewKit/Lists/AgentRowSection.swift, Sources/AgentViewKit/Lists/AgentRowList.swift, Tests/AgentViewKitTests/Lists/AgentRowSectionHeaderTests.swift (new), ScreenshotTests/Tests/ScreenshotTests/RowSectionGalleryFixtures.swift (new), ScreenshotTests/Tests/ScreenshotTests/HostedSnapshotTests.swift.
+    - PNGs: ~/Library/Caches/AgentViewKit/screenshot-check/generated/HostedSnapshotTests/row-sections-{light,dark}.png and row-sections-narrow-{light,dark}.png. At 420 pt the detail stands after the title; at 180 pt it moves below the title.
+    - next: /review.
+  timestamp: 2026-11-23T17:53:05.623137+00:00
+position_column: doing
 position_ordinal: '80'
 title: AgentRowSection header shows a secondary text for progress
 ---

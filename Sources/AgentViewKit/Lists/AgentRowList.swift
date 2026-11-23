@@ -330,9 +330,10 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
         LazyVStack(alignment: .leading, spacing: density.rowSpacing(in: editorStyle)) {
           ForEach(entries) { entry in
             switch entry {
-            case .header(let sectionID, let title):
+            case .header(let sectionID, let title, let detail):
               AgentRowSectionHeader(
-                title: title, identifier: AgentRowSectionHeader.identifier(for: sectionID)
+                title: title, detail: detail,
+                identifier: AgentRowSectionHeader.identifier(for: sectionID)
               )
               .padding(density.headerInsets(in: editorStyle))
             case .row(let id, let item):
@@ -809,7 +810,8 @@ struct AgentRowClicks: ViewModifier {
       AgentRowSection(
         id: "pinned", title: "Pinned", items: Array(PreviewFixtures.suggestions.prefix(1))),
       AgentRowSection(
-        id: "recent", title: "Recent", items: Array(PreviewFixtures.suggestions.dropFirst())),
+        id: "recent", title: "Recent", items: Array(PreviewFixtures.suggestions.dropFirst()),
+        detail: "Reading 1,240 of 4,427"),
     ],
     id: \.self,
     scope: AgentRowListScope(list: FocusSegment(kind: "previewList"), rowKind: "previewRow"),
