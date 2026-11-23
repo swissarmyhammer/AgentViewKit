@@ -35,12 +35,40 @@ import Testing
     let record = SurfaceRecord()
     let bar = StatusBar(message: message, action: action)
       .statusBarActionStyle(SurfaceProbeStyle(record: record))
-      .editorButtonSurface(.content)
+    return surface(of: bar, placement: placement, record: record)
+  }
+
+  /// The surface that a button stands on, in a card with the surface of its
+  /// place (``SwiftUI/View/statusBarPlacementSurface(radius:)``), such as the
+  /// sign-in card of the bottom bar of a thread.
+  ///
+  /// - Parameter placement: The place of the card.
+  /// - Returns: The surface that the probe of the button read.
+  static func cardSurface(placement: StatusBarPlacement) -> EditorStyle.ButtonSurface? {
+    let record = SurfaceRecord()
+    let card = SurfaceProbe(record: record)
+      .statusBarPlacementSurface(radius: EditorStyle.default.radii.l)
+    return surface(of: card, placement: placement, record: record)
+  }
+
+  /// Lays out `view` in the glass container of a bar of a thread, with the
+  /// content surface that a banner declares around it, and returns the
+  /// surface that the probe in `view` read.
+  ///
+  /// - Parameters:
+  ///   - view: The view with a probe in it.
+  ///   - placement: The place of the view, or `nil` for no place.
+  ///   - record: The record of the probe in `view`.
+  /// - Returns: The surface that the probe read.
+  static func surface(
+    of view: some View, placement: StatusBarPlacement?, record: SurfaceRecord
+  ) -> EditorStyle.ButtonSurface? {
+    let declared = view.editorButtonSurface(.content)
     let root = FloatingGlassContainer(spacing: EditorStyle.default.spacing.s) {
       if let placement {
-        bar.statusBarPlacement(placement)
+        declared.statusBarPlacement(placement)
       } else {
-        bar
+        declared
       }
     }
     let hosting = NSHostingView(rootView: root)
@@ -67,6 +95,21 @@ import Testing
   /// glass.
   @Test func aBarWithNoPlaceIsContent() {
     #expect(Self.buttonSurface(placement: nil) == .content)
+  }
+
+  /// A production change that fails this test: a card that floats, such as
+  /// the sign-in card of the bottom bar of a thread, is not on glass, so its
+  /// buttons keep the content surface and stand as glass on the glass of the
+  /// card.
+  @Test func aFloatingCardStandsItsButtonsOnGlass() {
+    #expect(Self.cardSurface(placement: .floating) == .glass)
+  }
+
+  /// A production change that fails this test: a card in content, such as
+  /// the sign-in card in the settings of a host, gets the glass of a
+  /// floating card.
+  @Test func aCardInContentKeepsTheContentSurface() {
+    #expect(Self.cardSurface(placement: .content) == .content)
   }
 }
 

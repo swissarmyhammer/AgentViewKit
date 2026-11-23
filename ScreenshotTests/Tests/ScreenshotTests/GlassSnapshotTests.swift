@@ -177,7 +177,25 @@ import Testing
     ("floating-notes-reduce-transparency", true),
   ])
   func theFloatingNotesOverTheTranscript(named name: String, reducesTransparency: Bool) async throws {
-    try await FloatingNoteGalleryFixtures.record(named: name, reducesTransparency: reducesTransparency)
+    try await FloatingNoteGalleryFixtures.recordNotes(named: name, reducesTransparency: reducesTransparency)
+  }
+
+  /// The sign-in card of the bottom bar of a thread, which floats over the
+  /// transcript (TestudoApp D213): the card is on the glass of the status
+  /// line, over rows of the list scrolled away from the bottom, and its
+  /// buttons take the bordered style on that glass
+  /// (``FloatingNoteGalleryFixtures``). The second image shows the views
+  /// with Reduce Transparency, where the glass of the card is opaque.
+  ///
+  /// - Parameters:
+  ///   - name: The name of the image.
+  ///   - reducesTransparency: Whether the views read Reduce Transparency.
+  @Test(arguments: [
+    ("floating-sign-in", false),
+    ("floating-sign-in-reduce-transparency", true),
+  ])
+  func theFloatingSignInCardOverTheTranscript(named name: String, reducesTransparency: Bool) async throws {
+    try await FloatingNoteGalleryFixtures.recordSignIn(named: name, reducesTransparency: reducesTransparency)
   }
 
   /// The size of the image of a side card, in points.

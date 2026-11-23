@@ -57,6 +57,15 @@ inspector, keeps no glass. A view sets the place of its bars with
 floating notes the same look with `.statusBarPlacement(.floating)`. Testudo
 owns the text of the decision.
 
+The rule of D213 applies to each note that floats over content that scrolls
+under it. The notes that D213 names are examples only (decision from the
+TestudoApp session, 2026-11-23). Thus the sign-in card (`AgentAuthView`) in
+the bottom bar of a thread is also on the floating glass, in the glass
+container of the bottom bar, and its buttons take the bordered style on that
+glass. In the settings of a host, the card is content with no glass. A view
+that is not a `StatusBar` gets the surface of its place with
+`.statusBarPlacementSurface(radius:)`.
+
 ## Colors and the code font
 
 Decision of the owner, 2026-10-11: the EditorKit themes are the themes of the

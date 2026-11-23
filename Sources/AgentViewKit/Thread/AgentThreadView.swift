@@ -39,17 +39,19 @@ import SwiftUI
 /// list. The user accepted this system look on 2026-10-23 (^22wbz12). The
 /// top bar has no background. The ``StatusLineView`` in it floats on
 /// `.regular` glass, the same as the conversation header in Messages
-/// (`.floatingGlass()`). The banners in it are content
-/// with no glass. VoiceOver reads the top bar, the conversation, and then
+/// (`.floatingGlass()`). The banners in it float over the conversation, so
+/// they are on the same glass, in one glass container with the status line
+/// (TestudoApp D213). VoiceOver reads the top bar, the conversation, and then
 /// the bottom bar.
 ///
 /// The bottom bar of the view (`.safeAreaBar(edge: .bottom)`) holds the
 /// floating controls of the thread. The conversation scrolls under the bar
 /// (EditorKit `style.md`, "Scroll under the bars"). From the top,
 /// the bar shows the state banner, the login prompt and the composer slot.
-/// The banner and the login prompt are content with no glass. Their buttons
-/// keep the glass styles, because the content scrolls under them (EditorKit
-/// `style.md`, rule 4). The composer slot is directly below its chat
+/// The banner and the login prompt float over the conversation, so they are
+/// on the floating glass of the kit (``StatusBarPlacement/floating``,
+/// TestudoApp D213). Their buttons stand on that glass, so they take the
+/// bordered styles (EditorKit `style.md`, rule 4). The composer slot is directly below its chat
 /// (D36). The default slot is a ``DefaultThreadComposer``: a
 /// ``PromptInputView`` that keeps its own text. Give a custom composer with
 /// ``init(session:connection:sessionTitle:headerContextMenuPath:composer:)``,
@@ -505,16 +507,14 @@ public struct AgentThreadView<Composer: View>: View {
   /// (D110 (c)).
   ///
   /// The list scrolls under the bar (EditorKit `style.md`, "Scroll
-  /// under the bars", D113 answer 7). The state banner is a note that floats
-  /// over the list, so it is on the floating glass of the kit
-  /// (``StatusBarPlacement/floating``, TestudoApp D213), and its button
-  /// stands on that glass with the bordered style. The login prompt is
-  /// content with no glass: it declares the content surface for its buttons
-  /// (`.editorButtonSurface(_:)`), so they keep the glass style (EditorKit
+  /// under the bars", D113 answer 7). The state banner and the login prompt
+  /// are notes that float over the list, so each is on the floating glass of
+  /// the kit (``StatusBarPlacement/floating``, TestudoApp D213), and their
+  /// buttons stand on that glass with the bordered style (EditorKit
   /// `style.md`, rule 4). The buttons on the glass of a request deck in the
   /// composer slot also use the bordered styles. The placement is on the
-  /// banner only: a bar on the glass of the deck stays content, so no glass
-  /// stands on glass. From the top,
+  /// banner and the prompt only: a bar on the glass of the deck stays
+  /// content, so no glass stands on glass. From the top,
   /// the order is the pill, the banner, the login prompt when the host gave
   /// the connection model, and the composer. VoiceOver reads them in this
   /// order. The pill is an overlay that floats one small spacing above the
@@ -534,13 +534,15 @@ public struct AgentThreadView<Composer: View>: View {
     let spacing = editorStyle.spacing.s
     return FloatingGlassContainer(spacing: spacing) {
       VStack(spacing: spacing) {
-        // The banner reads `agentState` in its own body, so a change of the
-        // state evaluates only the banner.
-        StateBanner(session: session) { showItem($0.rowKey) }
-          .statusBarPlacement(.floating)
-        if let connection {
-          AgentLoginPrompt(session: session, connection: connection)
+        Group {
+          // The banner reads `agentState` in its own body, so a change of the
+          // state evaluates only the banner.
+          StateBanner(session: session) { showItem($0.rowKey) }
+          if let connection {
+            AgentLoginPrompt(session: session, connection: connection)
+          }
         }
+        .statusBarPlacement(.floating)
         if AgentThreadLayout.showsComposer(for: session) {
           composer
             .disabled(!session.canPrompt)

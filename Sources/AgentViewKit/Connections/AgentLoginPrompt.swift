@@ -24,7 +24,9 @@ import SwiftUI
 /// ``AgentThreadView`` shows the prompt in its bottom bar, below the state
 /// banner and above the composer, so that the list scrolls under it
 /// (EditorKit `style.md`, "Scroll under the bars"). The bar gives
-/// the space around the prompt.
+/// the space around the prompt. The bar floats the prompt over the list
+/// (``StatusBarPlacement/floating``, TestudoApp D213), so the card is on the
+/// floating glass of the kit, and its buttons take the bordered style there.
 struct AgentLoginPrompt: View {
   /// The session model of the thread.
   let session: SessionModel
@@ -36,7 +38,9 @@ struct AgentLoginPrompt: View {
     if requiresSignIn {
       AgentAuthView(connection: connection)
         .environment(\.sessionModel, session)
-        // The bottom bar has no glass surface around the prompt.
+        // In content, the card has no glass surface. A floating card is on
+        // glass, and it declares the glass surface inside this one
+        // (``StatusBarPlacement/floating``).
         .editorButtonSurface(.content)
     }
   }
@@ -79,8 +83,8 @@ struct AgentLoginPrompt: View {
 
 #Preview("Sign-in in the bottom bar of a thread over scrolled content") {
   let session = PreviewFixtures.scrolledSession
-  // The thread view shows an AgentLoginPrompt in its bottom bar, and the long
-  // transcript scrolls under the glass buttons of the prompt.
+  // The thread view shows an AgentLoginPrompt on glass in its bottom bar, and
+  // the long transcript scrolls under the glass of the prompt.
   AgentThreadView(
     session: session,
     connection: PreviewFixtures.authConnection(

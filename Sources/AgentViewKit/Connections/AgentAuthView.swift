@@ -57,13 +57,20 @@ public typealias AgentReconnect = @MainActor () async -> Void
 /// ``ConnectionsView``. ``AgentThreadView`` shows the card while `authState`
 /// asks for a sign-in.
 ///
-/// The card is content, so it has no fill and no glass. A separator stroke
-/// marks its edge (`.inlineEdge(radius:)`, D113). Its action buttons are
-/// EditorKit `EditorButton`s in the action look: the glass style in content.
-/// In the bottom bar of a thread, the card has no glass surface, and the
-/// content scrolls under it, so its buttons keep the glass style there too
-/// (EditorKit `style.md`, rule 4). There, ``AgentLoginPrompt`` declares the
-/// content surface for them (`.editorButtonSurface(_:)`).
+/// The surface of the card comes from the ``StatusBarPlacement`` of the
+/// environment (``SwiftUI/View/statusBarPlacementSurface(radius:)``), the
+/// same as the surface of a ``StatusBar`` (TestudoApp D213):
+///
+/// - In content, the default, for example in the settings of a host, the
+///   card has no fill and no glass. A separator stroke marks its edge
+///   (`.inlineEdge(radius:)`, D113). Its action buttons are EditorKit
+///   `EditorButton`s in the action look, so they take the glass style.
+/// - In the bottom bar of a thread, the card floats over the transcript
+///   (``StatusBarPlacement/floating``). There it is on the floating glass of
+///   the kit, the glass of the status line, so the text of the transcript
+///   does not show through it. Its buttons stand on that glass, so they take
+///   the bordered style, and no glass stands on glass (EditorKit `style.md`,
+///   rule 4).
 ///
 /// The texts of the card do not use a fixed vertical size. A text with a
 /// fixed vertical size gives its full wrapped height as its minimum height,
@@ -276,7 +283,7 @@ public struct AgentAuthView: View {
     }
     .contentTile()
     .frame(maxWidth: .infinity, alignment: .leading)
-    .inlineEdge(radius: editorStyle.radii.l)
+    .statusBarPlacementSurface(radius: editorStyle.radii.l)
     .accessibilityElement(children: .contain)
     .accessibilityLabel(String(localized: "Sign in to the agent", bundle: .module))
     .accessibilityIdentifier(Self.identifier)
