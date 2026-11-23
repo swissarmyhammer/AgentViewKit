@@ -51,8 +51,15 @@ comments:
     - evidence: 6 files — Sources/AgentViewKitTestSupport/TranscriptRowsStack.swift (new), Sources/AgentViewKit/Thread/LiveRowRange.swift, Sources/AgentViewKit/Attachments/TranscriptFileOrder.swift, Sources/AgentViewKit/Selection/ThreadTextSelection.swift, Tests/AgentViewKitTests/Thread/LiveRowModelsTests.swift, IntegrationTests/Tests/IntegrationTests/Thread/LiveRowRangeRedrawScopeTests.swift. swift test: 1654 + 59 passed, no code warnings. IntegrationTests swift build --build-tests: clean. swift test --filter LiveRowRangeRedrawScopeTests: 1 test passed.
     - next: test, then commit, then review
   timestamp: 2026-11-23T20:38:21.223408+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m8526wdc68r5kk701y93sgct
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (commit 749d87b2) gave 0 findings (0 confirmed, 1 refuted, 7 attempted, 0 failed). 6 files were reviewed. All items in the prior Review Findings section are checked.
+    - next: none. The task moved to done.
+  timestamp: 2026-11-23T20:40:24.748637+00:00
+position_column: done
+position_ordinal: ffffffff9a80
 title: Give each thread row its liveness as a Bool so a live-range move updates only the rows that flip
 ---
 ## Rule
