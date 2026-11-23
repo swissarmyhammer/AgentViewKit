@@ -36,8 +36,15 @@ comments:
     - evidence: the two gallery tests are now one test with two arguments (name, size). The size constants of RowSectionGalleryFixtures and SnapshotFixtures.narrowWidth are nonisolated, so the test arguments can read them. Gallery: 41 tests in 4 suites passed (the two cases count as one test); row-sections and row-sections-narrow PNGs are new (11:58).
     - next: commit, then review.
   timestamp: 2026-11-23T17:59:08.187696+00:00
-position_column: review
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m84s1pg18m9fxk5jd212msgq
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` on commit 3f848759. Counts: 0 findings, 0 confirmed, 1 refuted (7 attempted, 0 failed). 3 files reviewed; 2 .kanban files excluded by .reviewignore. All items of the earlier Review Findings section are checked.
+    - next: none. The task moved to done.
+  timestamp: 2026-11-23T18:00:17.665783+00:00
+position_column: done
+position_ordinal: ffffffff9480
 title: AgentRowSection header shows a secondary text for progress
 ---
 ## What
