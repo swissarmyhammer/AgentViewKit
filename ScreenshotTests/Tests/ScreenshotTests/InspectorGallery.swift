@@ -46,7 +46,7 @@ enum InspectorGallery {
   /// points. The window holds the thread area and the inspector column, and
   /// the two columns need 294 points or more. Thus this width is more than
   /// ``narrowWidth``. The inspector column is then at its smallest width.
-  private static let builtInNarrowWidth: CGFloat = 300
+  private static let builtInNarrowWidth: CGFloat = 320
 
   /// The name of the narrow width in the name of an image of the built-in
   /// attachment inspector.
