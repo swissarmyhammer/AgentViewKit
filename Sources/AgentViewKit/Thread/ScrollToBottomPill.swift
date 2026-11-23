@@ -11,8 +11,11 @@ import SwiftUI
 /// "Scroll to Bottom".
 ///
 /// The pill shows and hides above the composer, in the glass container of
-/// the floating controls. Its glass has the id ``FloatingGlassID/scrollPill``
-/// (`.floatingGlassID(_:)`), so the change morphs (D113 answer 2). The pill is
+/// the floating controls. The conversation keeps the pill in the view tree,
+/// and hides it in place while the list is pinned (task ^ts5hyjr), so an
+/// unpin does not make the pill again. Its glass has the id
+/// ``FloatingGlassID/scrollPill`` (`.floatingGlassID(_:)`), so a change next
+/// to it morphs (D113 answer 2). The pill is
 /// its own glass in that container, not a button on another glass, so it
 /// keeps the glass style (``SwiftUI/View/floatingGlassAction(glassID:identifier:)``).
 public struct ScrollToBottomPill: View {

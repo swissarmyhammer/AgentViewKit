@@ -531,6 +531,9 @@ public struct AgentThreadView<Composer: View>: View {
     // The alignment guide of the pill runs in a `Sendable` closure, so it
     // reads this copy and not the main-actor `theme`.
     let spacing = editorStyle.spacing.s
+    #if DEBUG
+      BodyEvaluationCounter.note(AgentThreadLayout.floatingControlsCounterKey(for: session))
+    #endif
     return FloatingGlassContainer(spacing: spacing) {
       VStack(spacing: spacing) {
         Group {
@@ -666,6 +669,21 @@ public enum AgentThreadLayout {
   /// message of the host (``SwiftUI/View/threadUnavailable(_:)``) in place
   /// of the transcript of a thread.
   public static let unavailableIdentifier = "thread-unavailable"
+
+  /// The prefix of the ``BodyEvaluationCounter`` key of the floating
+  /// controls of a thread.
+  static let floatingControlsCounterKeyPrefix = "thread-floating-controls-"
+
+  /// The ``BodyEvaluationCounter`` key of the floating controls of a thread
+  /// of a session model. The thread notes the key each time that it makes
+  /// its floating controls.
+  ///
+  /// - Parameter session: The session model that the thread shows.
+  /// - Returns: The key.
+  static func floatingControlsCounterKey(for session: SessionModel) -> String {
+    BodyEvaluationKey.make(
+      prefix: floatingControlsCounterKeyPrefix, id: String(describing: ObjectIdentifier(session)))
+  }
 
   /// Tells if a thread view of `session` shows its composer slot.
   ///

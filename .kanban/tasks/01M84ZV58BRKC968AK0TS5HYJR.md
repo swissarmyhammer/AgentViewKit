@@ -1,8 +1,40 @@
 ---
 assignees:
 - claude-code
-position_column: todo
-position_ordinal: '8480'
+comments:
+- actor: claude-code
+  id: 01m856cfwmt21xxhfj32tva40v
+  text: |-
+    Research (implement step).
+    - The card names the wrong insert point. `AgentThreadView.floatingControls` shows `ConversationPill` under `AgentThreadLayout.showsPill(unavailableMessage:)`. That condition reads only the unavailable message of the host, not the pin state. The insert on unpin is in `ConversationPill.body` (ConversationView.swift): `if !anchors.isPinnedToBottom { ScrollToBottomPill(...) }`. Thus each unpin makes the whole pill subtree: the EditorKit button, the glass button style, the glass id, the leaf control scope and the command click block.
+    - The pill is already in the overlay of the floating controls, so the height of the bar and the bottom inset of the list do not change on unpin (^66has33).
+    - Prevailing pattern for a mounted hidden view: `RequestDeck` card uses `.opacity`, `.accessibilityHidden`, `.allowsHitTesting` and `.disabled` together.
+    - EditorKit: a disabled leaf control gets no jump label and no nav stop (EditorCommandsUI docs). So `.disabled` on the hidden pill removes it from the jump labels, from the nav moves and from the keyboard focus.
+    - Plan: `ConversationPill` always mounts a `ConversationPillButton` (a new view that reads only `newItemsSinceUnpinned`), and hides it in place while pinned. An unpin then evaluates only the body of `ConversationPill`, not the button.
+    - Headless tests can lay out `ConversationPill` and `AgentThreadView` in an `NSHostingView` with no window, and an observed change shows after one more layout pass (as in LiveRowModelsTests).
+    - Open risk: an opacity of zero on a glass button in a `GlassEffectContainer`. Only a hosted run or a snapshot on the screen can show that the hidden glass does not draw. The hosted tests of this card check the frame of the floating controls in both states.
+  timestamp: 2026-11-23T21:53:22.836155+00:00
+- actor: claude-code
+  id: 01m856ze5pmy7wvg62tbw88mpe
+  text: |-
+    Implementation landed (TDD).
+    - DEBUG counter keys, all from `BodyEvaluationKey.make(prefix:id:)`: `AgentThreadLayout.floatingControlsCounterKey(for:)` (noted in `AgentThreadView.floatingControls`), `ConversationPill.counterKey(for:)` and `ConversationPill.buttonCounterKey(for:)`. The id is the `ObjectIdentifier` of the session model or of the manager, as in `TranscriptEntryLookup`.
+    - Fix: `ConversationPill` always mounts the new `ConversationPillButton` (it reads only `newItemsSinceUnpinned`). While pinned, the pill applies `.opacity(0)`, `.allowsHitTesting(false)`, `.accessibilityHidden(true)` and `.disabled(true)`. The `.disabled` takes the hidden pill out of the jump labels, the nav moves and the keyboard focus (EditorKit leaf control scope). The pill stays in its overlay, so the layout of the bar does not change.
+    - RED (headless, ConversationPillMountTests): `aPinnedPillHasTheSizeOfTheShownPill` and `anUnpinDoesNotEvaluateTheButtonOfThePill` failed for the expected reasons. `anUnpinEvaluatesThePillOneTime` (1) and `anUnpinDoesNotEvaluateTheFloatingControlsOfTheThread` (0) passed before the fix: today an unpin already evaluates the pill one time and the floating controls zero times. The cost was the insert of the button subtree, which these counts do not see. The two tests stay as guards of the fixed count.
+    - GREEN: 4/4. Full root `swift test`: 1689 tests in 190 suites and 59 tests in 12 suites pass, no code warnings.
+    - Hosted test written, NOT run (the user needs the screen): IntegrationTests/Tests/IntegrationTests/Thread/ConversationPillMountHostedTests.swift. `swift build --build-tests` passes in IntegrationTests and in ScreenshotTests.
+    - Not done, to do when the screen is free: run the hosted tests one at a time; run the snapshot tests of a pinned thread (HostedSnapshotTests `theThread`, `theButtonsOfTheBottomBarBelowTheTranscript`) to see that the hidden glass of the pill does not draw in the `GlassEffectContainer`; update the images if the look changes.
+    - The card names AgentThreadView.swift as the insert point. That `if` reads only the unavailable message of the host, so I did not change it. The insert on unpin was in `ConversationPill.body`.
+  timestamp: 2026-11-23T22:03:43.670425+00:00
+- actor: claude-code
+  id: 01m856zhqhr9wnsfp91d9js09v
+  text: |-
+    ### implement — changed
+    - evidence: 5 files — Sources/AgentViewKit/Thread/ConversationView.swift, Sources/AgentViewKit/Thread/AgentThreadView.swift, Sources/AgentViewKit/Thread/ScrollToBottomPill.swift, Tests/AgentViewKitTests/Thread/ConversationPillMountTests.swift (new), IntegrationTests/Tests/IntegrationTests/Thread/ConversationPillMountHostedTests.swift (new). Root `swift test`: 1689 + 59 pass, 0 failures, no code warnings. `swift build --build-tests` passes in IntegrationTests and ScreenshotTests.
+    - next: when the screen is free, run each test of ConversationPillMountHostedTests alone (`cd IntegrationTests && swift test --filter ConversationPillMountHostedTests/<test>`), and the snapshot tests HostedSnapshotTests/theThread and HostedSnapshotTests/theButtonsOfTheBottomBarBelowTheTranscript; update the images if the look changes. Then /review.
+  timestamp: 2026-11-23T22:03:47.313434+00:00
+position_column: doing
+position_ordinal: '80'
 title: Keep the conversation pill mounted so an unpin from the bottom does not hitch
 ---
 ## Rule
@@ -30,9 +62,9 @@ Write the tests first.
 Use /tdd.
 
 ## Subtasks
-- [ ] Add the DEBUG counter key.
+- [x] Add the DEBUG counter key.
 - [ ] Add the hosted test (it fails first).
-- [ ] Keep the pill mounted and hide it with opacity and hit testing.
+- [x] Keep the pill mounted and hide it with opacity and hit testing.
 - [ ] Update snapshot images if the look changes and give the paths.
 
 Files: AgentThreadView.swift, ConversationPill source file, one new test file. #scroll-perf

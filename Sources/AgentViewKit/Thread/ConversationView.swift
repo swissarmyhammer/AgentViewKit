@@ -709,17 +709,87 @@ extension ConversationView where EmptyState == DefaultConversationEmptyState {
 /// The pill floats over the rows, so it blocks the bound clicks of the host
 /// (`.blocksCommandClicks()`): an Option-click on the pill over a bound row
 /// scrolls to the bottom and does not run the command of that row.
+///
+/// The button of the pill (``ConversationPillButton``) is always in the
+/// view tree. While the list is pinned to the bottom, the pill hides the
+/// button in place: the button is not visible, takes no click, is not in the
+/// accessibility tree, and is disabled. A disabled control gets no jump
+/// label, no nav stop and no keyboard focus (EditorKit leaf control scope).
+/// Thus an unpin only changes these values, and it does not make the
+/// button, its glass and its control scope again. Before this, each unpin
+/// from the bottom made the whole button, and the scroll hitched (task
+/// ^ts5hyjr, #scroll-perf). The hidden button keeps its size. The pill is in
+/// an overlay, of the list or of the floating controls of a thread, so the
+/// button does not change the layout around it.
 struct ConversationPill: View {
   /// The manager of the conversation.
   let anchors: ScrollAnchorManager
 
+  /// The prefix of the ``BodyEvaluationCounter`` key of the body of a pill.
+  static let counterKeyPrefix = "conversation-pill-"
+
+  /// The prefix of the ``BodyEvaluationCounter`` key of the body of the
+  /// button of a pill (``ConversationPillButton``).
+  static let buttonCounterKeyPrefix = "scroll-pill-button-"
+
+  /// The ``BodyEvaluationCounter`` key of the body of the pill of a manager.
+  ///
+  /// - Parameter anchors: The manager of the conversation.
+  /// - Returns: The key.
+  static func counterKey(for anchors: ScrollAnchorManager) -> String {
+    BodyEvaluationKey.make(prefix: counterKeyPrefix, id: counterKeyID(of: anchors))
+  }
+
+  /// The ``BodyEvaluationCounter`` key of the body of the button of the pill
+  /// of a manager.
+  ///
+  /// - Parameter anchors: The manager of the conversation.
+  /// - Returns: The key.
+  static func buttonCounterKey(for anchors: ScrollAnchorManager) -> String {
+    BodyEvaluationKey.make(prefix: buttonCounterKeyPrefix, id: counterKeyID(of: anchors))
+  }
+
+  /// The id of a manager in the ``BodyEvaluationCounter`` keys of its pill:
+  /// the identity of the manager object, so that each test that makes its
+  /// own manager reads its own counts.
+  ///
+  /// - Parameter anchors: The manager of the conversation.
+  /// - Returns: The id.
+  private static func counterKeyID(of anchors: ScrollAnchorManager) -> String {
+    String(describing: ObjectIdentifier(anchors))
+  }
+
   var body: some View {
-    if !anchors.isPinnedToBottom {
-      ScrollToBottomPill(newItemCount: anchors.newItemsSinceUnpinned) {
-        anchors.pinToBottom()
-      }
-      .blocksCommandClicks()
+    #if DEBUG
+      BodyEvaluationCounter.note(Self.counterKey(for: anchors))
+    #endif
+    let isHidden = anchors.isPinnedToBottom
+    return ConversationPillButton(anchors: anchors)
+      .opacity(isHidden ? 0 : 1)
+      .allowsHitTesting(!isHidden)
+      .accessibilityHidden(isHidden)
+      .disabled(isHidden)
+  }
+}
+
+/// The button of a ``ConversationPill``: a ``ScrollToBottomPill`` that shows
+/// the number of new items of the manager, and pins the list on a tap.
+///
+/// The button is a separate view, so that it reads only the number of new
+/// items, and not the pin state. Thus a change to the pin state does not
+/// evaluate the button.
+struct ConversationPillButton: View {
+  /// The manager of the conversation.
+  let anchors: ScrollAnchorManager
+
+  var body: some View {
+    #if DEBUG
+      BodyEvaluationCounter.note(ConversationPill.buttonCounterKey(for: anchors))
+    #endif
+    return ScrollToBottomPill(newItemCount: anchors.newItemsSinceUnpinned) {
+      anchors.pinToBottom()
     }
+    .blocksCommandClicks()
   }
 }
 
