@@ -1,5 +1,6 @@
 #if DEBUG
   @testable import AgentViewKit
+  @testable import AgentViewKitTestSupport
   import EditorTestSupport
   import FoundationModelsACPClient
   import SwiftUI
@@ -13,8 +14,9 @@
   /// again, so a scroll of a long thread evaluates only the rows that drop
   /// or make their editors.
   ///
-  /// The test shows the rows in a `VStack`, as `LiveRowModelsTests` does,
-  /// because a lazy stack evaluates only the rows near the view. The test
+  /// The test shows the rows in a `VStack` (``TranscriptRowsStack``), as
+  /// `LiveRowModelsTests` does, because a lazy stack evaluates only the rows
+  /// near the view. The test
   /// reports the rows in view with ``LiveRowRange/noteVisible(positions:)``,
   /// the call that ``ConversationView`` makes when the list reports them.
   @Suite(.serialized, .hostedSerially) @MainActor struct LiveRowRangeRedrawScopeTests {
@@ -37,26 +39,6 @@
 
     /// The texts of a transcript of ``answerCount`` answers.
     static let answers = (0..<answerCount).map { "Answer \($0) with **bold** text." }
-
-    /// The rows of each entry of `session`, with the environment that
-    /// ``ConversationView`` gives them.
-    ///
-    /// - Parameters:
-    ///   - session: The session.
-    ///   - rows: The rows that keep their models.
-    /// - Returns: The rows in a stack that keeps each row.
-    static func rowsView(of session: SessionModel, rows: LiveRowRange) -> some View {
-      VStack(spacing: 0) {
-        ForEach(Array(session.transcript.enumerated()), id: \.element.id) { position, entry in
-          ItemRow(entry: entry)
-            .environment(\.transcriptRowPosition, position)
-            .modifier(TranscriptRowLiveness(position: position))
-        }
-      }
-      .environment(\.liveRowRange, rows)
-      .environment(\.sessionModel, session)
-      .threadTextSelection()
-    }
 
     /// The ``BodyEvaluationCounter`` key of the response of each row.
     ///
@@ -93,7 +75,8 @@
     @Test func aMoveOfTheLiveRowsEvaluatesOnlyTheResponsesWhoseLivenessChanges() async throws {
       let session = SessionModel.preview(transcript: Self.answers.map { .agent($0) })
       let rows = LiveRowRange()
-      let harness = HostedViewHarness(Self.rowsView(of: session, rows: rows), size: Self.size)
+      let harness = HostedViewHarness(
+        TranscriptRowsStack.view(of: session, rows: rows, width: Self.size.width), size: Self.size)
       defer { harness.close() }
       let keys = Self.responseKeys(of: session)
       try #require(keys.count == Self.answerCount)

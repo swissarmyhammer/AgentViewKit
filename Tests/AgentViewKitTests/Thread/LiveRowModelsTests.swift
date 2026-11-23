@@ -1,3 +1,4 @@
+import AgentViewKitTestSupport
 import AppKit
 import EditorText
 import FoundationModelsACPClient
@@ -12,9 +13,10 @@ import Testing
 /// A window-less host cannot scroll a SwiftUI `ScrollView`: the document view
 /// of the scroll view has no size, and a new scroll position or clip view
 /// origin does not move the rows (measured on macOS 27, task ^t9416x5). So
-/// the host shows the rows in a `VStack`. A `VStack` keeps each row, which is
-/// the worst case of the lazy stack of ``ConversationView``. The host moves
-/// the rows in view with ``LiveRowRange/noteVisible(positions:)``, the call
+/// the host shows the rows in a `VStack` (``TranscriptRowsStack``). A `VStack`
+/// keeps each row, which is the worst case of the lazy stack of
+/// ``ConversationView``. The host moves the rows in view with
+/// ``LiveRowRange/noteVisible(positions:)``, the call
 /// that ``ConversationView`` makes when the list reports the rows in view.
 ///
 /// The host counts the editors that are alive. Each EditorKit editor of a
@@ -48,7 +50,8 @@ import Testing
   init(answers: [String]) {
     let session = SessionModel.preview(transcript: answers.map { .agent($0) })
     self.session = session
-    hosting = NSHostingView(rootView: Self.rowsView(of: session, rows: rows))
+    hosting = NSHostingView(
+      rootView: AnyView(TranscriptRowsStack.view(of: session, rows: rows, width: Self.width)))
     layOut()
   }
 
@@ -87,29 +90,6 @@ import Testing
         scaffolds[ObjectIdentifier(scaffold)] = WeakScaffold(scaffold)
       }
     }
-  }
-
-  /// The rows of each entry of `session`, with the environment that
-  /// ``ConversationView`` gives them.
-  ///
-  /// - Parameters:
-  ///   - session: The session.
-  ///   - rows: The rows that keep their models.
-  /// - Returns: The rows in a stack that keeps each row.
-  private static func rowsView(of session: SessionModel, rows: LiveRowRange) -> AnyView {
-    AnyView(
-      VStack(spacing: 0) {
-        ForEach(Array(session.transcript.enumerated()), id: \.element.id) { position, entry in
-          ItemRow(entry: entry)
-            .environment(\.transcriptRowPosition, position)
-            .modifier(TranscriptRowLiveness(position: position))
-        }
-      }
-      .frame(width: width)
-      .environment(\.liveRowRange, rows)
-      .environment(\.sessionModel, session)
-      .threadTextSelection()
-    )
   }
 
   /// The text views in the view tree under `view`.

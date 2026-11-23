@@ -64,8 +64,10 @@ extension View {
   ///
   /// ``AgentThreadView`` and ``ConversationView`` apply this, so that a
   /// conversation in a thread view and a conversation that a host shows
-  /// alone each have one selection.
-  func threadTextSelection() -> some View {
+  /// alone each have one selection. The function has `package` access, so
+  /// that the test support target can give the rows of a test the
+  /// environment of ``ConversationView``.
+  package func threadTextSelection() -> some View {
     modifier(ThreadTextSelectionScope())
   }
 }

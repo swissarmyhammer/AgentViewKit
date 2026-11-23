@@ -109,6 +109,7 @@ extension EnvironmentValues {
   @Entry var transcriptFileOrder: TranscriptFileOrder? = nil
 
   /// The position in the transcript of the row of this view, or `nil`
-  /// outside each row. ``ConversationView`` sets it for each row.
-  @Entry var transcriptRowPosition: Int? = nil
+  /// outside each row. ``ConversationView`` sets it for each row. The value
+  /// has `package` access, so that the test support target can set it.
+  @Entry package var transcriptRowPosition: Int? = nil
 }

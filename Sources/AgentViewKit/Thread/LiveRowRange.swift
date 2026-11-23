@@ -16,8 +16,12 @@ import SwiftUI
 /// than ``slack`` rows to an end of the range, so a scroll of a few rows
 /// does not make each row evaluate its body again. Before the first report,
 /// each row is live.
+///
+/// The type has `package` access, so that the test support target can give
+/// the rows of a test the environment of ``ConversationView``. A host of the
+/// kit does not see it.
 @MainActor @Observable
-final class LiveRowRange {
+package final class LiveRowRange {
   /// The number of rows before and after the rows in view that keep their
   /// models.
   static let margin = 16
@@ -74,8 +78,9 @@ final class LiveRowRange {
 extension EnvironmentValues {
   /// The rows of the thread that keep their EditorKit models, or `nil`
   /// outside a thread, where each view keeps its models.
-  /// ``ConversationView`` sets it for its rows.
-  @Entry var liveRowRange: LiveRowRange? = nil
+  /// ``ConversationView`` sets it for its rows. The value has `package`
+  /// access, so that the test support target can set it.
+  @Entry package var liveRowRange: LiveRowRange? = nil
 
   /// Whether the row of the view keeps its EditorKit models.
   ///
@@ -95,13 +100,27 @@ extension EnvironmentValues {
 /// `Bool` for its content. Thus the content of a row whose liveness does not
 /// change does not evaluate its body again. With no ``LiveRowRange``, each
 /// row is live.
-struct TranscriptRowLiveness: ViewModifier {
+///
+/// The modifier has `package` access, so that the test support target can
+/// give the rows of a test the environment of ``ConversationView``.
+package struct TranscriptRowLiveness: ViewModifier {
   /// The position of the row in the transcript.
   let position: Int
 
   @Environment(\.liveRowRange) private var liveRows
 
-  func body(content: Content) -> some View {
+  /// Makes the modifier of the row at `position`.
+  ///
+  /// - Parameter position: The position of the row in the transcript.
+  package init(position: Int) {
+    self.position = position
+  }
+
+  /// Sets the liveness of the row for `content`.
+  ///
+  /// - Parameter content: The content of the row.
+  /// - Returns: The content with the liveness of the row.
+  package func body(content: Content) -> some View {
     content.environment(\.transcriptRowIsLive, liveRows?.isLive(position) ?? true)
   }
 }
