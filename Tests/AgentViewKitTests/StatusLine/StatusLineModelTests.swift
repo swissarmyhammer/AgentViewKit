@@ -81,6 +81,28 @@ import Testing
     #expect(model.files == nil)
   }
 
+  @Test func followReadsTheDisplayNamesOfTheFolders() async {
+    let model = StatusLineModel(
+      probe: FakeProbe(), walk: { _ in [] }, displayName: { $0 == "/Users/me/notes" ? "Notizen" : nil },
+      watchesFolder: false)
+
+    await model.follow("/Users/me/notes", ignoreSubmodules: false)
+
+    #expect(model.displayNames == ["/Users/me/notes": "Notizen"])
+  }
+
+  @Test func lineShowsTheDisplayNamesOfTheModel() {
+    let session = SessionModel.preview(cwd: AbsolutePath(rawValue: "/Users/me/notes"))
+    let model = StatusLineModel(
+      fixedFolder: "/Users/me/notes", git: nil, files: [], displayNames: ["/Users/me/notes": "Notizen"])
+
+    let input = StatusLineView.input(
+      session: session, connection: nil, sessionTitle: nil, model: model,
+      homeFolder: URL(filePath: "/Users/me", directoryHint: .isDirectory))
+
+    #expect(StatusLineRenderer.render(StatusLines.defaultDefinition, input: input).text(of: .directory) == "~ › Notizen")
+  }
+
   @Test func watcherFollowsTheGitFolderOfARootAboveTheFolder() {
     #expect(StatusLineModel.watchedPaths(folder: "/r/Sources", git: .init(root: "/r")) == ["/r/Sources", "/r/.git"])
     #expect(StatusLineModel.watchedPaths(folder: "/r", git: .init(root: "/r")) == ["/r"])
@@ -136,14 +158,15 @@ import Testing
     let line = StatusLineRenderer.render(StatusLines.defaultDefinition, input: input)
 
     #expect(input.homeFolder == "/var/folders/T/TestHome/")
-    #expect(line.text(of: .directory) == "~/Agents")
+    #expect(line.text(of: .directory) == "~ › Agents")
   }
 
-  @Test func withNoHostHomeFolderTheHomeIsTheHomeOfTheUser() {
+  @Test func withNoHostHomeFolderTheHomeIsTheHomeOfTheUserDatabase() throws {
     let session = SessionModel.preview(cwd: AbsolutePath(rawValue: "/tmp/x"))
     let model = StatusLineModel(fixedFolder: "/tmp/x", git: nil, files: [])
     let input = StatusLineView.input(session: session, connection: nil, sessionTitle: nil, model: model)
-    #expect(input.homeFolder == NSHomeDirectory())
+    let entry = try #require(getpwuid(getuid()))
+    #expect(input.homeFolder == String(cString: entry.pointee.pw_dir))
   }
 
   @Test func moduleIdentifierHasTheModuleName() {

@@ -7,23 +7,49 @@ import FoundationModelsACPClient
 import SwiftUI
 
 /// The status lines of the review gallery (AVK-10, D194): the header of a
-/// thread in a repository, outside a repository, with the `full` preset, and
-/// for a child session with its crumbs, each on the floating glass of the
-/// top bar.
+/// thread in a repository, outside a repository, in an iCloud Drive app
+/// container, in a long path, with the `full` preset, and for a child
+/// session with its crumbs, each on the floating glass of the top bar.
+///
+/// The folders are below the real home folder of the user
+/// (``UserHomeFolder/path``), which the line shows as `~`, also when the
+/// test runs with a temporary `HOME`. No fixture reads the file system: the
+/// models have fixed display names.
 @MainActor
 enum StatusLineGalleryFixtures {
   /// The size of the image, in points.
-  static let size = CGSize(width: 640, height: 500)
+  static let size = CGSize(width: 640, height: 520)
 
   /// The folder of the repository lines: a folder below the home folder, so
   /// that the line shows `~` rules and the repository root.
-  static var repositoryFolder: String { NSHomeDirectory() + "/code/AgentViewKit/Sources/AgentViewKit" }
+  static var repositoryFolder: String { UserHomeFolder.path + "/code/AgentViewKit/Sources/AgentViewKit" }
 
   /// The root of the repository of the repository lines.
-  static var repositoryRoot: String { NSHomeDirectory() + "/code/AgentViewKit" }
+  static var repositoryRoot: String { UserHomeFolder.path + "/code/AgentViewKit" }
 
   /// The folder of the line outside a repository.
-  static var notesFolder: String { NSHomeDirectory() + "/Documents/notes" }
+  static var notesFolder: String { UserHomeFolder.path + "/Documents/notes" }
+
+  /// The iCloud Drive container of the Testudo app.
+  static var testudoContainer: String { UserHomeFolder.path + "/Library/Mobile Documents/iCloud~testudo~app" }
+
+  /// A folder in the iCloud Drive container of the Testudo app: the line
+  /// shows `iCloud Drive › Testudo › Agents`.
+  static var iCloudFolder: String { testudoContainer + "/Documents/Agents" }
+
+  /// The display names of the iCloud line: the name of the app container.
+  static var iCloudDisplayNames: [String: String] { [testudoContainer: "Testudo"] }
+
+  /// The display name of the root folder, as Finder shows it: the child
+  /// session of the crumbs line has a folder outside the home folder.
+  static let rootDisplayNames = ["/": "Macintosh HD"]
+
+  /// A folder eight long names below the home folder: the line removes
+  /// whole names from the middle.
+  static var longFolder: String {
+    UserHomeFolder.path
+      + "/Engineering/Applications/Development/Repositories/Swissarmyhammer/AgentViewKit/Documentation/Architecture"
+  }
 
   /// The git state of the repository lines: a branch, changes, and one
   /// commit ahead of the upstream.
@@ -96,6 +122,20 @@ private struct StatusLineGallery: View {
             session: .preview(cwd: AbsolutePath(rawValue: fixtures.notesFolder)), sessionTitle: "Notes",
             model: StatusLineModel(fixedFolder: fixtures.notesFolder, git: nil, files: ["todo.md"])))
       }
+      section("In an iCloud Drive app container") {
+        fixtures.header(
+          StatusLineView(
+            session: .preview(cwd: AbsolutePath(rawValue: fixtures.iCloudFolder)), sessionTitle: "Plan the trip",
+            model: StatusLineModel(
+              fixedFolder: fixtures.iCloudFolder, git: nil, files: ["plan.md"],
+              displayNames: fixtures.iCloudDisplayNames)))
+      }
+      section("A long path: whole names, one ellipsis") {
+        fixtures.header(
+          StatusLineView(
+            session: .preview(cwd: AbsolutePath(rawValue: fixtures.longFolder)), sessionTitle: "Notes",
+            model: StatusLineModel(fixedFolder: fixtures.longFolder, git: nil, files: ["notes.md"])))
+      }
       section("The full preset") {
         fixtures.header(
           StatusLineView(
@@ -111,7 +151,8 @@ private struct StatusLineGallery: View {
           StatusLineView(
             session: child, sessionTitle: "Agents",
             model: StatusLineModel(
-              fixedFolder: fixtures.repositoryFolder, git: fixtures.git, files: fixtures.files)))
+              fixedFolder: fixtures.repositoryFolder, git: fixtures.git, files: fixtures.files,
+              displayNames: fixtures.rootDisplayNames)))
       }
     }
     .padding(editorStyle.tile.margin)

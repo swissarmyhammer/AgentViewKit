@@ -3,7 +3,8 @@ import Foundation
 import os
 
 /// The live folder data of the status line: the git state and the files of
-/// the working folder of the session (D194 (j)).
+/// the working folder of the session, and the display names of its folders
+/// (D194 (f), (j)).
 ///
 /// The model reads the data off the main actor through a
 /// ``StatusLineGitProbing``. It reads again when the files or the git state
@@ -22,11 +23,18 @@ import os
   /// read.
   public private(set) var files: [String]?
 
+  /// The display names of the folder and of the folders above it, by path,
+  /// for the `directory` module. Empty before the first read.
+  public private(set) var displayNames: [String: String] = [:]
+
   /// The source of the git state and the files of a repository.
   @ObservationIgnored let probe: any StatusLineGitProbing
 
   /// The walk of a folder outside a repository.
   @ObservationIgnored let walk: @Sendable (String) -> [String]
+
+  /// The display name of a folder, or `nil` for the name of the folder.
+  @ObservationIgnored let displayName: @Sendable (String) -> String?
 
   /// `true` to watch the folder with FSEvents. Tests read with
   /// ``refresh()`` only.
@@ -41,14 +49,19 @@ import os
   /// - Parameters:
   ///   - probe: The source of the git state, libgit2 by default.
   ///   - walk: The walk of a folder outside a repository.
+  ///   - displayName: The display name of a folder, or `nil` for the name
+  ///     of the folder. The default is the name that Finder shows
+  ///     (``StatusLineDirectory/finderDisplayName(of:)``).
   ///   - watchesFolder: `true` to watch the folder with FSEvents.
   public init(
     probe: any StatusLineGitProbing = LibGit2StatusLineProbe(),
     walk: @escaping @Sendable (String) -> [String] = { StatusLineFolderWalk.files(in: $0) },
+    displayName: @escaping @Sendable (String) -> String? = { StatusLineDirectory.finderDisplayName(of: $0) },
     watchesFolder: Bool = true
   ) {
     self.probe = probe
     self.walk = walk
+    self.displayName = displayName
     self.watchesFolder = watchesFolder
   }
 
@@ -59,12 +72,18 @@ import os
   ///   - folder: The folder.
   ///   - git: The git state, or `nil` outside a repository.
   ///   - files: The files of the folder.
-  public convenience init(fixedFolder folder: String, git: StatusLineGitSnapshot?, files: [String]) {
-    self.init(probe: FixedStatusLineProbe(snapshot: git, files: git == nil ? nil : files), walk: { _ in files },
-      watchesFolder: false)
+  ///   - displayNames: The display names of the folders, by path. A folder
+  ///     with no entry shows its name.
+  public convenience init(
+    fixedFolder folder: String, git: StatusLineGitSnapshot?, files: [String], displayNames: [String: String] = [:]
+  ) {
+    self.init(
+      probe: FixedStatusLineProbe(snapshot: git, files: git == nil ? nil : files), walk: { _ in files },
+      displayName: { displayNames[$0] }, watchesFolder: false)
     self.folder = folder
     self.git = git
     self.files = files
+    self.displayNames = displayNames
   }
 
   /// Follows a folder: reads its data, and watches it for changes.
@@ -81,6 +100,7 @@ import os
     if changed {
       git = nil
       files = nil
+      displayNames = [:]
       watcher = nil
     }
     await refresh()
@@ -94,10 +114,12 @@ import os
     guard let folder else {
       git = nil
       files = nil
+      displayNames = [:]
       return
     }
     let probe = probe
     let walk = walk
+    let displayName = displayName
     let ignoreSubmodules = ignoreSubmodules
     let snapshot = await probe.snapshot(of: folder, ignoreSubmodules: ignoreSubmodules)
     let repositoryFiles = await probe.files(in: folder)
@@ -107,9 +129,11 @@ import os
     } else {
       files = await Self.walk(folder, with: walk)
     }
+    let names = await Self.displayNames(above: folder, with: displayName)
     guard read == readCount, folder == self.folder else { return }
     if snapshot != git { git = snapshot }
     if files != self.files { self.files = files }
+    if names != displayNames { displayNames = names }
     if watchesFolder, watcher == nil || watcher?.paths != Self.watchedPaths(folder: folder, git: snapshot) {
       watcher = StatusLineFolderWatcher(paths: Self.watchedPaths(folder: folder, git: snapshot)) { [weak self] in
         Task { await self?.refresh() }
@@ -122,6 +146,15 @@ import os
   static func watchedPaths(folder: String, git: StatusLineGitSnapshot?) -> [String] {
     guard let root = git?.root, root != folder, !folder.hasPrefix(root + "/.git") else { return [folder] }
     return [folder, root + "/.git"]
+  }
+
+  /// Reads the display names of a folder and of the folders above it, off
+  /// the main actor: a display name reads the file system.
+  @concurrent private static func displayNames(
+    above folder: String, with displayName: @Sendable (String) -> String?
+  ) async -> [String: String] {
+    let folders = StatusLineDirectory.folders(above: folder)
+    return Dictionary(uniqueKeysWithValues: folders.compactMap { path in displayName(path).map { (path, $0) } })
   }
 
   @concurrent private static func walk(_ folder: String, with walk: @Sendable (String) -> [String]) async -> [String] {

@@ -22,12 +22,11 @@ nonisolated public enum StatusLineFolderWalk {
   /// The folders that a walk does not go into, because a read of them shows
   /// a privacy prompt of macOS: the ``protectedHomeFolderNames`` of the home
   /// folder of the user, and ``volumesFolder``. The home folder comes from
-  /// the user database, not from `HOME`, because macOS protects the folders
-  /// of the real home folder.
+  /// the user database (``UserHomeFolder/userDatabasePath``), not from
+  /// `HOME`, because macOS protects the folders of the real home folder.
   public static var protectedFolders: [String] {
     var folders = [volumesFolder]
-    if let entry = getpwuid(getuid()), let directory = entry.pointee.pw_dir {
-      let home = String(cString: directory)
+    if let home = UserHomeFolder.userDatabasePath {
       folders += protectedHomeFolderNames.map { (home as NSString).appendingPathComponent($0) }
     }
     return folders

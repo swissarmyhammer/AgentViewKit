@@ -36,7 +36,7 @@ extension EnvironmentValues {
   @Entry public var statusLineActions: StatusLineActions? = nil
 
   /// The home folder that the `directory` module shows as `~`, or `nil` for
-  /// the home folder of the user (`NSHomeDirectory()`).
+  /// the real home folder of the user (``UserHomeFolder/path``).
   @Entry public var statusLineHomeFolder: URL? = nil
 }
 

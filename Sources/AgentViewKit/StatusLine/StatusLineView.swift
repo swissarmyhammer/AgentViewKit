@@ -19,8 +19,10 @@ import SwiftUI
 /// menus.
 ///
 /// The view is one accessibility element with the plain text of the line as
-/// its label, and the identifier ``identifier``. With crumbs, it is a
-/// container, so that each crumb is an element.
+/// its label, the full path of the working folder as its value, and the
+/// identifier ``identifier``. With crumbs, it is a container, so that each
+/// crumb is an element. The `directory` module shows the full path of the
+/// working folder as its tooltip and its accessibility value.
 public struct StatusLineView: View {
   /// The accessibility identifier of the line.
   public static let identifier = "agent-status-line"
@@ -101,7 +103,8 @@ public struct StatusLineView: View {
     let usage = session.usage
     let title = session.parent == nil ? (sessionTitle ?? session.displayTitle) : session.displayTitle
     var input = StatusLineInput(
-      cwd: folder(of: session), git: model.git, files: model.files, sessionTitle: title,
+      cwd: folder(of: session), displayNames: model.displayNames, git: model.git, files: model.files,
+      sessionTitle: title,
       agentName: info?.displayName, agentVersion: info?.version,
       modelName: modelName(of: session.configOptions), contextUsed: usage?.used, contextSize: usage?.size)
     if let homeFolder {
@@ -176,6 +179,9 @@ struct StatusLineContent: View {
     .contentShape(Rectangle())
     .accessibilityElement(children: path.isEmpty ? .ignore : .contain)
     .accessibilityLabel(rendering.plainText)
+    // One element has no child, so the line gives the value of the
+    // directory module.
+    .statusLineAccessibilityValue(path.isEmpty ? rendering.help(of: .directory) : nil)
     .accessibilityAddTraits(.isHeader)
     .accessibilityIdentifier(StatusLineView.identifier)
   }
@@ -206,9 +212,37 @@ struct StatusLineContent: View {
       StatusLineText(spans: piece.spans)
         .contentShape(Rectangle())
         .onTapGesture { actions?(module, folder: input.cwd.map { AbsolutePath(rawValue: $0) }) }
+        .statusLineHelp(piece.help)
         .accessibilityIdentifier(StatusLineView.identifier(for: module))
     } else {
       StatusLineText(spans: piece.spans)
+    }
+  }
+}
+
+extension View {
+  /// Shows a text as the tooltip and as the accessibility value of a
+  /// module.
+  ///
+  /// - Parameter text: The help text of the module, or `nil` for none.
+  /// - Returns: The view with the tooltip and the value.
+  @ViewBuilder fileprivate func statusLineHelp(_ text: String?) -> some View {
+    if let text {
+      help(Text(verbatim: text)).statusLineAccessibilityValue(text)
+    } else {
+      self
+    }
+  }
+
+  /// Sets the accessibility value of the line.
+  ///
+  /// - Parameter text: The value, or `nil` for no value.
+  /// - Returns: The view with the value.
+  @ViewBuilder fileprivate func statusLineAccessibilityValue(_ text: String?) -> some View {
+    if let text {
+      accessibilityValue(Text(verbatim: text))
+    } else {
+      self
     }
   }
 }

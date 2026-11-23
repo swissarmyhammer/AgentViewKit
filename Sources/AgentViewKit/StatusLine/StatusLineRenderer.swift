@@ -50,10 +50,20 @@ nonisolated public struct StatusLinePiece: Hashable, Sendable {
   public var module: StatusLineModuleID?
   /// The runs of the part.
   public var spans: [StatusLineSpan]
+  /// The tooltip and the accessibility value of the part, or `nil`. The
+  /// `directory` module gives the full POSIX path of the folder.
+  public var help: String?
 
-  public init(module: StatusLineModuleID?, spans: [StatusLineSpan]) {
+  /// Makes a part.
+  ///
+  /// - Parameters:
+  ///   - module: The module, or `nil` for literal text.
+  ///   - spans: The runs.
+  ///   - help: The tooltip and the accessibility value, or `nil`.
+  public init(module: StatusLineModuleID?, spans: [StatusLineSpan], help: String? = nil) {
     self.module = module
     self.spans = spans
+    self.help = help
   }
 
   /// The plain text of the part.
@@ -82,6 +92,15 @@ nonisolated public struct StatusLineRendering: Hashable, Sendable {
     pieces.compactMap(\.module)
   }
 
+  /// The tooltip and the accessibility value of a module, or `nil`.
+  ///
+  /// - Parameter module: The module.
+  /// - Returns: The help text of the module, or `nil` when the module does
+  ///   not show or has no help text.
+  public func help(of module: StatusLineModuleID) -> String? {
+    pieces.first { $0.module == module }?.help
+  }
+
   /// The plain text of a module, or `nil` when it does not show.
   public func text(of module: StatusLineModuleID) -> String? {
     pieces.first { $0.module == module }?.plainText
@@ -92,8 +111,13 @@ nonisolated public struct StatusLineRendering: Hashable, Sendable {
 nonisolated public struct StatusLineInput: Hashable, Sendable {
   /// The working folder of the session, or `nil`.
   public var cwd: String?
-  /// The home folder of the user.
+  /// The home folder that the `directory` module shows as `~`: by default
+  /// the real home folder of the user (``UserHomeFolder/path``), not the
+  /// container folder of a sandboxed app.
   public var homeFolder: String
+  /// The display names of the folders of the working folder, by path. A
+  /// folder with no entry shows its name.
+  public var displayNames: [String: String]
   /// The git state of the working folder, or `nil` outside a repository.
   public var git: StatusLineGitSnapshot?
   /// The files of the working folder, relative to it, or `nil` before the
@@ -117,13 +141,15 @@ nonisolated public struct StatusLineInput: Hashable, Sendable {
   public var timeZone: TimeZone
 
   public init(
-    cwd: String? = nil, homeFolder: String = NSHomeDirectory(), git: StatusLineGitSnapshot? = nil,
+    cwd: String? = nil, homeFolder: String = UserHomeFolder.path, displayNames: [String: String] = [:],
+    git: StatusLineGitSnapshot? = nil,
     files: [String]? = nil, sessionTitle: String? = nil, agentName: String? = nil, agentVersion: String? = nil,
     modelName: String? = nil, contextUsed: Int? = nil, contextSize: Int? = nil, date: Date = Date(),
     timeZone: TimeZone = .current
   ) {
     self.cwd = cwd
     self.homeFolder = homeFolder
+    self.displayNames = displayNames
     self.git = git
     self.files = files
     self.sessionTitle = sessionTitle
@@ -153,7 +179,7 @@ nonisolated public enum StatusLineRenderer {
       guard let id = StatusLineModuleID(rawValue: name),
         let spans = moduleSpans(id, definition: definition, input: input), !spans.isEmpty
       else { return nil }
-      return StatusLinePiece(module: id, spans: spans)
+      return StatusLinePiece(module: id, spans: spans, help: id == .directory ? input.cwd : nil)
     }
     let pieces = StatusLineFormat.normalized(output).map { part -> StatusLinePiece in
       switch part {
@@ -211,7 +237,8 @@ nonisolated public enum StatusLineRenderer {
   private static func directory(_ module: DirectoryModule, input: StatusLineInput) -> [StatusLineSpan]? {
     guard !module.disabled, let cwd = input.cwd else { return nil }
     let parts = StatusLineDirectory.parts(
-      cwd: cwd, homeFolder: input.homeFolder, repositoryRoot: input.git?.root, module: module)
+      cwd: cwd, homeFolder: input.homeFolder, repositoryRoot: input.git?.root, module: module,
+      displayName: { input.displayNames[$0] })
     guard !parts.isEmpty else { return nil }
     let path = parts.map { part in StatusLineSpan.text(part.text, part.isRepositoryRoot ? module.repoRootStyle : module.style) }
     return render(module.format, style: module.style, references: ["path": path])
@@ -382,134 +409,6 @@ nonisolated public enum StatusLineRenderer {
     let text = formatter.string(from: input.date)
     guard !text.isEmpty else { return nil }
     return render(module.format, style: module.style, references: ["time": [.text(text, module.style)]])
-  }
-}
-
-/// The parts of the path of the `directory` module (D194 (f)).
-nonisolated public enum StatusLineDirectory {
-  /// One part of the shown path. The separators are parts too.
-  public struct Part: Hashable, Sendable {
-    public var text: String
-    public var isRepositoryRoot: Bool
-
-    public init(_ text: String, isRepositoryRoot: Bool = false) {
-      self.text = text
-      self.isRepositoryRoot = isRepositoryRoot
-    }
-  }
-
-  /// The parts of the shown path of a folder.
-  ///
-  /// 1. With `truncate_to_repo`, a folder in a repository starts at the
-  ///    folder of the repository root. Otherwise the home folder becomes
-  ///    `home_symbol`.
-  /// 2. The substitutions change the path, in order.
-  /// 3. The path keeps its last `truncation_length` parts, with
-  ///    `truncation_symbol` in front when it loses parts.
-  /// 4. Each parent part other than the repository root and the home symbol
-  ///    keeps `fish_style_pwd_dir_length` characters (and a leading `.`).
-  ///
-  /// - Parameters:
-  ///   - cwd: The folder.
-  ///   - homeFolder: The home folder of the user.
-  ///   - repositoryRoot: The root of the repository that holds the folder,
-  ///     or `nil`.
-  ///   - module: The options of the module.
-  /// - Returns: The parts, with `/` parts between the folder parts.
-  public static func parts(cwd: String, homeFolder: String, repositoryRoot: String?, module: DirectoryModule)
-    -> [Part]
-  {
-    let folder = trimmed(cwd)
-    let home = trimmed(homeFolder)
-    var components: [String]
-    var isAbsolute = false
-    var repositoryIndex: Int?
-    if module.truncateToRepo, let root = repositoryRoot.map(trimmed), let rest = relative(folder, to: root),
-      let rootName = root.split(separator: "/").last
-    {
-      components = [String(rootName)] + rest
-      repositoryIndex = 0
-    } else if let rest = relative(folder, to: home), !home.isEmpty, home != "/" {
-      components = [module.homeSymbol] + rest
-      repositoryIndex = rootIndex(repositoryRoot.map(trimmed), folder: folder, components: components.count)
-    } else {
-      components = folder.split(separator: "/").map(String.init)
-      isAbsolute = true
-      repositoryIndex = rootIndex(repositoryRoot.map(trimmed), folder: folder, components: components.count)
-    }
-    if !module.substitutions.isEmpty {
-      let first = components.first
-      var joined = (isAbsolute ? "/" : "") + components.joined(separator: "/")
-      for substitution in module.substitutions where !substitution.from.isEmpty {
-        joined = joined.replacingOccurrences(of: substitution.from, with: substitution.to)
-      }
-      isAbsolute = joined.hasPrefix("/")
-      components = joined.split(separator: "/").map(String.init)
-      if components.first != first { repositoryIndex = nil }
-    }
-    if components.isEmpty { return isAbsolute ? [Part("/")] : [] }
-    var truncated = false
-    let length = module.truncationLength
-    if length > 0, components.count > length {
-      let dropped = components.count - length
-      components.removeFirst(dropped)
-      repositoryIndex = repositoryIndex.flatMap { $0 >= dropped ? $0 - dropped : nil }
-      truncated = true
-    }
-    var parts: [Part] = []
-    if truncated, !module.truncationSymbol.isEmpty {
-      parts.append(Part(module.truncationSymbol))
-    } else if isAbsolute, !truncated {
-      parts.append(Part("/"))
-    }
-    for (index, component) in components.enumerated() {
-      if index > 0 { parts.append(Part("/")) }
-      let isRoot = index == repositoryIndex
-      let isLast = index == components.count - 1
-      let text =
-        isLast || isRoot || component == module.homeSymbol
-        ? component : fishStyle(component, length: module.fishStylePwdDirLength)
-      parts.append(Part(text, isRepositoryRoot: isRoot))
-    }
-    return parts
-  }
-
-  /// The index of the folder of the repository root among the parts of a
-  /// path that starts at `~` or `/`: the root folder stays whole and in the
-  /// root style.
-  ///
-  /// - Parameters:
-  ///   - root: The repository root, or `nil`.
-  ///   - folder: The folder of the path.
-  ///   - components: The count of the parts of the path.
-  /// - Returns: The index, or `nil` when no repository holds the folder.
-  private static func rootIndex(_ root: String?, folder: String, components: Int) -> Int? {
-    guard let root, let below = relative(folder, to: root) else { return nil }
-    let index = components - 1 - below.count
-    return index >= 0 ? index : nil
-  }
-
-  /// A part cut to `length` characters, and the leading `.` of a hidden
-  /// folder.
-  static func fishStyle(_ component: String, length: Int) -> String {
-    guard length > 0 else { return component }
-    if component.hasPrefix("."), component.count > 1 {
-      return "." + component.dropFirst().prefix(length)
-    }
-    return String(component.prefix(length))
-  }
-
-  private static func trimmed(_ path: String) -> String {
-    path.count > 1 && path.hasSuffix("/") ? String(path.dropLast()) : path
-  }
-
-  /// The components of `folder` below `base`, or `nil` when `base` does not
-  /// hold `folder`.
-  private static func relative(_ folder: String, to base: String) -> [String]? {
-    if folder == base { return [] }
-    let prefix = base == "/" ? "/" : base + "/"
-    guard folder.hasPrefix(prefix) else { return nil }
-    return folder.dropFirst(prefix.count).split(separator: "/").map(String.init)
   }
 }
 

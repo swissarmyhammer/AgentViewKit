@@ -85,10 +85,13 @@ nonisolated private func valueKeys<Key: CodingKey & CaseIterable>(_: Key.Type) -
 
 /// The options of the `directory` module: the working folder of the session.
 ///
-/// The path has `~` (``homeSymbol``) for the home folder. With
-/// ``truncateToRepo``, the folder of the git repository root is the first
-/// part. The path keeps at most ``truncationLength`` parts, and each parent
-/// part has ``fishStylePwdDirLength`` letters. The repository root shows in
+/// The path shows each folder with its whole Finder display name, and
+/// ``StatusLineDirectory/separator`` between two folders, as the path bar of
+/// Finder (``StatusLineDirectory``). The path has `~` (``homeSymbol``) for
+/// the home folder. With ``truncateToRepo``, the folder of the git
+/// repository root is the first part. The path keeps at most
+/// ``truncationLength`` parts. With a ``fishStylePwdDirLength`` above 0,
+/// each parent part has that count of letters. The repository root shows in
 /// ``repoRootStyle``.
 nonisolated public struct DirectoryModule: StatusLineModuleOptions {
   /// One substitution of the path: the text `from` becomes `to`.
@@ -118,7 +121,8 @@ nonisolated public struct DirectoryModule: StatusLineModuleOptions {
   public var style: StatusLineStyle = "bold"
   public var disabled = false
   /// The most parts of the path that show, or 0 for no limit. The default
-  /// shows the whole path: the fish-style parents keep it short.
+  /// shows the whole path: a long path removes whole names from its middle
+  /// (``StatusLineDirectory/lengthLimit``).
   public var truncationLength = 0
   /// `true` to start the path at the folder of the git repository root. The
   /// default shows the path from `~` or `/`, so that it reads as a path
@@ -128,8 +132,10 @@ nonisolated public struct DirectoryModule: StatusLineModuleOptions {
   public var truncationSymbol = ""
   /// The text for the home folder.
   public var homeSymbol = "~"
-  /// The letters of each parent part, or 0 to keep each part whole.
-  public var fishStylePwdDirLength = 1
+  /// The letters of each parent part, or 0 to keep each part whole. The
+  /// default keeps each part whole, because one letter for each folder is
+  /// cryptic (Testudo ^6jt64qs).
+  public var fishStylePwdDirLength = 0
   /// The substitutions of the path, in order.
   public var substitutions: [Substitution] = []
   /// The style of the repository root.

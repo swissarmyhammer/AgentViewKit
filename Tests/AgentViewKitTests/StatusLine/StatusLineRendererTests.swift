@@ -30,7 +30,7 @@ import Testing
   @Test func defaultLineInARepository() {
     let line = StatusLineRenderer.render(StatusLines.defaultDefinition, input: Self.input())
     #expect(line.modules == [.directory, .gitBranch, .gitStatus, .languages, .session])
-    #expect(line.plainText == "~/c/Kit main+3!2?1⇡1 swift python Fix the parser")
+    #expect(line.plainText == "~ › code › Kit main+3!2?1⇡1 swift python Fix the parser")
   }
 
   @Test func defaultLineOutsideARepositoryHasNoGitAndNoDoubleSpace() {
@@ -41,7 +41,7 @@ import Testing
     }
     let line = StatusLineRenderer.render(StatusLines.defaultDefinition, input: input)
     #expect(line.modules == [.directory, .session])
-    #expect(line.plainText == "~/notes Fix the parser")
+    #expect(line.plainText == "~ › notes Fix the parser")
     #expect(!line.pieces.contains { $0.module == nil && $0.plainText.contains("  ") })
   }
 
@@ -74,7 +74,7 @@ import Testing
         $0.cwd = "/Users/me/code/Kit/Sources"
       }))
     let directory = StatusLines.defaultDefinition.directory
-    #expect(spans.map(\.plainText).joined() == "~/c/Kit/Sources")
+    #expect(spans.map(\.plainText).joined() == "~ › code › Kit › Sources")
     #expect(spans.contains(.text("Kit", directory.repoRootStyle)))
     #expect(spans.last == .text("Sources", directory.style))
   }
@@ -161,7 +161,7 @@ import Testing
     #expect(Self.text(.session, Self.input { $0.sessionTitle = "  " }) == nil)
     let line = StatusLineRenderer.render(StatusLines.defaultDefinition, input: input)
     #expect(!line.modules.contains(.session))
-    #expect(line.plainText == "~/c/Kit main+3!2?1⇡1 swift python")
+    #expect(line.plainText == "~ › code › Kit main+3!2?1⇡1 swift python")
   }
 
   @Test func sessionTitleThatSaysSomethingNewShows() {

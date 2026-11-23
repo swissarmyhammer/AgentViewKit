@@ -41,7 +41,7 @@ import Testing
     let directory = StatusLines.defaultDefinition.directory
     #expect(directory.truncationLength == 0)
     #expect(!directory.truncateToRepo)
-    #expect(directory.fishStylePwdDirLength == 1)
+    #expect(directory.fishStylePwdDirLength == 0)
     #expect(directory.homeSymbol == "~")
     #expect(directory.repoRootStyle.modifiers.contains(.bold))
     #expect(directory.style == "bold")
@@ -79,6 +79,15 @@ import Testing
     var expected = try #require(StatusLines.named("minimal"))
     expected.directory.truncationLength = 2
     #expect(resolution.definition == expected)
+    #expect(resolution.problems.isEmpty)
+  }
+
+  /// The default keeps whole names, and the fish option stays (Testudo
+  /// ^6jt64qs).
+  @Test func fishStyleOptionStillSetsTheLettersOfEachParentPart() {
+    let value: JSONValue = .object(["directory": .object(["fish_style_pwd_dir_length": .number(1)])])
+    let resolution = StatusLineSetting.resolve(value)
+    #expect(resolution.definition.directory.fishStylePwdDirLength == 1)
     #expect(resolution.problems.isEmpty)
   }
 
