@@ -33,14 +33,14 @@ enum RowSectionGalleryFixtures {
 
   /// The width of a narrow column, in points: too narrow for the title and
   /// the detail on one line.
-  static let narrowWidth: CGFloat = 180
+  nonisolated static let narrowWidth: CGFloat = 180
 
   /// The height of each image, in points.
-  static let height: CGFloat = 240
+  nonisolated static let height: CGFloat = 240
 
   /// The size of the image at the normal width.
-  static let size = CGSize(width: SnapshotFixtures.narrowWidth, height: height)
+  nonisolated static let size = CGSize(width: SnapshotFixtures.narrowWidth, height: height)
 
   /// The size of the image at the narrow width.
-  static let narrowSize = CGSize(width: narrowWidth, height: height)
+  nonisolated static let narrowSize = CGSize(width: narrowWidth, height: height)
 }

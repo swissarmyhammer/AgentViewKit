@@ -16,7 +16,27 @@ comments:
     - PNGs: ~/Library/Caches/AgentViewKit/screenshot-check/generated/HostedSnapshotTests/row-sections-{light,dark}.png and row-sections-narrow-{light,dark}.png. At 420 pt the detail stands after the title; at 180 pt it moves below the title.
     - next: /review.
   timestamp: 2026-11-23T17:53:05.623137+00:00
-position_column: doing
+- actor: claude-code
+  id: 01m84rs2bvdy3jm1b7tm8hvbpd
+  text: |-
+    ### review — findings
+    - evidence: `review sha HEAD~1..HEAD` on commit 48d6b82f. Counts: 1 finding, 1 confirmed, 0 refuted (7 attempted, 0 failed). Finding: ScreenshotTests/Tests/ScreenshotTests/HostedSnapshotTests.swift:223 `duplication/duplication`. The 8 card boxes are ticked. The evidence is the implement comment (headless `swift test`: 1645 tests in 186 suites and 54 tests in 11 suites pass; gallery: 42 tests in 4 suites pass), the four row-sections PNGs in ~/Library/Caches/AgentViewKit/screenshot-check/generated/HostedSnapshotTests/, and the diff (AgentRowList.swift changes only the header case and the preview, so no row, focus segment or jump label is added).
+    - next: /implement removes the copied generate call in HostedSnapshotTests.swift (one helper for the two row-sections tests), then /review again.
+  timestamp: 2026-11-23T17:55:34.907662+00:00
+- actor: claude-code
+  id: 01m84rzjmv4p1gf15qrp8vrfgc
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 5 files
+    - test: green — swift test 1645 + 54; gallery 42
+    - commit: 48d6b82f
+    - review: findings — ScreenshotTests/Tests/ScreenshotTests/HostedSnapshotTests.swift:223
+
+    ### implement — changed
+    - evidence: the two gallery tests are now one test with two arguments (name, size). The size constants of RowSectionGalleryFixtures and SnapshotFixtures.narrowWidth are nonisolated, so the test arguments can read them. Gallery: 41 tests in 4 suites passed (the two cases count as one test); row-sections and row-sections-narrow PNGs are new (11:58).
+    - next: commit, then review.
+  timestamp: 2026-11-23T17:59:08.187696+00:00
+position_column: review
 position_ordinal: '80'
 title: AgentRowSection header shows a secondary text for progress
 ---
@@ -35,16 +55,25 @@ Change these files:
 A header is no row: the change must not add a row, a focus segment or a jump label. Do not change Sources/AgentViewKit/StatusLine/*.
 
 ## Acceptance Criteria
-- [ ] `AgentRowSection(id:title:items:detail:)` exists, and the old init call compiles with no change.
-- [ ] A section with a detail shows the title and the detail in its header; a section with no detail shows the same header as before.
-- [ ] At a narrow width, the title stays whole and the detail truncates or moves; the header never pushes the list wider.
-- [ ] The VoiceOver label of the header is "<title>, <detail>" when a detail exists, else "<title>"; the trait `.isHeader` stays.
-- [ ] The arrow keys, the jump labels and the mouse pass the header by, as before.
+- [x] `AgentRowSection(id:title:items:detail:)` exists, and the old init call compiles with no change.
+- [x] A section with a detail shows the title and the detail in its header; a section with no detail shows the same header as before.
+- [x] At a narrow width, the title stays whole and the detail truncates or moves; the header never pushes the list wider.
+- [x] The VoiceOver label of the header is "<title>, <detail>" when a detail exists, else "<title>"; the trait `.isHeader` stays.
+- [x] The arrow keys, the jump labels and the mouse pass the header by, as before.
 
 ## Tests
-- [ ] Unit tests first (headless `swift test`), in a new file /Users/wballard/github/swissarmyhammer/AgentViewKit/Tests/AgentViewKitTests/Lists/AgentRowSectionHeaderTests.swift: `entries(of:id:)` carries the detail into the header entry; a section with no detail gives `detail == nil`; the accessibility label of the header (find it as `AgentRowListRowLabelTests` finds a row label) is "Other Agents, Reading 1,240 of 4,427", and is "Recent" with no detail.
-- [ ] Screenshot gallery screen in /Users/wballard/github/swissarmyhammer/AgentViewKit/ScreenshotTests/Tests/ScreenshotTests: a list with a section "Other Agents" and the detail "Reading 1,240 of 4,427", at the normal width and at a narrow width (add the snapshots in HostedSnapshotTests.swift, as `chip-rows-narrow` does). Run: `HOME=$(mktemp -d) swift test --package-path ScreenshotTests`. Give the PNG paths for review.
-- [ ] `swift test` passes with no new warning.
+- [x] Unit tests first (headless `swift test`), in a new file /Users/wballard/github/swissarmyhammer/AgentViewKit/Tests/AgentViewKitTests/Lists/AgentRowSectionHeaderTests.swift: `entries(of:id:)` carries the detail into the header entry; a section with no detail gives `detail == nil`; the accessibility label of the header (find it as `AgentRowListRowLabelTests` finds a row label) is "Other Agents, Reading 1,240 of 4,427", and is "Recent" with no detail.
+- [x] Screenshot gallery screen in /Users/wballard/github/swissarmyhammer/AgentViewKit/ScreenshotTests/Tests/ScreenshotTests: a list with a section "Other Agents" and the detail "Reading 1,240 of 4,427", at the normal width and at a narrow width (add the snapshots in HostedSnapshotTests.swift, as `chip-rows-narrow` does). Run: `HOME=$(mktemp -d) swift test --package-path ScreenshotTests`. Give the PNG paths for review.
+- [x] `swift test` passes with no new warning.
 
 ## Workflow
 - Use /tdd -- write failing tests first, then implement to make them pass. #d212
+
+## Review Findings (2026-11-23 11:53)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 5 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `ScreenshotTests/Tests/ScreenshotTests/HostedSnapshotTests.swift:223` `duplication/duplication` — The test theSectionHeadersOfARowListInANarrowColumn repeats the body of theSectionHeadersOfARowList (line 214) line for line. The two tests differ only by a literal name ("row-sections" or "row-sections-narrow") and by a size constant (RowSectionGalleryFixtures.size or narrowSize). Two copies of one generate call can drift apart, and each new width needs another copy. Extract one helper, for example `generateRowSections(named:size:)`, that calls `Self.generate(RowSectionGalleryFixtures.gallery, named: named, size: size)`. Call it from both tests with their own name and size. Alternatively, keep both tests and accept the copy as a test-only convention, since the rest of this file uses the same one-call pattern per fixture.

@@ -59,7 +59,7 @@ enum SnapshotFixtures {
 
   /// The width of the image of a card, a banner, the code block and the
   /// terminal output, in points.
-  static let narrowWidth: CGFloat = 420
+  nonisolated static let narrowWidth: CGFloat = 420
 
   /// The height of the image of the composer, in points.
   static let composerHeight: CGFloat = 140

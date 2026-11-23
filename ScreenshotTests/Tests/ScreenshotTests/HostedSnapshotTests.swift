@@ -210,20 +210,19 @@ import Testing
   }
 
   /// A list of sections whose header "Other Agents" shows the progress of a
-  /// read after its title (``RowSectionGalleryFixtures``).
-  @Test func theSectionHeadersOfARowList() async throws {
-    try await Self.generate(
-      RowSectionGalleryFixtures.gallery, named: "row-sections",
-      size: RowSectionGalleryFixtures.size)
-  }
-
-  /// The list of sections in a narrow column: the progress of the header
-  /// "Other Agents" moves below the title, and the title stays whole
-  /// (``RowSectionGalleryFixtures``).
-  @Test func theSectionHeadersOfARowListInANarrowColumn() async throws {
-    try await Self.generate(
-      RowSectionGalleryFixtures.gallery, named: "row-sections-narrow",
-      size: RowSectionGalleryFixtures.narrowSize)
+  /// read (``RowSectionGalleryFixtures``). In the wide column the progress
+  /// is after the title. In the narrow column it moves below the title, and
+  /// the title stays whole.
+  ///
+  /// - Parameters:
+  ///   - name: The name of the image.
+  ///   - size: The size of the column.
+  @Test(arguments: [
+    ("row-sections", RowSectionGalleryFixtures.size),
+    ("row-sections-narrow", RowSectionGalleryFixtures.narrowSize),
+  ])
+  func theSectionHeadersOfARowList(named name: String, size: CGSize) async throws {
+    try await Self.generate(RowSectionGalleryFixtures.gallery, named: name, size: size)
   }
 
   /// The files of the kit with the look of Finder (D196): chips and an
