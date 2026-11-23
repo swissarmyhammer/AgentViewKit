@@ -1,6 +1,8 @@
 @testable import AgentViewKit
 import AgentViewKitTestSupport
 import CoreGraphics
+import Observation
+import Synchronization
 import Testing
 
 @Suite @MainActor struct ScrollAnchorManagerTests {
@@ -504,5 +506,63 @@ import Testing
     manager.noteVisible(ids: ["b"], distanceFromBottom: Self.distanceOutsideTolerance)
 
     #expect(manager.visibleIDs == ["b"])
+  }
+
+  // MARK: - Equal report
+
+  /// The number of equal reports that each equal report test sends.
+  private static let equalReportCount = 3
+
+  /// Sends equal reports to a manager, and counts the observation changes
+  /// of ``ScrollAnchorManager/visibleIDs`` that they cause.
+  ///
+  /// The function tracks the value again before each report, so each report
+  /// that writes the value adds one count.
+  ///
+  /// - Parameters:
+  ///   - manager: The manager that gets the reports.
+  ///   - ids: The identifiers of each report.
+  ///   - distanceFromBottom: The distance from the bottom of each report.
+  /// - Returns: The number of observation changes.
+  private static func visibleIDsChanges(
+    of manager: ScrollAnchorManager, reporting ids: [String], distanceFromBottom: CGFloat
+  ) -> Int {
+    let changes = Mutex(0)
+    for _ in 0..<equalReportCount {
+      withObservationTracking {
+        _ = manager.visibleIDs
+      } onChange: {
+        changes.withLock { $0 += 1 }
+      }
+      manager.noteVisible(ids: ids, distanceFromBottom: distanceFromBottom)
+    }
+    return changes.withLock { $0 }
+  }
+
+  /// A production change that fails this test: the manager writes
+  /// ``ScrollAnchorManager/visibleIDs`` for each report at the bottom, also
+  /// when the report is equal to the value.
+  @Test func equalReportsAtTheBottomCauseNoChangeOfTheVisibleIds() {
+    let manager = ScrollAnchorManager(tolerance: Self.tolerance)
+    manager.noteAppended(ids: ["a", "b"])
+    manager.noteVisible(ids: ["a", "b"])
+
+    let changes = Self.visibleIDsChanges(of: manager, reporting: ["a", "b"], distanceFromBottom: 0)
+
+    #expect(changes == 0)
+  }
+
+  /// A production change that fails this test: the manager writes
+  /// ``ScrollAnchorManager/visibleIDs`` for each report that it accepts,
+  /// also when the report is equal to the value.
+  @Test func equalReportsAwayFromTheBottomCauseNoChangeOfTheVisibleIds() {
+    let manager = ScrollAnchorManager(tolerance: Self.tolerance)
+    manager.noteAppended(ids: ["a", "b"])
+    manager.noteVisible(ids: ["a"], distanceFromBottom: Self.distanceOutsideTolerance)
+
+    let changes = Self.visibleIDsChanges(
+      of: manager, reporting: ["a"], distanceFromBottom: Self.distanceOutsideTolerance)
+
+    #expect(changes == 0)
   }
 }

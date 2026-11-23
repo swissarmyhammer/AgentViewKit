@@ -240,6 +240,11 @@ public struct ConversationView<EmptyState: View>: View {
   /// (task ^t9416x5).
   @State private var liveRows = LiveRowRange()
 
+  /// The position of each row key of the transcript. Each report of the
+  /// rows in view reads it, and it builds its dictionary again only after a
+  /// change of the transcript (task ^q1fy0n2).
+  @State private var rowIndex = TranscriptRowIndex()
+
   /// The cache of the EditorKit models of the rows that the view makes
   /// when the host gives no cache. A row that leaves the live rows drops
   /// its editor, and its models stay in the cache, so the row does not make
@@ -545,10 +550,9 @@ public struct ConversationView<EmptyState: View>: View {
       unsettledItemID = nil
       scrollToBottom()
     case .item(let id):
-      let transcript = session.transcript
       pageCount = ConversationLayout.pageCount(
-        forScrollTo: transcript.position(ofRowKey: id), count: transcript.count, pageSize: pageSize,
-        shownPages: pageCount)
+        forScrollTo: rowIndex.position(ofRowKey: id, in: session), count: session.transcript.count,
+        pageSize: pageSize, shownPages: pageCount)
       unsettledItemID = id
       position.scrollTo(id: id, anchor: .top)
     }
@@ -613,10 +617,9 @@ public struct ConversationView<EmptyState: View>: View {
       self.isNearBottom = isNearBottom
     }
     noteLastItem()
-    // Each id gets its position one time, and the sort compares the stored
-    // positions.
-    let transcript = session.transcript
-    let positioned = ids.map { (id: $0, position: transcript.position(ofRowKey: $0)) }
+    // Each id gets its position one time from the index, and the sort
+    // compares the stored positions.
+    let positioned = ids.map { (id: $0, position: rowIndex.position(ofRowKey: $0, in: session)) }
     liveRows.noteVisible(positions: positioned.compactMap(\.position))
     let sorted = positioned.sorted { ($0.position ?? 0) < ($1.position ?? 0) }.map(\.id)
     anchors.noteVisible(
@@ -643,7 +646,7 @@ public struct ConversationView<EmptyState: View>: View {
     // thread removed gives no start: the change is not an append.
     let start: Int?
     if let old {
-      start = session.transcript.position(ofRowKey: old).map { $0 + 1 }
+      start = rowIndex.position(ofRowKey: old, in: session).map { $0 + 1 }
     } else {
       start = keys.startIndex
     }

@@ -123,7 +123,9 @@ public final class ScrollAnchorManager {
   /// the jump, or when it pins the list. A report without the item comes
   /// from a layout pass before the list placed the item. The report after it
   /// replaces ``visibleIDs`` again. A report equal to ``visibleIDs``, such as
-  /// the report of a scroll geometry change, changes only the pin state.
+  /// the report of a scroll geometry change, changes only the pin state. The
+  /// manager does not write ``visibleIDs`` for such a report (task
+  /// ^q1fy0n2, #scroll-perf).
   ///
   /// After ``pinToBottom()`` pins an unpinned list, a report that is not at
   /// the bottom does not unpin the list, until the first report at the
@@ -147,7 +149,7 @@ public final class ScrollAnchorManager {
     guard !ids.isEmpty || lastItemID == nil else { return }
     let isAtBottom = isAtBottom(visibleIDs: ids, distanceFromBottom: distanceFromBottom)
     let isNewReport = ids != visibleIDs
-    if acceptsReport(of: ids) || isAtBottom {
+    if isNewReport, acceptsReport(of: ids) || isAtBottom {
       visibleIDs = ids
     }
     if isNewReport {
