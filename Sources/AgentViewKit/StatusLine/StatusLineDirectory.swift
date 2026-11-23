@@ -135,27 +135,25 @@ nonisolated public enum StatusLineDirectory {
   ) -> [Part] {
     let home = trimmed(homeFolder)
     let root = repositoryRoot.map(trimmed)
-    var path = substituted(start(folder: trimmed(cwd), home: home, root: root, module: module), module.substitutions)
-    path.components = iCloudCollapsed(path.components, home: home)
-    let truncated = truncate(&path.components, length: module.truncationLength)
-    if path.isAbsolute, !truncated {
-      path.components.insert(Component(text: "/", path: "/", namePath: "/", isFixed: true), at: 0)
-    }
-    var components = path.components.map { component in
+    let path = substituted(start(folder: trimmed(cwd), home: home, root: root, module: module), module.substitutions)
+    let collapsed = iCloudCollapsed(path.components, home: home)
+    let kept = truncated(collapsed, length: module.truncationLength)
+    let isTruncated = kept.count < collapsed.count
+    let rootFolder =
+      path.isAbsolute && !isTruncated ? [Component(text: "/", path: "/", namePath: "/", isFixed: true)] : []
+    let named = (rootFolder + kept).map { component in
       var component = component
       component.text = component.namePath.flatMap(displayName) ?? component.text
       component.isRepositoryRoot = root != nil && component.path == root
       return component
     }
-    components = fishStyled(components, module: module)
-    if module.truncationLength <= 0 { components = elided(components) }
-    var parts: [Part] = []
-    if truncated, !module.truncationSymbol.isEmpty { parts.append(Part(module.truncationSymbol)) }
-    for (index, component) in components.enumerated() {
-      if index > 0 { parts.append(Part(separator)) }
-      parts.append(Part(component.text, isRepositoryRoot: component.isRepositoryRoot))
+    let styled = fishStyled(named, module: module)
+    let components = module.truncationLength <= 0 ? elided(styled) : styled
+    let symbol = isTruncated && !module.truncationSymbol.isEmpty ? [Part(module.truncationSymbol)] : []
+    let folders = components.enumerated().flatMap { index, component in
+      (index > 0 ? [Part(separator)] : []) + [Part(component.text, isRepositoryRoot: component.isRepositoryRoot)]
     }
-    return parts
+    return symbol + folders
   }
 
   /// The display name of a folder, as Finder shows it.
@@ -203,12 +201,11 @@ nonisolated public enum StatusLineDirectory {
       text.replacingOccurrences(of: substitution.from, with: substitution.to)
     }
     guard changed != text else { return path }
-    var components = changed.split(separator: "/").map { Component(text: String($0)) }
-    for (index, old) in zip(components.indices.reversed(), path.components.reversed()) {
-      guard components[index].text == old.text else { break }
-      components[index] = old
-    }
-    return Path(components: components, isAbsolute: changed.hasPrefix("/"))
+    let components = changed.split(separator: "/").map { Component(text: String($0)) }
+    let unchangedCount = zip(components.reversed(), path.components.reversed()).prefix { $0.text == $1.text }.count
+    return Path(
+      components: Array(components.dropLast(unchangedCount) + path.components.suffix(unchangedCount)),
+      isAbsolute: changed.hasPrefix("/"))
   }
 
   /// The parts with the folders of iCloud Drive as Finder shows them.
@@ -222,28 +219,23 @@ nonisolated public enum StatusLineDirectory {
     let depth = mobileDocumentsFolder.split(separator: "/").count
     guard components.first?.path == home, components.count > depth, components[depth].path == mobileDocuments
     else { return components }
-    var rest = Array(components.dropFirst(depth + 1))
-    var drive = Component(text: iCloudDriveName, path: mobileDocuments, isFixed: true)
-    guard let container = rest.first else { return [drive] }
-    rest.removeFirst()
+    let drive = Component(text: iCloudDriveName, path: mobileDocuments, isFixed: true)
+    guard let container = components.dropFirst(depth + 1).first else { return [drive] }
+    let below = components.dropFirst(depth + 2)
     guard container.text != iCloudDriveContainer else {
-      drive.path = container.path
-      return [drive] + rest
+      return [Component(text: iCloudDriveName, path: container.path, isFixed: true)] + below
     }
-    var part = container
-    if rest.first?.text == containerDocumentsFolder {
-      part.path = rest.removeFirst().path
-    }
-    return [drive, part] + rest
+    let documents = below.first.flatMap { $0.text == containerDocumentsFolder ? $0 : nil }
+    let part = Component(
+      text: container.text, path: documents?.path ?? container.path, namePath: container.namePath,
+      isFixed: container.isFixed)
+    return [drive, part] + below.dropFirst(documents == nil ? 0 : 1)
   }
 
-  /// Keeps the last `length` parts.
-  ///
-  /// - Returns: `true` when the path lost parts.
-  private static func truncate(_ components: inout [Component], length: Int) -> Bool {
-    guard length > 0, components.count > length else { return false }
-    components.removeFirst(components.count - length)
-    return true
+  /// The last `length` parts, or all the parts when `length` is 0 or less.
+  private static func truncated(_ components: [Component], length: Int) -> [Component] {
+    guard length > 0 else { return components }
+    return Array(components.suffix(length))
   }
 
   /// The parts with each parent part cut to `fish_style_pwd_dir_length`
@@ -269,11 +261,12 @@ nonisolated public enum StatusLineDirectory {
     guard components.count > keptLastFolders + 1, width(of: components) > lengthLimit else { return components }
     let head = [components[0], Component(text: ellipsis, isFixed: true)]
     // The tail starts after the first folder of the middle at the earliest,
-    // so that the ellipsis stands for at least one folder.
-    var tailStart = components.count - keptLastFolders
-    while tailStart > head.count, width(of: head + components[(tailStart - 1)...]) <= lengthLimit {
-      tailStart -= 1
-    }
+    // so that the ellipsis stands for at least one folder. A tail that
+    // starts later is narrower, thus the first start that fits is the
+    // longest tail that fits.
+    let latestStart = components.count - keptLastFolders
+    let tailStart =
+      (head.count..<latestStart).first { width(of: head + components[$0...]) <= lengthLimit } ?? latestStart
     return head + components[tailStart...]
   }
 

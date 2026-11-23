@@ -21,15 +21,21 @@ nonisolated public enum StatusLineFolderWalk {
 
   /// The folders that a walk does not go into, because a read of them shows
   /// a privacy prompt of macOS: the ``protectedHomeFolderNames`` of the home
-  /// folder of the user, and ``volumesFolder``. The home folder comes from
-  /// the user database (``UserHomeFolder/userDatabasePath``), not from
-  /// `HOME`, because macOS protects the folders of the real home folder.
+  /// folder of the user, and ``volumesFolder``. The home folder is
+  /// ``UserHomeFolder/path``, not `HOME`, because macOS protects the folders
+  /// of the real home folder. The status line shows the same home folder as
+  /// `~`.
   public static var protectedFolders: [String] {
-    var folders = [volumesFolder]
-    if let home = UserHomeFolder.userDatabasePath {
-      folders += protectedHomeFolderNames.map { (home as NSString).appendingPathComponent($0) }
-    }
-    return folders
+    protectedFolders(home: UserHomeFolder.path)
+  }
+
+  /// The folders that a walk does not go into, for a given home folder: the
+  /// ``protectedHomeFolderNames`` of `home`, and ``volumesFolder``.
+  ///
+  /// - Parameter home: The home folder of the user.
+  /// - Returns: The paths of the protected folders.
+  static func protectedFolders(home: String) -> [String] {
+    [volumesFolder] + protectedHomeFolderNames.map { (home as NSString).appendingPathComponent($0) }
   }
 
   /// The files of a folder, relative to it. The walk skips hidden files and

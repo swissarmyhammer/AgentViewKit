@@ -17,8 +17,32 @@ import SwiftUI
 /// models have fixed display names.
 @MainActor
 enum StatusLineGalleryFixtures {
+  /// The width of the image, in points.
+  static let width: CGFloat = 640
+
+  /// The height of the image, in points: room for each header and its
+  /// caption.
+  static let height: CGFloat = 520
+
   /// The size of the image, in points.
-  static let size = CGSize(width: 640, height: 520)
+  static let size = CGSize(width: width, height: height)
+
+  /// The count of the staged files of the repository lines.
+  static let stagedCount = 3
+
+  /// The count of the modified files of the repository lines.
+  static let modifiedCount = 2
+
+  /// The count of the untracked files of the repository lines.
+  static let untrackedCount = 1
+
+  /// The count of the commits ahead of the upstream, for the repository
+  /// lines.
+  static let aheadCount = 1
+
+  /// The count of the commits behind the upstream, for the repository
+  /// lines.
+  static let behindCount = 0
 
   /// The folder of the repository lines: a folder below the home folder, so
   /// that the line shows `~` rules and the repository root.
@@ -55,8 +79,9 @@ enum StatusLineGalleryFixtures {
   /// commit ahead of the upstream.
   static var git: StatusLineGitSnapshot {
     StatusLineGitSnapshot(
-      root: repositoryRoot, branch: "status-line", counts: .init(staged: 3, modified: 2, untracked: 1), ahead: 1,
-      behind: 0)
+      root: repositoryRoot, branch: "status-line",
+      counts: .init(staged: stagedCount, modified: modifiedCount, untracked: untrackedCount), ahead: aheadCount,
+      behind: behindCount)
   }
 
   /// The files of the repository lines: Swift first, then Python and shell.

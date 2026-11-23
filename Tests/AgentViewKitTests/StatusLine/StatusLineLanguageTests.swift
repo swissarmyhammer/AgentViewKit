@@ -95,6 +95,15 @@ import Testing
       ])
   }
 
+  @Test func walkSkipsTheProtectedHomeFoldersWhenTheUserDatabaseHasNoHome() throws {
+    let folder = try StatusLineTemporaryFolder()
+    try folder.write("Documents/a.swift")
+    try folder.write("Sources/b.rs")
+    let home = UserHomeFolder.path(userDatabase: nil, process: folder.path)
+    let protected = StatusLineFolderWalk.protectedFolders(home: home)
+    #expect(StatusLineFolderWalk.files(in: folder.path, skipping: protected) == ["Sources/b.rs"])
+  }
+
   @Test func protectedFoldersAreTheHomeFoldersWithAPrivacyPromptAndTheVolumes() throws {
     let entry = try #require(getpwuid(getuid()))
     let home = String(cString: try #require(entry.pointee.pw_dir))
