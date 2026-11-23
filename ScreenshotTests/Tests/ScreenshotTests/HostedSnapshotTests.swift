@@ -95,6 +95,17 @@ import Testing
     try await Self.generate(SharedThreadFixtures.externalThread, named: name, size: size)
   }
 
+  /// The read-only tab of an external session with the composer of the host
+  /// (TestudoApp D212, design sections 5.3 and 5.4): the header of
+  /// ``theExternalThreadWithItsHeader(named:size:)``, and the default
+  /// composer in the bottom bar with the placeholder "Message to continue in
+  /// Testudo" and no mode picker.
+  @Test func theExternalThreadWithTheComposerOfTheHost() async throws {
+    try await Self.generate(
+      SharedThreadFixtures.externalComposerThread, named: "thread-external-composer",
+      size: FailedTurnFixtures.threadSize)
+  }
+
   /// The read-only chat of a shared session that the owner stopped sharing:
   /// the header of the host stays, and the unavailable message of the host
   /// shows in the center, in place of the transcript, with no glass (D110).

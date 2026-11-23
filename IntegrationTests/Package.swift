@@ -43,9 +43,11 @@ let editorKitProducts: [Target.Dependency] = [
   .product(name: "EditorTestSupport", package: "EditorKit"),
 ]
 
-/// The ACP products: the wire types and the client connection.
+/// The ACP products: the wire types, the share snapshot of a read-only
+/// session, and the client connection.
 let acpProducts: [Target.Dependency] = [
   .product(name: "FoundationModelsACP", package: "FoundationModelsACP"),
+  .product(name: "ACPMarkdown", package: "FoundationModelsACP"),
   .product(name: "FoundationModelsACPClient", package: "FoundationModelsACPClient"),
 ]
 

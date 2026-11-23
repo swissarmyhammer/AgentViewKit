@@ -39,6 +39,11 @@ import SwiftUI
 /// call `onSubmit`. A submit does nothing while the text is blank, or while
 /// the environment has no session model.
 ///
+/// The editor shows the placeholder "Message the agent" while the prompt is
+/// empty. In a read-only thread with the composer of the host
+/// (``SwiftUI/View/threadComposer(placeholder:onSubmit:)``), the editor shows
+/// the placeholder of the host, and each submit goes to the host.
+///
 /// The composer has a list of attachments. While the list is not empty, an
 /// ``AttachmentChips`` row shows above the editor. A dropped file, a dropped
 /// image, and a pasted image go into the list
@@ -115,6 +120,9 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   @Environment(\.promptSubmitReport) private var reportSubmit
   @Environment(\.composerSubmitHook) private var submitHook
   @Environment(\.promptFileRoot) private var fileRoot
+  /// The placeholder of the host (``SwiftUI/View/threadComposer(placeholder:onSubmit:)``),
+  /// or `nil`.
+  @Environment(\.promptPlaceholder) private var hostPlaceholder
   /// Whether the composer waits for the submit hook of the host.
   @State private var isSubmitting = false
   /// The texts that the composer asks the editor to insert at the caret.
@@ -173,9 +181,21 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
     editorStyle.previewHeight * editorFontScale
   }
 
-  /// The text that the editor shows while the prompt is empty.
+  /// The placeholder of the kit: the text that the editor shows while the
+  /// prompt is empty, when the host gave no placeholder.
   static var placeholder: String {
     String(localized: "Message the agent", bundle: .module)
+  }
+
+  /// The text that the editor shows while the prompt is empty: the
+  /// placeholder of the host, or the placeholder of the kit.
+  ///
+  /// - Parameter host: The placeholder of the host in the environment, or
+  ///   `nil`.
+  /// - Returns: The placeholder of the host, or ``placeholder`` when the host
+  ///   gave none.
+  static func placeholder(host: String?) -> String {
+    host ?? placeholder
   }
 
   /// The text that a submit sends, or `nil` when the text is blank.
@@ -249,7 +269,7 @@ public struct PromptInputView<Editor: View, Accessory: View>: View {
   /// actions, the slash commands, and the insert requests.
   private var editorContext: PromptEditorContext {
     var context = PromptEditorContext(
-      text: $text, placeholder: Self.placeholder, onSubmit: submitCommand,
+      text: $text, placeholder: Self.placeholder(host: hostPlaceholder), onSubmit: submitCommand,
       onCancel: Self.cancelsOnEscape(in: session) ? cancelCommand : nil,
       commands: session?.availableCommands)
     context.insertions = insertions

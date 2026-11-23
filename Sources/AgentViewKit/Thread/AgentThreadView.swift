@@ -61,8 +61,13 @@ import SwiftUI
 /// (``EmptyThreadComposerFocus``, Testudo, 2026-11-20).
 /// For a read-only session (`SessionModel.isReadOnly`, the shared session of
 /// TestudoApp D208 (i)), the view shows no composer slot
-/// (``AgentThreadLayout/showsComposer(for:)``), and its scope registers no
-/// verb that changes the session (``AgentCommandGroup/changesSession``).
+/// (``AgentThreadLayout/showsComposer(for:hasHostComposer:)``), and its scope
+/// registers no verb that changes the session
+/// (``AgentCommandGroup/changesSession``). With
+/// ``SwiftUI/View/threadComposer(placeholder:onSubmit:)`` (TestudoApp D212),
+/// the view of a read-only session shows the composer slot with the
+/// placeholder of the host, and each prompt goes to the closure of the host,
+/// not to the session.
 /// The thread keeps the verbs that read it, such as Copy Thread, Export as
 /// Markdown… and the find and navigation verbs. When the model gets a newer
 /// snapshot (`SessionModel.replace(with:)`), each entry that stays keeps its
@@ -248,6 +253,10 @@ public struct AgentThreadView<Composer: View>: View {
   /// The message that the host shows in place of the transcript
   /// (``SwiftUI/View/threadUnavailable(_:)``), or `nil`.
   @Environment(\.threadUnavailable) private var unavailableMessage
+
+  /// The composer of the host for a read-only session
+  /// (``SwiftUI/View/threadComposer(placeholder:onSubmit:)``), or `nil`.
+  @Environment(\.threadComposerRoute) private var hostComposer
 
   /// The inset of each bar from the edges of the thread, which the host
   /// gives where it mounts the view (`.barInsets()`). The default is zero:
@@ -545,9 +554,10 @@ public struct AgentThreadView<Composer: View>: View {
           }
         }
         .statusBarPlacement(.floating)
-        if AgentThreadLayout.showsComposer(for: session) {
+        if AgentThreadLayout.showsComposer(for: session, hasHostComposer: hostComposer != nil) {
           composer
             .disabled(!session.canPrompt)
+            .modifier(ThreadComposerRouting(route: session.isReadOnly ? hostComposer : nil))
             .environment(\.sessionModel, session)
             .environment(\.connectionModel, connection ?? hostConnection)
         }
@@ -692,11 +702,18 @@ public enum AgentThreadLayout {
   /// composer slot: no composer, no request deck in the slot, and no mode
   /// or model picker of the accessory of the composer. A read-only session
   /// also has no pending request, so a deck next to the view shows no card.
+  /// With the composer of the host
+  /// (``SwiftUI/View/threadComposer(placeholder:onSubmit:)``, TestudoApp
+  /// D212), the view of a read-only session shows its composer slot, and
+  /// each prompt goes to the host.
   ///
-  /// - Parameter session: The session that the view shows.
-  /// - Returns: `false` when the session is read-only.
-  static func showsComposer(for session: SessionModel) -> Bool {
-    !session.isReadOnly
+  /// - Parameters:
+  ///   - session: The session that the view shows.
+  ///   - hasHostComposer: Whether the host gave its composer.
+  /// - Returns: `false` when the session is read-only and the host gave no
+  ///   composer.
+  static func showsComposer(for session: SessionModel, hasHostComposer: Bool = false) -> Bool {
+    !session.isReadOnly || hasHostComposer
   }
 
   /// Tells if a thread view shows its scroll-to-bottom pill.

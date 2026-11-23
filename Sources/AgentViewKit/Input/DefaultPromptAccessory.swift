@@ -7,7 +7,8 @@ import SwiftUI
 /// The default accessory row of ``PromptInputView`` (plan.md §9 D).
 ///
 /// The row shows the ``PermissionModePicker`` of the session model of the
-/// environment (``SwiftUI/EnvironmentValues/sessionModel``), the
+/// environment (``SwiftUI/EnvironmentValues/sessionModel``) when the session
+/// is not read-only, the
 /// ``SpeechInputButton``, and the submit button. The submit button shows at
 /// all times, so that the user can send a second prompt while the agent works.
 /// While the user can cancel the work of the session, a Stop button shows
@@ -73,13 +74,26 @@ public struct DefaultPromptAccessory: View {
     session.map(AgentCommandTarget.canCancel) ?? false
   }
 
+  /// Tells if the row shows the ``PermissionModePicker`` of `session`.
+  ///
+  /// A read-only session (`SessionModel.isReadOnly`) refuses a change of the
+  /// mode, so the row of its composer
+  /// (``SwiftUI/View/threadComposer(placeholder:onSubmit:)``) shows no
+  /// picker.
+  ///
+  /// - Parameter session: The session model of the environment.
+  /// - Returns: `false` when the session is read-only.
+  static func showsModePicker(for session: SessionModel) -> Bool {
+    !session.isReadOnly
+  }
+
   public var body: some View {
     VStack(alignment: .leading, spacing: editorStyle.spacing.s) {
       if !isRunning {
         SuggestionsView(suggestions: suggestions)
       }
       HStack(spacing: editorStyle.spacing.s) {
-        if let session {
+        if let session, Self.showsModePicker(for: session) {
           PermissionModePicker(session: session)
             .labelsHidden()
             .fixedSize()
