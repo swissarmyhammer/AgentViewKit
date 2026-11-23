@@ -817,7 +817,16 @@ struct AgentRowClicks: ViewModifier {
     scope: AgentRowListScope(list: FocusSegment(kind: "previewList"), rowKind: "previewRow"),
     openOn: .click, density: .compact, onOpen: { _ in }
   ) { suggestion in
-    Text(suggestion)
+    // The last row shows the icon of its source (TestudoApp D212).
+    if suggestion == PreviewFixtures.suggestions.last {
+      Label {
+        Text(suggestion)
+      } icon: {
+        AgentRowSourceIcon(.symbol(.tool(.execute)), name: "Claude Code")
+      }
+    } else {
+      Text(suggestion)
+    }
   }
   .scrollContentMargins(\.tile.margin)
 }

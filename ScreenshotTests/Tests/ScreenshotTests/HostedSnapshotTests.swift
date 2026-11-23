@@ -225,6 +225,14 @@ import Testing
     try await Self.generate(RowSectionGalleryFixtures.gallery, named: name, size: size)
   }
 
+  /// A list whose rows show the icon of their source, a symbol and an image
+  /// of the host, above rows with a kit symbol (``SourceIconGalleryFixtures``,
+  /// TestudoApp D212). The titles of all rows start at one x.
+  @Test func theSourceIconsOfTheRowsOfARowList() async throws {
+    try await Self.generate(
+      SourceIconGalleryFixtures.gallery, named: "row-source-icons", size: SourceIconGalleryFixtures.size)
+  }
+
   /// The files of the kit with the look of Finder (D196): chips and an
   /// artifact, each with the Quick Look thumbnail of its file
   /// (``FileIconGalleryFixtures``).

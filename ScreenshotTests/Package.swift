@@ -56,6 +56,11 @@ let package = Package(
         .product(name: "FoundationModelsACP", package: "FoundationModelsACP"),
         .product(name: "FoundationModelsACPClient", package: "FoundationModelsACPClient"),
       ],
+      // The images that the gallery gives as the images of a host, such as
+      // the image of a source of a row (`SourceIconGalleryFixtures`).
+      resources: [
+        .process("Resources/GalleryAssets.xcassets")
+      ],
       // AgentViewKitTestSupport reaches the Router of FoundationModelsACPAgent,
       // whose llama.cpp C++ modules declare `requires cplusplus`. Thus this
       // target needs C++ interoperability too, as the IntegrationTests target.

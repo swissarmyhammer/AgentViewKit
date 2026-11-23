@@ -239,6 +239,12 @@ nonisolated enum AgentSymbol {
   /// not selected, and a field with no answer.
   static let notChosen = "circle"
 
+  /// The hidden symbol that gives an image the size of a symbol in the font
+  /// of its row (``AgentRowSourceIcon``). The view does not show the symbol.
+  /// A symbol of one square cell gives the size of each symbol of the font,
+  /// so the table uses the name of ``notChosen`` and writes no name again.
+  static let sizeTemplate = notChosen
+
   // MARK: - Content
 
   /// The symbol of the list of sessions.
