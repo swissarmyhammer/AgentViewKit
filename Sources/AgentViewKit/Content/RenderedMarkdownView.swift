@@ -148,12 +148,35 @@ struct RenderedMarkdownView: View {
     }
   }
 
+  /// The start of the ``BodyEvaluationCounter`` key of each model that
+  /// ``makeModel(_:)`` makes.
+  static let modelCounterKeyPrefix = "rendered-markdown-model-"
+
+  /// The ``BodyEvaluationCounter`` key of the models that ``makeModel(_:)``
+  /// makes for the text `markdown`.
+  ///
+  /// A test counts the models that the view makes for one text. The key
+  /// holds the whole text, so a test that uses texts of its own does not
+  /// see the models of other tests.
+  ///
+  /// - Parameter markdown: The Markdown text of the model.
+  /// - Returns: `rendered-markdown-model-<markdown>`.
+  static func modelCounterKey(for markdown: String) -> String {
+    modelCounterKeyPrefix + markdown
+  }
+
   /// Makes the read-only model of Markdown text, in the rendered
   /// presentation.
+  ///
+  /// In a debug build, each call adds one count to the key
+  /// ``modelCounterKey(for:)`` of `markdown`.
   ///
   /// - Parameter markdown: The Markdown text.
   /// - Returns: The model.
   static func makeModel(_ markdown: String) -> EditorModel {
+    #if DEBUG
+      BodyEvaluationCounter.note(modelCounterKey(for: markdown))
+    #endif
     let model = EditorModel.makeReadOnly(markdown)
     model.presentation = .rendered
     return model

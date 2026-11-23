@@ -14,10 +14,13 @@ import SwiftUI
 /// ``CodeBlockModelCache``, the model is in the cache. Otherwise the view
 /// keeps the model in its state.
 ///
-/// In a thread, a response far from the rows in view drops its editor and
-/// its model (``LiveRowRange``, task ^t9416x5). It keeps only its text, and
-/// shows an empty space of the height of its last layout. When its row comes
-/// near again, the response makes a new model from its text, so a text that
+/// In a thread, a response far from the rows in view drops its editor
+/// (``LiveRowRange``, task ^t9416x5). It keeps only its text, and shows an
+/// empty space of the height of its last layout. Its models stay in the
+/// cache that ``ConversationView`` gives its rows (task ^3qvtsgh); with no
+/// cache, the response drops its model with its editor. When its row comes
+/// near again, the response gets its model from the cache, or makes a new
+/// model from its text, and gives the model its text. Thus a text that
 /// streamed in while the row was far shows whole. A response whose editor
 /// holds the selection of the thread (``ResponseSelectionClaim``) keeps its
 /// editor, so the selection stays and a copy still copies it. A response

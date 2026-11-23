@@ -193,13 +193,36 @@ private final class WeakScaffold {
   /// - Parameters:
   ///   - text: The Markdown text of the response.
   ///   - rows: The rows that keep their models.
+  ///   - cache: The cache of the models, or `nil` when the response keeps
+  ///     its own model.
   /// - Returns: The view.
-  static func response(_ text: String, rows: LiveRowRange) -> AnyView {
+  static func response(_ text: String, rows: LiveRowRange, cache: CodeBlockModelCache? = nil)
+    -> AnyView
+  {
     AnyView(
       ResponseView(id: "answer", markdown: text)
         .modifier(TranscriptRowLiveness(position: position))
         .environment(\.liveRowRange, rows)
+        .environment(\.codeBlockModelCache, cache)
         .frame(width: TranscriptRowsHost.width))
+  }
+
+  /// Shows a response with the text "One.", moves the live rows away from
+  /// it, gives it the text "One. Two.", and moves the live rows back.
+  ///
+  /// - Parameter cache: The cache of the models, or `nil`.
+  /// - Returns: The host of the response.
+  static func growWhileFar(cache: CodeBlockModelCache?) -> NSHostingView<AnyView> {
+    let rows = LiveRowRange()
+    let hosting = NSHostingView(rootView: Self.response("One.", rows: rows, cache: cache))
+    Self.layOut(hosting)
+    rows.noteVisible(positions: [Self.farPosition])
+    hosting.rootView = Self.response("One. Two.", rows: rows, cache: cache)
+    Self.layOut(hosting)
+
+    rows.noteVisible(positions: [Self.position])
+    Self.layOut(hosting)
+    return hosting
   }
 
   /// Lays out `hosting` at its fitting size.
@@ -214,15 +237,18 @@ private final class WeakScaffold {
   /// the model that it dropped, so a text that streamed in while its row was
   /// far does not show.
   @Test func aTextThatGrowsWhileItsRowIsFarShowsWholeWhenTheRowComesBack() throws {
-    let rows = LiveRowRange()
-    let hosting = NSHostingView(rootView: Self.response("One.", rows: rows))
-    Self.layOut(hosting)
-    rows.noteVisible(positions: [Self.farPosition])
-    hosting.rootView = Self.response("One. Two.", rows: rows)
-    Self.layOut(hosting)
+    let hosting = Self.growWhileFar(cache: nil)
 
-    rows.noteVisible(positions: [Self.position])
-    Self.layOut(hosting)
+    let textView = try #require(hosting.firstTextView)
+    #expect(textView.string == "One. Two.")
+  }
+
+  /// A production change that fails this test: a response whose row comes
+  /// back shows the model of the thread cache with the old text of the
+  /// model, so a text that streamed in while the row was far does not show
+  /// (task ^3qvtsgh).
+  @Test func aTextThatGrowsWhileItsRowIsFarShowsWholeFromTheCacheWhenTheRowComesBack() throws {
+    let hosting = Self.growWhileFar(cache: CodeBlockModelCache())
 
     let textView = try #require(hosting.firstTextView)
     #expect(textView.string == "One. Two.")

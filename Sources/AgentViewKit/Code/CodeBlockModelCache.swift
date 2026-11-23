@@ -33,23 +33,71 @@ nonisolated public struct CodeBlockID: Hashable, Sendable {
 /// and lay out the text of the block again. The owner of the messages calls
 /// ``evict(messageID:)`` when it removes a message.
 ///
+/// A cache can have a limit: the largest number of models that it keeps.
+/// When a new model goes past the limit, the cache removes the model that a
+/// view used least recently. Each read of a model with
+/// ``model(for:code:)`` is a use. A ``ConversationView`` with no cache of
+/// the host keeps the models of its rows in a cache of its own with a limit
+/// (``threadLimit``).
+///
 /// The cache is not observable. A view can read it in its body.
 public final class CodeBlockModelCache {
+  /// A model and the time of its last use.
+  private struct Entry {
+    /// The model.
+    let model: EditorModel
+
+    /// The value of ``CodeBlockModelCache/clock`` at the last use of the
+    /// model. A smaller value is an older use.
+    var lastUse: UInt64
+  }
+
+  /// The limit of the cache that a ``ConversationView`` makes when the host
+  /// gives no cache.
+  ///
+  /// The transcript does not bound the models: a thread can have thousands
+  /// of answers, and one answer can keep many models. The live rows of a
+  /// thread (``LiveRowRange``) are the rows in view and
+  /// ``LiveRowRange/margin`` rows on each side of them, so they keep much
+  /// fewer models than this limit. Thus a model of a live row stays in the
+  /// cache, and the cache keeps also the models of the rows that scrolled
+  /// out of the live rows most recently. The limit caps the memory of those
+  /// rows: the cache keeps their models, not their editors. When the live
+  /// rows keep more models than the limit, such as rows with very many code
+  /// blocks, some rows make new models when they come back, and each row
+  /// still shows its whole text.
+  static let threadLimit = 256
+
   /// The models, keyed by the identity of their code block.
-  private var models: [CodeBlockID: EditorModel] = [:]
+  private var entries: [CodeBlockID: Entry] = [:]
+
+  /// The largest number of models that the cache keeps.
+  private let limit: Int
+
+  /// The number of uses of the models since the cache was made. Each use
+  /// adds one, so a larger value is a more recent use.
+  private var clock: UInt64 = 0
 
   /// Makes an empty cache.
-  public init() {}
+  ///
+  /// - Parameter limit: The largest number of models that the cache keeps.
+  ///   A value less than one keeps one model. The default keeps each model
+  ///   until ``evict(messageID:)`` or ``removeAll()`` removes it.
+  public init(limit: Int = .max) {
+    self.limit = max(limit, 1)
+  }
 
   /// The number of models in the cache.
-  public var count: Int { models.count }
+  public var count: Int { entries.count }
 
   /// Whether the cache has a model for `id`.
+  ///
+  /// The call is not a use of the model.
   ///
   /// - Parameter id: The identity of the code block.
   /// - Returns: `true` when the cache has a model for `id`.
   public func contains(_ id: CodeBlockID) -> Bool {
-    models[id] != nil
+    entries[id] != nil
   }
 
   /// The model of the code block `id`.
@@ -64,7 +112,7 @@ public final class CodeBlockModelCache {
   ///   - code: The text of a new model.
   /// - Returns: The model of the code block.
   public func model(for id: CodeBlockID, code: String) -> EditorModel {
-    model(for: id, text: code, make: EditorModel.makeReadOnly)
+    model(for: id, text: code, make: CodeBlockView.makeModel)
   }
 
   /// The model of the block `id`.
@@ -80,24 +128,41 @@ public final class CodeBlockModelCache {
   ///     the rendered presentation (``RenderedMarkdownView``).
   /// - Returns: The model of the block.
   func model(for id: CodeBlockID, text: String, make: (String) -> EditorModel) -> EditorModel {
-    if let model = models[id] {
-      return model
+    clock += 1
+    if let entry = entries[id] {
+      entries[id]?.lastUse = clock
+      return entry.model
+    }
+    if entries.count >= limit {
+      removeLeastRecentlyUsed()
     }
     let model = make(text)
-    models[id] = model
+    entries[id] = Entry(model: model, lastUse: clock)
     return model
+  }
+
+  /// Removes the model that a view used least recently.
+  ///
+  /// The function reads each entry. The cache calls it only when a new
+  /// model goes past the limit, and making a model costs much more than
+  /// the read.
+  private func removeLeastRecentlyUsed() {
+    guard let oldest = entries.min(by: { $0.value.lastUse < $1.value.lastUse })?.key else {
+      return
+    }
+    entries[oldest] = nil
   }
 
   /// Removes the model of each code block in the message `messageID`.
   ///
   /// - Parameter messageID: The id of the removed message.
   public func evict(messageID: String) {
-    models = models.filter { $0.key.messageID != messageID }
+    entries = entries.filter { $0.key.messageID != messageID }
   }
 
   /// Removes each model.
   public func removeAll() {
-    models.removeAll()
+    entries.removeAll()
   }
 }
 

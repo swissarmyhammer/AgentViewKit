@@ -7,6 +7,17 @@ import Testing
   /// A position far below the rows in view of each test.
   static let farPosition = 1_000
 
+  /// The first row in view of the scroll of one row at a time.
+  static let scrollStart = 100
+
+  /// The last row in view of the scroll of one row at a time.
+  static let scrollEnd = 300
+
+  /// The largest number of rows whose liveness one move of the range can
+  /// change: five rows that leave the range at one end, and five rows that
+  /// enter it at the other end.
+  static let largestChangeOfOneMove = 10
+
   /// A production change that fails this test: a range with no report makes
   /// a row a placeholder before the list reported any row.
   @Test func eachRowIsLiveBeforeTheFirstReport() {
@@ -55,6 +66,25 @@ import Testing
     rows.noteVisible(positions: [start + LiveRowRange.slack + 1])
 
     #expect(!rows.isLive(start - LiveRowRange.margin))
+  }
+
+  /// A production change that fails this test: the range moves in large
+  /// steps, so one move makes many rows drop or make their editors at once,
+  /// and the scroll stutters.
+  @Test func aScrollOfOneRowAtATimeChangesTheLivenessOfFewRowsAtEachMove() {
+    let rows = LiveRowRange()
+    let span = 0..<Self.farPosition
+    rows.noteVisible(positions: [Self.scrollStart])
+    let start = span.map { rows.isLive($0) }
+
+    let liveness = ((Self.scrollStart + 1)...Self.scrollEnd).map { first in
+      rows.noteVisible(positions: [first])
+      return span.map { rows.isLive($0) }
+    }
+
+    let steps = zip([start] + liveness, liveness)
+    let changes = steps.map { before, after in zip(before, after).count { $0 != $1 } }
+    #expect(changes.max() ?? 0 <= Self.largestChangeOfOneMove)
   }
 
   /// A production change that fails this test: a report with no row, such

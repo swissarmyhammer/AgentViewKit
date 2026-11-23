@@ -76,7 +76,7 @@ public struct CodeBlockView: View {
   }
 
   public var body: some View {
-    let model = suppliedModel ?? ownModel.model(text: code)
+    let model = suppliedModel ?? ownModel.model(text: code, make: Self.makeModel)
     ContentTileStack {
       header
     } body: {
@@ -90,6 +90,39 @@ public struct CodeBlockView: View {
     .onChange(of: code, initial: true) {
       model.syncReadOnly(to: code)
     }
+  }
+
+  /// The start of the ``BodyEvaluationCounter`` key of each model that
+  /// ``makeModel(_:)`` makes.
+  static let modelCounterKeyPrefix = "code-block-model-"
+
+  /// The ``BodyEvaluationCounter`` key of the models that ``makeModel(_:)``
+  /// makes for `code`.
+  ///
+  /// A test counts the models of one code text. The key holds the whole
+  /// code, so a test that uses codes of its own does not see the models of
+  /// other tests.
+  ///
+  /// - Parameter code: The code of the model.
+  /// - Returns: `code-block-model-<code>`.
+  static func modelCounterKey(for code: String) -> String {
+    modelCounterKeyPrefix + code
+  }
+
+  /// Makes the read-only model of a code block: the model that the view
+  /// keeps when the host gives no model, and the model of a code block in a
+  /// ``CodeBlockModelCache``.
+  ///
+  /// In a debug build, each call adds one count to the key
+  /// ``modelCounterKey(for:)`` of `code`.
+  ///
+  /// - Parameter code: The code.
+  /// - Returns: The read-only model.
+  static func makeModel(_ code: String) -> EditorModel {
+    #if DEBUG
+      BodyEvaluationCounter.note(modelCounterKey(for: code))
+    #endif
+    return EditorModel.makeReadOnly(code)
   }
 
   /// The label that VoiceOver reads for the block.

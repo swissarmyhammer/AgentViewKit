@@ -190,6 +190,13 @@ extension View {
 ///
 /// The view sets ``ScrollAnchorManager/onScroll`` of the manager, so that a
 /// ``ThreadMinimapView`` with no proxy can scroll the list.
+///
+/// The rows keep their EditorKit models in the ``CodeBlockModelCache`` of
+/// the environment (`\.codeBlockModelCache`). When the host gives no cache,
+/// the view gives its rows one cache of its own, with a limit
+/// (``CodeBlockModelCache/threadLimit``). A row far from the rows in view
+/// drops its editor (``LiveRowRange``), and its models stay in the cache. A
+/// row that comes back thus does not make new models.
 public struct ConversationView<EmptyState: View>: View {
   /// The session model whose transcript the view shows.
   let session: SessionModel
@@ -232,6 +239,15 @@ public struct ConversationView<EmptyState: View>: View {
   /// margin on each side of them. A row far from them drops its models
   /// (task ^t9416x5).
   @State private var liveRows = LiveRowRange()
+
+  /// The cache of the EditorKit models of the rows that the view makes
+  /// when the host gives no cache. A row that leaves the live rows drops
+  /// its editor, and its models stay in the cache, so the row does not make
+  /// new models when it comes back (task ^3qvtsgh).
+  @State private var ownModelCache = CodeBlockModelCache(limit: CodeBlockModelCache.threadLimit)
+
+  /// The cache of the EditorKit models that the host gives, or `nil`.
+  @Environment(\.codeBlockModelCache) private var hostModelCache
 
   @Environment(\.conversationPageSize) private var pageSize
   @Environment(\.editorStyle) private var editorStyle
@@ -307,6 +323,7 @@ public struct ConversationView<EmptyState: View>: View {
     }
     .environment(\.sessionModel, session)
     .environment(\.liveRowRange, liveRows)
+    .environment(\.codeBlockModelCache, hostModelCache ?? ownModelCache)
     // The text areas of the conversation have one selection. In a thread
     // view, the conversation uses the selection of the thread view.
     .threadTextSelection()

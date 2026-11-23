@@ -7,8 +7,12 @@ import SwiftUI
 /// its model and its editor, about 659 KiB in a release build (EditorKit
 /// benchmark). A lazy stack can keep the rows that scrolled away, so a long
 /// scroll could keep the model of each row. Thus a ``ResponseView`` far from
-/// the rows in view drops its model and its editor, and keeps only its text
-/// and its height. It makes a new model when its row comes near again.
+/// the rows in view drops its editor, and keeps only its text and its
+/// height. Its models stay in the ``CodeBlockModelCache`` of the thread,
+/// which has a limit (``CodeBlockModelCache/threadLimit``), so the response
+/// gets its old models when its row comes near again (task ^3qvtsgh). With
+/// no cache, the response drops its models with its editor, and makes new
+/// models when its row comes near again.
 ///
 /// The live rows are the rows in view and ``margin`` rows on each side of
 /// them. ``ConversationView`` reports the rows in view each time the list
@@ -24,15 +28,18 @@ import SwiftUI
 package final class LiveRowRange {
   /// The number of rows before and after the rows in view that keep their
   /// models.
-  static let margin = 16
+  static let margin = 8
 
   /// The number of rows that the rows in view can move before the range
   /// moves with them.
   ///
   /// It is half of ``margin``. Thus, after the range moves, the rows in view
   /// can move `slack` rows in each direction before the range moves again,
-  /// and each row in view keeps at least `slack` live rows beyond it.
-  static let slack = 8
+  /// and each row in view keeps at least `slack` live rows beyond it. Each
+  /// move of the range thus changes the liveness of only `slack + 1` rows at
+  /// each end of it, so a scroll drops and makes few editors at a time
+  /// (task ^3qvtsgh).
+  static let slack = 4
 
   /// The positions of the live rows, or `nil` before the first report, when
   /// each row is live.
