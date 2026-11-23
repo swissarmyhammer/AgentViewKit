@@ -14,4 +14,15 @@ enum BodyEvaluationKey {
   static func make(prefix: String, id: String) -> String {
     prefix + id
   }
+
+  /// Makes the counter key of one object: the id is the identity of the
+  /// object. Thus each test that makes its own object reads its own counts.
+  ///
+  /// - Parameters:
+  ///   - prefix: The prefix of the view or of the work.
+  ///   - object: The object, such as the session model of a thread.
+  /// - Returns: The key.
+  static func make(prefix: String, object: AnyObject) -> String {
+    make(prefix: prefix, id: String(describing: ObjectIdentifier(object)))
+  }
 }

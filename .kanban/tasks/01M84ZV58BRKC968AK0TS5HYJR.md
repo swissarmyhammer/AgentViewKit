@@ -33,8 +33,28 @@ comments:
     - evidence: 5 files — Sources/AgentViewKit/Thread/ConversationView.swift, Sources/AgentViewKit/Thread/AgentThreadView.swift, Sources/AgentViewKit/Thread/ScrollToBottomPill.swift, Tests/AgentViewKitTests/Thread/ConversationPillMountTests.swift (new), IntegrationTests/Tests/IntegrationTests/Thread/ConversationPillMountHostedTests.swift (new). Root `swift test`: 1689 + 59 pass, 0 failures, no code warnings. `swift build --build-tests` passes in IntegrationTests and ScreenshotTests.
     - next: when the screen is free, run each test of ConversationPillMountHostedTests alone (`cd IntegrationTests && swift test --filter ConversationPillMountHostedTests/<test>`), and the snapshot tests HostedSnapshotTests/theThread and HostedSnapshotTests/theButtonsOfTheBottomBarBelowTheTranscript; update the images if the look changes. Then /review.
   timestamp: 2026-11-23T22:03:47.313434+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m85754pvca5wqsw1xe9d59kh
+  text: |-
+    ### review — findings
+    - evidence: `review sha HEAD~1..HEAD` (commit 3b88266a): 1 finding (1 confirmed, 2 refuted, 7 attempted, 0 failed) — Sources/AgentViewKit/Thread/AgentThreadView.swift:685 (reuse/reuse).
+    - next: implement the finding. Make one shared object-key helper and call it from `AgentThreadLayout.floatingControlsCounterKey(for:)` and `ConversationPill.counterKeyID`. Remove the repeated ObjectIdentifier key construction from all of AgentThreadView.swift. After that, run the hosted tests of ConversationPillMountHostedTests one at a time when the screen is free. The hosted runs and the snapshot subtask are the last open items.
+  timestamp: 2026-11-23T22:06:50.587286+00:00
+- actor: claude-code
+  id: 01m857cc9cy50vfkr7s3b7gvj2
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 5 files
+    - test: green — swift test 1689 + 59; builds clean; hosted not run (screen in use)
+    - commit: 3b88266a
+    - review: findings — Sources/AgentViewKit/Thread/AgentThreadView.swift:685
+
+    ### implement — changed
+    - evidence: new `BodyEvaluationKey.make(prefix:object:)` makes the key of an object from its identity. AgentThreadLayout.floatingControlsCounterKey(for:) and the two pill keys call it; ConversationPill.counterKeyID(of:) is removed. The keys did not change. swift test 1689 + 59 passed; IntegrationTests build complete.
+    - open: the 7 hosted tests of ConversationPillMountHostedTests and the 2 snapshots run when the screen is free.
+  timestamp: 2026-11-23T22:10:47.724020+00:00
+position_column: review
+position_ordinal: '8180'
 title: Keep the conversation pill mounted so an unpin from the bottom does not hitch
 ---
 ## Rule
@@ -68,3 +88,12 @@ Use /tdd.
 - [ ] Update snapshot images if the look changes and give the paths.
 
 Files: AgentThreadView.swift, ConversationPill source file, one new test file. #scroll-perf
+
+## Review Findings (2026-11-23 16:04)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 5 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Sources/AgentViewKit/Thread/AgentThreadView.swift:685` `reuse/reuse` — floatingControlsCounterKey repeats the object-identity key construction of ConversationPill.counterKeyID. It is the same capability in a second place. Call the shared object-key helper proposed for ConversationView.swift:759 instead of building the ObjectIdentifier string here.

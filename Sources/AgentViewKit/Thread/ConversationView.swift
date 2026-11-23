@@ -737,7 +737,7 @@ struct ConversationPill: View {
   /// - Parameter anchors: The manager of the conversation.
   /// - Returns: The key.
   static func counterKey(for anchors: ScrollAnchorManager) -> String {
-    BodyEvaluationKey.make(prefix: counterKeyPrefix, id: counterKeyID(of: anchors))
+    BodyEvaluationKey.make(prefix: counterKeyPrefix, object: anchors)
   }
 
   /// The ``BodyEvaluationCounter`` key of the body of the button of the pill
@@ -746,17 +746,7 @@ struct ConversationPill: View {
   /// - Parameter anchors: The manager of the conversation.
   /// - Returns: The key.
   static func buttonCounterKey(for anchors: ScrollAnchorManager) -> String {
-    BodyEvaluationKey.make(prefix: buttonCounterKeyPrefix, id: counterKeyID(of: anchors))
-  }
-
-  /// The id of a manager in the ``BodyEvaluationCounter`` keys of its pill:
-  /// the identity of the manager object, so that each test that makes its
-  /// own manager reads its own counts.
-  ///
-  /// - Parameter anchors: The manager of the conversation.
-  /// - Returns: The id.
-  private static func counterKeyID(of anchors: ScrollAnchorManager) -> String {
-    String(describing: ObjectIdentifier(anchors))
+    BodyEvaluationKey.make(prefix: buttonCounterKeyPrefix, object: anchors)
   }
 
   var body: some View {

@@ -682,7 +682,7 @@ public enum AgentThreadLayout {
   /// - Returns: The key.
   static func floatingControlsCounterKey(for session: SessionModel) -> String {
     BodyEvaluationKey.make(
-      prefix: floatingControlsCounterKeyPrefix, id: String(describing: ObjectIdentifier(session)))
+      prefix: floatingControlsCounterKeyPrefix, object: session)
   }
 
   /// Tells if a thread view of `session` shows its composer slot.
