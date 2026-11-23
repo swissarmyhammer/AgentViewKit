@@ -102,6 +102,7 @@ import Testing
         ForEach(Array(session.transcript.enumerated()), id: \.element.id) { position, entry in
           ItemRow(entry: entry)
             .environment(\.transcriptRowPosition, position)
+            .modifier(TranscriptRowLiveness(position: position))
         }
       }
       .frame(width: width)
@@ -216,7 +217,7 @@ private final class WeakScaffold {
   static func response(_ text: String, rows: LiveRowRange) -> AnyView {
     AnyView(
       ResponseView(id: "answer", markdown: text)
-        .environment(\.transcriptRowPosition, position)
+        .modifier(TranscriptRowLiveness(position: position))
         .environment(\.liveRowRange, rows)
         .frame(width: TranscriptRowsHost.width))
   }
@@ -245,6 +246,24 @@ private final class WeakScaffold {
 
     let textView = try #require(hosting.firstTextView)
     #expect(textView.string == "One. Two.")
+  }
+
+  /// A production change that fails this test: a response that is not in a
+  /// thread row, such as a response in a side card of a thread, drops its
+  /// editor when the live rows of the thread move.
+  @Test func aResponseOutsideAThreadRowKeepsItsEditorWhenTheLiveRowsMove() {
+    let rows = LiveRowRange()
+    let hosting = NSHostingView(
+      rootView: AnyView(
+        ResponseView(id: "answer", markdown: "One.")
+          .environment(\.liveRowRange, rows)
+          .frame(width: TranscriptRowsHost.width)))
+    Self.layOut(hosting)
+
+    rows.noteVisible(positions: [Self.farPosition])
+    Self.layOut(hosting)
+
+    #expect(hosting.firstTextView != nil)
   }
 }
 

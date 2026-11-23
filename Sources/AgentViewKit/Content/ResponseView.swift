@@ -60,6 +60,9 @@ public struct ResponseView: View {
   /// ``CodeBlockModelCache``.
   static let codeSegmentKey = "response-code"
 
+  /// The start of the ``BodyEvaluationCounter`` key of each response.
+  public static let counterKeyPrefix = "response-"
+
   /// The id that keys the model of the text, unique in the thread.
   let id: String
 
@@ -72,8 +75,7 @@ public struct ResponseView: View {
 
   @Environment(\.codeBlockModelCache) private var cache
   @Environment(\.accessibilityMessageGroupID) private var messageGroupID
-  @Environment(\.liveRowRange) private var liveRows
-  @Environment(\.transcriptRowPosition) private var rowPosition
+  @Environment(\.transcriptRowIsLive) private var isLive
   @Environment(\.textSelectionRegion) private var selectionRegion
 
   /// The height of the text at its last layout with its editor.
@@ -98,6 +100,14 @@ public struct ResponseView: View {
     self.id = id
     self.markdown = markdown
     self.citations = citations
+  }
+
+  /// The ``BodyEvaluationCounter`` key of the response `id`.
+  ///
+  /// - Parameter id: The id of the response.
+  /// - Returns: `response-<id>`.
+  public static func counterKey(for id: String) -> String {
+    counterKeyPrefix + id
   }
 
   /// The citation chips of the text.
@@ -178,13 +188,6 @@ public struct ResponseView: View {
     }
   }
 
-  /// Whether the row of the response keeps its models. A response outside
-  /// a thread row is always live.
-  private var isLive: Bool {
-    guard let liveRows, let rowPosition else { return true }
-    return liveRows.isLive(rowPosition)
-  }
-
   /// The height of the empty space that the response shows in place of its
   /// editor, or `nil` when the response shows its editor.
   ///
@@ -205,7 +208,11 @@ public struct ResponseView: View {
   }
 
   public var body: some View {
-    content
+    #if DEBUG
+      BodyEvaluationCounter.note(Self.counterKey(for: id))
+    #endif
+    return
+      content
       // A new id is a new response, with a model of its own.
       .id(id)
       .frame(maxWidth: .infinity, alignment: .leading)

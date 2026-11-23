@@ -427,6 +427,10 @@ public struct ConversationView<EmptyState: View>: View {
   /// to the file views in it, which place their files in the
   /// ``TranscriptFileOrder`` of the thread (card ^4138tmp).
   ///
+  /// Each row gets its liveness as a `Bool` (``TranscriptRowLiveness``), so
+  /// a move of the ``LiveRowRange`` evaluates only the responses of the rows
+  /// that enter or leave the range.
+  ///
   /// Each row gets the search mark of its entry
   /// (``TranscriptSearchRowMark``). A row with no search hit gets nothing.
   ///
@@ -440,6 +444,7 @@ public struct ConversationView<EmptyState: View>: View {
       readingRow(row)
         .modifier(TranscriptSearchRowMark(rowKey: row.id))
         .environment(\.transcriptRowPosition, firstPosition + offset)
+        .modifier(TranscriptRowLiveness(position: firstPosition + offset))
         .coordinateSpace(.named(TranscriptFileOrder.rowSpace))
         .id(row.id)
     }

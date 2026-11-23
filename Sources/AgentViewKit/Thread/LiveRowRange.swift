@@ -76,4 +76,32 @@ extension EnvironmentValues {
   /// outside a thread, where each view keeps its models.
   /// ``ConversationView`` sets it for its rows.
   @Entry var liveRowRange: LiveRowRange? = nil
+
+  /// Whether the row of the view keeps its EditorKit models.
+  ///
+  /// ``TranscriptRowLiveness`` sets it for each row of a thread. Outside a
+  /// thread row, it is `true`, so each view keeps its models. A view reads
+  /// this value, not ``liveRowRange``: a move of the live rows then changes
+  /// the value only for the rows that enter or leave the range, and SwiftUI
+  /// evaluates only the views of those rows again.
+  @Entry var transcriptRowIsLive = true
+}
+
+/// Gives a row of a thread its liveness (``LiveRowRange/isLive(_:)``) as the
+/// environment value ``SwiftUI/EnvironmentValues/transcriptRowIsLive``.
+///
+/// The modifier reads the ``LiveRowRange`` of the environment, so each move
+/// of the range evaluates the modifier of each row. The modifier sets only a
+/// `Bool` for its content. Thus the content of a row whose liveness does not
+/// change does not evaluate its body again. With no ``LiveRowRange``, each
+/// row is live.
+struct TranscriptRowLiveness: ViewModifier {
+  /// The position of the row in the transcript.
+  let position: Int
+
+  @Environment(\.liveRowRange) private var liveRows
+
+  func body(content: Content) -> some View {
+    content.environment(\.transcriptRowIsLive, liveRows?.isLive(position) ?? true)
+  }
 }
