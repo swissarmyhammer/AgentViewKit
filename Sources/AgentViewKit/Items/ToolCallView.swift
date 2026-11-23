@@ -269,7 +269,7 @@ public struct ToolCallView: View {
   /// - Parameter id: The row key of the entry.
   /// - Returns: `tool-row-<id>`.
   public static func rowCounterKey(for id: String) -> String {
-    rowCounterPrefix + id
+    BodyEvaluationKey.make(prefix: rowCounterPrefix, id: id)
   }
 
   /// The ``BodyEvaluationCounter`` key of the expanded body of `id`.
@@ -277,7 +277,7 @@ public struct ToolCallView: View {
   /// - Parameter id: The row key of the entry.
   /// - Returns: `tool-body-<id>`.
   public static func bodyCounterKey(for id: String) -> String {
-    bodyCounterPrefix + id
+    BodyEvaluationKey.make(prefix: bodyCounterPrefix, id: id)
   }
 
   /// The accessibility identifier of the waiting status of the call of `id`:

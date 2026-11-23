@@ -34,7 +34,7 @@ struct EntryContentView: View {
   /// - Parameter id: The start of the id of each block view of the entry.
   /// - Returns: `entry-content-<id>`.
   static func counterKey(for id: String) -> String {
-    counterKeyPrefix + id
+    BodyEvaluationKey.make(prefix: counterKeyPrefix, id: id)
   }
 
   /// The ``BodyEvaluationCounter`` key of the text joins of the entry `id`.
@@ -42,7 +42,7 @@ struct EntryContentView: View {
   /// - Parameter id: The start of the id of each block view of the entry.
   /// - Returns: `entry-join-<id>`.
   static func joinCounterKey(for id: String) -> String {
-    joinCounterKeyPrefix + id
+    BodyEvaluationKey.make(prefix: joinCounterKeyPrefix, id: id)
   }
 
   /// The blocks that the view shows: the content of an entry, with each run of

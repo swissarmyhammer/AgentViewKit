@@ -33,8 +33,28 @@ comments:
     - hosted tests: none is necessary. No hosted test was written or run.
     - next: /review.
   timestamp: 2026-11-23T21:26:30.893523+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m8550k1xxy30p26dpmwt580w
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (2e6a94a4); 3 findings, 3 confirmed, 0 refuted — Sources/AgentViewKit/Content/EntryContentView.swift:44, Sources/AgentViewKit/Content/ResponseView.swift:141, Sources/AgentViewKit/Content/ResponseView.swift:150 (duplication/duplication). Implement evidence: swift test 1676 + 59 pass, builds clean; parse counts 2 → 1 (pieces, chips, join), 4 → 1 (chips with a fence).
+    - next: Add one shared `prefix + id` counter-key helper. Call it from `counterKey`, `joinCounterKey`, `piecesCounterKey` and `chipsCounterKey`. Delete the copies. Then run /review again.
+  timestamp: 2026-11-23T21:29:24.285295+00:00
+- actor: claude-code
+  id: 01m8555qv44r3nnsfb9xf7vrs5
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 5 files
+    - test: green — swift test 1676 + 59
+    - commit: 2e6a94a4
+    - review: findings — EntryContentView.swift:44, ResponseView.swift:141, ResponseView.swift:150
+
+    ### implement — changed
+    - evidence: new `BodyEvaluationKey.make(prefix:id:)` (Sources/AgentViewKit/Diagnostics/BodyEvaluationKey.swift) is the one form of a counter key. All 10 counter key functions of the kit call it: ResponseView (3), EntryContentView (2), ItemRow (2), ToolCallView (2), EditorModel.readOnlyCounterKey (1). The keys did not change. swift test 1676 + 59 passed; IntegrationTests build complete.
+    - next: commit, then review.
+  timestamp: 2026-11-23T21:32:13.028131+00:00
+position_column: review
+position_ordinal: '8180'
 title: Memoize the markdown parses in row bodies on the input string
 ---
 ## Rule
@@ -68,4 +88,13 @@ Use /tdd.
 - [x] Memoize the fence pieces and citation chips.
 - [x] Memoize and make linear `joiningAdjacentText`.
 
-Files: ResponseView.swift, EntryContentView.swift, the memo helper (new), one test file. #scroll-perf
+## Review Findings (2026-11-23 15:27)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 5 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+- [x] `Sources/AgentViewKit/Content/EntryContentView.swift:44` `duplication/duplication` — `joinCounterKey(for:)` repeats the body `prefix + id` of `counterKey(for:)` in the same type. It differs only by the prefix constant. Low severity: the function is one line. Replace both `counterKey(for:)` and `joinCounterKey(for:)` with calls to one shared `prefix + id` helper, as described for ResponseView.swift:141. Keep the two public names as thin wrappers only if callers need them.
+- [x] `Sources/AgentViewKit/Content/ResponseView.swift:141` `duplication/duplication` — `piecesCounterKey(for:)` repeats the body `prefix + id` of `counterKey(for:)` in EntryContentView.swift. It differs only by the prefix constant. The same shape is also in `chipsCounterKey(for:)`. Three copies of one key rule can drift apart. Low severity: the function is one line. Add one shared helper, for example `static func counterKey(prefix: String, id: String) -> String { prefix + id }`, in a common place. Call it from each `counterKey`, `joinCounterKey`, `piecesCounterKey` and `chipsCounterKey` with its own prefix. Delete the copies.
+- [x] `Sources/AgentViewKit/Content/ResponseView.swift:150` `duplication/duplication` — `chipsCounterKey(for:)` repeats the body `prefix + id` of `piecesCounterKey(for:)` and of `counterKey(for:)`. It differs only by the prefix constant. Both halves are new in this change. Use the same shared `prefix + id` helper as the other key functions (see the fix for ResponseView.swift:141). Delete this copy.

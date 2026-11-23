@@ -130,7 +130,7 @@ public struct ResponseView: View {
   /// - Parameter id: The id of the response.
   /// - Returns: `response-<id>`.
   public static func counterKey(for id: String) -> String {
-    counterKeyPrefix + id
+    BodyEvaluationKey.make(prefix: counterKeyPrefix, id: id)
   }
 
   /// The ``BodyEvaluationCounter`` key of the fence parses of the response
@@ -139,7 +139,7 @@ public struct ResponseView: View {
   /// - Parameter id: The id of the response.
   /// - Returns: `response-fences-<id>`.
   static func piecesCounterKey(for id: String) -> String {
-    piecesCounterKeyPrefix + id
+    BodyEvaluationKey.make(prefix: piecesCounterKeyPrefix, id: id)
   }
 
   /// The ``BodyEvaluationCounter`` key of the citation chip parses of the
@@ -148,7 +148,7 @@ public struct ResponseView: View {
   /// - Parameter id: The id of the response.
   /// - Returns: `response-chips-<id>`.
   static func chipsCounterKey(for id: String) -> String {
-    chipsCounterKeyPrefix + id
+    BodyEvaluationKey.make(prefix: chipsCounterKeyPrefix, id: id)
   }
 
   /// The citation chips of the text.

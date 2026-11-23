@@ -206,7 +206,7 @@ extension EditorModel {
   ///   - keyPrefix: The start of the key.
   /// - Returns: `<keyPrefix><text>`.
   static func readOnlyCounterKey(for text: String, keyPrefix: String) -> String {
-    keyPrefix + text
+    BodyEvaluationKey.make(prefix: keyPrefix, id: text)
   }
 
   /// Makes the model read-only and changes its text to `text`.

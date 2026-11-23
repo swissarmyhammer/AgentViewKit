@@ -80,7 +80,7 @@ public struct ItemRow: View, Equatable {
   /// - Parameter id: The identifier of the item, or the start of it.
   /// - Returns: `row-<id>`.
   public static func counterKey(for id: String) -> String {
-    counterKeyPrefix + id
+    BodyEvaluationKey.make(prefix: counterKeyPrefix, id: id)
   }
 
   /// The ``BodyEvaluationCounter`` key of the view that reads the content of
@@ -93,7 +93,7 @@ public struct ItemRow: View, Equatable {
   /// - Parameter id: The row key of the entry.
   /// - Returns: `row-content-<id>`.
   public static func contentCounterKey(for id: String) -> String {
-    contentCounterKeyPrefix + id
+    BodyEvaluationKey.make(prefix: contentCounterKeyPrefix, id: id)
   }
 
   /// Tells whether two rows show the same transcript entry object.
