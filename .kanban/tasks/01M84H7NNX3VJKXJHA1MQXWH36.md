@@ -32,20 +32,27 @@ comments:
     - files: Sources/AgentViewKit/StatusLine/StatusLineDirectory.swift, StatusLineRenderer.swift, StatusLineView.swift, StatusLineModules.swift, Sources/AgentViewKitTestSupport/StyleViewHost.swift, Tests/AgentViewKitTests/StatusLine/StatusLineDirectoryTests.swift, Tests/AgentViewKitTests/StatusLine/StatusLineFitTests.swift (new)
     - next: /review
   timestamp: 2026-11-23T17:38:05.504586+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m84qxcnj9z25bc8xzbfn1q5m
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (commit cca59942): 0 findings, 0 confirmed, 0 refuted; 7 files reviewed, 0 failed. No prior review findings. All Work, Acceptance and Tests items are ticked, from the implement evidence: headless `swift test` 1640 + 54 tests passed, screenshot gallery 40 tests passed, thread-header-light.png shows `~ › … › AgentViewKit`.
+    - next: none. The task moves to done.
+  timestamp: 2026-11-23T17:40:27.954236+00:00
+position_column: done
+position_ordinal: ffffffff9380
 title: The directory module removes middle names to fit the width of the line, not a character count
 ---
 ## What
 The `directory` module of the status line removes whole names from the middle of a long path when the path has more than `StatusLineDirectory.lengthLimit` characters (^6jt64qs work). The limit is a character count. In a narrow top bar (the 480 pt thread header of the glass gallery, and the crumbs line), SwiftUI cuts the text at the end: `~ › code › AgentViewKit › So…` and `Macintosh HD › tmp › scripted-…`. Then a name shows in part.
 
 ## Work
-- [ ] Measure the width that the line gives to the module, and remove whole names from the middle until the path fits (for example with `ViewThatFits` over the elided forms, or a layout that measures the text).
-- [ ] Keep the first part and the last folders whole. Show one `…`.
+- [x] Measure the width that the line gives to the module, and remove whole names from the middle until the path fits (for example with `ViewThatFits` over the elided forms, or a layout that measures the text).
+- [x] Keep the first part and the last folders whole. Show one `…`.
 
 ## Acceptance Criteria
-- [ ] In the 480 pt thread header gallery image, the directory module shows whole names and one `…`, with no cut name.
+- [x] In the 480 pt thread header gallery image, the directory module shows whole names and one `…`, with no cut name.
 
 ## Tests
-- [ ] A unit test for the choice of the elided form for a given width.
-- [ ] The screenshot gallery with a temp HOME passes. Give the PNG paths.
+- [x] A unit test for the choice of the elided form for a given width.
+- [x] The screenshot gallery with a temp HOME passes. Give the PNG paths.
