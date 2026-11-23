@@ -17,10 +17,9 @@ import SwiftUI
 /// In the top bar of the view (`.safeAreaBar(edge: .top)`), a
 /// ``SessionNoticeBanner`` shows one banner for each notice of the session
 /// model, and a ``SessionStreamBanner`` shows the stream state: the replay
-/// marker, the partial-history note, the missed-updates banner with its
-/// Reload button, and the closed state. In the bottom bar, a ``StateBanner``
-/// shows the agent state. Each banner view, and not this view, reads its part
-/// of the model.
+/// marker, the missed-updates banner with its Reload button, and the closed
+/// state. In the bottom bar, a ``StateBanner`` shows the agent state. Each
+/// banner view, and not this view, reads its part of the model.
 ///
 /// The view puts no padding around its bars (EditorKit `style.md`, rule
 /// 10). The host pads them where it mounts the view, with `.barInsets()`,

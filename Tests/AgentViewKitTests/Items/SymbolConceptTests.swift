@@ -27,7 +27,7 @@ import Testing
     case addedFile, deletedFile, modifiedFile, renamedFile, copiedFile
     case userAction, maxTokens, maxTurnRequests, refusal
     case truncated, repeated, reasoningLimit, noOutput, stalled
-    case closed, replaying, partialHistory, disconnected, signal
+    case closed, replaying, disconnected, signal
     case highPriority, mediumPriority, lowPriority
     case time
     case accept, acceptAlways, reject, rejectAlways
@@ -116,7 +116,6 @@ import Testing
     let stream: [(StatusBar.Message, Concept)] = [
       (SessionStreamBanner.closedMessage, .closed), (SessionStreamBanner.replayingMessage, .replaying),
       (SessionStreamBanner.missedUpdatesMessage, .warning),
-      (SessionStreamBanner.partialHistoryMessage, .partialHistory),
       (
         SessionStreamBanner.makeReloadFailedMessage(errorDescription: StatusBarColorTests.reloadErrorDescription),
         .error

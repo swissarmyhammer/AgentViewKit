@@ -144,8 +144,9 @@
       rows draw light text on the dark sidebar glass in dark; the badge \
       color is not judged yet. The Look popover is not in the image: a popover is its own window that AppKit \
       puts on the screen, and the gallery shows no window (AVK-12). The detail is the resumed permission \
-      session, with the partial-history banner (no fill) and the permission card. Since ^ey6v778 the banner \
-      and the card take the tile padding and the tile margin; the new image is not judged yet. Since EditorKit \
+      session, with the permission card. Since ^ey6v778 the card takes the tile padding and the tile margin. \
+      Since ^tnwtcws the detail shows no stream banner after the replay; the new image is not judged yet. \
+      Since EditorKit \
       ^7wt12an (no SwiftUI List) the session lists and the connection states are lazy stacks with no fill: \
       each row takes the tile padding, the rows the tile margin between them, and no row is selected at \
       rest, so no row shows the selectable surface; the new image is not judged yet.

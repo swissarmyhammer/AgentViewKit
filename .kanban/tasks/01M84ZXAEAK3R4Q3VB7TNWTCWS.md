@@ -1,8 +1,27 @@
 ---
 assignees:
 - claude-code
-position_column: todo
-position_ordinal: '8580'
+comments:
+- actor: claude-code
+  id: 01m850wj9x82ymwyr6ex1evfj0
+  text: |-
+    Implementation notes:
+    - RED: the renamed hosted test `aResumeShowsTheReplayMarkerAndThenNoBar` failed at its last check (`!Self.showsAStreamBar(in: harness)`) before the change. GREEN after the change.
+    - The new helper `showsAStreamBar(in:)` finds each element whose identifier starts with `session-stream-`. Thus it also finds a bar that no test names, and the test needs no identifier of the removed note.
+    - `aResumeWithNoReplayedEntryShowsNoPartialHistoryNote` is now `aResumeWithNoReplayedEntryShowsNoBar`.
+    - Also removed: the two strings of the note in `Localizable.xcstrings`, the note in the doc of `AgentThreadView`, the note in README.md, and "can be partial" in `Docs/decisions/acp-version.md` (now: the agent replays all the history that it retains).
+    - The gallery note of `ReviewGalleryNotes.gallery` now tells that since ^tnwtcws the detail shows no stream banner after the replay; the new image is not judged yet.
+    - The gallery command keeps no PNG on disk: the images are test attachments only.
+  timestamp: 2026-11-23T20:17:18.141766+00:00
+- actor: claude-code
+  id: 01m850wp0fz5rq3x0kg2000k80
+  text: |-
+    ### implement — changed
+    - evidence: root `swift test` 1653 + 59 tests pass, no code warnings; `swift test --filter SessionStateBannersHostedTests` 13 pass; `swift build --build-tests` in IntegrationTests and ScreenshotTests pass; gallery 45 tests pass. 12 files: Sources/AgentViewKit/Status/SessionStreamBanner.swift, Sources/AgentViewKit/Items/AgentSymbol.swift, Sources/AgentViewKit/Thread/AgentThreadView.swift, Sources/AgentViewKit/Resources/Localizable.xcstrings, Tests/AgentViewKitTests/Status/PartialHistoryNoteTests.swift (deleted), Tests/AgentViewKitTests/Status/StatusBarEffectTests.swift, Tests/AgentViewKitTests/Items/SymbolConceptTests.swift, IntegrationTests/Tests/IntegrationTests/Status/SessionStateBannersHostedTests.swift, ScreenshotTests/Tests/ScreenshotTests/ReviewGalleryNotes.swift, Docs/decisions/acp-version.md, README.md
+    - next: /review
+  timestamp: 2026-11-23T20:17:21.935960+00:00
+position_column: doing
+position_ordinal: '80'
 title: Remove the partial-history note of SessionStreamBanner
 ---
 ## What
@@ -17,20 +36,20 @@ Files:
 - `Tests/AgentViewKitTests/Status/StatusBarEffectTests.swift` and `Tests/AgentViewKitTests/Items/SymbolConceptTests.swift`: remove the entries of the note.
 - `IntegrationTests/Tests/IntegrationTests/Status/SessionStateBannersHostedTests.swift`: the resume tests check that no partial-history text shows after a replay.
 
-- [ ] Remove the note, its identifier, its symbol and its UI path.
-- [ ] Remove or change the tests of the note.
-- [ ] A hosted test: after a resume with replayed items, the banner shows no note, and the replay marker goes away.
+- [x] Remove the note, its identifier, its symbol and its UI path.
+- [x] Remove or change the tests of the note.
+- [x] A hosted test: after a resume with replayed items, the banner shows no note, and the replay marker goes away.
 
 ## Acceptance Criteria
-- [ ] `grep -rn "partialHistory\|can be partial" Sources Tests IntegrationTests/Tests ScreenshotTests/Tests` gives no result.
-- [ ] After a resume and its replay, the stream banner shows no bar.
-- [ ] The headless suite, the changed hosted suite and the gallery pass.
+- [x] `grep -rn "partialHistory\|can be partial" Sources Tests IntegrationTests/Tests ScreenshotTests/Tests` gives no result.
+- [x] After a resume and its replay, the stream banner shows no bar.
+- [x] The headless suite, the changed hosted suite and the gallery pass.
 
 ## Tests
-- [ ] Change `aResumeShowsTheReplayMarkerAndThenThePartialHistoryNote` first, so it expects no bar after the replay (it fails before the change). Rename it.
-- [ ] `swift test` in the root: all pass, no code warnings.
-- [ ] `cd IntegrationTests && swift test --filter SessionStateBannersHostedTests`: all pass.
-- [ ] `HOME=<temp> swift test --package-path ScreenshotTests`: all pass.
+- [x] Change `aResumeShowsTheReplayMarkerAndThenThePartialHistoryNote` first, so it expects no bar after the replay (it fails before the change). Rename it.
+- [x] `swift test` in the root: all pass, no code warnings.
+- [x] `cd IntegrationTests && swift test --filter SessionStateBannersHostedTests`: all pass.
+- [x] `HOME=<temp> swift test --package-path ScreenshotTests`: all pass.
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.

@@ -118,6 +118,24 @@
       harness.element(identifier: identifier) != nil
     }
 
+    /// The prefix of the accessibility identifier of each text of the stream
+    /// banner, such as ``SessionStreamBanner/replayingIdentifier``.
+    static let streamBarIdentifierPrefix = "session-stream-"
+
+    /// Tells whether the stream banner shows a bar in `harness`.
+    ///
+    /// The check finds each element whose identifier starts with
+    /// ``streamBarIdentifierPrefix``. Thus it also finds a bar that no test
+    /// names.
+    ///
+    /// - Parameter harness: The harness that shows the thread.
+    /// - Returns: `true` when one bar or more shows.
+    static func showsAStreamBar<Content: View>(in harness: HostedViewHarness<Content>) -> Bool {
+      harness.accessibilityElements().contains {
+        $0.identifier?.hasPrefix(streamBarIdentifierPrefix) == true
+      }
+    }
+
     // MARK: - Agent state
 
     @Test func eachAgentStateShowsItsBannerAndANewValueReplacesIt() async throws {
@@ -166,7 +184,9 @@
 
     // MARK: - Resume
 
-    @Test func aResumeShowsTheReplayMarkerAndThenThePartialHistoryNote() async throws {
+    /// A resume shows the replay marker while the replay runs. After the
+    /// replay, the marker goes away and the stream banner shows no bar.
+    @Test func aResumeShowsTheReplayMarkerAndThenNoBar() async throws {
       let session = try await ScriptedSession.open {
         $0.heldMethods = [ScriptedSession.resumeMethod]
       }
@@ -175,7 +195,7 @@
       defer { harness.close() }
       let model = session.model
       harness.render()
-      #expect(!Self.shows(SessionStreamBanner.partialHistoryIdentifier, in: harness))
+      #expect(!Self.showsAStreamBar(in: harness))
 
       let resume = Task {
         try await session.connection.resumeSession(ScriptedSession.replayFromStartRequest)
@@ -184,7 +204,6 @@
 
       #expect(model.isReplaying)
       #expect(Self.shows(SessionStreamBanner.replayingIdentifier, in: harness))
-      #expect(!Self.shows(SessionStreamBanner.partialHistoryIdentifier, in: harness))
 
       try await session.send(update: BackgroundRunScript.makeChunkUpdate(messageID: "replayed", text: "Replayed."))
       await harness.renderAfter { !model.transcript.isEmpty }
@@ -193,15 +212,12 @@
       await harness.renderAfter { !model.isReplaying }
 
       #expect(!Self.shows(SessionStreamBanner.replayingIdentifier, in: harness))
-      let note = try #require(
-        harness.element(identifier: SessionStreamBanner.partialHistoryIdentifier)?.label)
-      #expect(note.contains("can be partial"))
-      #expect(!note.localizedCaseInsensitiveContains("complete"))
+      #expect(!Self.showsAStreamBar(in: harness))
     }
 
-    /// A resumed session whose replay gives no entry shows no partial-history
-    /// note: no history shows, so the user cannot act on the note.
-    @Test func aResumeWithNoReplayedEntryShowsNoPartialHistoryNote() async throws {
+    /// A resumed session whose replay gives no entry shows no bar after the
+    /// replay.
+    @Test func aResumeWithNoReplayedEntryShowsNoBar() async throws {
       let session = try await ScriptedSession.open {
         $0.heldMethods = [ScriptedSession.resumeMethod]
       }
@@ -219,8 +235,7 @@
       await harness.renderAfter { !model.isReplaying }
 
       #expect(model.transcript.isEmpty)
-      #expect(!Self.shows(SessionStreamBanner.replayingIdentifier, in: harness))
-      #expect(!Self.shows(SessionStreamBanner.partialHistoryIdentifier, in: harness))
+      #expect(!Self.showsAStreamBar(in: harness))
     }
 
     // MARK: - Missed updates

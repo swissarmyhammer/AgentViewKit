@@ -94,7 +94,7 @@ alpha.7 change these parts of the wire:
 | `PromptResponse.messageId` is required. It is the id of the user message that the agent added. The agent echoes that message in a `user_message` update with the same id, before or after the response. | A prompt result with no `messageId` does not decode. The scripted demo agents send a `messageId` and echo the user message. |
 | `ToolCallUpdate.name` is new and optional, with patch rules. It is the program name of the tool. `title` stays the label for people. | The tool call views select the registry entry by `name` and show `title` as the label (a later view task). |
 | `NewSessionResponse.availableCommands` and `ResumeSessionResponse.availableCommands` are new and optional. | `ConnectionModel` seeds the commands of the session model from the response. The views read the commands from the session model. |
-| `ResumeSessionRequest.replayFrom` means the retained history. No value means no replay. `{"type": "start"}` means all retained history. | A resume sends `replayFrom: .start`. The agent decides how much history it retains, so the replayed history can be partial. |
+| `ResumeSessionRequest.replayFrom` means the retained history. No value means no replay. `{"type": "start"}` means all retained history. | A resume sends `replayFrom: .start`, so the agent replays all the history that it retains. |
 
 ## Schema alpha.8
 

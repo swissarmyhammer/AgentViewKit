@@ -64,10 +64,6 @@ nonisolated enum AgentSymbol {
   /// winds back, and the agent sends it again.
   static let replaying = "arrow.trianglehead.counterclockwise"
 
-  /// The symbol of a history that can be partial: a page of text that the
-  /// kit cannot vouch for.
-  static let partialHistory = "questionmark.text.page"
-
   /// The symbol of an agent that is not connected, and of an MCP server whose
   /// connection is closed.
   static let disconnected = "bolt.horizontal.circle"

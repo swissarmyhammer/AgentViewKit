@@ -2680,16 +2680,6 @@
         }
       }
     },
-    "The agent replayed only the history that it keeps. Older messages can be missing." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The agent replayed only the history that it keeps. Older messages can be missing."
-          }
-        }
-      }
-    },
     "The agent reported an unknown state" : {
       "localizations" : {
         "en" : {
@@ -2896,16 +2886,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The form does not have this field."
-          }
-        }
-      }
-    },
-    "The history can be partial" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The history can be partial"
           }
         }
       }

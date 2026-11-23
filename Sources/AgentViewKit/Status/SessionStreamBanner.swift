@@ -33,11 +33,6 @@ import SwiftUI
 ///   model has a phase of its own, so when the banner gets another session
 ///   model, the Reload button of that model takes a press at once, and the
 ///   late outcome of the old reload changes nothing.
-/// - When `history` is `.retained`, no replay runs, and the transcript has
-///   one entry or more, a note tells that the history can be partial. The
-///   agent replays only the history that it keeps, so the note never tells
-///   that the history is complete. A resumed session with no entry shows no
-///   note, because no history shows and the user cannot act on the note.
 ///
 /// The Reload button shows only when the host gives the connection model and
 /// the agent can resume sessions (`ConnectionModel.canResumeSessions`). The
@@ -69,21 +64,6 @@ public struct SessionStreamBanner: View {
 
   /// The accessibility identifier of the Reload button.
   public static let reloadIdentifier = "session-stream-reload"
-
-  /// The accessibility identifier of the text of the partial-history note.
-  public static let partialHistoryIdentifier = "session-stream-partial-history"
-
-  /// Whether the banner shows the partial-history note.
-  ///
-  /// - Parameters:
-  ///   - isHistoryRetained: Whether the `history` of the model is `.retained`.
-  ///   - isReplaying: Whether a replay runs.
-  ///   - hasEntries: Whether the transcript has one entry or more.
-  /// - Returns: `true` only when the history is retained, no replay runs, and
-  ///   the transcript has an entry.
-  static func showsPartialHistoryNote(isHistoryRetained: Bool, isReplaying: Bool, hasEntries: Bool) -> Bool {
-    isHistoryRetained && !isReplaying && hasEntries
-  }
 
   /// The session model whose stream state the banners show.
   let session: SessionModel
@@ -169,11 +149,6 @@ private struct SessionStreamBars: View {
     let rows: [(isShown: Bool, bar: Bar)] = [
       (replaying, Bar(message: SessionStreamBanner.replayingMessage, action: nil)),
       (session.hasMissedUpdates, Bar(message: missedUpdatesBarMessage, action: makeReloadAction(isEnabled: canReload))),
-      (
-        SessionStreamBanner.showsPartialHistoryNote(
-          isHistoryRetained: isHistoryRetained, isReplaying: replaying, hasEntries: !session.transcript.isEmpty),
-        Bar(message: SessionStreamBanner.partialHistoryMessage, action: nil)
-      ),
     ]
     return rows.filter(\.isShown).map(\.bar)
   }
@@ -183,13 +158,6 @@ private struct SessionStreamBars: View {
   private var missedUpdatesBarMessage: StatusBar.Message {
     guard case .failed(let errorDescription) = reloadPhase else { return SessionStreamBanner.missedUpdatesMessage }
     return SessionStreamBanner.makeReloadFailedMessage(errorDescription: errorDescription)
-  }
-
-  /// Whether the transcript of the model holds a replay of the retained
-  /// history of the agent: `history` is `.retained`.
-  private var isHistoryRetained: Bool {
-    guard case .retained = session.history else { return false }
-    return true
   }
 
   /// Makes the Reload button of the missed-updates banner.
@@ -262,15 +230,6 @@ extension SessionStreamBanner {
         localized: "The connection did not keep all updates of this session. Reload the history from the agent.",
         bundle: .module))
   }
-
-  /// The text of the partial-history note.
-  static let partialHistoryMessage = StatusBar.Message(
-    title: String(localized: "The history can be partial", bundle: .module),
-    explanation: String(
-      localized: "The agent replayed only the history that it keeps. Older messages can be missing.",
-      bundle: .module),
-    symbolName: AgentSymbol.partialHistory,
-    identifier: partialHistoryIdentifier)
 }
 
 #Preview("Stream state") {

@@ -27,7 +27,6 @@ import Testing
       StateBanner.message(for: try StateBannerStopReasonTests.decodeState(#"{"state": "requires_action"}"#)),
       SessionStreamBanner.closedMessage,
       SessionStreamBanner.missedUpdatesMessage,
-      SessionStreamBanner.partialHistoryMessage,
       SessionStreamBanner.makeReloadFailedMessage(errorDescription: StatusBarColorTests.reloadErrorDescription),
     ]
   }
