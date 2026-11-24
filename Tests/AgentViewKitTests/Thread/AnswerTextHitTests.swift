@@ -35,10 +35,11 @@ import Testing
   /// - Returns: The window. Its content view is the host of the thread.
   static func mountAnswer() -> NSWindow {
     let session = SessionModel.preview(transcript: [.agent(answer)])
-    let hosting = NSHostingView(
-      rootView: AgentThreadView(session: session)
+    let hosting = StyleViewHost.host(
+      AgentThreadView(session: session)
         .commandSystem(CommandSystem())
-        .transaction { $0.disablesAnimations = true })
+        .transaction { $0.disablesAnimations = true },
+      size: size)
     let window = NSWindow(
       contentRect: NSRect(origin: .zero, size: size), styleMask: [.borderless], backing: .buffered, defer: true)
     window.isReleasedWhenClosed = false

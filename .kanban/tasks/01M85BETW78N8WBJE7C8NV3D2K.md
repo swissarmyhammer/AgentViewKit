@@ -35,8 +35,28 @@ comments:
     - evidence: `swift test` (root): 1705 tests in 192 suites passed, and 59 tests in 12 suites passed, no code warnings. `swift build --build-tests` in IntegrationTests and ScreenshotTests: build complete, no warnings. New test RED then GREEN. 2 files: Sources/AgentViewKit/Thread/ConversationView.swift, Tests/AgentViewKitTests/Thread/AnswerTextHitTests.swift.
     - next: /review; CI must run the hosted suites (no hosted run on this Mac).
   timestamp: 2026-11-23T23:40:48.873897+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m85fmsgkwarpcp7spsv48094
+  text: |-
+    ### review — findings
+    - evidence: `review sha dbc80b63~1..dbc80b63`: 1 finding (1 confirmed, 1 refuted; 2 files reviewed, 4 .kanban files ignored). Tests/AgentViewKitTests/Thread/AnswerTextHitTests.swift:36 `reuse/reuse`: `mountAnswer` copies the mount pattern of `ConversationPillMountTests.mountThread`.
+    - next: Use one shared mount helper for thread views in tests, so that `mountAnswer` calls it. Then do the hosted items on CI (run on 1c25a15e in progress): `AnswerTextContextMenuPointerHostedTests`, `LiveRowRangeRedrawScopeTests`, `ThreadModelCacheHostedTests`.
+  timestamp: 2026-11-24T00:35:12.019498+00:00
+- actor: claude-code
+  id: 01m85ftx72ht0k33k4jwtcef6m
+  text: |-
+    ### finish iteration 1 — findings
+    - implement: changed — 2 files (ConversationView .scaleEffect fix, AnswerTextHitTests)
+    - test: green — swift test 1705 + 59; the new test failed before the fix
+    - commit: dbc80b63
+    - review: findings — Tests/AgentViewKitTests/Thread/AnswerTextHitTests.swift:36
+
+    ### implement — changed
+    - evidence: new `StyleViewHost.host(_:size:)` in AgentViewKitTestSupport puts a view in a hosting view of a size and lays it out once. `ConversationPillMountTests.mountThread` and `AnswerTextHitTests.mountAnswer` call it; mountAnswer keeps only its window code. With `.scaleEffect(1)` for a short time, theCenterOfTheAnswerTextHitsTheTextViewOfTheAnswer fails at AnswerTextHitTests.swift:63; with the fix it passes. swift test 1720 + 59 passed; IntegrationTests build complete.
+    - open: the hosted suites wait for CI.
+  timestamp: 2026-11-24T00:38:32.418451+00:00
+position_column: review
+position_ordinal: '8480'
 title: 'Regression: the answer row is not live on the first render pass, so its text has no context menu'
 ---
 ## What
@@ -61,3 +81,12 @@ The element with `ResponseView.textIdentifier` exists, but no view under it give
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass. #scroll-perf
+
+## Review Findings (2026-11-23 18:33)
+
+> Scope: `review sha dbc80b63~1..dbc80b63` — reviewed the diffs only — lines this change added or modified. 2 file(s) reviewed, 4 not reviewed.
+
+> 4 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 4 file(s)
+
+- [x] `Tests/AgentViewKitTests/Thread/AnswerTextHitTests.swift:36` `reuse/reuse` — The new function mountAnswer builds an NSHostingView of AgentThreadView, puts it in a window, and lays it out. This is the same job as ConversationPillMountTests.mountThread. The new code does not call mountThread or a shared helper. It copies the pattern. A change to the mount pattern must then be made in two places. Use one shared mount helper for thread views in tests. Extend ConversationPillMountTests.mountThread, or move it to the test support module, so that mountAnswer calls it with the session and the window. Keep only the window code that is new in mountAnswer.

@@ -60,4 +60,19 @@ import SwiftUI
     hosting.frame = NSRect(origin: .zero, size: hosting.fittingSize)
     hosting.layoutSubtreeIfNeeded()
   }
+
+  /// Puts `view` in a hosting view of `size`, and lays it out once.
+  ///
+  /// The thread tests use this one helper to mount a thread view with no
+  /// window.
+  ///
+  /// - Parameters:
+  ///   - view: The view to host.
+  ///   - size: The size of the view, in points.
+  /// - Returns: The hosting view.
+  public static func host(_ view: some View, size: CGSize) -> NSHostingView<some View> {
+    let hosting = NSHostingView(rootView: view.frame(width: size.width, height: size.height))
+    layOut(hosting)
+    return hosting
+  }
 }

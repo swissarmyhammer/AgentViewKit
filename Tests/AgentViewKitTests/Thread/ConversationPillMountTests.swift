@@ -67,11 +67,9 @@
     static func mountThread(_ session: SessionModel, anchors: ScrollAnchorManager)
       -> NSHostingView<some View>
     {
-      let hosting = NSHostingView(
-        rootView: AgentThreadView(session: session, anchors: anchors) { EmptyView() }
-          .frame(width: ThreadHeaderTests.width, height: ThreadHeaderTests.height))
-      StyleViewHost.layOut(hosting)
-      return hosting
+      StyleViewHost.host(
+        AgentThreadView(session: session, anchors: anchors) { EmptyView() },
+        size: CGSize(width: ThreadHeaderTests.width, height: ThreadHeaderTests.height))
     }
 
     /// A session with one prompt and one answer.
