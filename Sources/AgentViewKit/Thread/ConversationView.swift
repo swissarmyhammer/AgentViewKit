@@ -713,9 +713,13 @@ extension ConversationView where EmptyState == DefaultConversationEmptyState {
 /// The button of the pill (``ConversationPillButton``) is always in the
 /// view tree. While the list is pinned to the bottom, the pill hides the
 /// button in place: the button is not visible, takes no click, is not in the
-/// accessibility tree, and is disabled. A disabled control gets no jump
-/// label, no nav stop and no keyboard focus (EditorKit leaf control scope).
-/// Thus an unpin only changes these values, and it does not make the
+/// accessibility tree, is disabled, and its control scope is no target of
+/// the EditorKit jump, navigation and commands
+/// (``SwiftUI/View/agentControlTargetable(_:)``). The disabled state alone
+/// does not remove the label: EditorKit reads the disabled state of a leaf
+/// control from the accessibility tree, and the hidden button is not in
+/// that tree. Thus a jump session gives the hidden button no label, and a
+/// commit on its path lands nowhere. An unpin only changes these values, and it does not make the
 /// button, its glass and its control scope again. Before this, each unpin
 /// from the bottom made the whole button, and the scroll hitched (task
 /// ^ts5hyjr, #scroll-perf). The hidden button keeps its size. The pill is in
@@ -769,6 +773,7 @@ struct ConversationPill: View {
       .allowsHitTesting(!isHidden)
       .accessibilityHidden(isHidden)
       .disabled(isHidden)
+      .agentControlTargetable(!isHidden)
   }
 }
 

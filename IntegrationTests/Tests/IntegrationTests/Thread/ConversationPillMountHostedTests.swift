@@ -19,23 +19,23 @@
   /// top, the call that the list makes after a scroll up, and then makes one
   /// render pass. A pinned test makes no change after the first render pass.
   @Suite(.serialized, .hostedSerially) @MainActor struct ConversationPillMountHostedTests {
-    /// Opens a long session and shows its thread with `anchors`. The list
-    /// of a new thread starts at the bottom, so the manager stays pinned.
+    /// Opens a long session and shows its thread with `anchors` and
+    /// `composer` in the slot. The list of a new thread starts at the
+    /// bottom, so the manager stays pinned.
     ///
     /// - Parameters:
     ///   - anchors: The manager of the scroll position of the thread.
     ///   - system: The command system of the window.
+    ///   - composer: The builder of the view in the composer slot.
     /// - Returns: The session and the harness, after one render pass.
     /// - Throws: The error of the scripted session.
-    static func mountThread(anchors: ScrollAnchorManager, system: CommandSystem) async throws
-      -> (ScriptedSession, HostedViewHarness<some View>)
-    {
+    static func mountThread<Composer: View>(
+      anchors: ScrollAnchorManager, system: CommandSystem,
+      @ViewBuilder composer: () -> Composer = { EmptyView() }
+    ) async throws -> (ScriptedSession, HostedViewHarness<some View>) {
       let session = try await ThreadFloatingControlsHostedTests.openLongSession()
       let harness = ThreadFloatingControlsHostedTests.mount(
-        session, anchors: anchors, system: system
-      ) {
-        EmptyView()
-      }
+        session, anchors: anchors, system: system, composer: composer)
       return (session, harness)
     }
 
@@ -158,9 +158,17 @@
     /// A production change that fails this test: the unpin moves the pill
     /// into the layout of the floating controls, so the glass container of
     /// the bottom bar changes its frame.
+    ///
+    /// The slot holds a composer. With no composer and no banner, the
+    /// controls of a pinned thread hold no accessibility element, because
+    /// the hidden pill is not in the accessibility tree. SwiftUI then gives
+    /// the container of the controls no element, and the test cannot read
+    /// its frame.
     @Test func anUnpinKeepsTheFrameOfTheFloatingControls() async throws {
       let anchors = ScrollAnchorManager()
-      let (session, harness) = try await Self.mountThread(anchors: anchors, system: CommandSystem())
+      let (session, harness) = try await Self.mountThread(anchors: anchors, system: CommandSystem()) {
+        PromptInputHost(model: PromptInputHostedTestModel())
+      }
       defer {
         harness.close()
         session.close()

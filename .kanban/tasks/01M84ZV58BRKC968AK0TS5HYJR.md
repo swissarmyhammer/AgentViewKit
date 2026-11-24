@@ -60,7 +60,23 @@ comments:
     - evidence: review sha HEAD~1..HEAD (commit 7f9320cc). 0 findings, 0 confirmed, 0 refuted, 7 attempted, 0 failed. The engine reviewed 3 source files. It did not review 2 .kanban files because of .reviewignore. The prior finding at AgentThreadView.swift:685 (reuse/reuse) is checked.
     - next: The task stays in review. Two subtasks are open: "Add the hosted test (it fails first)" and "Update snapshot images if the look changes and give the paths". Do the hosted runs only when the user permits them. Then move the task to done.
   timestamp: 2026-11-23T22:11:55.440858+00:00
-position_column: review
+- actor: claude-code
+  id: 01m85f6r0t9cr1fydx5jhs9bcx
+  text: |-
+    Causes of the 3 CI findings (run 45280376533), from the code and the log.
+    - :191 and :204 have one cause. EditorKit takes a disabled leaf control out of the jump labels only through the accessibility tree: `GeometryRegistry.targetRects(in:)` calls `disabledLeafControlPaths`, which reads `isAccessibilityEnabled` of the control at the scope center (LeafControl.swift, LeafControlAppKit.swift). The hidden pill has `.accessibilityHidden(true)` (and since dbc80b63 a scale of zero), so the read finds no control, the path is not in the disabled set, and the pill gets a label. The log shows the chip `/agentThread:scripted-session/agentControl:scroll-to-bottom-pill`. `JumpModeController.commit(_:)` returns true for each candidate, so :204 fails for the same reason. dbc80b63 does not change this.
+    - EditorKit opt-out: `.targetable(_:)` / `ScopeTargeting.untargetable` is "the one switch that takes a scope out of jump, nav and commands together". Toggle it with a value. `targetRects` drops a path that `nonTargets.isTarget` refuses, before the accessibility read.
+    - Fix: `AgentControlScope` reads the new environment value `isAgentControlTargetable` (modifier `agentControlTargetable(_:)`) and applies `.targetable(isTargetable ? .targetable : .untargetable, asksForLeafLanding: true)`. The leaf landing request stays true in both states, so the EditorButton in the scope does not add a scope of its own on a toggle (`ControlScopePlacement.takesScope`). `ConversationPill` applies `.agentControlTargetable(!isHidden)`. Only the scope modifier reads the value, so the button body is not evaluated on unpin (test still green).
+    - :170 is not a frame change. Column 29 is the `try #require` of the PINNED frame, and the log shows `harness.frame(identifier: controls) → nil`. The test mounts the thread with `EmptyView()` in the slot, the scripted session has no agent state (no banner), and the hidden pill is not in the accessibility tree. So the `.accessibilityElement(children: .contain)` container of the floating controls has no child, and SwiftUI gives it no element. Fix in the test: the slot holds `PromptInputHost(model: PromptInputHostedTestModel())`, so the container is an element in both states. The comparison after the unpin is not proven yet: CI shows it. Risk: on macOS 27 the frame of an element that holds Liquid Glass follows the glass (ThreadBarAccessibilityFrameHostedTests). If the shown pill glass widens that frame, CI will show a real frame change.
+  timestamp: 2026-11-24T00:27:31.739+00:00
+- actor: claude-code
+  id: 01m85f6y6gnvm87sygv8eepz6q
+  text: |-
+    ### implement — changed
+    - evidence: 4 files — Sources/AgentViewKit/Commands/AgentControlScope.swift, Sources/AgentViewKit/Thread/ConversationView.swift, Tests/AgentViewKitTests/Thread/ConversationPillMountTests.swift, IntegrationTests/Tests/IntegrationTests/Thread/ConversationPillMountHostedTests.swift. RED: `aPinnedPillIsNoTargetOfJumpAndNavigation` failed at `!system.geometry.isTargetable(at: path)` with the scope live; GREEN 6/6 in ConversationPillMountTests. Root `swift test`: 1720 tests in 193 suites and 59 tests in 12 suites pass, no code warnings. `swift build --build-tests` complete in IntegrationTests and ScreenshotTests. No hosted test run on this Mac.
+    - next: the 3 findings of "Review Findings (2026-11-23 CI)" stay open until CI runs ConversationPillMountHostedTests on a commit with this change. Then /review.
+  timestamp: 2026-11-24T00:27:38.064722+00:00
+position_column: doing
 position_ordinal: '8180'
 title: Keep the conversation pill mounted so an unpin from the bottom does not hitch
 ---
@@ -104,3 +120,12 @@ Files: AgentThreadView.swift, ConversationPill source file, one new test file. #
 > - `.kanban/ (from .reviewignore)` — 2 file(s)
 
 - [x] `Sources/AgentViewKit/Thread/AgentThreadView.swift:685` `reuse/reuse` — floatingControlsCounterKey repeats the object-identity key construction of ConversationPill.counterKeyID. It is the same capability in a second place. Call the shared object-key helper proposed for ConversationView.swift:759 instead of building the ObjectIdentifier string here.
+
+## Review Findings (2026-11-23 CI)
+
+> Scope: CI run 45280376533 on main 72067e53, Integration job 138079951178. Three hosted tests of ConversationPillMountHostedTests failed.
+> After that run, commit dbc80b63 added `.scaleEffect(isHidden ? 0 : 1)` to the hidden pill, because the glass took clicks over the transcript. The CI run on af4a5cc8 is in progress. It will show if that commit changed these 3 results.
+
+- [ ] IntegrationTests/Tests/IntegrationTests/Thread/ConversationPillMountHostedTests.swift:191 — aPinnedThreadGivesThePillNoJumpLabel: Expectation failed: !chips.contains { $0.id == shown.path }
+- [ ] ConversationPillMountHostedTests.swift:204 — aJumpCommitOnTheHiddenPillLandsNowhere: Expectation failed: !jump.commit(shown.path)
+- [ ] ConversationPillMountHostedTests.swift:170 — anUnpinKeepsTheFrameOfTheFloatingControls: Expectation failed: harness.frame(identifier: controls) ...

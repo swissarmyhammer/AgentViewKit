@@ -37,6 +37,19 @@ import SwiftUI
 /// none. With no enclosing agent command
 /// scope, the modifier does not change the view.
 ///
+/// A view above the control can take the scope out of the EditorKit jump,
+/// navigation and command targeting
+/// (``SwiftUI/View/agentControlTargetable(_:)``), such as a control that
+/// stays in the view tree while it is hidden. The scope then gets
+/// `.targetable(.untargetable, asksForLeafLanding: true)`: a jump session
+/// gives it no label, a commit on its path lands nowhere, and no nav move
+/// stops on it. The scope keeps its request for the leaf landing in both
+/// states, so the button in the scope takes no scope of its own, and a
+/// change of the value does not change the view tree of the button. A
+/// disabled control is not enough for a hidden control: EditorKit reads the
+/// disabled state from the accessibility tree, and a hidden control is not
+/// in that tree (task ^ts5hyjr).
+///
 /// A control that `yieldsToHostScope` takes its scope only while the
 /// nearest enclosing scope is the agent command scope itself. A host that
 /// puts the control in a command scope of its own, such as a scope around
@@ -57,6 +70,13 @@ struct AgentControlScope: ViewModifier {
   @Environment(\.agentCommandScopeSegment) private var agentSegment
   @Environment(\.commandScopePath) private var enclosingPath
   @Environment(\.editorStyle) private var editorStyle
+  @Environment(\.isAgentControlTargetable) private var isTargetable
+
+  /// The EditorKit targeting of the scope: a target, or no target while a
+  /// view above takes the control out of targeting.
+  private var targeting: ScopeTargeting {
+    isTargetable ? .targetable : .untargetable
+  }
 
   /// Whether the control takes its own scope: in an agent command scope, and
   /// not in a scope of the host when the control yields to it.
@@ -67,7 +87,8 @@ struct AgentControlScope: ViewModifier {
 
   func body(content: Content) -> some View {
     if isScoped {
-      withRingCorners(content.commandScope(segment: segment).targetable(true))
+      withRingCorners(
+        content.commandScope(segment: segment).targetable(targeting, asksForLeafLanding: true))
     } else {
       content
     }
@@ -117,7 +138,30 @@ enum AgentControlCorners: Equatable, Sendable {
   }
 }
 
+extension EnvironmentValues {
+  /// Whether the scope of a control of a bar of a thread
+  /// (``AgentControlScope``) is a target of the EditorKit jump, navigation
+  /// and commands. The default is `true`.
+  @Entry var isAgentControlTargetable = true
+}
+
 extension View {
+  /// Sets whether the scopes of the bar controls in this view are targets of
+  /// the EditorKit jump, navigation and commands.
+  ///
+  /// Use it on a control that stays in the view tree while it is hidden,
+  /// such as the scroll-to-bottom pill of a pinned list. Toggle it with a
+  /// value, never with an `if` around the modifier, so the control keeps
+  /// its identity and its state. Only the scope of the control reads the
+  /// value, so a change of the value does not evaluate the body of the
+  /// control.
+  ///
+  /// - Parameter isTargetable: Whether the scopes are targets.
+  /// - Returns: The view with the targeting of its bar controls.
+  func agentControlTargetable(_ isTargetable: Bool) -> some View {
+    environment(\.isAgentControlTargetable, isTargetable)
+  }
+
   /// Puts this control of a bar of a thread in its own focus scope, so that
   /// it is a target of the EditorKit jump and navigation.
   ///

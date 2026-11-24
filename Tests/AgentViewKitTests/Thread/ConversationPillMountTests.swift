@@ -1,6 +1,8 @@
 #if DEBUG
   import AgentViewKitTestSupport
   import AppKit
+  import EditorCommands
+  import EditorCommandsUI
   import FoundationModelsACPClient
   import SwiftUI
   import Testing
@@ -64,6 +66,60 @@
     /// - Returns: The session model.
     static func twoMessageSession() -> SessionModel {
       .preview(transcript: [.user("Fix the test."), .agent("Done.")])
+    }
+
+    /// A pill of `anchors` in the agent command scope of a session, with a
+    /// command system, in a host with no window, laid out one time.
+    ///
+    /// - Parameters:
+    ///   - anchors: The manager of the pill.
+    ///   - system: The command system of the host.
+    /// - Returns: The host and the path of the control scope of the pill.
+    static func mountScopedPill(_ anchors: ScrollAnchorManager, system: CommandSystem)
+      -> (hosting: NSHostingView<some View>, path: FocusPath)
+    {
+      let session = twoMessageSession()
+      let hosting = NSHostingView(
+        rootView: ConversationPill(anchors: anchors).fixedSize()
+          .agentCommandScope(session: session)
+          .commandSystem(system))
+      StyleViewHost.layOut(hosting)
+      let path = FocusPath.root(AgentCommandTarget.segment(for: session))
+        .appending(AgentScopeKind.control(ScrollToBottomPill.identifier))
+      return (hosting, path)
+    }
+
+    /// A production change that fails this test: the hidden pill keeps the
+    /// targeting of a shown control, so a jump session gives it a label and
+    /// a commit on its path presses it. A disabled pill is not enough:
+    /// EditorKit reads the disabled state from the accessibility tree, and
+    /// the hidden pill is not in that tree.
+    @Test func aPinnedPillIsNoTargetOfJumpAndNavigation() throws {
+      let system = CommandSystem()
+      let anchors = ScrollAnchorManager()
+      let (hosting, path) = Self.mountScopedPill(anchors, system: system)
+
+      try withExtendedLifetime(hosting) {
+        try #require(anchors.isPinnedToBottom)
+        try #require(system.geometry.livePaths.contains(path), "\(system.geometry.livePaths)")
+        #expect(!system.geometry.isTargetable(at: path))
+      }
+    }
+
+    /// A production change that fails this test: the pill stays out of
+    /// targeting after an unpin, so a jump session gives the shown pill no
+    /// label.
+    @Test func anUnpinnedPillIsATargetOfJumpAndNavigation() throws {
+      let system = CommandSystem()
+      let anchors = ScrollAnchorManager()
+      let (hosting, path) = Self.mountScopedPill(anchors, system: system)
+
+      Self.unpin(anchors, rowKeys: Self.rowKeys)
+      StyleViewHost.layOut(hosting)
+
+      try #require(!anchors.isPinnedToBottom)
+      try #require(system.geometry.livePaths.contains(path), "\(system.geometry.livePaths)")
+      #expect(system.geometry.isTargetable(at: path))
     }
 
     /// A production change that fails this test: the pill removes its button
