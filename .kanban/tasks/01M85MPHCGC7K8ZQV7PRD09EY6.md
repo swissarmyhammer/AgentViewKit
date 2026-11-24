@@ -31,6 +31,13 @@ comments:
     - evidence: 2 files — Sources/AgentViewKit/Input/EditorKitPromptEditor.swift, Tests/AgentViewKitTests/Input/PromptEditorSessionSyncTests.swift. `swift test --filter PromptEditorSessionSyncTests` 6 passed; `swift test` 1726 tests in 194 suites and 59 tests in 12 suites passed, 0 failures; `swift build` 0 compiler warnings; `swift build --build-tests` in IntegrationTests complete.
     - next: /review; after commit and push, the CI Integration job must run ThreadComposerHostedTests green.
   timestamp: 2026-11-24T02:18:08.410115+00:00
+- actor: claude-code
+  id: 01m85nmkvbkbr7p4v22ya8v1k0
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (a0f7738f); 0 findings, 0 confirmed, 0 refuted; 7 attempted, 0 failed. The prior finding (EditorKitPromptEditor.swift:417, completeness/public-output-contract) is checked.
+    - next: the task stays in review. After push, the CI Integration job must run ThreadComposerHostedTests green; then check the two CI items and move the task to done.
+  timestamp: 2026-11-24T02:19:57.675193+00:00
 position_column: review
 position_ordinal: '8580'
 title: A late editor commit must not give the old text back after a host composer clears the prompt
@@ -68,3 +75,12 @@ Fix: the editor session (`EditorKitPromptEditor` session class, near `didPush`/`
 > - `.kanban/ (from .reviewignore)` — 4 file(s)
 
 - [x] `Sources/AgentViewKit/Input/EditorKitPromptEditor.swift:417` `completeness/public-output-contract` — The new early return in didCommit skips every commit side effect when the prompt changed outside the editor. For a .completionAccept transaction, the file reference or mention is not recorded, and didAccept(in:) is not called. The pull replaces the editor text, so the accepted completion is lost without any warning or fallback. The intended fix only needed to stop the old text from being pushed back, not to drop the accept side effects. Keep the pull, but do not return before the userEvent switch. Run the accept side effects first, or skip only the push at line 437. Add a test where an accept commit follows an outside change and check that the file reference or mention is still recorded.
+
+## Review Findings (2026-11-23 20:18)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 2 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+No findings (a0f7738f): 0 findings, 0 confirmed, 0 refuted.

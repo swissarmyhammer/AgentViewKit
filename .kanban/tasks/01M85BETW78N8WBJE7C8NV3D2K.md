@@ -62,8 +62,15 @@ comments:
     - evidence: review sha HEAD~1..HEAD (62a86ab9): 0 findings, 0 confirmed, 0 refuted, 7 attempted, 0 failed. 3 files reviewed. The 2 .kanban files are excluded by .reviewignore. All prior review items are checked. Implementer evidence: swift test 1720 + 59 pass; the hit test fails without the fix.
     - next: The task stays in review. The hosted items wait for CI (AnswerTextContextMenuPointerHostedTests, LiveRowRangeRedrawScopeTests, ThreadModelCacheHostedTests). Move the task to done when CI is green.
   timestamp: 2026-11-24T00:40:00.817109+00:00
-position_column: review
-position_ordinal: '8480'
+- actor: claude-code
+  id: 01m85np8seqdb2kcmv63kajk30
+  text: |-
+    ### review — clean
+    - evidence: review sha 62a86ab9~1..62a86ab9: 0 findings, 0 confirmed, 0 refuted, 7 attempted, 0 failed. 3 files reviewed. The 2 .kanban files are excluded by .reviewignore. All prior review items are checked. All task items are checked. CI run 45299061645 passed the hosted suites.
+    - next: none. The task is in done.
+  timestamp: 2026-11-24T02:20:51.886734+00:00
+position_column: done
+position_ordinal: ffffffff9e80
 title: 'Regression: the answer row is not live on the first render pass, so its text has no context menu'
 ---
 ## What
