@@ -35,11 +35,16 @@ import Testing
   /// - Returns: The window. Its content view is the host of the thread.
   static func mountAnswer() -> NSWindow {
     let session = SessionModel.preview(transcript: [.agent(answer)])
-    let hosting = StyleViewHost.host(
-      AgentThreadView(session: session)
-        .commandSystem(CommandSystem())
-        .transaction { $0.disablesAnimations = true },
-      size: size)
+    return mount(AgentThreadView(session: session).commandSystem(CommandSystem()))
+  }
+
+  /// A view with no animation at the ``size`` of a thread, laid out one
+  /// time in a borderless window that is never ordered in.
+  ///
+  /// - Parameter view: The view, such as a thread with its command system.
+  /// - Returns: The window. Its content view is the host of the view.
+  static func mount(_ view: some View) -> NSWindow {
+    let hosting = StyleViewHost.host(view.transaction { $0.disablesAnimations = true }, size: size)
     let window = NSWindow(
       contentRect: NSRect(origin: .zero, size: size), styleMask: [.borderless], backing: .buffered, defer: true)
     window.isReleasedWhenClosed = false

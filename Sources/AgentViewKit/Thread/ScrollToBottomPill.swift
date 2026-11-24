@@ -10,14 +10,15 @@ import SwiftUI
 /// scrolled up, for example "1 new". With no new item, the title is
 /// "Scroll to Bottom".
 ///
-/// The pill shows and hides above the composer, in the glass container of
-/// the floating controls. The conversation keeps the pill in the view tree,
-/// and hides it in place while the list is pinned (task ^ts5hyjr), so an
-/// unpin does not make the pill again. Its glass has the id
-/// ``FloatingGlassID/scrollPill`` (`.floatingGlassID(_:)`), so a change next
-/// to it morphs (D113 answer 2). The pill is
-/// its own glass in that container, not a button on another glass, so it
-/// keeps the glass style (``SwiftUI/View/floatingGlassAction(glassID:identifier:)``).
+/// The pill shows and hides above the composer, in the floating controls of
+/// a thread. The conversation keeps the pill in the view tree, and hides it
+/// in place while the list is pinned (task ^ts5hyjr), so an unpin does not
+/// make the pill again. The conversation puts the pill in its own glass
+/// container, because a glass container draws the label of a glass button
+/// also when a view between them has an opacity of zero (task ^ctzmqh3).
+/// Its glass has the id ``FloatingGlassID/scrollPill``
+/// (`.floatingGlassID(_:)`, D113 answer 2). The pill is its own glass, not a
+/// button on another glass, so it keeps the glass style (``SwiftUI/View/floatingGlassAction(glassID:identifier:)``).
 public struct ScrollToBottomPill: View {
   /// The accessibility identifier of the pill.
   public static let identifier = "scroll-to-bottom-pill"

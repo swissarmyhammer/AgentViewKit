@@ -76,7 +76,9 @@ import SwiftUI
 /// above the bar, and takes no space in the bar. Thus the bottom inset of the
 /// list does not change when the pill shows or goes away (^66has33). The pill
 /// and the slot are in one `GlassEffectContainer`, with no glass on glass
-/// (D110 (c)).
+/// (D110 (c)). The button of the pill is in a second container in that
+/// container, so the hidden pill draws no label (``ConversationPill``,
+/// task ^ctzmqh3).
 /// The thread view gives its session model and its connection model to the
 /// slot (``SwiftUI/EnvironmentValues/sessionModel``,
 /// ``SwiftUI/EnvironmentValues/connectionModel``), and the slot is in the

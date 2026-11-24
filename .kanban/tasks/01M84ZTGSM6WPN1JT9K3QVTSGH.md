@@ -74,8 +74,15 @@ comments:
     - evidence: review sha HEAD~1..HEAD (ec04b89e): 0 findings (0 confirmed, 0 refuted; 7 attempted, 0 failed). 4 files reviewed. All prior review items are checked.
     - next: run the screenshot gallery when the computer is free. The gallery run is the last open item. The task stays in review until the gallery run is done.
   timestamp: 2026-11-23T21:09:40.600066+00:00
-position_column: review
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m86sccnrza8yvgrkjtjynw8c
+  text: |-
+    ### review — clean
+    - evidence: no new review. The newest code range of this card is ec04b89e (review sha HEAD~1..HEAD). It has a clean review record: 0 findings. The later commit cba06915 changes only the kanban files of this card. All 10 items are checked. The screenshot gallery run passed on 2026-11-24 05:37 (46 tests). CI 45311745699 is green.
+    - next: none. The card moves to done.
+  timestamp: 2026-11-24T12:44:36.920843+00:00
+position_column: done
+position_ordinal: ffffffffa180
 title: Keep the EditorKit models of thread rows in a thread-level cache so rows that come back do not rebuild
 ---
 ## Rule

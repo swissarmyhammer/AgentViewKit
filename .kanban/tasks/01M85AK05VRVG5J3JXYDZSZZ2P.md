@@ -51,8 +51,15 @@ comments:
     - evidence: `review sha HEAD~1..HEAD` (commit 9aea30e7): 0 findings, 0 confirmed, 0 refuted; 7 attempted, 0 failed. 3 files reviewed. The one prior finding (ThreadComposerHostedTests.swift:99 reuse/reuse) is checked.
     - next: The task stays in review. Two items are open: (1) the gallery screen of a read-only thread with this composer (thread-external-composer), and (2) the hosted test run of ThreadComposerHostedTests and the gallery run. Do these items on CI or when the screen is free. Then move the task to done.
   timestamp: 2026-11-23T23:26:30.968133+00:00
-position_column: review
-position_ordinal: '8280'
+- actor: claude-code
+  id: 01m86sc7hamdhqb1d9hg9r4b2q
+  text: |-
+    ### review — clean
+    - evidence: No new review. The newest code range of this card is commit 9aea30e7, and it has a clean review record (`review sha HEAD~1..HEAD`: 0 findings, 0 confirmed, 0 refuted). Commit dbc80b63 changes only the comments of this card. The one prior finding (ThreadComposerHostedTests.swift:99 reuse/reuse) is checked. All work items, acceptance criteria and test items are checked: CI 45311745699 passed ThreadComposerHostedTests (3 tests), and the gallery image thread-external-composer-light.png is from the run of 2026-11-24 05:37.
+    - next: none. The task is in done.
+  timestamp: 2026-11-24T12:44:31.658176+00:00
+position_column: done
+position_ordinal: ffffffffa080
 title: A read-only thread can show a composer whose submit goes to a host closure (TestudoApp D212 5.3/5.4)
 ---
 ## What
@@ -65,7 +72,7 @@ Work:
 - [x] The placeholder text comes from the host, for example "Message to continue in Testudo".
 - [x] A submit calls the host closure one time with the text, and then the composer clears. An empty text does not submit.
 - [x] A read-only thread with no such option still shows no composer (no change for D208 shared sessions).
-- [ ] A gallery screen of a read-only thread with this composer.
+- [x] A gallery screen of a read-only thread with this composer.
 
 ## Acceptance Criteria
 - [x] With the option, a read-only thread shows the composer with the host placeholder.
@@ -75,7 +82,7 @@ Work:
 ## Tests
 - [x] Headless unit tests first (they fail before the change): the option sets the environment or slot; a submit calls the host one time with the text; the text clears; an empty text does not call the host.
 - [x] `swift test` in the root: all pass, no code warnings.
-- [ ] A hosted test (type, press Return, the host closure gets the text) and the gallery screen: write and build them; run them when the screen is free (`cd IntegrationTests && swift test --filter <Name>`; `HOME=<temp> swift test --package-path ScreenshotTests`).
+- [x] A hosted test (type, press Return, the host closure gets the text) and the gallery screen: write and build them; run them when the screen is free (`cd IntegrationTests && swift test --filter <Name>`; `HOME=<temp> swift test --package-path ScreenshotTests`).
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass. #d212

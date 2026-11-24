@@ -734,6 +734,21 @@ extension ConversationView where EmptyState == DefaultConversationEmptyState {
 /// the text of the last answer gave no context menu (task ^8nv3d2k). With a
 /// scale of zero, the glass has no area, but the layout size of the button
 /// does not change.
+///
+/// The button is in its own `GlassEffectContainer`, and the pill hides that
+/// container. A glass container draws the label of each glass button in it,
+/// and it does not apply the opacity or the scale of the views between it
+/// and the button. Thus, in the container of the floating controls, the
+/// hidden button drew its gray label "Scroll to Bottom" above the composer
+/// of each thread that was pinned to the bottom (task ^ctzmqh3). The
+/// opacity and the scale of the pill apply to the whole own container, so
+/// the hidden pill draws nothing. The pill uses the SwiftUI
+/// `GlassEffectContainer`, not the EditorKit `FloatingGlassContainer`: in
+/// the container of the floating controls, a `FloatingGlassContainer` makes
+/// no second container, and the hidden pill drew its label again
+/// (`ConversationPillDrawTests`). The pill never shows or hides with an
+/// insert or a removal, so its glass has no morph with the glass of the
+/// composer that the own container could stop.
 struct ConversationPill: View {
   /// The manager of the conversation.
   let anchors: ScrollAnchorManager
@@ -767,13 +782,15 @@ struct ConversationPill: View {
       BodyEvaluationCounter.note(Self.counterKey(for: anchors))
     #endif
     let isHidden = anchors.isPinnedToBottom
-    return ConversationPillButton(anchors: anchors)
-      .opacity(isHidden ? 0 : 1)
-      .scaleEffect(isHidden ? 0 : 1)
-      .allowsHitTesting(!isHidden)
-      .accessibilityHidden(isHidden)
-      .disabled(isHidden)
-      .agentControlTargetable(!isHidden)
+    return GlassEffectContainer {
+      ConversationPillButton(anchors: anchors)
+    }
+    .opacity(isHidden ? 0 : 1)
+    .scaleEffect(isHidden ? 0 : 1)
+    .allowsHitTesting(!isHidden)
+    .accessibilityHidden(isHidden)
+    .disabled(isHidden)
+    .agentControlTargetable(!isHidden)
   }
 }
 
