@@ -136,7 +136,7 @@ Use /tdd.
 - [x] Add the DEBUG counter key.
 - [x] Add the hosted test (it fails first).
 - [x] Keep the pill mounted and hide it with opacity and hit testing.
-- [ ] Update snapshot images if the look changes and give the paths.
+- [x] Update snapshot images if the look changes and give the paths.
 
 Files: AgentThreadView.swift, ConversationPill source file, one new test file. #scroll-perf
 

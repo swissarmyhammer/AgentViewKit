@@ -49,8 +49,15 @@ comments:
     - evidence: 6 files — Sources/AgentViewKit/Thread/ConversationView.swift, Sources/AgentViewKit/Thread/ScrollToBottomPill.swift, Sources/AgentViewKit/Thread/AgentThreadView.swift, plan.md, Tests/AgentViewKitTests/Thread/ConversationPillDrawTests.swift (new), Tests/AgentViewKitTests/Thread/AnswerTextHitTests.swift; `swift build` 0 warnings; `swift test` 1728 tests / 195 suites and 59 tests / 12 suites passed, 0 warnings; `swift build --build-tests` complete in IntegrationTests and ScreenshotTests. Ticked 4/7 (unchanged): the gallery and CI items have no evidence yet.
     - next: /review; then the gallery run (thread-light.png, thread-external-composer-light.png, bottom-bar-buttons-light.png) and the CI Integration job (`ConversationPillMountHostedTests`).
   timestamp: 2026-11-24T12:45:44.651261+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m86sr6a2sv3j4xpf9p3paj7z
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (commit b57c8c89): 0 findings, 0 confirmed, 0 refuted; 7 validator runs attempted, 0 failed. The engine reviewed 5 files. It did not review 6 `.kanban/` files (`.reviewignore`) and `plan.md` (no validator matches it).
+    - next: the card stays in review. The gallery run and the CI Integration job (`ConversationPillMountHostedTests`) stay open until those runs occur. They are not findings.
+  timestamp: 2026-11-24T12:51:03.618954+00:00
+position_column: review
+position_ordinal: '8480'
 title: The gallery images show the Scroll to Bottom pill over a thread that is at the bottom
 ---
 ## What
