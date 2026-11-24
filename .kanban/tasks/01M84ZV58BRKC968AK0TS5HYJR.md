@@ -118,9 +118,9 @@ Bug: "scrolling is not very smooth in the agent view". One hitch occurs when the
 - Fix: keep `ConversationPill` always mounted. Hide it with `.opacity(0)`, `.allowsHitTesting(false)` and `.accessibilityHidden(true)` when it does not show.
 
 ## Acceptance Criteria
-- [ ] The pill view is in the tree in both states.
-- [ ] A hidden pill is not visible, not clickable, and not in accessibility.
-- [ ] One unpin evaluates the floating controls a small, fixed number of times.
+- [x] The pill view is in the tree in both states.
+- [x] A hidden pill is not visible, not clickable, and not in accessibility.
+- [x] One unpin evaluates the floating controls a small, fixed number of times.
 
 ## Tests
 Write the tests first.
@@ -134,7 +134,7 @@ Use /tdd.
 
 ## Subtasks
 - [x] Add the DEBUG counter key.
-- [ ] Add the hosted test (it fails first).
+- [x] Add the hosted test (it fails first).
 - [x] Keep the pill mounted and hide it with opacity and hit testing.
 - [ ] Update snapshot images if the look changes and give the paths.
 
@@ -154,9 +154,9 @@ Files: AgentThreadView.swift, ConversationPill source file, one new test file. #
 > Scope: CI run 45280376533 on main 72067e53, Integration job 138079951178. Three hosted tests of ConversationPillMountHostedTests failed.
 > After that run, commit dbc80b63 added `.scaleEffect(isHidden ? 0 : 1)` to the hidden pill, because the glass took clicks over the transcript. The CI run on af4a5cc8 is in progress. It will show if that commit changed these 3 results.
 
-- [ ] IntegrationTests/Tests/IntegrationTests/Thread/ConversationPillMountHostedTests.swift:191 — aPinnedThreadGivesThePillNoJumpLabel: Expectation failed: !chips.contains { $0.id == shown.path }
-- [ ] ConversationPillMountHostedTests.swift:204 — aJumpCommitOnTheHiddenPillLandsNowhere: Expectation failed: !jump.commit(shown.path)
-- [ ] ConversationPillMountHostedTests.swift:170 — anUnpinKeepsTheFrameOfTheFloatingControls: Expectation failed: harness.frame(identifier: controls) ...
+- [x] IntegrationTests/Tests/IntegrationTests/Thread/ConversationPillMountHostedTests.swift:191 — aPinnedThreadGivesThePillNoJumpLabel: Expectation failed: !chips.contains { $0.id == shown.path }
+- [x] ConversationPillMountHostedTests.swift:204 — aJumpCommitOnTheHiddenPillLandsNowhere: Expectation failed: !jump.commit(shown.path)
+- [x] ConversationPillMountHostedTests.swift:170 — anUnpinKeepsTheFrameOfTheFloatingControls: Expectation failed: harness.frame(identifier: controls) ...
 
 ## Review Findings (2026-11-23 18:28)
 

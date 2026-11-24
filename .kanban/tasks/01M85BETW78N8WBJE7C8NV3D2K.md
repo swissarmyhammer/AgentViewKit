@@ -74,17 +74,17 @@ The element with `ResponseView.textIdentifier` exists, but no view under it give
 
 - [x] Find the cause. Write a headless test first that fails: mount a thread with one answer (as `ThreadHeaderContextMenuHostedTests.mountThread`, headless with `StyleViewHost` if possible) and check that the answer row is live (shows its editor, not its placeholder) after one layout pass.
 - [x] Fix it in SwiftUI. A row that is in view, or a short transcript before the first visible-rows report, must be live.
-- [ ] Keep the gains of the scroll cards (`LiveRowRangeRedrawScopeTests`, `ThreadModelCacheHostedTests` counts).
+- [x] Keep the gains of the scroll cards (`LiveRowRangeRedrawScopeTests`, `ThreadModelCacheHostedTests` counts).
 
 ## Acceptance Criteria
 - [x] The new headless test passes, and failed before the fix.
-- [ ] The two failing hosted tests pass on CI.
-- [ ] The counting tests of the scroll cards still pass.
+- [x] The two failing hosted tests pass on CI.
+- [x] The counting tests of the scroll cards still pass.
 
 ## Tests
 - [x] The new headless test (fails first).
 - [x] `swift test` in the root: all pass, no code warnings.
-- [ ] Hosted (`AnswerTextContextMenuPointerHostedTests`, `LiveRowRangeRedrawScopeTests`, `ThreadModelCacheHostedTests`): run on CI if the screen of this Mac is not free.
+- [x] Hosted (`AnswerTextContextMenuPointerHostedTests`, `LiveRowRangeRedrawScopeTests`, `ThreadModelCacheHostedTests`): run on CI if the screen of this Mac is not free.
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass. #scroll-perf

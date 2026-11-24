@@ -407,6 +407,15 @@ public struct EditorKitPromptEditor: View {
     // it, for example the next transcript of a dictation. So the commit of a
     // taken text gives nothing back to the prompt.
     guard !Self.isPull(transaction) else { return }
+    // A host composer with an async submit hook clears the prompt after the
+    // Return, in a later task. A commit that comes after that clear, and
+    // before the change of the prompt reaches the editor, must not give the
+    // old text back. So a prompt text that changed outside the editor goes
+    // to the editor, and the editor pushes nothing.
+    if session.isChangedOutside(context.text.wrappedValue) {
+      pull(context.text.wrappedValue, into: model)
+      return
+    }
     var references = references
     var mentions = mentions
     switch transaction.annotations.userEvent {
@@ -651,7 +660,7 @@ public struct EditorKitPromptEditor: View {
   ///   - text: The text of the prompt.
   ///   - model: The model of the editor.
   private func pull(_ text: AttributedString, into model: EditorModel) {
-    session.didPull()
+    session.didPull(text)
     references = Self.references(in: text, root: kitFileRoot)
     mentions = Self.mentions(in: text, root: kitFileRoot)
     let plain = String(text.characters)
@@ -833,6 +842,11 @@ final class PromptEditorSession {
   /// the editor takes a text from the prompt.
   private var pushedText: AttributedString?
 
+  /// The newest text that the editor gave to the prompt or took from it, or
+  /// `nil` before the first push or pull. A different text of the prompt
+  /// comes from a change outside the editor.
+  private var syncedText: AttributedString?
+
   /// The task that reads the committed transactions of the model.
   ///
   /// The task holds only the stream, so it ends when the model goes away.
@@ -941,12 +955,27 @@ final class PromptEditorSession {
   /// - Parameter text: The text.
   func didPush(_ text: AttributedString) {
     pushedText = text
+    syncedText = text
   }
 
   /// Forgets the newest pushed text, because the editor takes a text from
   /// the prompt.
-  func didPull() {
+  ///
+  /// - Parameter text: The text that the editor takes from the prompt.
+  func didPull(_ text: AttributedString) {
     pushedText = nil
+    syncedText = text
+  }
+
+  /// Whether the text of the prompt changed outside the editor.
+  ///
+  /// - Parameter promptText: The text of the prompt.
+  /// - Returns: `true` when the editor gave or took a text, and `promptText`
+  ///   is not the newest of those texts. `false` before the first push or
+  ///   pull.
+  func isChangedOutside(_ promptText: AttributedString) -> Bool {
+    guard let syncedText else { return false }
+    return promptText != syncedText
   }
 
   /// Whether a text of the prompt is the newest text that the editor gave.
