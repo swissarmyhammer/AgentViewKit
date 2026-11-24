@@ -407,35 +407,50 @@ public struct EditorKitPromptEditor: View {
     // it, for example the next transcript of a dictation. So the commit of a
     // taken text gives nothing back to the prompt.
     guard !Self.isPull(transaction) else { return }
-    // A host composer with an async submit hook clears the prompt after the
-    // Return, in a later task. A commit that comes after that clear, and
-    // before the change of the prompt reaches the editor, must not give the
-    // old text back. So a prompt text that changed outside the editor goes
-    // to the editor, and the editor pushes nothing.
-    if session.isChangedOutside(context.text.wrappedValue) {
-      pull(context.text.wrappedValue, into: model)
-      return
-    }
-    var references = references
-    var mentions = mentions
+    var acceptedReferences: Set<String> = []
+    var acceptedMentions: [String: URL?] = [:]
     switch transaction.annotations.userEvent {
     case .input, .delete:
       updateCompletion(in: model)
     case .completionAccept:
       let line = caretLine(in: model)
       if let path = Self.acceptedFile(before: line, root: kitFileRoot) {
-        references.insert(path)
-        self.references = references
+        acceptedReferences.insert(path)
       } else if let token = Self.acceptedMentionToken(before: line), let link = session.offeredMention(token) {
-        mentions.updateValue(link, forKey: token)
-        self.mentions = mentions
+        acceptedMentions.updateValue(link, forKey: token)
       }
       didAccept(in: model)
     default:
       break
     }
+    // A host composer with an async submit hook clears the prompt after the
+    // Return, in a later task. A commit that comes after that clear, and
+    // before the change of the prompt reaches the editor, must not give the
+    // old text back. So a prompt text that changed outside the editor goes
+    // to the editor, and the editor pushes nothing. The file reference or the
+    // mention that this commit accepted stays recorded.
+    let promptText = context.text.wrappedValue
+    guard !session.isChangedOutside(promptText) else {
+      pull(promptText, into: model, keeping: acceptedReferences, mentions: acceptedMentions)
+      return
+    }
+    record(acceptedReferences, mentions: acceptedMentions)
     push(model.text, references: references, mentions: mentions)
     resolveMentions(in: model)
+  }
+
+  /// Records the file references and the mentions that an accept added.
+  ///
+  /// - Parameters:
+  ///   - acceptedReferences: The paths of the accepted file references.
+  ///   - acceptedMentions: The accepted mentions and their links.
+  private func record(_ acceptedReferences: Set<String>, mentions acceptedMentions: [String: URL?]) {
+    if !acceptedReferences.isEmpty {
+      references.formUnion(acceptedReferences)
+    }
+    if !acceptedMentions.isEmpty {
+      mentions.merge(acceptedMentions) { _, accepted in accepted }
+    }
   }
 
   /// Whether a transaction is the change of a text that the editor took from
@@ -653,16 +668,24 @@ public struct EditorKitPromptEditor: View {
   /// text after a submit, or a restored draft.
   ///
   /// The file links of the text become the accepted file references
-  /// (``references(in:root:)``), the inverse of ``push(_:references:)``. So
-  /// the next push gives each linked file its link again.
+  /// (``references(in:root:keeping:)``), the inverse of
+  /// ``push(_:references:)``. So the next push gives each linked file its
+  /// link again.
   ///
   /// - Parameters:
   ///   - text: The text of the prompt.
   ///   - model: The model of the editor.
-  private func pull(_ text: AttributedString, into model: EditorModel) {
+  ///   - keptReferences: The paths of the file references that an accept
+  ///     recorded, which stay recorded.
+  ///   - keptMentions: The mentions that an accept recorded, which stay
+  ///     recorded.
+  private func pull(
+    _ text: AttributedString, into model: EditorModel, keeping keptReferences: Set<String> = [],
+    mentions keptMentions: [String: URL?] = [:]
+  ) {
     session.didPull(text)
-    references = Self.references(in: text, root: kitFileRoot)
-    mentions = Self.mentions(in: text, root: kitFileRoot)
+    references = Self.references(in: text, root: kitFileRoot, keeping: keptReferences)
+    mentions = Self.mentions(in: text, root: kitFileRoot, keeping: keptMentions)
     let plain = String(text.characters)
     guard plain != model.text else { return }
     model.replaceAll(plain)
@@ -705,6 +728,34 @@ public struct EditorKitPromptEditor: View {
       result.updateValue(link, forKey: String(run.dropFirst(FileReferenceSource.trigger.count)))
     }
     return result
+  }
+
+  /// The accepted file references after the editor takes a prompt text.
+  ///
+  /// - Parameters:
+  ///   - text: The text of the prompt.
+  ///   - root: The file root, or `nil`.
+  ///   - kept: The paths of the file references that an accept recorded.
+  ///     They stay when the text has no link for them, for example after a
+  ///     clear outside the editor.
+  /// - Returns: The references of `text` (``references(in:root:)``) and
+  ///   `kept`.
+  static func references(in text: AttributedString, root: URL?, keeping kept: Set<String>) -> Set<String> {
+    references(in: text, root: root).union(kept)
+  }
+
+  /// The accepted mentions after the editor takes a prompt text.
+  ///
+  /// - Parameters:
+  ///   - text: The text of the prompt.
+  ///   - root: The file root, or `nil`.
+  ///   - kept: The mentions that an accept recorded, and their links. They
+  ///     stay when the text has no link for them, for example after a clear
+  ///     outside the editor.
+  /// - Returns: The mentions of `text` (``mentions(in:root:)``) and `kept`.
+  ///   A kept link replaces the link of the text for the same token.
+  static func mentions(in text: AttributedString, root: URL?, keeping kept: [String: URL?]) -> [String: URL?] {
+    mentions(in: text, root: root).merging(kept) { _, accepted in accepted }
   }
 
   /// The token of the mention that an accept just inserted.

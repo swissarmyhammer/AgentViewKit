@@ -37,4 +37,26 @@ import Testing
   @Test func aPromptTextBeforeTheFirstPushOrPullIsNoOutsideChange() {
     #expect(!PromptEditorSession().isChangedOutside(Self.pushed))
   }
+
+  // MARK: - Accept after an outside change
+
+  /// The file root of the accept tests.
+  static let root = URL(filePath: "/tmp/project", directoryHint: .isDirectory)
+
+  /// The link of the accepted mention in the tests.
+  static let link = URL(string: "https://example.com/claude-code")
+
+  @Test func aFileReferenceThatAnAcceptRecordedStaysAfterAnOutsideClear() {
+    let references = EditorKitPromptEditor.references(
+      in: AttributedString(""), root: Self.root, keeping: ["notes.txt"])
+
+    #expect(references == ["notes.txt"])
+  }
+
+  @Test func aMentionThatAnAcceptRecordedStaysAfterAnOutsideClear() {
+    let mentions = EditorKitPromptEditor.mentions(
+      in: AttributedString(""), root: Self.root, keeping: ["claude-code": Self.link])
+
+    #expect(mentions == ["claude-code": Self.link])
+  }
 }
