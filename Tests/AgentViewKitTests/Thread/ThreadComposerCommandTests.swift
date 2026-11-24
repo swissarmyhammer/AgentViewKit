@@ -4,7 +4,6 @@ import EditorCommands
 import EditorCommandsUI
 import EditorTestSupport
 import FoundationModelsACPClient
-import Observation
 import SwiftUI
 import Testing
 
@@ -36,42 +35,6 @@ import Testing
     .cancel, .approvePending, .rejectPending, .forkFromHere,
   ]
 
-  /// The texts that the host closure got. While ``isHeld`` is `true`, the
-  /// closure does not return until the test calls ``release()``.
-  @MainActor @Observable final class HostRecord {
-    /// Each text that the host closure got, in order.
-    var texts: [String] = []
-
-    /// Whether the closure waits for ``release()`` before it returns.
-    @ObservationIgnored let isHeld: Bool
-
-    /// The wait of a held closure, or `nil`.
-    @ObservationIgnored private var hold: CheckedContinuation<Void, Never>?
-
-    /// Makes a record.
-    ///
-    /// - Parameter isHeld: Whether the closure waits for ``release()``.
-    init(isHeld: Bool = false) {
-      self.isHeld = isHeld
-    }
-
-    /// The host closure, which keeps each text.
-    ///
-    /// - Parameter text: The text of the prompt.
-    func take(_ text: String) async {
-      texts.append(text)
-      if isHeld {
-        await withCheckedContinuation { hold = $0 }
-      }
-    }
-
-    /// Lets a held closure return.
-    func release() {
-      hold?.resume()
-      hold = nil
-    }
-  }
-
   /// A thread view of a read-only session under a command system of the
   /// test, laid out with no window.
   struct ThreadFixture {
@@ -100,7 +63,7 @@ import Testing
     ///   - host: The record of the host closure, or `nil` for no composer of
     ///     the host.
     ///   - draft: The text of the draft before the thread shows.
-    init(host: HostRecord?, draft: String = ThreadComposerCommandTests.prompt) {
+    init(host: ThreadComposerTests.HostRecord?, draft: String = ThreadComposerCommandTests.prompt) {
       let session = ReadOnlyThreadTests.readOnlyModel()
       PromptDraftStore.shared.draft(for: session).text = AttributedString(draft)
       let system = CommandSystem()
@@ -146,14 +109,15 @@ import Testing
   /// Registers the commands of a scope for a read-only session, with the
   /// fork action of the host, as the mount of a scope does.
   ///
-  /// - Parameter hasHostComposer: Whether the host gives its composer.
+  /// - Parameter host: The record of the host closure, or `nil` for no
+  ///   composer of the host.
   /// - Returns: The fixture.
-  static func registryFixture(hasHostComposer: Bool) -> ReadOnlyThreadTests.Fixture {
+  static func registryFixture(host: ThreadComposerTests.HostRecord?) -> ReadOnlyThreadTests.Fixture {
     let session = ReadOnlyThreadTests.readOnlyModel()
     let target = AgentCommandTarget()
     target.session = session
     target.forkFromHere = AgentCommandsTests.forkAction
-    target.hasHostComposer = hasHostComposer
+    target.hostComposer = host.map(ThreadComposerTests.route(to:))
     let path = FocusPath.root(AgentCommandTarget.segment(for: session))
     var registry = CommandRegistry()
     AgentCommandRegistration.register(target, at: path, into: &registry)
@@ -167,7 +131,7 @@ import Testing
   /// composer.
   @Test(arguments: composeVerbs)
   func aReadOnlyScopeWithTheHostComposerRegistersAComposeVerb(_ verb: AgentCommandVerb) {
-    let fixture = Self.registryFixture(hasHostComposer: true)
+    let fixture = Self.registryFixture(host: ThreadComposerTests.HostRecord())
 
     #expect(fixture.registry.definition(for: verb.id, at: fixture.path) != nil)
   }
@@ -178,7 +142,7 @@ import Testing
   func aReadOnlyScopeWithTheHostComposerDoesNotRegisterASessionChangeVerb(
     _ verb: AgentCommandVerb
   ) throws {
-    let fixture = Self.registryFixture(hasHostComposer: true)
+    let fixture = Self.registryFixture(host: ThreadComposerTests.HostRecord())
     // A read verb is in the registry, so the registration ran at this path.
     let copyThread = fixture.registry.definition(
       for: AgentCommandVerb.copyThread.id, at: fixture.path)
@@ -188,14 +152,74 @@ import Testing
   }
 
   /// A production change that fails this test: a Send with a text payload
-  /// in a read-only scope goes to the read-only model, which refuses it.
-  @Test func aSendWithATextPayloadIsNotAvailableInAReadOnlyScope() {
-    let fixture = Self.registryFixture(hasHostComposer: true)
+  /// in a read-only scope with no composer of the host is available, so it
+  /// goes to the read-only model, which refuses it.
+  @Test func aSendWithATextPayloadIsNotAvailableInAReadOnlyScopeWithNoHostComposer() {
+    let fixture = Self.registryFixture(host: nil)
 
     let availability = fixture.target.availability(
       of: .send, payload: AgentCommandPayload.text(Self.prompt))
 
     #expect(availability == .unavailable(reason: AgentCommandTarget.readOnlySendReason))
+  }
+
+  /// A production change that fails this test: a Send with a text payload
+  /// in a read-only scope with the composer of the host does not give the
+  /// payload to the closure of the host, or gives it two times (Testudo D108
+  /// and D100: a command does the same as a typed message).
+  @Test func aSendWithATextPayloadGivesThePayloadToTheHostOneTime() async throws {
+    let host = ThreadComposerTests.HostRecord()
+    let fixture = Self.registryFixture(host: host)
+    try #require(fixture.target.run(.send, payload: AgentCommandPayload.text(Self.prompt)))
+
+    await ObservationWait.until { !host.texts.isEmpty }
+
+    #expect(host.texts == [Self.prompt])
+  }
+
+  /// A production change that fails this test: a Send with a text payload
+  /// is available while the closure of the host runs, so a second submit
+  /// can start.
+  @Test func aSendWithATextPayloadIsNotAvailableWhileTheHostRuns() async throws {
+    let host = ThreadComposerTests.HostRecord(isHeld: true)
+    defer { host.release() }
+    let fixture = Self.registryFixture(host: host)
+    try #require(fixture.target.run(.send, payload: AgentCommandPayload.text(Self.prompt)))
+    await ObservationWait.until { !host.texts.isEmpty }
+
+    let availability = fixture.target.availability(
+      of: .send, payload: AgentCommandPayload.text(Self.prompt))
+
+    #expect(availability == .unavailable(reason: AgentCommandTarget.reason(for: .send)))
+  }
+
+  /// A production change that fails this test: a submit of the composer
+  /// calls the closure of the host while a Send with a text payload runs
+  /// it, so the host gets two prompts at one time.
+  @Test func aComposerSubmitWhileTheHostRunsDoesNotCallTheHost() async throws {
+    let host = ThreadComposerTests.HostRecord(isHeld: true)
+    defer { host.release() }
+    let fixture = Self.registryFixture(host: host)
+    let route = try #require(fixture.target.hostComposer)
+    try #require(fixture.target.run(.send, payload: AgentCommandPayload.text(Self.prompt)))
+    await ObservationWait.until { !host.texts.isEmpty }
+
+    let result = await fixture.target.submitToHost(
+      ComposerSubmission(AttributedString(Self.prompt), fileRoot: nil), through: route)
+
+    #expect(result.isCancelled && host.texts.count == 1)
+  }
+
+  /// A production change that fails this test: a Send with a blank text
+  /// payload is available in a read-only scope with the composer of the
+  /// host.
+  @Test func aSendWithABlankTextPayloadIsNotAvailable() {
+    let fixture = Self.registryFixture(host: ThreadComposerTests.HostRecord())
+
+    let availability = fixture.target.availability(
+      of: .send, payload: AgentCommandPayload.text("  \n"))
+
+    #expect(availability == .unavailable(reason: AgentCommandTarget.reason(for: .send)))
   }
 
   // MARK: - Thread
@@ -205,7 +229,7 @@ import Testing
   /// drops a verb of the group `compose`.
   @Test(arguments: composeVerbs)
   func aReadOnlyThreadWithTheHostComposerRegistersAComposeVerb(_ verb: AgentCommandVerb) {
-    let fixture = ThreadFixture(host: HostRecord())
+    let fixture = ThreadFixture(host: ThreadComposerTests.HostRecord())
 
     #expect(fixture.registers(verb))
   }
@@ -226,7 +250,7 @@ import Testing
   /// A production change that fails this test: Send Message does not give
   /// the draft to the closure of the host, or gives it two times.
   @Test func sendMessageGivesTheDraftToTheHostOneTime() async throws {
-    let host = HostRecord()
+    let host = ThreadComposerTests.HostRecord()
     let fixture = ThreadFixture(host: host)
     try #require(fixture.performSend())
 
@@ -239,7 +263,7 @@ import Testing
   /// A production change that fails this test: after the host took the
   /// prompt, the draft keeps the text.
   @Test func sendMessageClearsTheDraftWhenTheHostReturns() async throws {
-    let host = HostRecord()
+    let host = ThreadComposerTests.HostRecord()
     let fixture = ThreadFixture(host: host)
     try #require(fixture.performSend())
     await ObservationWait.until { host.texts.count == 1 }
@@ -252,7 +276,7 @@ import Testing
   /// A production change that fails this test: Send Message is available
   /// while the closure of the host runs, so a second submit can start.
   @Test func sendMessageIsNotAvailableWhileTheHostRuns() async throws {
-    let host = HostRecord(isHeld: true)
+    let host = ThreadComposerTests.HostRecord(isHeld: true)
     defer { host.release() }
     let fixture = ThreadFixture(host: host)
     try #require(fixture.performSend())
@@ -265,7 +289,7 @@ import Testing
   /// or is not registered, for a blank draft in a read-only thread with the
   /// composer of the host.
   @Test func sendMessageIsNotAvailableForABlankDraft() {
-    let fixture = ThreadFixture(host: HostRecord(), draft: "  \n")
+    let fixture = ThreadFixture(host: ThreadComposerTests.HostRecord(), draft: "  \n")
 
     #expect(fixture.sendAvailability == .unavailable(reason: AgentCommandTarget.reason(for: .send)))
   }

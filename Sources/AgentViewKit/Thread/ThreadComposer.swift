@@ -73,7 +73,10 @@ extension View {
   /// and Mention…, as for a live thread, so the menus, the palette and the
   /// keys run them. Send Message submits the composer, with the same guard
   /// as the Return key: it is not available for a blank text and while
-  /// `onSubmit` runs. Stop, Approve, Reject and Fork from Here stay absent.
+  /// `onSubmit` runs. Send Message with a text payload, such as from the
+  /// palette or the agent, calls `onSubmit` one time with that text, the
+  /// same as a typed message (Testudo D100), with the same guard. Stop,
+  /// Approve, Reject and Fork from Here stay absent.
   /// The scope reads the value of this modifier from the environment, so
   /// apply the modifier above a scope of the host
   /// (``SwiftUI/View/agentCommandScope(session:)``) that holds the thread.
@@ -113,9 +116,17 @@ extension View {
 /// The modifier changes only the environment of the slot, and keeps the
 /// identity of the composer. So a composer whose session becomes live while
 /// the host closure runs keeps its state, and takes no second submit.
+///
+/// The submit hook goes through the command target of the thread scope
+/// (``AgentCommandTarget/submitToHost(_:through:)``), so a typed message and
+/// a Send Message with a text payload share one guard: while the closure of
+/// the host runs, neither starts it again.
 struct ThreadComposerRouting: ViewModifier {
   /// The composer of the host, or `nil` to keep the environment of the slot.
   let route: ThreadComposerRoute?
+
+  /// The command target of the thread scope, or `nil` with no scope.
+  @Environment(\.agentCommandTarget) private var target
 
   func body(content: Content) -> some View {
     content
@@ -123,7 +134,21 @@ struct ThreadComposerRouting: ViewModifier {
         if let route { placeholder = route.placeholder }
       }
       .transformEnvironment(\.composerSubmitHook) { hook in
-        if let route { hook = route.submit }
+        if let route { hook = Self.hook(of: route, guardedBy: target) }
       }
+  }
+
+  /// The submit hook that gives each submission to `route`.
+  ///
+  /// - Parameters:
+  ///   - route: The composer of the host.
+  ///   - target: The command target of the thread scope, whose guard the
+  ///     hook uses, or `nil` with no scope.
+  /// - Returns: The hook.
+  static func hook(
+    of route: ThreadComposerRoute, guardedBy target: AgentCommandTarget?
+  ) -> ComposerSubmitHook {
+    guard let target else { return route.submit }
+    return { submission in await target.submitToHost(submission, through: route) }
   }
 }

@@ -113,7 +113,7 @@ struct AgentCommandScope: ViewModifier {
         system: system, path: path, session: session,
         pasteboard: pasteboard, requestStartReport: reportRequestStart, groupsOff: groupsOff,
         connection: connection ?? hostConnection, forkFromHere: forkFromHere,
-        hasHostComposer: hostComposer != nil)
+        hostComposer: hostComposer)
       content
         .environment(\.agentCommandTarget, ownTarget)
         .environment(\.agentCommandScopeSegment, segment)
@@ -334,8 +334,8 @@ struct AgentCommandMount: NSViewRepresentable {
     let connection: ConnectionModel?
     /// The fork action of the host, or `nil`.
     let forkFromHere: ForkFromHereAction?
-    /// Whether the host gives its composer to the read-only threads.
-    let hasHostComposer: Bool
+    /// The composer of the host for the read-only threads, or `nil`.
+    let hostComposer: ThreadComposerRoute?
   }
 
   /// The target to keep current.
@@ -469,7 +469,7 @@ struct AgentCommandMount: NSViewRepresentable {
       target.path = scope.path
       target.connection = scope.connection
       target.forkFromHere = scope.forkFromHere
-      target.hasHostComposer = scope.hasHostComposer
+      target.hostComposer = scope.hostComposer
     }
     if let anchors {
       target.anchors = anchors

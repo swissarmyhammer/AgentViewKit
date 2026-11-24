@@ -1,5 +1,6 @@
 import AgentViewKitTestSupport
 import FoundationModelsACPClient
+import Observation
 import SwiftUI
 import Testing
 
@@ -19,16 +20,40 @@ import Testing
   /// The prompt that the user sends.
   static let prompt = "Run the tests again."
 
-  /// The texts that the host closure got, in order.
-  @MainActor final class HostRecord {
-    /// Each text that the host closure got.
+  /// The texts that the host closure got, in order. While ``isHeld`` is
+  /// `true`, the closure does not return until the test calls
+  /// ``release()``.
+  @MainActor @Observable final class HostRecord {
+    /// Each text that the host closure got, in order.
     var texts: [String] = []
+
+    /// Whether the closure waits for ``release()`` before it returns.
+    @ObservationIgnored let isHeld: Bool
+
+    /// The wait of a held closure, or `nil`.
+    @ObservationIgnored private var hold: CheckedContinuation<Void, Never>?
+
+    /// Makes a record.
+    ///
+    /// - Parameter isHeld: Whether the closure waits for ``release()``.
+    init(isHeld: Bool = false) {
+      self.isHeld = isHeld
+    }
 
     /// The host closure, which keeps each text.
     ///
     /// - Parameter text: The text of the prompt.
     func take(_ text: String) async {
       texts.append(text)
+      if isHeld {
+        await withCheckedContinuation { hold = $0 }
+      }
+    }
+
+    /// Lets a held closure return.
+    func release() {
+      hold?.resume()
+      hold = nil
     }
   }
 

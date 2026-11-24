@@ -99,8 +99,12 @@ final class AgentSessionNavigation {
 ///   Reject or Fork from Here. The verbs that read stay. With the composer
 ///   of the host (``hasHostComposer``), Send, Focus Composer and Mention…
 ///   are in the registry, and Send submits the composer, which gives the
-///   prompt to the closure of the host. A Send with a text payload is not
-///   available there, because the model refuses a prompt.
+///   prompt to the closure of the host. A Send with a text payload gives the
+///   text to the closure of the host, as a typed message (Testudo D108 and
+///   D100). While a closure of the host runs, Send takes no second submit
+///   (``submitToHost(_:through:)``). With no composer of the host, a Send
+///   with a text payload is not available, because the model refuses a
+///   prompt.
 /// - Fork from Here is in the registry only with the fork action of the host
 ///   (``forkFromHere``). It is disabled with the reason of the host, with no
 ///   message, or for a message with no `MessageId`. It gives the
@@ -165,12 +169,24 @@ final class AgentCommandTarget {
   /// view gives the value through the mount of the scope.
   var isSessionUnavailable = false
 
+  /// The composer of the host for the read-only threads of the scope
+  /// (``SwiftUI/View/threadComposer(placeholder:onSubmit:)``, TestudoApp
+  /// D212), or `nil` when the host gives none. The owned scope gives the
+  /// value through its mount, before it registers.
+  var hostComposer: ThreadComposerRoute?
+
   /// Whether the host gives its composer to the read-only threads of the
-  /// scope (``SwiftUI/View/threadComposer(placeholder:onSubmit:)``, TestudoApp
-  /// D212). While it is `true`, the scope of a read-only session registers
+  /// scope. While it is `true`, the scope of a read-only session registers
   /// the verbs of the group ``AgentCommandGroup/compose`` (``registers(_:)``).
-  /// The owned scope gives the value through its mount, before it registers.
-  var hasHostComposer = false
+  var hasHostComposer: Bool {
+    hostComposer != nil
+  }
+
+  /// The run of the closure of the host that a submit started, or `nil`
+  /// while no closure of the host runs. While it is not `nil`, Send Message
+  /// takes no second submit, with or without a text payload
+  /// (``submitToHost(_:through:)``).
+  private var hostSubmission: Task<ComposerSubmitResult, Never>?
 
   /// Gives the first responder of the window of the scope, or `nil`. The
   /// mount of the scope gives it, and a test gives its own. The find verbs
@@ -337,20 +353,21 @@ final class AgentCommandTarget {
   /// The reason when `verb` would send a text to a read-only session, or
   /// `nil`.
   ///
-  /// A read-only session refuses a prompt. In its scope, Send Message runs
-  /// only through the composer of the host, which gives the prompt to the
-  /// closure of the host. So a Send with a text payload is not available.
+  /// A read-only session refuses a prompt. With the composer of the host
+  /// (``hostComposer``), a Send with a text payload goes to the closure of
+  /// the host, as a typed message. With no composer of the host, nothing
+  /// can take the text, so a Send with a text payload is not available.
   ///
   /// - Parameters:
   ///   - verb: The verb.
   ///   - payload: The payload of the dispatch, or `nil`.
   ///   - session: The session model of the scope.
   /// - Returns: ``readOnlySendReason`` for a Send with a text payload in a
-  ///   read-only session, else `nil`.
+  ///   read-only session with no composer of the host, else `nil`.
   private func readOnlyReason(
     of verb: AgentCommandVerb, payload: CommandPayload?, in session: SessionModel
   ) -> String? {
-    guard verb == .send, session.isReadOnly,
+    guard verb == .send, session.isReadOnly, hostComposer == nil,
       AgentCommandPayload.string(AgentCommandPayload.textKey, in: payload) != nil
     else { return nil }
     return Self.readOnlySendReason
@@ -424,8 +441,8 @@ final class AgentCommandTarget {
     String(localized: "The composer is not shown.", bundle: .module)
   }
 
-  /// The reason when Send has a text payload in a read-only session: the
-  /// session cannot get a prompt, and the composer of the host sends it.
+  /// The reason when Send has a text payload in a read-only session with no
+  /// composer of the host: the session cannot get a prompt.
   static var readOnlySendReason: String {
     String(
       localized: "This session is read-only. Type the message in the composer.", bundle: .module)
@@ -689,18 +706,62 @@ final class AgentCommandTarget {
   /// Tells if a send can run.
   ///
   /// - Parameter payload: The payload of the dispatch, or `nil`.
-  /// - Returns: `true` when the payload has text that is not blank, or when
-  ///   the payload has no text and the composer can submit.
+  /// - Returns: `true` when no closure of the host runs, and the payload has
+  ///   text that is not blank, or the payload has no text and the composer
+  ///   can submit.
   private func canSend(payload: CommandPayload?) -> Bool {
+    guard hostSubmission == nil else { return false }
     if let text = AgentCommandPayload.string(AgentCommandPayload.textKey, in: payload) {
       return !text.allSatisfy(\.isWhitespace)
     }
     return composer?.canSubmit() ?? false
   }
 
+  /// Gives a submission of the composer to the closure of the host, with
+  /// the one guard of the scope: while a closure of the host runs, the
+  /// submission does not go to the host.
+  ///
+  /// The submit hook of the composer of a read-only thread calls this
+  /// method (``ThreadComposerRouting``), and a Send with a text payload
+  /// starts the same run. Thus a typed message and the command do the same
+  /// thing (Testudo D108 and D100), and the host gets one prompt at a time.
+  ///
+  /// - Parameters:
+  ///   - submission: The prompt that the user submits.
+  ///   - route: The composer of the host.
+  /// - Returns: The result of the route, or ``ComposerSubmitResult/cancel``
+  ///   while a closure of the host runs, so the composer keeps its text.
+  func submitToHost(
+    _ submission: ComposerSubmission, through route: ThreadComposerRoute
+  ) async -> ComposerSubmitResult {
+    guard hostSubmission == nil else { return .cancel }
+    return await startHostSubmission(submission, through: route).value
+  }
+
+  /// Starts the run of the closure of the host for a submission, and keeps
+  /// it in ``hostSubmission`` until the closure returns.
+  ///
+  /// - Parameters:
+  ///   - submission: The prompt that the user submits.
+  ///   - route: The composer of the host.
+  /// - Returns: The run.
+  private func startHostSubmission(
+    _ submission: ComposerSubmission, through route: ThreadComposerRoute
+  ) -> Task<ComposerSubmitResult, Never> {
+    let run = Task {
+      let result = await route.submit(submission)
+      hostSubmission = nil
+      return result
+    }
+    hostSubmission = run
+    return run
+  }
+
   /// Sends the text of the payload, or submits the composer.
   ///
-  /// The session model gets the text as `session/prompt` at once.
+  /// The session model gets the text as `session/prompt` at once. In a
+  /// read-only session, the text goes to the closure of the host
+  /// (``hostComposer``) in place of the session, as a typed message.
   ///
   /// - Parameters:
   ///   - payload: The payload of the dispatch, or `nil`.
@@ -708,6 +769,11 @@ final class AgentCommandTarget {
   private func send(payload: CommandPayload?, to session: SessionModel) {
     guard let text = AgentCommandPayload.string(AgentCommandPayload.textKey, in: payload) else {
       composer?.submit()
+      return
+    }
+    if session.isReadOnly, let hostComposer {
+      _ = startHostSubmission(
+        ComposerSubmission(AttributedString(text), fileRoot: nil), through: hostComposer)
       return
     }
     session.startPrompt(text: text, reporting: requestStartReport)
