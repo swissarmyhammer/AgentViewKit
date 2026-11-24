@@ -56,7 +56,7 @@ comments:
     - evidence: `review sha HEAD~1..HEAD` (commit b57c8c89): 0 findings, 0 confirmed, 0 refuted; 7 validator runs attempted, 0 failed. The engine reviewed 5 files. It did not review 6 `.kanban/` files (`.reviewignore`) and `plan.md` (no validator matches it).
     - next: the card stays in review. The gallery run and the CI Integration job (`ConversationPillMountHostedTests`) stay open until those runs occur. They are not findings.
   timestamp: 2026-11-24T12:51:03.618954+00:00
-position_column: review
+position_column: done
 position_ordinal: '8480'
 title: The gallery images show the Scroll to Bottom pill over a thread that is at the bottom
 ---
@@ -84,7 +84,7 @@ Fix it in SwiftUI (no AppKit rewrite). Keep the gains of ^ts5hyjr: the button st
 ## Tests
 - [x] New headless test in `Tests/AgentViewKitTests/Thread/` (fails first).
 - [x] `swift test` at the root: 0 failures, 0 warnings. `swift build --build-tests` in `IntegrationTests` and `ScreenshotTests` complete.
-- [ ] CI Integration job: `ConversationPillMountHostedTests` green.
+- [x] CI Integration job: `ConversationPillMountHostedTests` green.
 - [x] Gallery run when the screen is free (one windowed run at a time); give the PNG paths.
 
 ## Workflow
