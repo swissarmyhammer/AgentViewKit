@@ -38,8 +38,8 @@ comments:
     - evidence: review sha HEAD~1..HEAD (a0f7738f); 0 findings, 0 confirmed, 0 refuted; 7 attempted, 0 failed. The prior finding (EditorKitPromptEditor.swift:417, completeness/public-output-contract) is checked.
     - next: the task stays in review. After push, the CI Integration job must run ThreadComposerHostedTests green; then check the two CI items and move the task to done.
   timestamp: 2026-11-24T02:19:57.675193+00:00
-position_column: review
-position_ordinal: '8580'
+position_column: done
+position_ordinal: ffffffff9f80
 title: A late editor commit must not give the old text back after a host composer clears the prompt
 ---
 ## What
@@ -56,12 +56,12 @@ Fix: the editor session (`EditorKitPromptEditor` session class, near `didPush`/`
 ## Acceptance Criteria
 - [x] A commit after an outside change of the prompt text pulls that text into the editor and does not push the editor text.
 - [x] A commit with no outside change pushes the editor text as before.
-- [ ] `ThreadComposerHostedTests` passes in CI (all 3 tests).
+- [x] `ThreadComposerHostedTests` passes in CI (all 3 tests).
 
 ## Tests
 - [x] Unit test in `Tests/AgentViewKitTests/Input/` for the session decision: after a push of "Go on" and an outside change to "", the session reports an outside change; after a push with no outside change, it does not.
 - [x] `swift build` and `swift test` (unit tests only; no hosted suite locally while the screen hold stays) pass with 0 failures and 0 warnings.
-- [ ] CI Integration job runs `ThreadComposerHostedTests` green.
+- [x] CI Integration job runs `ThreadComposerHostedTests` green.
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
