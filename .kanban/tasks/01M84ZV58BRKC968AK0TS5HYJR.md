@@ -97,6 +97,13 @@ comments:
     - evidence: one helper `mountPill(_:wrap:)` makes the host of the pill; `mountPill(_:)` and `mountScopedPill(_:system:)` call it. ConversationPillMountTests 6/6; swift test 1720 + 59 passed.
     - open: the 3 CI findings (:191, :204, :170) and the hosted and snapshot subtasks wait for CI.
   timestamp: 2026-11-24T00:31:49.897212+00:00
+- actor: claude-code
+  id: 01m85fh35aagsc8kdcvhmhcdws
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (16b54df4): 0 findings, 0 confirmed, 0 refuted (7 attempted, 0 failed). The 18:28 finding (ConversationPillMountTests.swift:82) is checked. ConversationPillMountTests 6/6; swift test 1720 + 59.
+    - next: the 3 CI findings (:191, :204, :170) and the hosted and snapshot subtasks stay open until CI. The task stays in review.
+  timestamp: 2026-11-24T00:33:10.826361+00:00
 position_column: review
 position_ordinal: '8380'
 title: Keep the conversation pill mounted so an unpin from the bottom does not hitch
@@ -159,3 +166,12 @@ Files: AgentThreadView.swift, ConversationPill source file, one new test file. #
 > - `.kanban/ (from .reviewignore)` — 2 file(s)
 
 - [x] `Tests/AgentViewKitTests/Thread/ConversationPillMountTests.swift:82` `reuse/reuse` — mountScopedPill builds the same NSHostingView of a ConversationPill and runs the same StyleViewHost.layOut call as the existing mountPill. It only adds the agent command scope, the command system and the path. This is a near-match that was not extended. A second copy of the host setup can drift from the first one. Extend `mountPill` with optional `session` and `system` parameters, or with a closure that wraps the root view. Use it from both tests. Keep `mountScopedPill` only as the path-returning wrapper, or inline it into the two tests that need the path.
+
+## Review Findings (2026-11-23 18:32)
+
+> Scope: `review sha HEAD~1..HEAD` (16b54df4) — reviewed the diffs only — lines this change added or modified. 1 file(s) reviewed, 2 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+Zero new findings. The 3 CI findings stay open until CI.
