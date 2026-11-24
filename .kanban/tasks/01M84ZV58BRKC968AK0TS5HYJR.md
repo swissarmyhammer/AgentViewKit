@@ -104,8 +104,15 @@ comments:
     - evidence: `review sha HEAD~1..HEAD` (16b54df4): 0 findings, 0 confirmed, 0 refuted (7 attempted, 0 failed). The 18:28 finding (ConversationPillMountTests.swift:82) is checked. ConversationPillMountTests 6/6; swift test 1720 + 59.
     - next: the 3 CI findings (:191, :204, :170) and the hosted and snapshot subtasks stay open until CI. The task stays in review.
   timestamp: 2026-11-24T00:33:10.826361+00:00
-position_column: review
-position_ordinal: '8380'
+- actor: claude-code
+  id: 01m86std7jepfw51kn1h22em3p
+  text: |-
+    ### review — clean
+    - evidence: no new review run. Each code commit of this card has a clean review record. 3b88266a (findings) was fixed by 7f9320cc (clean). b7496ae1 (findings) was fixed by 16b54df4 (clean). 16b54df4 is the newest code commit of this card. dbc80b63 and 62a86ab9 belong to card ^8nv3d2k and have their own clean reviews. b57c8c89 belongs to card ^ctzmqh3 and has its own clean review. All subtasks and all review findings are checked. CI 45299061645 passed ConversationPillMountHostedTests. The gallery run of 2026-11-24 06:46 shows no hidden pill.
+    - next: none. The card moves to done.
+  timestamp: 2026-11-24T12:52:16.242631+00:00
+position_column: done
+position_ordinal: ffffffffa280
 title: Keep the conversation pill mounted so an unpin from the bottom does not hitch
 ---
 ## Rule
