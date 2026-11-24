@@ -39,7 +39,20 @@
     /// - Parameter anchors: The manager of the pill.
     /// - Returns: The host.
     static func mountPill(_ anchors: ScrollAnchorManager) -> NSHostingView<some View> {
-      let hosting = NSHostingView(rootView: ConversationPill(anchors: anchors).fixedSize())
+      mountPill(anchors) { $0 }
+    }
+
+    /// A pill of `anchors` in the view that `wrap` makes of it, in a host
+    /// with no window, laid out one time.
+    ///
+    /// - Parameters:
+    ///   - anchors: The manager of the pill.
+    ///   - wrap: Makes the root view of the host from the pill.
+    /// - Returns: The host.
+    static func mountPill<Root: View>(
+      _ anchors: ScrollAnchorManager, wrap: (AnyView) -> Root
+    ) -> NSHostingView<Root> {
+      let hosting = NSHostingView(rootView: wrap(AnyView(ConversationPill(anchors: anchors).fixedSize())))
       StyleViewHost.layOut(hosting)
       return hosting
     }
@@ -79,11 +92,9 @@
       -> (hosting: NSHostingView<some View>, path: FocusPath)
     {
       let session = twoMessageSession()
-      let hosting = NSHostingView(
-        rootView: ConversationPill(anchors: anchors).fixedSize()
-          .agentCommandScope(session: session)
-          .commandSystem(system))
-      StyleViewHost.layOut(hosting)
+      let hosting = mountPill(anchors) { pill in
+        pill.agentCommandScope(session: session).commandSystem(system)
+      }
       let path = FocusPath.root(AgentCommandTarget.segment(for: session))
         .appending(AgentScopeKind.control(ScrollToBottomPill.identifier))
       return (hosting, path)
