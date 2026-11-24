@@ -90,8 +90,15 @@ comments:
     - evidence: 2 files — Tests/AgentViewKitTests/Thread/ThreadComposerCommandTests.swift, Tests/AgentViewKitTests/Thread/ThreadComposerTests.swift; swift test 1718 + 59 passed, no code warnings
     - next: review
   timestamp: 2026-11-24T00:15:12.852669+00:00
-position_column: doing
-position_ordinal: '8180'
+- actor: claude-code
+  id: 01m85ekcqq36j72081th0cncgy
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (5278622f): 0 findings (0 confirmed, 0 refuted, 7 attempted, 0 failed). 2 source files reviewed. All prior items in "Review Findings (2026-11-23 17:54)" and "Review Findings (2026-11-23 18:05)" are checked. Implement evidence: swift test 1718 + 59 pass; with the guards removed, the changed tests fail.
+    - next: none. The task is in done.
+  timestamp: 2026-11-24T00:16:57.591002+00:00
+position_column: done
+position_ordinal: ffffffff9d80
 title: A read-only thread with the composer of the host registers Send Message and Focus Composer
 ---
 ## What
