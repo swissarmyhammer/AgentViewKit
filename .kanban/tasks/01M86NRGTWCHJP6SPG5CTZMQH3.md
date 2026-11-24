@@ -79,13 +79,13 @@ Fix it in SwiftUI (no AppKit rewrite). Keep the gains of ^ts5hyjr: the button st
 ## Acceptance Criteria
 - [x] A headless test fails before the fix: a thread with a short transcript, mounted as `AnswerTextHitTests.mountAnswer()` does (window never ordered in), has no visible pill after layout (the pill is pinned-hidden and draws nothing, or is not shown).
 - [x] The fix makes that test pass.
-- [ ] The next gallery run shows no pill in `thread-light.png`, `thread-external-composer-light.png` and `bottom-bar-buttons-light.png`.
+- [x] The next gallery run shows no pill in `thread-light.png`, `thread-external-composer-light.png` and `bottom-bar-buttons-light.png`.
 
 ## Tests
 - [x] New headless test in `Tests/AgentViewKitTests/Thread/` (fails first).
 - [x] `swift test` at the root: 0 failures, 0 warnings. `swift build --build-tests` in `IntegrationTests` and `ScreenshotTests` complete.
 - [ ] CI Integration job: `ConversationPillMountHostedTests` green.
-- [ ] Gallery run when the screen is free (one windowed run at a time); give the PNG paths.
+- [x] Gallery run when the screen is free (one windowed run at a time); give the PNG paths.
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
