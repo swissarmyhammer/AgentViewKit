@@ -55,6 +55,13 @@ comments:
     - evidence: new `StyleViewHost.host(_:size:)` in AgentViewKitTestSupport puts a view in a hosting view of a size and lays it out once. `ConversationPillMountTests.mountThread` and `AnswerTextHitTests.mountAnswer` call it; mountAnswer keeps only its window code. With `.scaleEffect(1)` for a short time, theCenterOfTheAnswerTextHitsTheTextViewOfTheAnswer fails at AnswerTextHitTests.swift:63; with the fix it passes. swift test 1720 + 59 passed; IntegrationTests build complete.
     - open: the hosted suites wait for CI.
   timestamp: 2026-11-24T00:38:32.418451+00:00
+- actor: claude-code
+  id: 01m85fxkhhsdq39rsz6880qksp
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (62a86ab9): 0 findings, 0 confirmed, 0 refuted, 7 attempted, 0 failed. 3 files reviewed. The 2 .kanban files are excluded by .reviewignore. All prior review items are checked. Implementer evidence: swift test 1720 + 59 pass; the hit test fails without the fix.
+    - next: The task stays in review. The hosted items wait for CI (AnswerTextContextMenuPointerHostedTests, LiveRowRangeRedrawScopeTests, ThreadModelCacheHostedTests). Move the task to done when CI is green.
+  timestamp: 2026-11-24T00:40:00.817109+00:00
 position_column: review
 position_ordinal: '8480'
 title: 'Regression: the answer row is not live on the first render pass, so its text has no context menu'
