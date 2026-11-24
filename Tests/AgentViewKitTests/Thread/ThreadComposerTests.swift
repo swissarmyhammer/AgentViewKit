@@ -30,8 +30,8 @@ import Testing
     /// Whether the closure waits for ``release()`` before it returns.
     @ObservationIgnored let isHeld: Bool
 
-    /// The wait of a held closure, or `nil`.
-    @ObservationIgnored private var hold: CheckedContinuation<Void, Never>?
+    /// The wait of each held closure that did not return yet.
+    @ObservationIgnored private var holds: [CheckedContinuation<Void, Never>] = []
 
     /// Makes a record.
     ///
@@ -46,14 +46,15 @@ import Testing
     func take(_ text: String) async {
       texts.append(text)
       if isHeld {
-        await withCheckedContinuation { hold = $0 }
+        await withCheckedContinuation { holds.append($0) }
       }
     }
 
-    /// Lets a held closure return.
+    /// Lets each held closure return.
     func release() {
-      hold?.resume()
-      hold = nil
+      let released = holds
+      holds = []
+      for hold in released { hold.resume() }
     }
   }
 

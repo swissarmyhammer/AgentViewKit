@@ -124,6 +124,34 @@ import Testing
     return ReadOnlyThreadTests.Fixture(target: target, registry: registry, path: path)
   }
 
+  /// Registers the commands of a scope for a read-only session with the
+  /// composer of a held host, runs a Send with a text payload, and waits
+  /// until the host has the payload. The closure of the host then runs
+  /// until the test releases the host.
+  ///
+  /// - Parameters:
+  ///   - host: The record of a held host closure.
+  ///   - sourceLocation: The location of the caller, for an issue.
+  /// - Returns: The fixture.
+  static func registryFixture(
+    heldSendTo host: ThreadComposerTests.HostRecord,
+    sourceLocation: SourceLocation = #_sourceLocation
+  ) async throws -> ReadOnlyThreadTests.Fixture {
+    let fixture = registryFixture(host: host)
+    try #require(
+      fixture.target.run(.send, payload: AgentCommandPayload.text(prompt)),
+      sourceLocation: sourceLocation)
+    await ObservationWait.until(sourceLocation: sourceLocation) { !host.texts.isEmpty }
+    return fixture
+  }
+
+  /// The result of a submit that a test runs in its own task. The result is
+  /// observable, so a test can wait until the submit returns.
+  @MainActor @Observable final class SubmitRecord {
+    /// The result of the submit, or `nil` while the submit runs.
+    var result: ComposerSubmitResult?
+  }
+
   // MARK: - Registry
 
   /// A production change that fails this test: the scope of a read-only
@@ -165,16 +193,22 @@ import Testing
 
   /// A production change that fails this test: a Send with a text payload
   /// in a read-only scope with the composer of the host does not give the
-  /// payload to the closure of the host, or gives it two times (Testudo D108
-  /// and D100: a command does the same as a typed message).
+  /// payload to the closure of the host, or gives it two times, or a second
+  /// Send runs while the closure of the host runs (Testudo D108 and D100: a
+  /// command does the same as a typed message).
+  ///
+  /// The host holds its closure, so the first run does not end. The second
+  /// Send returns before the check, and a Send that does not run starts no
+  /// run of the host. Thus the check comes after each submit was processed.
   @Test func aSendWithATextPayloadGivesThePayloadToTheHostOneTime() async throws {
-    let host = ThreadComposerTests.HostRecord()
-    let fixture = Self.registryFixture(host: host)
-    try #require(fixture.target.run(.send, payload: AgentCommandPayload.text(Self.prompt)))
+    let host = ThreadComposerTests.HostRecord(isHeld: true)
+    defer { host.release() }
+    let fixture = try await Self.registryFixture(heldSendTo: host)
 
-    await ObservationWait.until { !host.texts.isEmpty }
+    let isSecondSendRun = fixture.target.run(
+      .send, payload: AgentCommandPayload.text(Self.prompt))
 
-    #expect(host.texts == [Self.prompt])
+    #expect(!isSecondSendRun && host.texts == [Self.prompt])
   }
 
   /// A production change that fails this test: a Send with a text payload
@@ -183,9 +217,7 @@ import Testing
   @Test func aSendWithATextPayloadIsNotAvailableWhileTheHostRuns() async throws {
     let host = ThreadComposerTests.HostRecord(isHeld: true)
     defer { host.release() }
-    let fixture = Self.registryFixture(host: host)
-    try #require(fixture.target.run(.send, payload: AgentCommandPayload.text(Self.prompt)))
-    await ObservationWait.until { !host.texts.isEmpty }
+    let fixture = try await Self.registryFixture(heldSendTo: host)
 
     let availability = fixture.target.availability(
       of: .send, payload: AgentCommandPayload.text(Self.prompt))
@@ -196,18 +228,25 @@ import Testing
   /// A production change that fails this test: a submit of the composer
   /// calls the closure of the host while a Send with a text payload runs
   /// it, so the host gets two prompts at one time.
+  ///
+  /// The submit runs in its own task. The wait ends when the submit returns,
+  /// or when the host gets a second prompt, so a submit that waits for the
+  /// held closure does not stop the test.
   @Test func aComposerSubmitWhileTheHostRunsDoesNotCallTheHost() async throws {
     let host = ThreadComposerTests.HostRecord(isHeld: true)
     defer { host.release() }
-    let fixture = Self.registryFixture(host: host)
+    let fixture = try await Self.registryFixture(heldSendTo: host)
     let route = try #require(fixture.target.hostComposer)
-    try #require(fixture.target.run(.send, payload: AgentCommandPayload.text(Self.prompt)))
-    await ObservationWait.until { !host.texts.isEmpty }
+    let second = SubmitRecord()
+    let submit = Task {
+      second.result = await fixture.target.submitToHost(
+        ComposerSubmission(AttributedString(Self.prompt), fileRoot: nil), through: route)
+    }
+    defer { submit.cancel() }
 
-    let result = await fixture.target.submitToHost(
-      ComposerSubmission(AttributedString(Self.prompt), fileRoot: nil), through: route)
+    await ObservationWait.until { second.result != nil || host.texts.count > 1 }
 
-    #expect(result.isCancelled && host.texts.count == 1)
+    #expect(second.result?.isCancelled == true && host.texts == [Self.prompt])
   }
 
   /// A production change that fails this test: a Send with a blank text

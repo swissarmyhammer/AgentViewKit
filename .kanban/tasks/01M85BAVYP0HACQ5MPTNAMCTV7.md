@@ -56,6 +56,40 @@ comments:
     - evidence: `swift test` (root): 1718 tests in 193 suites and 59 tests in 12 suites passed, no code warnings; `swift build --build-tests` in IntegrationTests and ScreenshotTests: exit 0. Files: Sources/AgentViewKit/Commands/AgentCommandTarget.swift, Sources/AgentViewKit/Commands/AgentCommandScope.swift, Sources/AgentViewKit/Thread/ThreadComposer.swift, ARCHITECTURE.md, Tests/AgentViewKitTests/Thread/ThreadComposerCommandTests.swift, Tests/AgentViewKitTests/Thread/ThreadComposerTests.swift.
     - next: /review. Hosted tests to run on CI or when the screen is free: IntegrationTests `ThreadComposerHostedTests` (the submit hook of the slot now goes through the target).
   timestamp: 2026-11-24T00:04:51.495886+00:00
+- actor: claude-code
+  id: 01m85e2nxbygydq0wby0267mt7
+  text: |-
+    ### review — findings
+    - evidence: review sha HEAD~1..HEAD (f2b89b2a): 1 finding (1 confirmed, 2 refuted). Tests/AgentViewKitTests/Thread/ThreadComposerCommandTests.swift:177 `test-integrity/no-test-cheating`. The prior finding (2026-11-23 17:54) is checked. Implement evidence: swift test 1718 + 59 pass; builds clean.
+    - next: Implement the open item in "Review Findings (2026-11-23 18:05)". Make the test wait until the run ends before the check of `host.texts`, or hold the host and prove that a second submit does not call it. Apply the same correction to each test in the file that checks a count before the run ends. The task stays in review.
+  timestamp: 2026-11-24T00:07:49.931062+00:00
+- actor: claude-code
+  id: 01m85e3cfkz0ax891ww7d7vqp1
+  text: |-
+    ### finish iteration 2 — findings
+    - implement: changed — 6 files
+    - test: green — swift test 1718 + 59
+    - commit: f2b89b2a
+    - review: findings — Tests/AgentViewKitTests/Thread/ThreadComposerCommandTests.swift:177
+  timestamp: 2026-11-24T00:08:13.043512+00:00
+- actor: claude-code
+  id: 01m85eg4qbw6rjnd623w4ffa9q
+  text: |-
+    Finding ThreadComposerCommandTests.swift:177 (test-integrity/no-test-cheating) is fixed.
+    - New helper `registryFixture(heldSendTo:)`: it registers the scope with a held host, runs a Send with a text payload, and waits (ObservationWait, bounded) until the host has the payload. Three tests use it: aSendWithATextPayloadGivesThePayloadToTheHostOneTime, aSendWithATextPayloadIsNotAvailableWhileTheHostRuns, aComposerSubmitWhileTheHostRunsDoesNotCallTheHost.
+    - aSendWithATextPayloadGivesThePayloadToTheHostOneTime: the host is held. A second Send runs through `target.run`, which returns before the check. A Send that does not run starts no run of the host. The test then asserts `!isSecondSendRun && host.texts == [prompt]`.
+    - aComposerSubmitWhileTheHostRunsDoesNotCallTheHost: the earlier test checked the count while the run was held, but with the guard removed its `await submitToHost` waited with no bound for the held closure. Now the submit runs in its own task and writes an observable `SubmitRecord`. The bounded wait ends when the submit returns or when the host gets a second prompt. The test then asserts `.cancel` and `host.texts == [prompt]`.
+    - ThreadComposerTests.HostRecord keeps each held closure, and `release()` lets each one return. Before, a second hold replaced the first, and the first never returned.
+    - The thread tests that check a count wait until the draft is empty, which is the end of the run, so they did not change.
+    - Guard removal check: with `guard hostSubmission == nil else { return false }` in `canSend` removed, tests 1 and 2 fail. With `guard hostSubmission == nil else { return .cancel }` in `submitToHost` removed, test 3 fails at once with no hang. The guards are restored, and `git diff Sources` is empty.
+  timestamp: 2026-11-24T00:15:11.083162+00:00
+- actor: claude-code
+  id: 01m85eg6em46gay71jecqy64yq
+  text: |-
+    ### implement — changed
+    - evidence: 2 files — Tests/AgentViewKitTests/Thread/ThreadComposerCommandTests.swift, Tests/AgentViewKitTests/Thread/ThreadComposerTests.swift; swift test 1718 + 59 passed, no code warnings
+    - next: review
+  timestamp: 2026-11-24T00:15:12.852669+00:00
 position_column: doing
 position_ordinal: '8180'
 title: A read-only thread with the composer of the host registers Send Message and Focus Composer
@@ -109,3 +143,15 @@ Decision 2 (TestudoApp, for the user, 2026-11-23; Testudo D108 and D100): a comm
 > - `Sources/AgentViewKit/Resources/Localizable.xcstrings` — no validator matches this file
 
 - [x] `Tests/AgentViewKitTests/Thread/ThreadComposerCommandTests.swift:41` `reuse/reuse` — The new HostRecord class reimplements the existing HostRecord of ThreadComposerTests in the same test module. Both keep the texts that the host closure gets, and both have a take(_:) method. The new class adds only the hold and release behavior. The author should have extended the existing HostRecord with an isHeld option, so that one helper stays canonical. Move the hold support (isHeld, hold, release) into the existing ThreadComposerTests.HostRecord, or make one shared test helper that both suites use. Delete the duplicate class from ThreadComposerCommandTests.swift.
+
+## Review Findings (2026-11-23 18:05)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 5 file(s) reviewed, 3 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+> 1 file(s) not reviewed — no validator matched:
+> - `ARCHITECTURE.md` — no validator matches this file
+
+- [x] `Tests/AgentViewKitTests/Thread/ThreadComposerCommandTests.swift:177` `test-integrity/no-test-cheating` — The test is named for one submission, but it checks `host.texts` as soon as the first text appears. It does not wait for the run to end. A second call to the host that lands after this check would not fail the test. So the test cannot reliably prove that the host gets the payload only one time, which is what its name and doc comment say it proves. This is a weakened assertion: it does not check the property it claims. Wait for the run to finish before the check. For example, wait until the draft is empty, or until the `hostSubmission` run has ended, and only then assert `host.texts == [Self.prompt]`. Or hold the host (`isHeld: true`), wait for the first text, call `submitToHost` or a second Send, and assert that `host.texts.count` stays at 1.
