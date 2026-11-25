@@ -15,7 +15,8 @@ import FoundationModelsACPClient
 /// The Stencil template `message-markdown` of the kit lays out the Markdown
 /// of the content (`Docs/decisions/text-templates.md`). Copy Thread
 /// (`AgentCommandTarget.plainText(of:)`) reads the message texts of a
-/// transcript through ``messageTexts(in:)``.
+/// transcript through ``messageTexts(in:)``, and its availability through
+/// ``hasMessageText(in:)``.
 public enum ThreadExporter {
   /// The Markdown of the content of a message entry.
   ///
@@ -93,11 +94,39 @@ public enum ThreadExporter {
   /// - Returns: One value for each `UserMessageEntry` and each
   ///   `AgentMessageEntry` with text. The other entries give none.
   static func messageTexts(in transcript: [TranscriptEntry]) -> [MessageText] {
-    transcript.compactMap { entry -> MessageText? in
-      guard let message = message(of: entry) else { return nil }
-      let shown = texts(of: message.content)
-      return shown.isEmpty ? nil : MessageText(role: message.role, texts: shown)
-    }
+    transcript.compactMap(messageText(of:))
+  }
+
+  /// Tells if a transcript has a message entry with text for the user.
+  ///
+  /// The function reads each entry through ``messageText(of:)``, as
+  /// ``messageTexts(in:)`` does. Thus the answer is the same as for
+  /// `!messageTexts(in:).isEmpty`, and the same as for a copy text
+  /// (`AgentCommandTarget.plainText(of:)`) that is not empty. The function
+  /// renders no template, and it stops at the first message entry with
+  /// text. Copy Thread reads its availability through this function.
+  ///
+  /// - Parameter transcript: The entries of `SessionModel.transcript`.
+  /// - Returns: `true` when a `UserMessageEntry` or an `AgentMessageEntry`
+  ///   has a text block for the user.
+  static func hasMessageText(in transcript: [TranscriptEntry]) -> Bool {
+    transcript.contains { messageText(of: $0) != nil }
+  }
+
+  /// The text of one entry of a transcript, when the entry is a message
+  /// entry with text for the user.
+  ///
+  /// ``messageTexts(in:)`` and ``hasMessageText(in:)`` read each entry
+  /// through this one function, so the two always agree.
+  ///
+  /// - Parameter entry: An entry of a session transcript.
+  /// - Returns: The sender and the texts of a `UserMessageEntry` or an
+  ///   `AgentMessageEntry` with text for the user, or `nil` for another
+  ///   entry.
+  private static func messageText(of entry: TranscriptEntry) -> MessageText? {
+    guard let message = message(of: entry) else { return nil }
+    let shown = texts(of: message.content)
+    return shown.isEmpty ? nil : MessageText(role: message.role, texts: shown)
   }
 
   /// The sender and the content of a message entry.
