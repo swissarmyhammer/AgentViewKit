@@ -85,9 +85,10 @@ extension AgentThreadView where Composer == DefaultThreadComposer {
   /// dropdown of the siblings at each level. The host can name the session
   /// of the first crumb with `sessionTitle`, such as the title of a tab, and
   /// give the path of one of its own command scopes with
-  /// `headerContextMenuPath`. A right click on the header then shows the
-  /// EditorKit context menu of that path, with no command that is not
-  /// available there.
+  /// `headerContextMenuPath`. A right click on each part of the top bar
+  /// (the status line, the header of the host and each banner) then shows
+  /// the EditorKit context menu of that path, with no command that is not
+  /// available there. Each part shows the same menu.
   ///
   /// - Parameters:
   ///   - session: The session model whose transcript the view shows.
@@ -97,7 +98,9 @@ extension AgentThreadView where Composer == DefaultThreadComposer {
   ///     such as the title of a tab, or `nil` for the title of the session.
   ///     The header follows each change of it.
   ///   - headerContextMenuPath: The path of a host scope whose context menu
-  ///     a right click on the header shows, or `nil` for no context menu.
+  ///     a right click on each part of the top bar shows (the status line,
+  ///     the header of the host and each banner), or `nil` for no context
+  ///     menu.
   public init(
     session: SessionModel, connection: ConnectionModel? = nil, sessionTitle: String? = nil,
     headerContextMenuPath: FocusPath? = nil

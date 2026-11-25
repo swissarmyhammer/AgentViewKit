@@ -30,7 +30,11 @@ extension View {
   /// and above the banners, at the full width of the bar. It is content
   /// with no glass (D110), and its buttons use the styles of content. The
   /// header stays while the thread shows the unavailable message of
-  /// ``SwiftUI/View/threadUnavailable(_:)``. VoiceOver reads it as one
+  /// ``SwiftUI/View/threadUnavailable(_:)``. When the thread view has a
+  /// `headerContextMenuPath`, a right click on the header, on its text or
+  /// on its empty space, shows the context menu of that path, the same menu
+  /// as the status line. A button of the header keeps its own action.
+  /// VoiceOver reads it as one
   /// group with the identifier ``AgentThreadLayout/headerIdentifier``, and
   /// each view of the host keeps its own label.
   ///
@@ -127,7 +131,9 @@ struct ThreadHeaderBar: View {
 /// The slot gives the view of the host the full width of the bar, at the
 /// leading edge, and makes it one accessibility group with the identifier
 /// ``AgentThreadLayout/headerIdentifier``. The slot draws no glass and adds
-/// no padding (^rgsq3k4): the bar spaces its parts.
+/// no padding (^rgsq3k4): the bar spaces its parts. The top bar gives the
+/// slot the context menu of the host path on its full bar
+/// (``TopBarPartContextMenu``), the same menu as the status line.
 struct ThreadHeaderSlot: View {
   /// The view of the host.
   let header: AnyView

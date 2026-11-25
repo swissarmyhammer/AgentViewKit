@@ -222,7 +222,8 @@ public struct AgentThreadView<Composer: View>: View {
   /// the title of a tab, or `nil` for the title of the session (D142).
   let sessionTitle: String?
 
-  /// The path of the host scope whose context menu the header shows, or
+  /// The path of the host scope whose context menu each part of the top bar
+  /// shows (the status line, the header of the host and each banner), or
   /// `nil` for no context menu.
   let headerContextMenuPath: FocusPath?
 
@@ -279,7 +280,7 @@ public struct AgentThreadView<Composer: View>: View {
   ///
   /// See ``init(session:connection:sessionTitle:headerContextMenuPath:composer:)`` for
   /// the close of the session, the Reload button, the path in the header and
-  /// the context menu of the header.
+  /// the context menu of the top bar.
   ///
   /// - Parameters:
   ///   - session: The session model whose transcript the view shows.
@@ -289,7 +290,9 @@ public struct AgentThreadView<Composer: View>: View {
   ///     such as the title of a tab, or `nil` for the title of the session.
   ///     The header follows each change of it.
   ///   - headerContextMenuPath: The path of a host scope whose context menu
-  ///     a right click on the header shows, or `nil` for no context menu.
+  ///     a right click on each part of the top bar shows (the status line,
+  ///     the header of the host and each banner), or `nil` for no context
+  ///     menu.
   ///   - composer: The builder of the view in the composer slot, such as a
   ///     ``PromptInputView``.
   public init(
@@ -315,7 +318,7 @@ public struct AgentThreadView<Composer: View>: View {
   ///   - sessionTitle: The title of the crumb of the session in the header,
   ///     or `nil`.
   ///   - headerContextMenuPath: The path of the host scope whose context
-  ///     menu the header shows, or `nil`.
+  ///     menu each part of the top bar shows, or `nil`.
   ///   - composer: The builder of the view in the composer slot.
   init(
     session: SessionModel, connection: ConnectionModel? = nil, anchors: ScrollAnchorManager?,
@@ -481,6 +484,12 @@ public struct AgentThreadView<Composer: View>: View {
   /// glass of the kit, in the one container of the top bar. The header of the
   /// host has no glass (D110), and its buttons keep the place of content
   /// (``ThreadHeaderSlot``).
+  ///
+  /// Each part shows the context menu of ``headerContextMenuPath`` on its
+  /// full bar (``TopBarPartContextMenu``): a right click on the status line,
+  /// on the header of the host or on a banner shows the same menu (D108,
+  /// ^tsr28g). A control of a part keeps its own action. With no path, no
+  /// part has a context menu.
   @ViewBuilder private var topBarParts: some View {
     if let connection {
       ThreadStatusHeader(
@@ -489,8 +498,10 @@ public struct AgentThreadView<Composer: View>: View {
     }
     if let threadHeader {
       ThreadHeaderSlot(header: threadHeader)
+        .topBarPartContextMenu(headerContextMenuPath)
     }
     banners
+      .topBarPartContextMenu(headerContextMenuPath)
   }
 
   /// The banners of the top bar, from the top: the connection banner when the
