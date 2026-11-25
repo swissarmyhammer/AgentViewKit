@@ -442,12 +442,12 @@ public struct AgentThreadView<Composer: View>: View {
       // line and of the banners is in one container, so it blends where the
       // parts touch (TestudoApp D213). The full frame of the stack, with the
       // gaps between the parts, shows the context menu of the host path
-      // (``TopBarContextMenu``, ^z7r9tk).
+      // (``HostPathContextMenu`` with its hit area, ^z7r9tk).
       Group(subviews: topBarParts) { subviews in
         if !subviews.isEmpty {
           FloatingGlassContainer(spacing: editorStyle.spacing.s) {
             VStack(spacing: editorStyle.tile.margin) { subviews }
-              .topBarContextMenu(headerContextMenuPath)
+              .hostPathContextMenu(headerContextMenuPath, hitArea: true)
           }
           .padding(barInsets)
         }
@@ -489,9 +489,10 @@ public struct AgentThreadView<Composer: View>: View {
   /// (``ThreadHeaderSlot``).
   ///
   /// The top bar shows the context menu of ``headerContextMenuPath`` on the
-  /// full frame of the stack of the parts (``TopBarContextMenu``): a right
-  /// click on the status line, on the header of the host, on a banner or in
-  /// the gap between two parts shows the same menu (D108, ^tsr28g, ^z7r9tk).
+  /// full frame of the stack of the parts (``HostPathContextMenu`` with its
+  /// hit area): a right click on the status line, on the header of the host,
+  /// on a banner or in the gap between two parts shows the same menu (D108,
+  /// ^tsr28g, ^z7r9tk).
   /// A control of a part keeps its own action. With no path, the top bar has
   /// no context menu, and a click in a gap goes to the list.
   @ViewBuilder private var topBarParts: some View {

@@ -133,7 +133,8 @@ struct ThreadHeaderBar: View {
 /// ``AgentThreadLayout/headerIdentifier``. The slot draws no glass and adds
 /// no padding (^rgsq3k4): the bar spaces its parts. The top bar shows the
 /// context menu of the host path on its full frame, with the slot
-/// (``TopBarContextMenu``), the same menu as on the status line.
+/// (``HostPathContextMenu`` with its hit area), the same menu as on the
+/// status line.
 struct ThreadHeaderSlot: View {
   /// The view of the host.
   let header: AnyView
