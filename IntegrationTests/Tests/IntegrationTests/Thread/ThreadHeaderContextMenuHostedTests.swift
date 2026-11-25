@@ -11,14 +11,16 @@ import Testing
 
 @testable import AgentViewKit
 
-/// Tests for the host context menu of the thread header (^2sg9taf) and of
-/// each part of the top bar (^tsr28g).
+/// Tests for the host context menu of the thread header (^2sg9taf), of
+/// each part of the top bar (^tsr28g) and of the gaps between the parts
+/// (^z7r9tk).
 ///
 /// The host gives ``AgentThreadView`` the path of one of its own scopes, and
-/// a right click on the status line, on the header of the host or on a
-/// banner shows the EditorKit context menu of that path. The menu leaves out
-/// each command that is not available there. With no path, no part of the
-/// top bar has a context menu. Each test registers the commands of
+/// a right click on the status line, on the header of the host, on a banner
+/// or in the gap between two parts shows the EditorKit context menu of that
+/// path. The menu leaves out each command that is not available there. With
+/// no path, the top bar has no context menu, and a gap between two parts
+/// takes no click. Each test registers the commands of
 /// a host scope, `session:tab-1`, in the ambient command system of the
 /// thread, as TestudoApp registers its `session:<tab id>` commands.
 @Suite(.serialized, .hostedSerially) @MainActor struct ThreadHeaderContextMenuHostedTests {
@@ -46,6 +48,9 @@ import Testing
   /// of the first group, a separator, and the available command of the
   /// second group.
   static let menuTitles = [showInFinder.title, "", openTasks.title]
+
+  /// The titles of each command of the host scope, available or not.
+  static let hostCommandTitles: Set = [showInFinder.title, openTasks.title, stop.title]
 
   /// The distance, in points, from the trailing edge of a part of the top
   /// bar to the point of a right click on the empty part of it.
@@ -168,6 +173,27 @@ import Testing
     /// A point near the trailing edge of the frame of the view that has the
     /// accessibility identifier, after the end of its text.
     case trailingEdge(ofFrame: String)
+    /// The midpoint of the gap between the bottom of the frame of the status
+    /// line and the top of the frame of the header of the host.
+    case gapBetweenStatusLineAndHostHeader
+  }
+
+  /// Gives the midpoint of the gap between the bottom of the frame of the
+  /// status line and the top of the frame of the header of the host, in
+  /// window coordinates.
+  ///
+  /// - Parameter harness: The harness of a mounted thread that shows the
+  ///   status line and the header of the host.
+  /// - Returns: The point.
+  static func gapBetweenStatusLineAndHostHeader(in harness: HostedViewHarness<some View>) throws
+    -> NSPoint
+  {
+    let line = try #require(harness.frame(identifier: StatusLineView.identifier))
+    let header = try #require(harness.frame(identifier: AgentThreadLayout.headerIdentifier))
+    try #require(line.minY > header.maxY)
+    let gap = CGRect(
+      x: line.minX, y: header.maxY, width: line.width, height: line.minY - header.maxY)
+    return harness.window.convertPoint(fromScreen: NSPoint(x: gap.midX, y: gap.midY))
   }
 
   /// Gives the accessibility identifier of the banner of the first notice of
@@ -198,6 +224,8 @@ import Testing
       let point = harness.window.convertPoint(
         fromScreen: NSPoint(x: frame.maxX - trailingClickInset, y: frame.midY))
       return try harness.contextMenu(at: point)
+    case .gapBetweenStatusLineAndHostHeader:
+      return try harness.contextMenu(at: gapBetweenStatusLineAndHostHeader(in: harness))
     }
   }
 
@@ -256,6 +284,24 @@ import Testing
     let menu = try withContextMenu(at: spot, of: session, path: nil, header: header) { $0 }
 
     #expect(menu == nil, sourceLocation: sourceLocation)
+  }
+
+  /// Expects that a right click at `spot` shows no item of the host scope
+  /// when the thread has no host path. The click can go to the list below the
+  /// top bar, so the spot can show a menu of the list.
+  ///
+  /// - Parameters:
+  ///   - spot: The point of the right click.
+  ///   - header: The header of the host, or `nil` for no header.
+  ///   - sourceLocation: The location of the call, for each failure.
+  static func expectNoHostItem(
+    at spot: ClickSpot, header: AnyView? = nil, sourceLocation: SourceLocation = #_sourceLocation
+  ) throws {
+    let titles = try withContextMenu(at: spot, path: nil, header: header) {
+      $0?.items.map(\.title) ?? []
+    }
+
+    #expect(hostCommandTitles.isDisjoint(with: titles), sourceLocation: sourceLocation)
   }
 
   @Test func theHeaderShowsTheContextMenuOfTheHostPath() throws {
@@ -321,5 +367,14 @@ import Testing
 
     try Self.expectNoContextMenu(
       at: .identifier(try Self.noticeBannerIdentifier(of: session)), of: session)
+  }
+
+  @Test func theGapBetweenTheStatusLineAndTheHostHeaderShowsTheContextMenuOfTheHostPath() throws {
+    try Self.expectMenuOfHostPath(
+      at: .gapBetweenStatusLineAndHostHeader, header: Self.hostHeader)
+  }
+
+  @Test func theGapBetweenTheStatusLineAndTheHostHeaderWithNoPathShowsNoHostItem() throws {
+    try Self.expectNoHostItem(at: .gapBetweenStatusLineAndHostHeader, header: Self.hostHeader)
   }
 }

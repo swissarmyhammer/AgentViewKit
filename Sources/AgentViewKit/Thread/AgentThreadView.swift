@@ -222,9 +222,9 @@ public struct AgentThreadView<Composer: View>: View {
   /// the title of a tab, or `nil` for the title of the session (D142).
   let sessionTitle: String?
 
-  /// The path of the host scope whose context menu each part of the top bar
-  /// shows (the status line, the header of the host and each banner), or
-  /// `nil` for no context menu.
+  /// The path of the host scope whose context menu each point of the top bar
+  /// shows (the status line, the header of the host, each banner and each
+  /// gap between two parts), or `nil` for no context menu.
   let headerContextMenuPath: FocusPath?
 
   /// The view in the composer slot, below the conversation.
@@ -290,9 +290,9 @@ public struct AgentThreadView<Composer: View>: View {
   ///     such as the title of a tab, or `nil` for the title of the session.
   ///     The header follows each change of it.
   ///   - headerContextMenuPath: The path of a host scope whose context menu
-  ///     a right click on each part of the top bar shows (the status line,
-  ///     the header of the host and each banner), or `nil` for no context
-  ///     menu.
+  ///     a right click on each point of the top bar shows (the status line,
+  ///     the header of the host, each banner and each gap between two
+  ///     parts), or `nil` for no context menu.
   ///   - composer: The builder of the view in the composer slot, such as a
   ///     ``PromptInputView``.
   public init(
@@ -318,7 +318,7 @@ public struct AgentThreadView<Composer: View>: View {
   ///   - sessionTitle: The title of the crumb of the session in the header,
   ///     or `nil`.
   ///   - headerContextMenuPath: The path of the host scope whose context
-  ///     menu each part of the top bar shows, or `nil`.
+  ///     menu each point of the top bar shows, or `nil`.
   ///   - composer: The builder of the view in the composer slot.
   init(
     session: SessionModel, connection: ConnectionModel? = nil, anchors: ScrollAnchorManager?,
@@ -440,11 +440,14 @@ public struct AgentThreadView<Composer: View>: View {
       // the view (`\.barInsets`, ^e0wdpmg). With no part there is no stack,
       // so a bar that shows nothing takes no space. The glass of the status
       // line and of the banners is in one container, so it blends where the
-      // parts touch (TestudoApp D213).
+      // parts touch (TestudoApp D213). The full frame of the stack, with the
+      // gaps between the parts, shows the context menu of the host path
+      // (``TopBarContextMenu``, ^z7r9tk).
       Group(subviews: topBarParts) { subviews in
         if !subviews.isEmpty {
           FloatingGlassContainer(spacing: editorStyle.spacing.s) {
             VStack(spacing: editorStyle.tile.margin) { subviews }
+              .topBarContextMenu(headerContextMenuPath)
           }
           .padding(barInsets)
         }
@@ -485,11 +488,12 @@ public struct AgentThreadView<Composer: View>: View {
   /// host has no glass (D110), and its buttons keep the place of content
   /// (``ThreadHeaderSlot``).
   ///
-  /// Each part shows the context menu of ``headerContextMenuPath`` on its
-  /// full bar (``TopBarPartContextMenu``): a right click on the status line,
-  /// on the header of the host or on a banner shows the same menu (D108,
-  /// ^tsr28g). A control of a part keeps its own action. With no path, no
-  /// part has a context menu.
+  /// The top bar shows the context menu of ``headerContextMenuPath`` on the
+  /// full frame of the stack of the parts (``TopBarContextMenu``): a right
+  /// click on the status line, on the header of the host, on a banner or in
+  /// the gap between two parts shows the same menu (D108, ^tsr28g, ^z7r9tk).
+  /// A control of a part keeps its own action. With no path, the top bar has
+  /// no context menu, and a click in a gap goes to the list.
   @ViewBuilder private var topBarParts: some View {
     if let connection {
       ThreadStatusHeader(
@@ -498,10 +502,8 @@ public struct AgentThreadView<Composer: View>: View {
     }
     if let threadHeader {
       ThreadHeaderSlot(header: threadHeader)
-        .topBarPartContextMenu(headerContextMenuPath)
     }
     banners
-      .topBarPartContextMenu(headerContextMenuPath)
   }
 
   /// The banners of the top bar, from the top: the connection banner when the
