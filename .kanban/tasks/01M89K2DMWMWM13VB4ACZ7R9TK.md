@@ -55,8 +55,15 @@ comments:
     - evidence: 4 files — Sources/AgentViewKit/Commands/HostPathContextMenu.swift, Sources/AgentViewKit/Thread/AgentThreadView.swift, Sources/AgentViewKit/Thread/ThreadHeader.swift, Sources/AgentViewKit/Thread/TopBarContextMenu.swift (deleted). `swift test`: 1742 tests in 196 suites and 59 tests in 12 suites pass. `swift test --package-path IntegrationTests --filter ThreadHeaderContextMenuHostedTests`: 12 tests in 1 suite pass. Findings 2/2 checked. Tags: testudo only.
     - next: /review
   timestamp: 2026-11-25T15:07:08.238049+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m89m185536ghg63hpd7wa9en
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (b0565559): 0 findings (0 confirmed, 0 refuted), 4 files reviewed. Prior findings 2/2 checked.
+    - next: none. The task is in done.
+  timestamp: 2026-11-25T15:08:52.261483+00:00
+position_column: done
+position_ordinal: ffffffffa580
 title: The whole top bar is one hit area with the header context menu
 ---
 Testudo follow-up to ^tsr28g (found by the Testudo share UI run with c41bdda0). A right-click in the gap between two parts of the top bar (for example between the status line and the "Shared · …" notice) shows no menu. The click goes to the list below. D108: the menu is the same at each point of the bar.
