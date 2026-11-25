@@ -151,7 +151,6 @@ public struct PermissionView: View {
   @Environment(\.editorTheme) private var editorTheme
   @Environment(\.placedSecondary) private var placedSecondary
   @Environment(\.permissionAnswerReport) private var reportAnswer
-  @Environment(\.requestFrameIsExternal) private var frameIsExternal
 
   /// The report that gets the method of each request that the "switch to
   /// auto" button starts, or `nil`.
@@ -171,6 +170,7 @@ public struct PermissionView: View {
 
   public var body: some View {
     let options = PermissionPresentation.order(of: request.request.options)
+    let edgeRadius = SurfaceCorners.card.radius(in: editorStyle)
     ContentTileStack {
       header
     } body: {
@@ -189,8 +189,9 @@ public struct PermissionView: View {
     // lands the focus on the card and not on the beacon of the scope. The
     // card shows that focus as the focused fill of its surface, never as an
     // outline (EditorKit style.md, "Selection and focus"), and the system
-    // focus effect stays off.
-    .modifier(PermissionCardEdge(isDrawn: !frameIsExternal))
+    // focus effect stays off. The card draws its content edge only when its
+    // host does not draw the edge.
+    .requestCardOwnSurface { $0.inlineEdge(radius: edgeRadius) }
     .requestCardFocus(takesDefaultFocus: true)
     .onExitCommand { session.startCancelPermission(request.id) }
     .accessibilityElement(children: .contain)
@@ -464,26 +465,6 @@ struct PermissionAnswer: Equatable {
 
   /// The comment that goes out as the next prompt, or `nil` for no prompt.
   let comment: String?
-}
-
-/// The content edge of a ``PermissionView`` that draws its own surface. The
-/// focus fill of the card is the fill of ``RequestCardFocus``.
-private struct PermissionCardEdge: ViewModifier {
-  /// The corners of the surface of the card.
-  static let corners = SurfaceCorners.card
-
-  /// Whether the card draws its edge.
-  let isDrawn: Bool
-
-  @Environment(\.editorStyle) private var editorStyle
-
-  @ViewBuilder func body(content: Self.Content) -> some View {
-    if isDrawn {
-      content.inlineEdge(radius: Self.corners.radius(in: editorStyle))
-    } else {
-      content
-    }
-  }
 }
 
 extension EnvironmentValues {

@@ -30,6 +30,20 @@ import Testing
     #expect(SystemFocusEffects.census(under: hosting).isEmpty)
   }
 
+  /// The positive control of ``theViewShowsNoSystemFocusEffect(_:)``: a
+  /// plain focusable SwiftUI button with no `.focusEffectDisabled()` shows
+  /// the system focus ring, and the census finds it. Thus an empty census of
+  /// a sample proves that the sample shows no ring.
+  ///
+  /// A change that fails this test: ``SystemFocusEffects`` stops finding the
+  /// system focus ring, for example after SwiftUI gives a new name to the
+  /// class of its ring view.
+  @Test func theCensusFindsTheFocusRingOfAPlainButton() {
+    let hosting = StyleViewHost.host(Button("Focus") {}, size: Self.hostSize)
+
+    #expect(!SystemFocusEffects.census(under: hosting).isEmpty)
+  }
+
   /// A production change that fails this test: the permission card shows
   /// its keyboard focus with no focus fill of its selectable surface.
   @Test func theFocusedPermissionCardShowsTheFocusFill() throws {

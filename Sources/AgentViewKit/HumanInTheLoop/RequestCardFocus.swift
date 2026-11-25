@@ -18,11 +18,10 @@ struct RequestCardFocus: ViewModifier {
   /// Whether the card holds the keyboard focus.
   @FocusState private var isFocused: Bool
 
-  @Environment(\.requestFrameIsExternal) private var frameIsExternal
-
   @ViewBuilder func body(content: Content) -> some View {
+    let showsFocus = isFocused
     let card = content
-      .modifier(RequestCardFocusFill(isDrawn: !frameIsExternal, isFocused: isFocused))
+      .requestCardOwnSurface { $0.selectableSurface(false, isFocused: showsFocus, corners: .card) }
       .focusable()
       .focusEffectDisabled()
       .preference(key: RequestCardFocusKey.self, value: isFocused)
@@ -37,20 +36,29 @@ struct RequestCardFocus: ViewModifier {
   }
 }
 
-/// The focus fill of a request card that draws its own surface: a selectable
-/// surface in the corners of a card that is never selected.
-private struct RequestCardFocusFill: ViewModifier {
-  /// Whether the card draws its fill.
-  let isDrawn: Bool
+/// A part of the surface of a request card, such as its edge or its focus
+/// fill, that the card draws only when its host does not draw it
+/// (`\.requestFrameIsExternal`).
+///
+/// Each part of the surface that a ``RequestDeck`` draws at the frame of the
+/// card goes through this one gate, so the parts cannot disagree about who
+/// draws them.
+private struct RequestCardOwnSurface<Card: View, Drawn: View>: View {
+  /// The card.
+  let card: Card
 
-  /// Whether the card holds the keyboard focus.
-  let isFocused: Bool
+  /// Draws the part of the surface on the card.
+  let draw: (Card) -> Drawn
 
-  @ViewBuilder func body(content: Content) -> some View {
-    if isDrawn {
-      content.selectableSurface(false, isFocused: isFocused, corners: .card)
+  @Environment(\.requestFrameIsExternal) private var frameIsExternal
+
+  var body: some View {
+    // The value is the same for each body of one card, so the card keeps its
+    // identity.
+    if frameIsExternal {
+      card
     } else {
-      content
+      draw(card)
     }
   }
 }
@@ -76,6 +84,16 @@ extension View {
   /// - Returns: The focusable card.
   func requestCardFocus(takesDefaultFocus: Bool = false) -> some View {
     modifier(RequestCardFocus(takesDefaultFocus: takesDefaultFocus))
+  }
+
+  /// Draws a part of the surface of this request card, such as its edge or
+  /// its focus fill, when the host of the card does not draw that part
+  /// (``RequestCardOwnSurface``).
+  ///
+  /// - Parameter draw: Draws the part of the surface on the card.
+  /// - Returns: The card, with the part when the card draws its own surface.
+  func requestCardOwnSurface(_ draw: @escaping (Self) -> some View) -> some View {
+    RequestCardOwnSurface(card: self, draw: draw)
   }
 }
 

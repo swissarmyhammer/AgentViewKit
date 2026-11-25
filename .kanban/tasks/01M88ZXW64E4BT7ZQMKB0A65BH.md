@@ -25,6 +25,28 @@ comments:
     - evidence: `swift test --filter FocusLookTests` 6 tests (19 cases) pass; full `swift test` 1763 tests in 205 suites and 59 tests in 12 suites pass, 0 failures, 0 code warnings (no HOME change: the harness refuses it). 38 files: new `Docs/decisions/focus-audit.md`, `Sources/AgentViewKit/HumanInTheLoop/RequestCardFocus.swift`, `Tests/AgentViewKitTests/Style/FocusLookTests.swift`; changed `SelectableSurface.swift`, `AgentItemScope.swift`, `AgentControlScope.swift`, `AgentRowList.swift`, `PermissionView.swift`, `ElicitationView.swift`, `ElicitationURLConsentView.swift`, `RequestDeck.swift`, 21 control files, `StatusBarActionStyle.swift`, `AgentViewKitStyle.md`, `AgentControlCornersTests.swift`, `ARCHITECTURE.md`, `plan.md`.
     - next: /review. Not committed. No hosted or gallery suite was run.
   timestamp: 2026-11-25T18:42:30.565575+00:00
+- actor: claude-code
+  id: 01m8a0k33tf010rxddtx85v1bw
+  text: |-
+    ### review — findings
+    - evidence: `review sha HEAD~1..HEAD` (commit 1efa2051): 2 findings (2 confirmed, 3 refuted) — `Sources/AgentViewKit/HumanInTheLoop/RequestCardFocus.swift:50`, `Tests/AgentViewKitTests/Style/FocusLookTests.swift:30`.
+    - next: /implement the 2 open items of the `## Review Findings (2026-11-25 12:43)` section, then /test, /commit and /review again.
+  timestamp: 2026-11-25T18:48:19.834048+00:00
+- actor: claude-code
+  id: 01m8a0w27d2bv2gt8pcm3x3zsw
+  text: |-
+    Findings of 2026-11-25 12:43 done.
+    1. Duplication: the isDrawn gate is now in one place: the private view `RequestCardOwnSurface` in RequestCardFocus.swift reads `\.requestFrameIsExternal` and calls a closure only when the card draws its own surface. `View.requestCardOwnSurface(_:)` is the call. `RequestCardFocusFill` and `PermissionCardEdge` are removed; each site gives only its own modifier as a closure (the focus fill, the inline edge). PermissionView and RequestCardFocus do not read `requestFrameIsExternal` any more. The closures capture plain values (`showsFocus`, `edgeRadius`), not the FocusState or Environment wrappers.
+    2. Positive control: new `FocusLookTests.theCensusFindsTheFocusRingOfAPlainButton` lays out a plain SwiftUI `Button` with no `.focusEffectDisabled()` and expects a non-empty `SystemFocusEffects.census(under:)`. It passed on the first run, so the census finds the `_FocusRingView` of a button with no window.
+    Note: the build log has a SwiftPM line "warning: missing creator for mutated node ... mlx-swift_Cmlx.bundle". It is a build-system message of the mlx dependency, not a code warning.
+  timestamp: 2026-11-25T18:53:13.837784+00:00
+- actor: claude-code
+  id: 01m8a0w4fex7k0j1t5b5pkq7p6
+  text: |-
+    ### implement — changed
+    - evidence: 3 files — Sources/AgentViewKit/HumanInTheLoop/RequestCardFocus.swift, Sources/AgentViewKit/HumanInTheLoop/PermissionView.swift, Tests/AgentViewKitTests/Style/FocusLookTests.swift. `swift test`: 1764 tests in 205 suites passed, 59 tests in 12 suites passed, 0 failures, 0 code warnings. Both findings flipped to [x].
+    - next: /test, /commit, then /review again.
+  timestamp: 2026-11-25T18:53:16.142858+00:00
 position_column: doing
 position_ordinal: '80'
 title: 'Focus audit: list every focus visual and turn off every system focus effect'
@@ -54,3 +76,19 @@ EditorKit defines the ONE focus ring and the ONE focus background. This card is 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
 - Start after the AVK scroll profile run ends (one screen user at a time).
+
+## Review Findings (2026-11-25 12:43)
+
+> Scope: `review sha HEAD~1..HEAD` — reviewed the diffs only — lines this change added or modified. 33 file(s) reviewed, 6 not reviewed.
+
+> 2 file(s) not reviewed — excluded by an ignore rule:
+> - `.kanban/ (from .reviewignore)` — 2 file(s)
+
+> 4 file(s) not reviewed — no validator matched:
+> - `ARCHITECTURE.md` — no validator matches this file
+> - `Docs/decisions/focus-audit.md` — no validator matches this file
+> - `Sources/AgentViewKitStyle/AgentViewKitStyle.docc/AgentViewKitStyle.md` — no validator matches this file
+> - `plan.md` — no validator matches this file
+
+- [x] `Sources/AgentViewKit/HumanInTheLoop/RequestCardFocus.swift:50` `duplication/duplication` — RequestCardFocusFill.body repeats the isDrawn gate of PermissionCardEdge.body in PermissionView.swift. Both are new in this change. The two copies can drift apart when the gate changes. Use the same shared gating helper for both sites, so the isDrawn branch is written once. Keep only the differing modifier at each site, passed as a closure.
+- [x] `Tests/AgentViewKitTests/Style/FocusLookTests.swift:30` `completeness/inverse-operation-coverage` — The test checks only the empty side of the census: it asserts that a view shows no system focus effect. It has no positive control that proves the census can detect a focus ring. If SystemFocusEffects.census or showsEffect stops matching the ring class (for example, after a SwiftUI class rename), it returns an empty list and this test still passes. The guard against a regression is therefore not proven. Add one positive-control test. Lay out a view that draws a system focus ring with no `.focusEffectDisabled()` (for example, a plain focusable SwiftUI Button), and assert that `SystemFocusEffects.census(under:)` returns at least one entry for it. This proves the detector works, so the empty result for each FocusLookSample means something.
