@@ -32,12 +32,22 @@ public nonisolated struct EnlargedRoleTheme: EditorTheme.Theme {
   /// The theme that gives the colors.
   private let base = SystemTheme()
 
+  /// The text color of `SystemTheme`.
   public var editorForeground: Color { base.editorForeground }
+  /// The selection color of `SystemTheme`.
   public var selection: Color { base.selection }
+  /// The status bar background of `SystemTheme`.
   public var statusBarBackground: Color { base.statusBarBackground }
+  /// The tab bar background of `SystemTheme`.
   public var tabBarBackground: Color { base.tabBarBackground }
+  /// The face of the `ui` role: ``enlargedFace`` when `ui` is the enlarged
+  /// role, else the default face of the role.
   public var uiFace: FontFace { face(enlargedIn: .ui, default: ThemeRoleDefaults.uiFace) }
+  /// The face of the `display` role: ``enlargedFace`` when `display` is the
+  /// enlarged role, else the default face of the role.
   public var displayFace: FontFace { face(enlargedIn: .display, default: ThemeRoleDefaults.displayFace) }
+  /// The face of the `code` role: ``enlargedFace`` when `code` is the
+  /// enlarged role, else the default face of the role.
   public var codeFace: FontFace { face(enlargedIn: .code, default: ThemeRoleDefaults.codeFace) }
 
   /// The attributes of a capture in `SystemTheme`.

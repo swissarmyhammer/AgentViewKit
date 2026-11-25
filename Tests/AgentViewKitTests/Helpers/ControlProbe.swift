@@ -14,8 +14,16 @@ import SwiftUI
 /// that draws in the enlarged font role of the theme is larger with that
 /// theme.
 @MainActor enum ControlProbe {
+  /// The width of the window of each read, in points: wide enough for the
+  /// widest control of a probe.
+  static let hostWidth: CGFloat = 480
+
+  /// The height of the window of each read, in points: tall enough for the
+  /// tallest control of a probe.
+  static let hostHeight: CGFloat = 320
+
   /// The size of the window of each read.
-  static let hostSize = CGSize(width: 480, height: 320)
+  static let hostSize = CGSize(width: hostWidth, height: hostHeight)
 
   /// Reads the one element of `view` whose accessibility identifier is
   /// `identifier`.

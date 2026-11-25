@@ -734,7 +734,10 @@ public struct ElicitationSingleChoiceField: View {
 
   /// A menu with the item of no selection and each choice: EditorKit's
   /// `ChoiceField`. The item of no selection is an option of the menu, so a
-  /// person can remove the answer of an optional field.
+  /// person can remove the answer of an optional field. Only the menu has
+  /// this item. The radio group of a field with ``radioGroupLimit`` choices
+  /// or fewer has no item of no selection, as before the change to
+  /// `ChoiceField`.
   ///
   /// - Parameter choices: The choices.
   /// - Returns: The menu.
