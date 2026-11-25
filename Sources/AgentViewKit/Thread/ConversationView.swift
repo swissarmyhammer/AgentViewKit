@@ -26,6 +26,10 @@ public enum ConversationLayout {
   /// empty state (``ConversationEmptyState``). Its value is the Markdown.
   public static let emptyStateTextIdentifier = "conversation-empty-state-text"
 
+  /// The scroll identifier of the empty view at the end of the content of the
+  /// list. A scroll to the bottom goes to this view (^66has33).
+  static let bottomIdentifier = "conversation-bottom"
+
   /// The default number of items on one page.
   public static let defaultPageSize = 200
 
@@ -85,33 +89,6 @@ public enum ConversationLayout {
   ) -> Int {
     guard let position else { return shownPages }
     return max(shownPages, pageCount(toShow: position, count: count, pageSize: pageSize))
-  }
-
-  /// Applies a scroll target of the ``ScrollAnchorManager`` to the scroll
-  /// position of the list.
-  ///
-  /// A scroll to the bottom goes to the bottom edge of the content, so the
-  /// position holds no view id. A scroll to an id that no element of the
-  /// `ForEach` of the rows has makes SwiftUI search each element for that id
-  /// in each layout pass (task ^48x2jb7). The position keeps the edge until
-  /// the next scroll, and SwiftUI applies the kept edge again in later layout
-  /// passes. Such a pass can report no row in view, and the
-  /// ``ScrollAnchorManager`` ignores a report with no row (^4yw9781), so the
-  /// list stays pinned (^66has33).
-  ///
-  /// A scroll to an item puts the top of its row at the top edge of the part
-  /// of the list in view.
-  ///
-  /// - Parameters:
-  ///   - position: The scroll position of the list.
-  ///   - target: The target.
-  static func scroll(_ position: inout ScrollPosition, to target: ScrollAnchorTarget) {
-    switch target {
-    case .bottom:
-      position.scrollTo(edge: .bottom)
-    case .item(let id):
-      position.scrollTo(id: id, anchor: .top)
-    }
   }
 
   /// The accessibility value of the list.
@@ -379,24 +356,31 @@ public struct ConversationView<EmptyState: View>: View {
     let anchors = anchors
     let placements = ModelChangePlacements(notices: session.notices, transcript: session.transcript)
     return ScrollView {
-      VStack(alignment: .leading, spacing: editorStyle.tile.margin) {
-        if shownCount < count {
-          loadEarlierRow
-        }
-        LazyVStack(alignment: .leading, spacing: editorStyle.tile.margin) {
-          // A line before the first entry shows only with the first page.
-          if shownCount == count {
-            startLines(placements.lines(at: .start))
+      VStack(spacing: 0) {
+        VStack(alignment: .leading, spacing: editorStyle.tile.margin) {
+          if shownCount < count {
+            loadEarlierRow
           }
-          rows(shownCount: shownCount, placements: placements)
+          LazyVStack(alignment: .leading, spacing: editorStyle.tile.margin) {
+            // A line before the first entry shows only with the first page.
+            if shownCount == count {
+              startLines(placements.lines(at: .start))
+            }
+            rows(shownCount: shownCount, placements: placements)
+          }
+          .scrollTargetLayout()
         }
-        .scrollTargetLayout()
+        // The list keeps the inset of its rows in its content, and gives no
+        // content margin (^rgsq3k4): SwiftUI gives a content margin to the
+        // AppKit scroll view as `contentInsets`, and the content insets of
+        // the list are the heights of the bars above and below it.
+        .padding(listContentInsets)
+        // The target of a scroll to the bottom near the end of the content
+        // (`scrollToBottom()`).
+        Color.clear
+          .frame(height: 0)
+          .id(ConversationLayout.bottomIdentifier)
       }
-      // The list keeps the inset of its rows in its content, and gives no
-      // content margin (^rgsq3k4): SwiftUI gives a content margin to the
-      // AppKit scroll view as `contentInsets`, and the content insets of
-      // the list are the heights of the bars above and below it.
-      .padding(listContentInsets)
     }
     .accessibilityLabel(Text("Conversation", bundle: .module))
     .accessibilityValue(
@@ -569,8 +553,7 @@ public struct ConversationView<EmptyState: View>: View {
   /// ``AgentThreadView``. A scroll to the last row by its identifier places
   /// the row from the estimated heights of the lazy stack. When the rows get
   /// their real heights in the same layout pass, that scroll can stop with
-  /// the last rows under the bar (^92k32m0). The scroll position then holds
-  /// the bottom edge and no view id (``ConversationLayout/scroll(_:to:)``).
+  /// the last rows under the bar (^92k32m0). See ``scrollToBottom()``.
   ///
   /// A scroll to an item puts the top of its row at the top edge of the
   /// part of the list in view, below the top bar. The first scroll places
@@ -582,14 +565,14 @@ public struct ConversationView<EmptyState: View>: View {
     switch target {
     case .bottom:
       unsettledItemID = nil
-      guard lastRowKey != nil else { return }
+      scrollToBottom()
     case .item(let id):
       pageCount = ConversationLayout.pageCount(
         forScrollTo: rowIndex.position(ofRowKey: id, in: session), count: session.transcript.count,
         pageSize: pageSize, shownPages: pageCount)
       unsettledItemID = id
+      position.scrollTo(id: id, anchor: .top)
     }
-    ConversationLayout.scroll(&position, to: target)
   }
 
   /// Scrolls to the item of the last scroll to an item again, when `ids`
@@ -603,7 +586,33 @@ public struct ConversationView<EmptyState: View>: View {
   private func settleItemScroll(visible ids: [String]) {
     guard let id = unsettledItemID, ids.contains(id) else { return }
     unsettledItemID = nil
-    ConversationLayout.scroll(&position, to: .item(id))
+    position.scrollTo(id: id, anchor: .top)
+  }
+
+  /// Scrolls the list to the end of its content.
+  ///
+  /// Near the end, such as for an append while the list follows the bottom,
+  /// the list goes to the empty view with
+  /// ``ConversationLayout/bottomIdentifier``. The rows near the end are laid
+  /// out, so the position of that view is exact.
+  ///
+  /// Far from the end, such as for a press on the pill, the rows between have
+  /// only estimated heights, and a scroll to the view can stop short of the
+  /// end. The list then goes to the bottom edge of its content. The scroll
+  /// position keeps that edge until the next scroll, and SwiftUI applies a
+  /// kept edge again in later layout passes, from the frame of the scroll
+  /// target layout: past the end of the content by the bottom inset. The
+  /// list reports no row in view for such a pass, the report unpins the
+  /// manager, and the lazy stack can keep no row. Thus the scroll of each
+  /// append near the end goes to the view and replaces a kept edge
+  /// (^66has33).
+  private func scrollToBottom() {
+    guard lastRowKey != nil else { return }
+    if isNearBottom {
+      position.scrollTo(id: ConversationLayout.bottomIdentifier, anchor: .bottom)
+    } else {
+      position.scrollTo(edge: .bottom)
+    }
   }
 
   /// Tells the manager and the live rows (``LiveRowRange``) which rows are
