@@ -144,12 +144,12 @@ component is not on EditorKit main yet. The EditorKit card ^id adds it.
 
 | Place | Raw control | EditorKit component or wrapper | State |
 |---|---|---|---|
-| `Elicitation/ElicitationFieldViews.swift`, `ElicitationNumberField` with no range | `Stepper` beside a `NumberField` | `StepperField` | Changed |
 | `Elicitation/ElicitationFieldViews.swift`, `ElicitationToggleField` | `Toggle` (switch) | `ToggleField` with `.toggleFieldStyle(.switch)` | Changed |
 | `Elicitation/ElicitationFieldViews.swift`, `ElicitationMultiChoiceField` | `Toggle` (check box) for each choice | `ToggleField` | Changed |
 | `Elicitation/ElicitationFieldViews.swift`, `ElicitationSingleChoiceField` menu | `Picker` (menu) | `ChoiceField` | Changed |
 | `Sessions/SessionJumpList.swift`, the filter field | `TextField` | `AgentOneLineField` (`SingleLineField` with a placeholder) | Changed |
 | `Code/BlockHeader.swift`, the preview | `Button` with a title and a symbol | `EditorToolbarButton` | Changed |
+| `Elicitation/ElicitationFieldViews.swift`, `ElicitationNumberField` with no range | `Stepper` beside a `NumberField` | `StepperField` | Waits for EK: `StepperField` keeps its `EditorModel` after the field leaves the view (undo stays on the window stack), and `StepperField` has no option to step inside a range but keep a typed value outside it |
 | `Elicitation/ElicitationFieldViews.swift`, `ElicitationNumberField` with a range | `Slider` | `SliderField` | Waits for ^gkfzwd0 |
 | `Elicitation/ElicitationFieldViews.swift`, `ElicitationSingleChoiceField` radio group | `Button` with a custom label for each choice | `EditorPlainButton` | Waits for ^02gvsec |
 | `Elicitation/ElicitationTabChip.swift` | `Button` with a custom label | `EditorPlainButton` with `.selectableCapsule(isSelected:)` | Waits for ^02gvsec |
@@ -179,20 +179,8 @@ The other scroll views of the kit (the chip rows, the timeline, the form
 pages and the text blocks) are not in a focus scope, so the table does not
 list them.
 
-The changed controls keep their behavior, with these changes:
+The changed controls keep their behavior, with this change:
 
-- The stepper of a number field is one `StepperField`: the number input and
-  an up and a down button in the edge of a kit text input. `StepperField`
-  changes a typed number past its range to the nearest bound, so its range
-  is not the bounds of the schema. A typed or a stepped number past a bound
-  of the schema stays, and the validator shows its error, as before. Unlike
-  the system stepper, the buttons do not stop at a bound of the schema. An
-  integer field steps in the whole numbers that a JSON number holds with no
-  loss (2^53 - 1 on each side).
-- Known fault: EditorKit `StepperField` keeps its `EditorModel` after the
-  field leaves the view, so the typing of a submitted form stays on the
-  window undo stack. `NumberInputModelReleaseTests` records it as a known
-  issue. EditorKit must break the cycle.
 - The menu of a single-choice field always has the item of no selection, so
   a person can remove the answer of an optional field, as before.
 

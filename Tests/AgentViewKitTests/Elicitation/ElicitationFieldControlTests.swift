@@ -34,60 +34,6 @@ import Testing
     ElicitationFieldContext(schema: ElicitationTestFields.field(kind, name: name), value: box.binding)
   }
 
-  /// A number field with no range: the field shows a stepper.
-  static var unboundedNumberField: ElicitationNumberField {
-    ElicitationNumberField(context: context(.number(integer: true, minimum: nil, maximum: nil)))
-  }
-
-  /// The identifier of the up button of the EditorKit `StepperField` of the
-  /// field.
-  static var increaseIdentifier: String { controlIdentifier + ".increase" }
-
-  /// A production change that fails this test: the number field shows a
-  /// system `Stepper` in place of the EditorKit `StepperField`, which has an
-  /// up and a down button.
-  @Test func theNumberFieldWithNoRangeShowsTheUpButtonOfAStepperField() async {
-    let role = await ControlProbe.read(Self.increaseIdentifier, in: Self.unboundedNumberField, accessibilityRole(of:))
-
-    #expect(role == NSAccessibility.Role.button.rawValue)
-  }
-
-  /// A production change that fails this test: the stepper of the number
-  /// field draws its chevrons in a font that is not the `ui` face of the
-  /// theme.
-  @Test func theStepperOfTheNumberFieldTakesTheUIFaceOfTheTheme() async throws {
-    let frames = try #require(
-      await ControlProbe.frames(of: Self.increaseIdentifier, in: Self.unboundedNumberField, enlarging: .ui))
-
-    #expect(frames.themed.width > frames.plain.width)
-  }
-
-  /// The maximum of the field of ``aStepPastTheMaximumWritesTheNumber()``.
-  static let maximum = 9.0
-
-  /// A production change that fails this test: the stepper keeps the
-  /// number in the bounds of the schema. The stepper then also changes a
-  /// typed number above the maximum to the maximum, so the form shows no
-  /// error for the typed number. The validator checks the bounds, as it does
-  /// for each answer.
-  @Test func aStepPastTheMaximumWritesTheNumber() async {
-    let box = AnswerBox(.number(Self.maximum))
-    let field = ElicitationNumberField(
-      context: Self.context(.number(integer: true, minimum: nil, maximum: Self.maximum), box: box))
-
-    _ = await ControlProbe.read(Self.increaseIdentifier, in: field) { try? performAccessibilityPress(on: $0) }
-
-    #expect(box.value == .number(Self.maximum + 1))
-  }
-
-  /// A production change that fails this test: the stepper of an integer
-  /// field has a range wider than `Int` holds, so a step overflows.
-  @Test func theIntegerStepperStaysInTheExactWholeNumbers() {
-    let limit = ElicitationNumberField.largestExactWholeNumber
-
-    #expect(ElicitationNumberField.integerStepperRange == -limit...limit)
-  }
-
   /// A production change that fails this test: the switch of a boolean
   /// field has no accessibility label, or a label that is not the title of
   /// the field. The hidden label of the switch must not hide its
