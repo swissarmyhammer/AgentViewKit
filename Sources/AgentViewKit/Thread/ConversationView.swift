@@ -305,7 +305,9 @@ public struct ConversationView<EmptyState: View>: View {
   }
 
   public var body: some View {
-    Group {
+    // The bar gets the size of the proposal from the layout, and does not
+    // measure the list on each frame of a scroll (^7q5zdsj).
+    ProposalSizedLayout {
       if session.transcript.isEmpty {
         emptyState
           .frame(maxWidth: .infinity, maxHeight: .infinity)
