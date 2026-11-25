@@ -37,10 +37,25 @@ import Testing
   /// A completed tool call that reads a file.
   nonisolated static let toolCall = PreviewTranscriptItem.toolCall(title: "Read", kind: .read, status: .completed)
 
+  /// The items of some turns: for each turn, a user message, then the
+  /// work items of the turn, then an agent message.
+  ///
+  /// - Parameters:
+  ///   - count: The number of turns.
+  ///   - work: Gives the items between the two messages of a turn.
+  /// - Returns: The items, in transcript order.
+  nonisolated static func turns(
+    _ count: Int, work: (Int) -> [PreviewTranscriptItem] = { _ in [] }
+  ) -> [PreviewTranscriptItem] {
+    (0..<count).flatMap { turn in
+      [.user("Question \(turn).")] + work(turn) + [.agent("Answer \(turn).")]
+    }
+  }
+
   /// The items of a long transcript: for each turn, a user message, a
   /// thought, a tool call and an agent message.
-  nonisolated static let longMixedTranscript: [PreviewTranscriptItem] = (0..<longTurnCount).flatMap { turn in
-    [.user("Question \(turn)."), .thought("Think \(turn)."), toolCall, .agent("Answer \(turn).")]
+  nonisolated static let longMixedTranscript = turns(longTurnCount) { turn in
+    [.thought("Think \(turn)."), toolCall]
   }
 
   /// The transcripts of the agreement test, by name.
@@ -93,10 +108,7 @@ import Testing
     /// A production change that fails this test: the availability check of
     /// Copy Thread renders the copy text of the whole thread.
     @Test func streamedChunksRenderNoCopyText() {
-      let session = SessionModel.preview(
-        transcript: (0..<Self.mountedTurnCount).flatMap { turn in
-          [PreviewTranscriptItem.user("Question \(turn)."), .agent("Answer \(turn).")]
-        })
+      let session = SessionModel.preview(transcript: Self.turns(Self.mountedTurnCount))
       let key = AgentCommandTarget.plainTextCounterKey(for: session)
       BodyEvaluationCounter.reset(key)
       let window = Self.mountThreadWithFooters(session)
