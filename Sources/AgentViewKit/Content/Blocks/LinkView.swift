@@ -58,6 +58,7 @@ public struct LinkView: View {
           .frame(maxWidth: Self.maximumCardWidth * fontScale, alignment: .leading)
       }
       .buttonStyle(.plain)
+      .withoutSystemFocusEffect()
       .help(uri)
       .accessibilityLabel(name)
       .accessibilityHint(uri)

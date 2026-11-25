@@ -1,6 +1,5 @@
 import EditorCommands
 import EditorCommandsUI
-import EditorStyle
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -123,11 +122,9 @@ private struct AgentItemFocusRing: ViewModifier {
   /// How the item shows the focus of its scope.
   let look: AgentItemFocusLook
 
-  @Environment(\.editorStyle) private var editorStyle
-
   func body(content: Content) -> some View {
     switch look {
-    case .ring(let corners): content.scopeFocusRing(cornerRadius: corners.radius(in: editorStyle))
+    case .ring(let corners): content.surfaceFocusRing(corners)
     case .fill, .contentSurface: content
     }
   }

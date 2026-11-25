@@ -41,6 +41,7 @@ struct AttachmentActions: View {
         ForEach(AgentAttachmentVerb.buttonVerbs, id: \.self) { verb in
           EditorToolbarButton(command: verb.id)
             .accessibilityIdentifier(verb.identifier(prefix: identifierPrefix))
+            .withoutSystemFocusEffect()
         }
       }
     }

@@ -165,6 +165,7 @@ public struct SideQuestionCard: View {
       ForEach(Self.verbs(needsInput: Self.needsInput(session)), id: \.self) { verb in
         EditorToolbarButton(command: verb.id)
           .accessibilityIdentifier(verb.identifier)
+          .withoutSystemFocusEffect()
       }
     }
   }

@@ -42,6 +42,7 @@ struct OutputCapRow: View {
         systemImage: Self.showAllSymbol, action: showAll
       )
         .accessibilityIdentifier(showAllIdentifier)
+        .withoutSystemFocusEffect()
     }
   }
 }

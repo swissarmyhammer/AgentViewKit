@@ -248,6 +248,7 @@ public struct DiffView: View {
     }
     .accessibilityAddTraits(isSelected ? .isSelected : [])
     .accessibilityIdentifier(Self.fileChipIdentifier(for: file.path))
+    .withoutSystemFocusEffect()
     .selectionSurface(isSelected, corners: .pathChip)
   }
 
@@ -293,6 +294,7 @@ public struct DiffView: View {
         onAttach(DiffAttachment(file: file.path, lines: lines))
       }
       .accessibilityIdentifier(Self.attachIdentifier)
+      .withoutSystemFocusEffect()
     }
   }
 
@@ -382,6 +384,7 @@ public struct DiffView: View {
           }
           .accessibilityLabel(String(localized: "Accept hunk \(index + 1)", bundle: .module))
           .accessibilityIdentifier(Self.acceptIdentifier(for: index))
+          .withoutSystemFocusEffect()
         }
         if let onReject = actions.onReject {
           EditorButton(String(localized: "Reject", bundle: .module), systemImage: Self.rejectSymbol) {
@@ -389,6 +392,7 @@ public struct DiffView: View {
           }
           .accessibilityLabel(String(localized: "Reject hunk \(index + 1)", bundle: .module))
           .accessibilityIdentifier(Self.rejectIdentifier(for: index))
+          .withoutSystemFocusEffect()
         }
       }
     }

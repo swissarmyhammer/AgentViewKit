@@ -150,6 +150,7 @@ struct SessionBreadcrumb: View {
       Label(text, systemImage: symbol)
     }
     .accessibilityAddTraits(isCurrent ? .isSelected : [])
+    .withoutSystemFocusEffect()
   }
 
   /// The menu of the children of the shown session, after the bar: an
@@ -172,6 +173,7 @@ struct SessionBreadcrumb: View {
         : String(localized: "Children, \(entries.count)", bundle: .module)
     )
     .accessibilityIdentifier(Self.childrenIdentifier)
+    .withoutSystemFocusEffect()
   }
 
   /// The symbol of a choice: a checkmark for the shown session, a warning for

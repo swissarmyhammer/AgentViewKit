@@ -351,7 +351,7 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
       }
     }
     .commandScope(segment: scope.list)
-    .scopeFocusRing(radius: AgentRowListLayout.radius)
+    .surfaceFocusRing(.rounded(AgentRowListLayout.radius))
     .agentRowListKeys(listPath: path, focusedPath: focusedPath, target: target)
     .commandSystem(system)
   }

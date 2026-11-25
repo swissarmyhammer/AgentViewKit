@@ -156,6 +156,7 @@ public struct InlineCitation: View {
       InlineCitationPill(index: index)
     }
     .buttonStyle(.plain)
+    .withoutSystemFocusEffect()
     .inlineCitationAccessibility(index: index)
   }
 }

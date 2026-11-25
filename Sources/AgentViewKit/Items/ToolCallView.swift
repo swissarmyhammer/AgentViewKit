@@ -445,6 +445,7 @@ private struct ToolCallHeader: View {
         expanded ? Text("Expanded", bundle: .module) : Text("Collapsed", bundle: .module)
       )
       .accessibilityIdentifier(ToolCallView.toggleIdentifier(for: id))
+      .withoutSystemFocusEffect()
       if let status = connectionState?(entry) {
         StatusCaption(status: EditorStatus(status), identifier: ConnectionRow.statusIdentifier(for: status))
       }
@@ -771,6 +772,7 @@ private struct ToolCallWaitingStatus: View {
     }
     .accessibilityHint(Text("Shows the question", bundle: .module))
     .accessibilityIdentifier(ToolCallView.waitingIdentifier(for: entry.id.rowKey))
+    .withoutSystemFocusEffect()
   }
 
   /// The host of the first accepted URL mode elicitation that names the tool
@@ -865,6 +867,7 @@ struct ToolCallChildLink: View {
       }
       .accessibilityIdentifier(Self.identifier(for: entry.id.rowKey))
       .accessibilityHint(child.displayTitle)
+      .withoutSystemFocusEffect()
     } else if Self.isFinishedAgentCall(name: entry.name, status: status), openSession != nil {
       // The client removed the child. The row stays as history, with a short
       // label in place of the vanished button; the result is in the content.

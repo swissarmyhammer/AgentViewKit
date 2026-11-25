@@ -531,6 +531,7 @@ public struct ConversationView<EmptyState: View>: View {
       }
     }
     .accessibilityIdentifier(ConversationLayout.loadEarlierIdentifier)
+    .withoutSystemFocusEffect()
   }
 
   // MARK: - Actions

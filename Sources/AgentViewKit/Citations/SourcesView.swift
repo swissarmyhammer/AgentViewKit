@@ -130,6 +130,7 @@ public struct SourcesView: View {
       .font(editorTheme.font(for: .ui, style: .subheadline))
       .foregroundStyle(themeSecondary)
     }
+    .withoutSystemFocusEffect()
     .onChange(of: selection?.revision) {
       guard let index = selection?.index, payload.sources.indices.contains(index - 1) else { return }
       isExpanded = true

@@ -208,8 +208,7 @@ public struct ElicitationURLConsentView: View {
     }
     .contentTile()
     .frame(maxWidth: .infinity, alignment: .leading)
-    .focusable()
-    .focusEffectDisabled()
+    .requestCardFocus()
     .onExitCommand(perform: didPressEscape)
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier(Self.identifier)

@@ -1,0 +1,151 @@
+# Focus audit
+
+Status: decided. Source: the user rule of 2026-11-25 for each view kit,
+relayed by testudoapp-9a (card ^b0a65bh):
+
+> we need a 'focus ring' -- one style -- and a 'focus background' like we do
+> for the cards and chips -- again ONE STYLE. I'm ok if we decide to use 'ring
+> and background' together, but I'm not OK with multiple different 'ring' and
+> 'background' focus styles.
+
+EditorKit defines the one focus ring and the one focus background. This file
+lists each focus visual of `Sources/AgentViewKit` and
+`Sources/AgentViewKitStyle`, what it draws, and its target. A second card
+adopts the EditorKit API. That card changes only
+`Sources/AgentViewKitStyle/Theme/SelectableSurface.swift`.
+
+## The rule
+
+- The kit has one focus look. An item with a surface shows the focus fill of
+  `SelectableSurface`. An item with no surface shows the focus ring of its
+  scope.
+- A request card (a permission card, an elicitation form or a URL consent
+  card) takes the keyboard focus with `.requestCardFocus()`: `.focusable()`,
+  `.focusEffectDisabled()` and the focus fill, in one modifier.
+- Only `SelectableSurface.swift` asks EditorKit for a focus ring or a focus
+  fill. A view of the kit calls `.selectableSurface(_:corners:)`,
+  `.selectableSurface(_:isFocused:corners:)` or `.surfaceFocusRing(_:)`.
+- No view of the kit shows a system focus effect. A focusable card or row
+  has `.focusEffectDisabled()` on the same view as its `.focusable()`. A
+  button, a menu, a field, a disclosure group or a list has
+  `.withoutSystemFocusEffect()`, or stands in a card or a row that has
+  `.focusEffectDisabled()`.
+- Put `.withoutSystemFocusEffect()` on the control, inside each
+  `.commandScope` that draws a ring. A scope under `.focusEffectDisabled()`
+  draws no ring.
+- A view of EditorKit in the kit, such as an `InspectorView`, an `EditorView`
+  or a `PreviewField`, keeps the focus look that EditorKit gives it.
+
+## The words of the table
+
+- **System ring**: the focus ring that SwiftUI or AppKit draws for a
+  focusable view.
+- **Own ring**: a ring that the kit asks EditorKit for with
+  `.scopeFocusRing` from a file other than `SelectableSurface.swift`.
+- **Scope ring**: the focus ring of a command scope, from
+  `SelectableSurface.swift` (`.surfaceFocusRing(_:)`), or the ring in the
+  shape of a leaf control that EditorKit draws with no request.
+- **Fill**: the focus fill of a selectable surface (`SelectableSurface`, which
+  wraps EditorKit's `.selectableItem`).
+- **Ring target**: the one focus ring of EditorKit.
+- **Background target**: the one focus background of EditorKit.
+
+## Shared modifiers
+
+| Place | Before this card | Now | Target |
+|---|---|---|---|
+| `SelectableSurface.swift`, `SelectableSurface` (`.selectableSurface`) | Fill | Fill; it also gives `SelectableSurfaceFocusKey` | Background target |
+| `SelectableSurface.swift`, `.surfaceFocusRing(_:)` | Did not exist | Scope ring in the corners of a surface | Ring target |
+| `SelectableSurface.swift`, `.withoutSystemFocusEffect()` | Did not exist | No system ring | Ring target for a control that takes the focus itself |
+| `SelectableSurface.swift`, `.selectionSurface(_:corners:)` | Selection fill only, no focus | Selection fill only, no focus | No focus visual |
+| `AgentItemScope.swift`, `AgentItemFocusLook.ring` | Own ring (`.scopeFocusRing(cornerRadius:)`) | Scope ring (`.surfaceFocusRing(_:)`) | Ring target |
+| `AgentItemScope.swift`, `AgentItemFocusLook.fill` | Fill | Fill | Background target |
+| `AgentItemScope.swift`, `AgentItemFocusLook.contentSurface` | Fill of the content | Fill of the content | Background target |
+| `AgentControlScope.swift`, `AgentControlCorners.control` | Scope ring in the shape of the control, and a system ring on the control | Scope ring in the shape of the control, no system ring | Ring target |
+| `AgentControlScope.swift`, `AgentControlCorners.surface` | Own ring (`.scopeFocusRing(cornerRadius:)`), and a system ring on the control | Scope ring (`.surfaceFocusRing(_:)`), no system ring | Ring target |
+
+## Items
+
+| Place | Before this card | Now | Target |
+|---|---|---|---|
+| Message row (`TranscriptMessageView`, `.ring(.card)`) | Own ring | Scope ring | Ring target |
+| Tool call card (`ToolCallView`, `.ring(.card)`) | Own ring | Scope ring | Ring target |
+| Attachment actions and attachment inspector (`AttachmentActions`, `AttachmentInspector`, `.ring(.card)`) | Own ring | Scope ring | Ring target |
+| Attachment chip (`AttachmentChip`, `.fill`) | Fill | Fill | Background target |
+| Side question card (`SideCardScope`, `.fill(.card)`) | Fill | Fill | Background target |
+| File view of an attachment, image, artifact, tool call location chip (`AttachmentView`, `ImageView`, `ArtifactView`, `ToolCallLocationChips`, `.contentSurface`) | Fill | Fill | Background target |
+| List of an `AgentRowList` (the list scope) | Own ring (`.scopeFocusRing(radius:)`) | Scope ring | Ring target |
+| Row of an `AgentRowList` (`.focusable()`, `@FocusState`) | Fill, no system ring | Fill, no system ring | Background target |
+| Permission card (`PermissionView`, `RequestCardFocus`) | Fill, no system ring | Fill, no system ring | Background target |
+| Elicitation form (`ElicitationView`, `RequestCardFocus`) | No focus visual, no system ring | Fill, no system ring | Background target |
+| URL consent card (`ElicitationURLConsentView`, `RequestCardFocus`) | No focus visual, no system ring | Fill, no system ring | Background target |
+| Card of a `RequestDeck` (the fill at the frame of the deck card) | Fill of a permission card only | Fill of each request card | Background target |
+| Tab chip of a form (`ElicitationTabChip`, `.selectionSurface`) | Selection fill, no system ring (in the form) | Selection fill, no system ring | No focus visual (a part with no scope) |
+| File chip of a diff (`DiffView`, `PathChip`, `.selectionSurface`) | Selection fill, system ring | Selection fill, no system ring | Ring target for the chip button |
+| Load More of a session list (`SessionListView`, leaf control scope) | Scope ring, system ring | Scope ring, no system ring | Ring target |
+| Empty state text (`ConversationEmptyState`, `.targetable(false)`) | No focus visual | No focus visual | No focus visual |
+| VoiceOver focus (`ThreadAccessibility`, `@AccessibilityFocusState`) | The VoiceOver cursor of the system | The VoiceOver cursor of the system | Out of scope: not a keyboard focus |
+
+## Controls
+
+Each control below showed a system ring before this card, and shows none now.
+The target of each one is the ring target.
+
+| File | Controls |
+|---|---|
+| `Commands/AgentControlScope.swift` | Each bar control: Send and Stop (`CircleAction`), the scroll pill and the suggestions (`FloatingGlassAction`), the status bar buttons (`AgentStatusBarActionStyle`), the sign-in buttons (`AgentAuthView`), the permission mode picker, the remove button of a composer attachment chip, the composer editor |
+| `Items/MessageActions.swift` | The action buttons of a message |
+| `Items/ToolCallView.swift` | The row toggle, the answer button, the open session button |
+| `Items/ReasoningView.swift` | The show reasoning toggle |
+| `Items/JSONDisclosure.swift` | The disclosure group |
+| `Code/CodeBlockView.swift` | The copy button |
+| `Content/CommandOutputView.swift` | The copy button |
+| `Content/OutputChrome.swift` | The show all button |
+| `Content/Blocks/LinkView.swift` | The link card button |
+| `Citations/InlineCitation.swift` | The citation pill |
+| `Citations/SourcesView.swift` | The disclosure group and the links in it |
+| `Diff/DiffView.swift` | The file chips, attach, accept, reject |
+| `HumanInTheLoop/RequestDeck.swift` | The previous and next buttons of the deck |
+| `Config/ConfigOptionsView.swift` | The session options menu |
+| `Input/ToolToggles.swift` | The tools menu |
+| `Sessions/SessionListView.swift` | Refresh, New Session, Load More |
+| `Sessions/SessionBreadcrumb.swift` | The choice buttons, the children menu |
+| `Sessions/SessionJumpList.swift` | The field, the list and its rows |
+| `Activity/ActivityTimeline.swift` | The row button |
+| `Attachments/AttachmentActions.swift` | The action buttons |
+| `Thread/ConversationView.swift` | Load Earlier |
+| `Thread/ThreadHeader.swift` | The header button |
+| `Thread/SideQuestionCard.swift` | The card buttons |
+| `AgentViewKitStyle/Status/StatusBarActionStyle.swift` | The status bar button |
+
+The controls of a permission card, an elicitation form, a URL consent card
+and a row of an `AgentRowList` showed no system ring before this card: the
+`.focusEffectDisabled()` of the card or the row is around them.
+
+## Known gap until the adoption card
+
+A control that takes the keyboard focus itself shows no focus look now: a
+text field, a list, and a button while Full Keyboard Access is on. Before
+this card it showed the system ring. The adoption card gives each such
+control the ring target in `.withoutSystemFocusEffect()`.
+
+## Tests
+
+`Tests/AgentViewKitTests/Style/FocusLookTests.swift` checks the behavior,
+with no source scan:
+
+- Each view of the audit, laid out in a hosting view with no window, shows no
+  system focus ring: no SwiftUI focus ring view, no AppKit control that
+  draws its ring, and no scroll view of a list that draws the ring of the
+  list.
+- A permission card, an elicitation form, a URL consent card, the
+  elicitation card of a `RequestDeck` and a row of an `AgentRowList`, in a
+  window that is never ordered in, show the focus fill
+  (`SelectableSurfaceFocusKey`) after the key view loop of the window gives
+  them the focus.
+- An item that shows the focus of its scope, such as an attachment chip, gets
+  the focus only from the beacon of its scope, through a jump or a `nav.*`
+  move. No unit test gives that focus. The fill of such an item is the same
+  `SelectableSurface`.
+
+Review checks the code for other focus looks.

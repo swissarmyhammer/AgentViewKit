@@ -100,6 +100,7 @@ struct SessionJumpList: View {
         .accessibilityIdentifier(Self.rowIdentifier(for: entry.sessionId))
       }
     }
+    .withoutSystemFocusEffect()
     .padding(editorStyle.spacing.m)
     .frame(minWidth: Self.minimumWidth, minHeight: Self.minimumHeight)
   }

@@ -1,6 +1,5 @@
 import EditorCommands
 import EditorCommandsUI
-import EditorStyle
 import SwiftUI
 
 /// The focus scope of one control in a bar of a thread: Send, Stop, the
@@ -27,9 +26,11 @@ import SwiftUI
 /// (`\.themeAccent`), never in the `.tint` of a host (EditorKit ^d5f8cwa).
 /// The ring has the corners of the control (``AgentControlCorners``): an
 /// EditorKit button tells the scope the shape of its bezel, and
-/// `.scopeFocusRing(cornerRadius:)` gives the ring the corners of a surface
-/// of the kit. A `.focusEffectDisabled()` above the control turns the ring
-/// off. The leaf landing also makes the accessibility hit test of the window
+/// `.surfaceFocusRing(_:)` gives the ring the corners of a surface of the
+/// kit. A `.focusEffectDisabled()` above the control turns the ring off. The
+/// control itself shows no system focus effect
+/// (`.withoutSystemFocusEffect()`, inside the scope), so the ring of the
+/// scope is the one focus look of the control. The leaf landing also makes the accessibility hit test of the window
 /// over the control answer the control, not a transcript row under the bar.
 ///
 /// The beacon draws nothing and takes no click, and the scope draws nothing
@@ -69,7 +70,6 @@ struct AgentControlScope: ViewModifier {
   @Environment(\.agentCommandSystem) private var system
   @Environment(\.agentCommandScopeSegment) private var agentSegment
   @Environment(\.commandScopePath) private var enclosingPath
-  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.isAgentControlTargetable) private var isTargetable
 
   /// The EditorKit targeting of the scope: a target, or no target while a
@@ -86,25 +86,25 @@ struct AgentControlScope: ViewModifier {
   }
 
   func body(content: Content) -> some View {
+    let control = content.withoutSystemFocusEffect()
     if isScoped {
       withRingCorners(
-        content.commandScope(segment: segment).targetable(targeting, asksForLeafLanding: true))
+        control.commandScope(segment: segment).targetable(targeting, asksForLeafLanding: true))
     } else {
-      content
+      control
     }
   }
 
   /// `scope` with the request for the corners of its ring, when the corners
-  /// ask for a radius.
+  /// are the corners of a surface.
   ///
   /// - Parameter scope: The control in its scope.
-  /// - Returns: The scope, with `.scopeFocusRing(cornerRadius:)` for the
-  ///   corners of a surface, or with no request for the shape of the
-  ///   control.
+  /// - Returns: The scope, with `.surfaceFocusRing(_:)` for the corners of a
+  ///   surface, or with no request for the shape of the control.
   @ViewBuilder
   private func withRingCorners(_ scope: some View) -> some View {
-    if let radius = corners.radius(in: editorStyle) {
-      scope.scopeFocusRing(cornerRadius: radius)
+    if let surface = corners.surfaceCorners {
+      scope.surfaceFocusRing(surface)
     } else {
       scope
     }
@@ -125,15 +125,12 @@ enum AgentControlCorners: Equatable, Sendable {
   /// around the editor.
   case surface(SurfaceCorners)
 
-  /// The corner radius that the scope asks for.
-  ///
-  /// - Parameter style: The shared style that gives the radius scale.
-  /// - Returns: The radius of the surface, or `nil` for the shape of the
-  ///   control, so the scope asks for no corners.
-  func radius(in style: EditorStyle) -> CGFloat? {
+  /// The corners of the surface that the ring of the scope follows, or
+  /// `nil` for the shape of the control, so the scope asks for no corners.
+  var surfaceCorners: SurfaceCorners? {
     switch self {
     case .control: nil
-    case .surface(let corners): corners.radius(in: style)
+    case .surface(let corners): corners
     }
   }
 }

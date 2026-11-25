@@ -139,6 +139,66 @@ extension View {
   public func selectionSurface(_ isSelected: Bool, corners: SurfaceCorners) -> some View {
     modifier(SelectionPartSurface(isSelected: isSelected, corners: corners))
   }
+
+  /// Gives this item with no surface of its own the focus ring of its scope,
+  /// in the surface shape of its corners (EditorKit style.md, "Selection and
+  /// focus").
+  ///
+  /// Use it for an item that has no fill, such as a message or a list, or for
+  /// a control whose ring follows a surface of the kit, such as the field of
+  /// the composer. Put it around the `.commandScope` of the item:
+  ///
+  /// ```swift
+  /// MessageContent(message)
+  ///   .commandScope(segment: FocusSegment(kind: "message", id: message.id))
+  ///   .surfaceFocusRing(.card)
+  /// ```
+  ///
+  /// While the beacon of the scope holds the focus, the scope draws the one
+  /// focus ring of EditorKit in these corners. This is the one place where a
+  /// view kit asks for a focus ring, so the ring of each item changes here.
+  ///
+  /// - Parameter corners: The corners of the ring.
+  /// - Returns: The scope, with the corners of its focus ring.
+  public func surfaceFocusRing(_ corners: SurfaceCorners) -> some View {
+    modifier(SurfaceFocusRing(corners: corners))
+  }
+
+  /// Turns off the system focus effect of this control and of each control
+  /// in it (Docs/decisions/focus-audit.md).
+  ///
+  /// The kit shows one focus look: the focus fill of a selectable surface,
+  /// or the focus ring of a scope. A button, a menu, a field or a list of
+  /// the kit thus shows no system focus ring. Put the modifier on the
+  /// control, inside each `.commandScope` that draws a ring, because a scope
+  /// under `.focusEffectDisabled()` draws no ring:
+  ///
+  /// ```swift
+  /// EditorButton("Copy", systemImage: "doc.on.doc") { copy() }
+  ///   .withoutSystemFocusEffect()
+  /// ```
+  ///
+  /// This is the one place where a view kit turns off the system focus
+  /// effect of a control, so the focus look of each control changes here.
+  ///
+  /// - Returns: The control, with no system focus effect.
+  public func withoutSystemFocusEffect() -> some View {
+    focusEffectDisabled()
+  }
+}
+
+/// The focus ring of a scope around an item with no surface of its own:
+/// EditorKit's `.scopeFocusRing(cornerRadius:)` at the radius of the corners
+/// of the item.
+private struct SurfaceFocusRing: ViewModifier {
+  /// The corners of the ring.
+  let corners: SurfaceCorners
+
+  @Environment(\.editorStyle) private var editorStyle
+
+  func body(content: Content) -> some View {
+    content.scopeFocusRing(cornerRadius: corners.radius(in: editorStyle))
+  }
 }
 
 /// The look of the selection and the focus of an item that a view kit draws
@@ -166,6 +226,9 @@ public struct SelectableSurface: ViewModifier {
 
   @Environment(\.editorStyle) private var editorStyle
 
+  /// Whether the beacon of the enclosing `.commandScope` holds the focus.
+  @Environment(\.commandScopeHoldsFocus) private var scopeHoldsFocus
+
   /// Makes the look of the selection and the focus of an item.
   ///
   /// - Parameters:
@@ -180,13 +243,32 @@ public struct SelectableSurface: ViewModifier {
     self.corners = corners
   }
 
-  /// Gives `content` the fill of its state and its hit and focus shape.
+  /// Gives `content` the fill of its state and its hit and focus shape, and
+  /// tells the views above whether the focus fill shows
+  /// (`SelectableSurfaceFocusKey`).
   ///
   /// - Parameter content: The item.
   /// - Returns: The item with the look of its selection and its focus.
   public func body(content: Content) -> some View {
-    content.selectableItem(
-      isSelected: isSelected, isFocused: isFocused, cornerRadius: corners.radius(in: editorStyle))
+    content
+      .selectableItem(
+        isSelected: isSelected, isFocused: isFocused, cornerRadius: corners.radius(in: editorStyle))
+      .preference(key: SelectableSurfaceFocusKey.self, value: isFocused || scopeHoldsFocus)
+  }
+}
+
+/// Whether a selectable surface in the content shows the focus fill now.
+///
+/// Each ``SelectableSurface`` gives the value of its own focus fill, so a
+/// view above the surfaces can read the one focus look of the kit
+/// (Docs/decisions/focus-audit.md).
+struct SelectableSurfaceFocusKey: PreferenceKey {
+  /// No surface shows the focus fill.
+  static let defaultValue = false
+
+  /// One surface with the focus fill is enough.
+  static func reduce(value: inout Bool, nextValue: () -> Bool) {
+    value = value || nextValue()
   }
 }
 

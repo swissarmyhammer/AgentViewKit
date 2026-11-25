@@ -75,6 +75,7 @@ struct JSONDisclosure: View {
         .lineLimit(1)
     }
     .contentTile()
+    .withoutSystemFocusEffect()
     .accessibilityIdentifier(identifier)
   }
 }

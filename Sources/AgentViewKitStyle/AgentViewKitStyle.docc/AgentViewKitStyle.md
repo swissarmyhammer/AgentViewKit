@@ -47,6 +47,14 @@ same fill, with no ring. A part with no scope of its own inside another item,
 such as a tab chip, shows its selection only with
 ``SwiftUI/View/selectionSurface(_:corners:)``.
 
+The library is the one place of the focus look of the view kits
+(Docs/decisions/focus-audit.md). An item with no surface of its own, such as
+a message or a list, asks for the focus ring of its scope with
+``SwiftUI/View/surfaceFocusRing(_:)``. A control of a kit, such as a button,
+a menu, a field or a list, shows no system focus effect:
+``SwiftUI/View/withoutSystemFocusEffect()`` stands on the control, inside
+each scope that draws a ring.
+
 A text that the user can select is EditorKit's `EditorLabel`, which joins
 the text selection region of the environment. A view that shows on glass and
 in content, such as the explanation of a ``StatusTitleLayout``, shows its
@@ -70,6 +78,8 @@ button of a ``StatusBar`` the focus scope of a bar control with
 - ``SwiftUI/View/selectableSurface(_:corners:)``
 - ``SwiftUI/View/selectableSurface(_:isFocused:corners:)``
 - ``SwiftUI/View/selectionSurface(_:corners:)``
+- ``SwiftUI/View/surfaceFocusRing(_:)``
+- ``SwiftUI/View/withoutSystemFocusEffect()``
 - ``SwiftUI/View/changeHighlightEdge(corners:isShowing:)``
 - ``SwiftUI/View/changeHighlightEdge(radius:isShowing:)``
 

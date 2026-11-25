@@ -577,6 +577,7 @@ private struct DeckHeader: View {
     }
     .disabled(layout[keyPath: neighbor] == nil)
     .accessibilityIdentifier(identifier)
+    .withoutSystemFocusEffect()
   }
 }
 
@@ -623,7 +624,7 @@ private struct DeckCard: View {
   /// `nil` out of a container.
   @Environment(\.floatingGlassNamespace) private var glassNamespace
 
-  /// Whether the permission card holds the keyboard focus.
+  /// Whether the request card holds the keyboard focus.
   @State private var cardHasFocus = false
 
   var body: some View {
@@ -635,7 +636,7 @@ private struct DeckCard: View {
     // behind it. An edge card thus hides its content, and the band shows only
     // the top edge of its stroke above the front card.
     cardContent
-      .environment(\.permissionFrameIsExternal, true)
+      .environment(\.requestFrameIsExternal, true)
       .focused(keyboardFocus, equals: request.id)
       .opacity(showsWhole ? 1 : 0)
       // The edge fades, so a second card that arrives does not change the
@@ -646,7 +647,7 @@ private struct DeckCard: View {
           .opacity(drawsEdge ? 1 : 0)
       }
       .mask { DeckCardBand(role: role, edgeStep: edgeStep) }
-      .onPreferenceChange(PermissionCardFocusKey.self) { cardHasFocus = $0 }
+      .onPreferenceChange(RequestCardFocusKey.self) { cardHasFocus = $0 }
       .contentContainer(identifier: identifier)
       .accessibilityFocusTarget(identifier)
       .accessibilityHidden(!showsWhole)
@@ -659,28 +660,36 @@ private struct DeckCard: View {
 
   /// The card view of the request, at the whole frame of the card.
   ///
-  /// The permission card takes the keyboard focus itself, so a jump or a
-  /// move gives the focus to the card and not to the beacon of its scope.
-  /// The card shows that focus as the focused fill of its surface, never as
-  /// an outline (EditorKit style.md, "Selection and focus"). The fill is at
-  /// the frame of the deck card, which can be taller than the card, so the
-  /// fill and the edge of the card agree.
+  /// The request card takes the keyboard focus itself (``RequestCardFocus``),
+  /// so a jump or a move gives the focus to the card and not to the beacon of
+  /// its scope. The card shows that focus as the focused fill of its surface,
+  /// never as an outline (EditorKit style.md, "Selection and focus"). The fill
+  /// is at the frame of the deck card, which can be taller than the card, so
+  /// the fill and the edge of the card agree.
   @ViewBuilder
   private var cardContent: some View {
     switch request {
     case .permission(let permission):
       if let session = source.session {
-        PermissionView(request: permission, session: session)
-          .frame(maxHeight: .infinity, alignment: .top)
-          .selectableSurface(false, isFocused: cardHasFocus && role.showsWhole, corners: .card)
+        framed(PermissionView(request: permission, session: session))
           .agentItemScope(
             AgentScopeKind.request(permission.id), subject: permission, isTargetable: role.showsWhole,
             focusLook: .contentSurface)
       }
     case .elicitation(let elicitation):
-      ElicitationCard(request: elicitation, owner: source.elicitationOwner)
-        .frame(maxHeight: .infinity, alignment: .top)
+      framed(ElicitationCard(request: elicitation, owner: source.elicitationOwner))
     }
+  }
+
+  /// `card` at the whole frame of the deck card, with the focus fill of the
+  /// card at that frame.
+  ///
+  /// - Parameter card: The view of the request.
+  /// - Returns: The card at the frame of the deck card.
+  private func framed(_ card: some View) -> some View {
+    card
+      .frame(maxHeight: .infinity, alignment: .top)
+      .selectableSurface(false, isFocused: cardHasFocus && role.showsWhole, corners: .card)
   }
 
   /// The drawing order of a card: the front card on top, then the waiting

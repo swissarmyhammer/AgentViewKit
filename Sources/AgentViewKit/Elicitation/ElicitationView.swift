@@ -192,8 +192,7 @@ public struct ElicitationView: View {
     }
     .contentTile()
     .frame(maxWidth: .infinity, alignment: .leading)
-    .focusable()
-    .focusEffectDisabled()
+    .requestCardFocus()
     .onExitCommand { owner.cancelElicitation(request.id) }
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier(Self.formIdentifier)

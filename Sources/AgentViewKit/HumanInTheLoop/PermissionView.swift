@@ -147,14 +147,11 @@ public struct PermissionView: View {
   /// Whether the card shows the related terminal.
   @State private var showsTerminal = false
 
-  /// Whether the card has the keyboard focus.
-  @FocusState private var isFocused: Bool
-
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
   @Environment(\.placedSecondary) private var placedSecondary
   @Environment(\.permissionAnswerReport) private var reportAnswer
-  @Environment(\.permissionFrameIsExternal) private var frameIsExternal
+  @Environment(\.requestFrameIsExternal) private var frameIsExternal
 
   /// The report that gets the method of each request that the "switch to
   /// auto" button starts, or `nil`.
@@ -193,12 +190,8 @@ public struct PermissionView: View {
     // card shows that focus as the focused fill of its surface, never as an
     // outline (EditorKit style.md, "Selection and focus"), and the system
     // focus effect stays off.
-    .modifier(PermissionCardSurface(isDrawn: !frameIsExternal, isFocused: isFocused))
-    .focusable()
-    .focusEffectDisabled()
-    .preference(key: PermissionCardFocusKey.self, value: isFocused)
-    .focused($isFocused)
-    .defaultFocus($isFocused, true)
+    .modifier(PermissionCardEdge(isDrawn: !frameIsExternal))
+    .requestCardFocus(takesDefaultFocus: true)
     .onExitCommand { session.startCancelPermission(request.id) }
     .accessibilityElement(children: .contain)
     .accessibilityLabel(request.request.title)
@@ -473,36 +466,20 @@ struct PermissionAnswer: Equatable {
   let comment: String?
 }
 
-/// Whether a ``PermissionView`` holds the keyboard focus, for a host that draws
-/// the focused fill at a frame that can be taller than the card
-/// (``RequestDeck``).
-struct PermissionCardFocusKey: PreferenceKey {
-  static let defaultValue = false
-
-  static func reduce(value: inout Bool, nextValue: () -> Bool) {
-    value = value || nextValue()
-  }
-}
-
-/// The surface of a ``PermissionView`` that draws its own: the content edge,
-/// and the fill of the keyboard focus of the card.
-private struct PermissionCardSurface: ViewModifier {
+/// The content edge of a ``PermissionView`` that draws its own surface. The
+/// focus fill of the card is the fill of ``RequestCardFocus``.
+private struct PermissionCardEdge: ViewModifier {
   /// The corners of the surface of the card.
   static let corners = SurfaceCorners.card
 
-  /// Whether the card draws its surface.
+  /// Whether the card draws its edge.
   let isDrawn: Bool
-
-  /// Whether the card holds the keyboard focus.
-  let isFocused: Bool
 
   @Environment(\.editorStyle) private var editorStyle
 
   @ViewBuilder func body(content: Self.Content) -> some View {
     if isDrawn {
-      content
-        .inlineEdge(radius: Self.corners.radius(in: editorStyle))
-        .selectableSurface(false, isFocused: isFocused, corners: Self.corners)
+      content.inlineEdge(radius: Self.corners.radius(in: editorStyle))
     } else {
       content
     }
@@ -510,12 +487,6 @@ private struct PermissionCardSurface: ViewModifier {
 }
 
 extension EnvironmentValues {
-  /// Whether the host of a ``PermissionView`` draws its edge and its focus fill,
-  /// so the card draws neither. A ``RequestDeck`` draws both at the frame of
-  /// each card: a card can be shorter than the frame of the deck, and a second
-  /// edge and a second fill would show inside the first.
-  @Entry var permissionFrameIsExternal: Bool = false
-
   /// The ``ObservationReport`` that gets each ``PermissionAnswer`` of the
   /// nearest ``PermissionView``, or `nil`.
   ///

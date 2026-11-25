@@ -228,6 +228,7 @@ private struct ActivityEntryRow: View {
         .contentShape(Rectangle())
       }
       .buttonStyle(.plain)
+      .withoutSystemFocusEffect()
       .accessibilityLabel(appearance.label)
       .accessibilityHint(
         isExpanded

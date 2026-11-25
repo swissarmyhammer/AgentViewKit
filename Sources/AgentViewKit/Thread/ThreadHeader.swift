@@ -118,6 +118,7 @@ struct ThreadHeaderBar: View {
         .layoutPriority(Self.titlePriority)
       Spacer(minLength: 0)
       EditorToolbarButton(command: command)
+        .withoutSystemFocusEffect()
     }
   }
 
