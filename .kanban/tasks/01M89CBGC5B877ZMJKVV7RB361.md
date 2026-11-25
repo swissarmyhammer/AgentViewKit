@@ -1,6 +1,11 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m89p24agw46063gvaj6yjvc3
+  text: 'EditorKit update (editorkit-7a, 2026-11-25): EK ^59ykv6h (first layout) is stuck and reverted by the user. The first-layout cost of a mount stays. EK ^8vgmyc7 (.editorMountCache) no longer depends on it and is the way to remove the mount hitch. EK order: ^qhvm2bg, then ^8vgmyc7. This card waits for the ^8vgmyc7 sha.'
+  timestamp: 2026-11-25T15:44:18.256482+00:00
 position_column: todo
 position_ordinal: '8680'
 title: 'Scroll perf 4: a row that leaves the live range keeps its editor mounted'
