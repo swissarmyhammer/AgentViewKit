@@ -423,14 +423,18 @@ public struct AgentThreadView<Composer: View>: View {
   /// connection model, the notice banner and the stream banner. VoiceOver
   /// reads the top bar, the list and then the bottom bar.
   private var content: some View {
-    VStack(spacing: 0) {
-      ThreadTranscriptSlot(message: unavailableMessage) {
-        ConversationView(session: session, anchors: anchors)
-          .id(session.sessionId)
-          // The state banner and the pill are in the floating controls, in
-          // the bottom bar with the composer.
-          .environment(\.conversationShowsPill, false)
-          .environment(\.conversationShowsStateBanner, false)
+    // The bars get the size of the proposal from the layout, and do not
+    // measure the list on each frame of a scroll (^7q5zdsj).
+    ProposalSizedLayout {
+      VStack(spacing: 0) {
+        ThreadTranscriptSlot(message: unavailableMessage) {
+          ConversationView(session: session, anchors: anchors)
+            .id(session.sessionId)
+            // The state banner and the pill are in the floating controls, in
+            // the bottom bar with the composer.
+            .environment(\.conversationShowsPill, false)
+            .environment(\.conversationShowsStateBanner, false)
+        }
       }
     }
     .safeAreaBar(edge: .top) {
