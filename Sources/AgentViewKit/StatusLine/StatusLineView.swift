@@ -250,20 +250,200 @@ extension View {
 
 /// The runs of one part of the line in the widest form that fits the width
 /// that the line gives to the part.
+///
+/// The view uses no `ViewThatFits`, which measures each form again in each
+/// layout pass (^2n9ymsh). ``StatusLineFormLayout`` measures each form one
+/// time for each change of the forms, and gives the part the size of the
+/// widest form that fits. The view reads the width of each form and the
+/// width of the part with `onGeometryChange(for:of:action:)`, and shows only
+/// the form that fits. The other forms are hidden, and VoiceOver does not
+/// read them.
 struct StatusLinePieceText: View {
   let piece: StatusLinePiece
 
+  /// The measured width of each form, by its index in ``forms``.
+  @State private var formWidths: [Int: CGFloat] = [:]
+
+  /// The measured width of the part, or `nil` before the first layout.
+  @State private var width: CGFloat?
+
+  /// The forms of the runs, from the widest.
+  private var forms: [[StatusLineSpan]] {
+    [piece.spans] + piece.narrowerSpans
+  }
+
   var body: some View {
-    let forms = [piece.spans] + piece.narrowerSpans
-    ViewThatFits(in: .horizontal) {
-      ForEach(forms.indices, id: \.self) { index in
-        StatusLineText(spans: forms[index])
+    let forms = forms
+    if forms.count == 1 {
+      StatusLineText(spans: piece.spans)
+    } else {
+      let shown = StatusLineFormLayout.indexOfWidestForm(
+        fitting: width, in: forms.indices.map { formWidths[$0] ?? .infinity })
+      StatusLineFormLayout {
+        ForEach(forms.indices, id: \.self) { index in
+          StatusLineText(spans: forms[index])
+            .opacity(index == shown ? 1 : 0)
+            .accessibilityHidden(index != shown)
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { formWidths[index] = $0 }
+        }
       }
+      .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
     }
   }
 }
 
+/// The layout of the forms of one part of the status line, from the widest:
+/// the part takes the size of the widest form that fits the proposed width,
+/// as a `ViewThatFits` in the horizontal axis does.
+///
+/// The layout measures the ideal width of each form one time, in its cache,
+/// and measures again only when the forms change. It puts the form that fits
+/// in the proposed size, and each other form at its ideal size, so that the
+/// view can read the width of each form. When no form fits, the part shows
+/// the narrowest form, which the line then truncates.
+struct StatusLineFormLayout: Layout {
+  /// The ideal width of each form.
+  struct Cache {
+    /// The ideal width of each form, from the widest form.
+    let widths: [CGFloat]
+  }
+
+  /// The index of the widest form that fits a width.
+  ///
+  /// - Parameters:
+  ///   - width: The width, or `nil` for the ideal size.
+  ///   - widths: The width of each form, from the widest form.
+  /// - Returns: The index of the first form that is not wider than `width`,
+  ///   the first index for no width, and the last index when no form fits.
+  static func indexOfWidestForm(fitting width: CGFloat?, in widths: [CGFloat]) -> Int {
+    guard let width else { return 0 }
+    return widths.firstIndex { $0 <= width } ?? max(widths.count - 1, 0)
+  }
+
+  /// Measures the ideal width of each form.
+  ///
+  /// - Parameter subviews: The forms, from the widest.
+  /// - Returns: The cache with the width of each form.
+  func makeCache(subviews: Subviews) -> Cache {
+    Cache(widths: subviews.map { $0.sizeThatFits(.unspecified).width })
+  }
+
+  /// The size of the widest form that fits the proposal.
+  ///
+  /// - Parameters:
+  ///   - proposal: The size that the parent proposes.
+  ///   - subviews: The forms, from the widest.
+  ///   - cache: The width of each form.
+  /// - Returns: The size of the form in the proposal, or zero with no form.
+  func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout Cache) -> CGSize {
+    guard !subviews.isEmpty else { return .zero }
+    return subviews[Self.indexOfWidestForm(fitting: proposal.width, in: cache.widths)].sizeThatFits(proposal)
+  }
+
+  /// Puts the form that fits in `bounds`, and each other form at its ideal
+  /// size at the same origin.
+  ///
+  /// - Parameters:
+  ///   - bounds: The bounds of the part.
+  ///   - proposal: The size that the parent proposes.
+  ///   - subviews: The forms, from the widest.
+  ///   - cache: The width of each form.
+  func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Cache) {
+    let shown = Self.indexOfWidestForm(fitting: bounds.width, in: cache.widths)
+    for (index, subview) in subviews.enumerated() {
+      subview.place(
+        at: bounds.origin, anchor: .topLeading,
+        proposal: index == shown ? ProposedViewSize(bounds.size) : .unspecified)
+    }
+  }
+
+  /// The vertical guide of the form that fits, such as its first text
+  /// baseline, so that the line aligns the part on the shown form.
+  ///
+  /// - Parameters:
+  ///   - guide: The guide.
+  ///   - bounds: The bounds of the part.
+  ///   - proposal: The size that the parent proposes.
+  ///   - subviews: The forms, from the widest.
+  ///   - cache: The width of each form.
+  /// - Returns: The position of the guide of the shown form, or `nil` with
+  ///   no form.
+  func explicitAlignment(
+    of guide: VerticalAlignment, in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews,
+    cache: inout Cache
+  ) -> CGFloat? {
+    guard !subviews.isEmpty else { return nil }
+    let shown = subviews[Self.indexOfWidestForm(fitting: bounds.width, in: cache.widths)]
+    return bounds.minY + shown.dimensions(in: ProposedViewSize(bounds.size))[guide]
+  }
+}
+
+/// The input of the text of a ``StatusLineText``: the runs, and the colors
+/// and the icon size that the environment gives to them.
+nonisolated struct StatusLineTextInput: Equatable {
+  /// The runs.
+  let spans: [StatusLineSpan]
+
+  /// The color of each run, with the dimmed opacity.
+  let colors: [Color]
+
+  /// The side of a bundled icon, in points.
+  let iconSide: CGFloat
+}
+
+/// The parts of the text of a ``StatusLineText``, in order: each sequence
+/// of text runs joins into one `AttributedString`, and each image is a part
+/// of its own.
+private struct StatusLineTextParts {
+  /// The parts before the pending text.
+  private var parts: [Text] = []
+
+  /// The text runs after the last image.
+  private var pending = AttributedString()
+
+  /// Adds a text run to the pending text.
+  ///
+  /// - Parameter run: The styled run.
+  mutating func append(_ run: AttributedString) {
+    pending.append(run)
+  }
+
+  /// Adds the pending text as a part, and then an image.
+  ///
+  /// - Parameter image: The styled text of the image.
+  mutating func append(_ image: Text) {
+    flushPending()
+    parts.append(image)
+  }
+
+  /// The parts, with the pending text as the last part.
+  ///
+  /// - Returns: The parts, or one empty text when no run has text.
+  mutating func finished() -> [Text] {
+    flushPending()
+    return parts.isEmpty ? [Text(AttributedString())] : parts
+  }
+
+  /// Adds the pending text as a part when it is not empty.
+  private mutating func flushPending() {
+    guard !pending.characters.isEmpty else { return }
+    parts.append(Text(pending))
+    pending = AttributedString()
+  }
+}
+
 /// The runs of one part of the line, as one text.
+///
+/// The view builds its text one time for each set of runs and colors
+/// (``ParseMemo``), and not in each evaluation of its body (^2n9ymsh). Each
+/// sequence of text runs is one `AttributedString`, so SwiftUI does not scan
+/// a nested localized key in each layout pass. A set of runs with no image
+/// is one `Text` of one `AttributedString`. An `AttributedString` holds no
+/// image, so a set of runs with an SF Symbol or an icon is one `Text` that
+/// puts its text parts and its images side by side, at one level.
+///
+/// In a debug build, each build adds one count to the
+/// ``BodyEvaluationCounter`` key ``counterKey(for:)``.
 struct StatusLineText: View {
   let spans: [StatusLineSpan]
 
@@ -272,31 +452,115 @@ struct StatusLineText: View {
   @Environment(\.themeSecondary) private var themeSecondary
   @Environment(\.themeAccent) private var themeAccent
 
-  var body: some View {
-    spans.reduce(Text(verbatim: "")) { text, span in
-      Text("\(text)\(styled(span))")
-    }
+  /// The last text that the view built, with its input.
+  @State private var memo = ParseMemo<StatusLineTextInput, Text>()
+
+  /// The start of the ``BodyEvaluationCounter`` key of each text build.
+  static let counterKeyPrefix = "status-line-text-"
+
+  /// The ``BodyEvaluationCounter`` key of the text builds of a set of runs.
+  ///
+  /// - Parameter spans: The runs.
+  /// - Returns: ``counterKeyPrefix`` and the plain text of the runs.
+  static func counterKey(for spans: [StatusLineSpan]) -> String {
+    counterKeyPrefix + spans.map(\.plainText).joined()
   }
 
-  private func styled(_ span: StatusLineSpan) -> Text {
-    var text: Text
-    switch span.content {
-    case .text(let value):
-      text = Text(verbatim: value)
-    case .sfSymbol(let name):
-      text = Text(Image(systemName: name))
-    case .icon(let name):
-      if let image = StatusLineIcons.image(named: name, side: StatusLineIcons.side(forPointSize: Self.pointSize)) {
-        text = Text(Image(nsImage: image).renderingMode(.template)).baselineOffset(Self.iconBaselineOffset)
-      } else {
-        text = Text(verbatim: name)
+  var body: some View {
+    let input = StatusLineTextInput(
+      spans: spans, colors: spans.map { styleColor(of: $0.style) },
+      iconSide: StatusLineIcons.side(forPointSize: Self.pointSize))
+    memo.value(for: input, counterKey: Self.counterKey(for: spans), parse: Self.text(of:))
+  }
+
+  /// The text of a set of runs.
+  ///
+  /// - Parameter input: The runs, with their colors.
+  /// - Returns: One `Text` of one `AttributedString` when the runs have no
+  ///   image. Otherwise one `Text` with the parts side by side.
+  static func text(of input: StatusLineTextInput) -> Text {
+    let parts = parts(of: input)
+    if parts.count == 1, let part = parts.first {
+      return part
+    }
+    var interpolation = LocalizedStringKey.StringInterpolation(literalCapacity: 0, interpolationCount: parts.count)
+    for part in parts {
+      interpolation.appendInterpolation(part)
+    }
+    return Text(LocalizedStringKey(stringInterpolation: interpolation))
+  }
+
+  /// The parts of the text of a set of runs: one `Text` of one
+  /// `AttributedString` for each sequence of text runs, and one `Text` for
+  /// each image.
+  ///
+  /// - Parameter input: The runs, with their colors.
+  /// - Returns: The parts, in order. Runs with no text give one empty part.
+  private static func parts(of input: StatusLineTextInput) -> [Text] {
+    var parts = StatusLineTextParts()
+    for (span, color) in zip(input.spans, input.colors) {
+      switch span.content {
+      case .text(let value):
+        parts.append(attributedRun(value, style: span.style, color: color))
+      case .sfSymbol(let name):
+        parts.append(styledImage(Text(Image(systemName: name)), style: span.style, color: color))
+      case .icon(let name):
+        parts.append(styledImage(iconText(named: name, side: input.iconSide), style: span.style, color: color))
       }
     }
-    let style = span.style
+    return parts.finished()
+  }
+
+  /// The styled text of a text run.
+  ///
+  /// - Parameters:
+  ///   - value: The text of the run.
+  ///   - style: The style of the run.
+  ///   - color: The color of the run.
+  /// - Returns: The text, bold and italic as the style asks.
+  private static func attributedRun(_ value: String, style: StatusLineStyle, color: Color) -> AttributedString {
+    var run = AttributedString(value)
+    run.swiftUI.foregroundColor = color
+    var intent: InlinePresentationIntent = []
+    if style.modifiers.contains(.bold) { intent.insert(.stronglyEmphasized) }
+    if style.modifiers.contains(.italic) { intent.insert(.emphasized) }
+    if !intent.isEmpty { run.inlinePresentationIntent = intent }
+    return run
+  }
+
+  /// The text of a bundled icon. An icon that the kit does not bundle shows
+  /// its name.
+  ///
+  /// - Parameters:
+  ///   - name: The name of the icon, such as `swift`.
+  ///   - side: The side of the icon, in points.
+  /// - Returns: The text of the icon.
+  private static func iconText(named name: String, side: CGFloat) -> Text {
+    guard let image = StatusLineIcons.image(named: name, side: side) else { return Text(verbatim: name) }
+    return Text(Image(nsImage: image).renderingMode(.template)).baselineOffset(Self.iconBaselineOffset)
+  }
+
+  /// The text of an image run in the style of the run.
+  ///
+  /// - Parameters:
+  ///   - text: The text of the image.
+  ///   - style: The style of the run.
+  ///   - color: The color of the run.
+  /// - Returns: The text, bold and italic as the style asks, in the color.
+  private static func styledImage(_ text: Text, style: StatusLineStyle, color: Color) -> Text {
+    var text = text
     if style.modifiers.contains(.bold) { text = text.bold() }
     if style.modifiers.contains(.italic) { text = text.italic() }
+    return text.foregroundStyle(color)
+  }
+
+  /// The color of a run, with the dimmed opacity for a dimmed run.
+  ///
+  /// - Parameter style: The style of the run.
+  /// - Returns: The color.
+  private func styleColor(of style: StatusLineStyle) -> Color {
     let color = color(of: style.color)
-    return text.foregroundStyle(style.modifiers.contains(.dimmed) ? color.opacity(Self.dimmedOpacity) : color)
+    return style.modifiers.contains(.dimmed) ? color.opacity(Self.dimmedOpacity) : color
   }
 
   /// The point size of the text of the line: the callout size of the
