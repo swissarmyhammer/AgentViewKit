@@ -886,6 +886,18 @@ struct ConversationBottomGeometry: Equatable {
     isNearBottom = geometry.contentSize.height - geometry.visibleRect.maxY <= tolerance
     contentHeight = geometry.contentSize.height
   }
+
+  /// Two values are equal when the near state and the content height are
+  /// both equal. Thus a change of the height alone runs the geometry
+  /// action.
+  ///
+  /// - Parameters:
+  ///   - lhs: A value.
+  ///   - rhs: Another value.
+  /// - Returns: Whether the two values are equal.
+  static func == (lhs: Self, rhs: Self) -> Bool {
+    lhs.isNearBottom == rhs.isNearBottom && lhs.contentHeight == rhs.contentHeight
+  }
 }
 
 /// Keeps the end of the list in view when the size of the content changes,
