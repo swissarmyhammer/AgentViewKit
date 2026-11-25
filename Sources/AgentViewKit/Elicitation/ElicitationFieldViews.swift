@@ -287,11 +287,13 @@ public struct ElicitationTextField: View {
 /// The default view of a number field (plan.md §13.1).
 ///
 /// The view shows a slider when the field has a minimum and a maximum.
-/// Otherwise it shows a number input beside a stepper. An integer field
-/// moves in steps of one and writes whole numbers.
+/// Otherwise it shows EditorKit's `StepperField`: a number input with an up
+/// and a down button beside it. An integer field moves in steps of one and
+/// writes whole numbers. A step and a commit keep the number in the bounds
+/// that the field has.
 ///
-/// The number input is EditorKit's `NumberField`, with the slots of a kit
-/// one-line input, in the `ui` font role of EditorKit. Its text view carries
+/// The number input is EditorKit's `NumberField` in the `StepperField`, with
+/// the slots of a kit one-line input, in the `ui` font role of EditorKit. Its text view carries
 /// the control identifier of the field and the title of the field as its
 /// label. Typing changes only the text. A commit (Return, Esc, a focus loss)
 /// writes the number when the whole text is one number of the format of the
@@ -317,9 +319,14 @@ public struct ElicitationNumberField: View {
     ElicitationFieldView.identifier(for: name) + "-readout"
   }
 
-  /// The largest width of the number input of the stepper, in points at the
-  /// default theme font.
+  /// The largest width of the stepper field, in points at the default theme
+  /// font.
   static let numberInputMaximumWidth: CGFloat = 160
+
+  /// The largest whole number that a JSON number holds with no loss: 2^53 - 1.
+  /// The bounds of the stepper of an integer field stay in this range, so
+  /// the width of the range fits in `Int`, as `StepperField` needs.
+  static let largestExactWholeNumber = 9_007_199_254_740_991
 
   /// The context of the field.
   let context: ElicitationFieldContext
@@ -361,57 +368,82 @@ public struct ElicitationNumberField: View {
             .accessibilityIdentifier(Self.readoutIdentifier(for: context.schema.name))
         }
       } else {
-        HStack(spacing: editorStyle.spacing.xs) {
-          numberInput(number, integer: integer)
-            .frame(maxWidth: Self.numberInputMaximumWidth * fontScale)
-          Stepper(
-            context.schema.title,
-            value: number,
-            in: (minimum ?? -.greatestFiniteMagnitude)...(maximum ?? .greatestFiniteMagnitude),
-            step: Self.step
-          )
-          .labelsHidden()
-        }
+        stepperField(number, integer: integer, minimum: minimum, maximum: maximum)
+          .frame(maxWidth: Self.numberInputMaximumWidth * fontScale)
       }
     }
   }
 
-  /// The number input of the stepper: an integer input for an integer field,
-  /// and a number input for another field.
+  /// The stepper field of the field: an integer stepper for an integer
+  /// field, and a number stepper for another field.
   ///
   /// - Parameters:
   ///   - number: The binding to the number.
   ///   - integer: Whether the field takes whole numbers only.
-  /// - Returns: The input.
+  ///   - minimum: The lower bound, or `nil` for none.
+  ///   - maximum: The upper bound, or `nil` for none.
+  /// - Returns: The stepper field.
   @ViewBuilder
-  private func numberInput(_ number: Binding<Double>, integer: Bool) -> some View {
+  private func stepperField(
+    _ number: Binding<Double>, integer: Bool, minimum: Double?, maximum: Double?
+  ) -> some View {
     if integer {
-      numberInput(
-        value: Binding(
-          get: { Self.wholeNumber(nearest: number.wrappedValue) },
-          set: { number.wrappedValue = Double($0) }),
-        format: .integer)
+      stepperField(
+        StepperField(
+          model: inputModel.model(text: ""), id: context.controlIdentifier,
+          value: Binding(
+            get: { Self.wholeNumber(nearest: number.wrappedValue) },
+            set: { number.wrappedValue = Double($0) }),
+          in: Self.integerRange(minimum: minimum, maximum: maximum), step: Int(Self.step)))
     } else {
-      numberInput(value: number, format: .floatingPoint)
+      stepperField(
+        StepperField(
+          model: inputModel.model(text: ""), id: context.controlIdentifier, value: number,
+          in: Self.numberRange(minimum: minimum, maximum: maximum), step: Self.step))
     }
   }
 
-  /// EditorKit's `NumberField` that edits `value` through `format`, with the
-  /// slots of a kit one-line input, in the edge of a kit text input. Return
-  /// and Command-Return run ``returnAction`` after the commit writes the
-  /// value.
+  /// `field` with the slots of a kit one-line input, in the edge of a kit
+  /// text input. Return and Command-Return run ``returnAction`` after the
+  /// commit writes the value.
   ///
-  /// - Parameters:
-  ///   - value: The value that the input edits.
-  ///   - format: The format that the input shows the value in and reads the
-  ///     text with.
-  /// - Returns: The input.
-  private func numberInput<Value>(value: Binding<Value>, format: ValueFieldFormat<Value>) -> some View {
-    NumberField(model: inputModel.model(text: ""), id: context.controlIdentifier, value: value, format: format)
+  /// - Parameter field: EditorKit's `StepperField` of the field.
+  /// - Returns: The stepper field.
+  private func stepperField<Value>(_ field: StepperField<Value>) -> some View {
+    field
       .agentOneLineInput(identifier: context.controlIdentifier, placeholder: context.schema.title) { _ in
         returnAction?()
       }
       .agentTextInputEdge()
+  }
+
+  /// The range of the stepper of a number field: from `minimum` to
+  /// `maximum`, with no bound on a side that has no bound. A minimum above
+  /// the maximum gives the range between the two.
+  ///
+  /// - Parameters:
+  ///   - minimum: The lower bound, or `nil` for none.
+  ///   - maximum: The upper bound, or `nil` for none.
+  /// - Returns: The range.
+  static func numberRange(minimum: Double?, maximum: Double?) -> ClosedRange<Double> {
+    let lower = minimum ?? -.greatestFiniteMagnitude
+    let upper = maximum ?? .greatestFiniteMagnitude
+    return min(lower, upper)...max(lower, upper)
+  }
+
+  /// The range of the stepper of an integer field: ``numberRange(minimum:maximum:)``
+  /// in whole numbers, in the range of ``largestExactWholeNumber`` on each
+  /// side.
+  ///
+  /// - Parameters:
+  ///   - minimum: The lower bound, or `nil` for none.
+  ///   - maximum: The upper bound, or `nil` for none.
+  /// - Returns: The range.
+  static func integerRange(minimum: Double?, maximum: Double?) -> ClosedRange<Int> {
+    let range = numberRange(minimum: minimum, maximum: maximum)
+    let limit = largestExactWholeNumber
+    let exact = { (bound: Double) in min(max(wholeNumber(nearest: bound), -limit), limit) }
+    return exact(range.lowerBound)...exact(range.upperBound)
   }
 
   /// The whole number nearest to `value`, or the nearest end of the range of
@@ -475,8 +507,8 @@ public struct ElicitationNumberField: View {
 
 /// The default view of a boolean field (plan.md §13.1).
 ///
-/// The view shows a switch. The switch shows `false` when there is no
-/// answer.
+/// The view shows EditorKit's `ToggleField` as a switch. The switch shows
+/// `false` when there is no answer.
 public struct ElicitationToggleField: View {
   /// The context of the field.
   let context: ElicitationFieldContext
@@ -491,7 +523,7 @@ public struct ElicitationToggleField: View {
   public var body: some View {
     let value = context.value
     ElicitationFieldChrome(context: context) {
-      Toggle(
+      ToggleField(
         context.schema.title,
         isOn: Binding(
           get: { value.wrappedValue?.boolValue ?? false },
@@ -499,7 +531,7 @@ public struct ElicitationToggleField: View {
         )
       )
       .labelsHidden()
-      .toggleStyle(.switch)
+      .toggleFieldStyle(.switch)
       .accessibilityIdentifier(context.controlIdentifier)
     }
   }
@@ -732,24 +764,23 @@ public struct ElicitationSingleChoiceField: View {
     .accessibilityIdentifier(Self.radioGroupIdentifier(for: name))
   }
 
-  /// A menu with each choice.
+  /// A menu with the item of no selection and each choice: EditorKit's
+  /// `ChoiceField`. The item of no selection is an option of the menu, so a
+  /// person can remove the answer of an optional field.
   ///
   /// - Parameter choices: The choices.
   /// - Returns: The menu.
   private func menu(_ choices: [ElicitationFieldSchema.Choice]) -> some View {
     let value = context.value
-    return Picker(
+    return ChoiceField(
       context.schema.title,
       selection: Binding<String?>(
         get: { value.wrappedValue?.stringValue },
         set: { value.wrappedValue = $0.map(JSONValue.string) }
-      )
-    ) {
-      Text(Self.noSelectionTitle).tag(String?.none)
-      ForEach(choices, id: \.const) { choice in
-        Text(choice.title).tag(Optional(choice.const))
-      }
-    }
+      ),
+      options: [ChoiceOption(String?.none, label: Self.noSelectionTitle)]
+        + choices.map { ChoiceOption(Optional($0.const), label: $0.title) }
+    )
     .pickerStyle(.menu)
     .labelsHidden()
     .accessibilityIdentifier(Self.menuIdentifier(for: context.schema.name))
@@ -760,9 +791,9 @@ public struct ElicitationSingleChoiceField: View {
 
 /// The default view of a multi-choice field (plan.md §13.1).
 ///
-/// The view shows a checkbox for each choice. When the answer has
-/// `maxItems` values, each clear checkbox is disabled. The answer keeps the
-/// order of the choices.
+/// The view shows a check box (EditorKit's `ToggleField`) for each choice.
+/// When the answer has `maxItems` values, each clear check box is disabled.
+/// The answer keeps the order of the choices.
 public struct ElicitationMultiChoiceField: View {
   /// The context of the field.
   let context: ElicitationFieldContext
@@ -817,14 +848,14 @@ public struct ElicitationMultiChoiceField: View {
     return VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
       ForEach(choices, id: \.const) { choice in
         let isOn = selected.contains(choice.const)
-        Toggle(
+        ToggleField(
           choice.title,
           isOn: Binding(
             get: { isOn },
             set: { write(choice.const, isOn: $0, choices: choices) }
           )
         )
-        .toggleStyle(.checkbox)
+        .toggleFieldStyle(.checkbox)
         .disabled(isAtLimit && !isOn)
         .help(choice.description ?? choice.title)
         .accessibilityIdentifier(
