@@ -21,8 +21,15 @@ comments:
     - evidence: 5 files — Sources/AgentViewKit/Items/ModelChangeNoticeView.swift (new), Tests/AgentViewKitTests/Items/ModelChangeNoticeTests.swift (new, 14 tests), Sources/AgentViewKit/Thread/ConversationView.swift, Sources/AgentViewKit/Status/SessionNoticeBanner.swift, plan.md. `HOME=$(mktemp -d) swift test --filter ModelChangeNoticeTests`: 14 passed. `HOME=$(mktemp -d) swift test`: 1742 tests in 196 suites passed, and 59 tests in 12 suites passed; 0 failures, 0 compiler warnings.
     - next: /review. No commit and no push (the dispatching agent said so).
   timestamp: 2026-11-25T01:34:04.749566+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m885hgqs1b3kpscn1we7w6b6
+  text: |-
+    ### review — clean
+    - evidence: review sha HEAD~1..HEAD (22b5adb4): 0 findings, 0 confirmed, 0 refuted, 7 attempted, 0 failed. 4 files reviewed. The engine did not review plan.md (no validator matches it) and the two .kanban files (ignore rule).
+    - next: none. The task is in done.
+  timestamp: 2026-11-25T01:36:22.265625+00:00
+position_column: done
+position_ordinal: ffffffffa380
 title: Show a modelChanged notice as a status line in the transcript
 ---
 Request from TestudoApp (relayed by testudoapp-9a, 2026-11-24).
