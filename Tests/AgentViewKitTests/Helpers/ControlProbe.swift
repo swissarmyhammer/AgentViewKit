@@ -1,0 +1,64 @@
+import AgentViewKitTestSupport
+import AppKit
+import EditorTestSupport
+import EditorTheme
+import EditorSwiftUI
+import SwiftUI
+
+/// Reads one accessibility element of a control of the kit, and the frame
+/// of that element with and with no theme.
+///
+/// The probe puts the view in a window that is never ordered in, so the
+/// element has a frame, and no test shows a window or takes the focus of the
+/// screen. The theme of a theme read is ``EnlargedRoleTheme``: a control
+/// that draws in the enlarged font role of the theme is larger with that
+/// theme.
+@MainActor enum ControlProbe {
+  /// The size of the window of each read.
+  static let hostSize = CGSize(width: 480, height: 320)
+
+  /// Reads the one element of `view` whose accessibility identifier is
+  /// `identifier`.
+  ///
+  /// - Parameters:
+  ///   - identifier: The accessibility identifier of the element.
+  ///   - view: The view to lay out.
+  ///   - read: The read of the element.
+  /// - Returns: What `read` returns, or `nil` when no single element has the
+  ///   identifier.
+  static func read<Value>(
+    _ identifier: String, in view: some View, _ read: (NSObject) -> Value
+  ) async -> Value? {
+    let hosting = NSHostingView(rootView: view.frame(width: hostSize.width, height: hostSize.height))
+    let window = NSWindow(
+      contentRect: NSRect(origin: .zero, size: hostSize), styleMask: [.titled], backing: .buffered, defer: true)
+    window.isReleasedWhenClosed = false
+    window.contentView = hosting
+    defer { window.close() }
+    StyleViewHost.layOut(hosting)
+    return await withAccessibilityTree {
+      let elements = accessibilityElements(identifiedAs: identifier, under: hosting)
+      return elements.count == 1 ? elements.first.map(read) : nil
+    }
+  }
+
+  /// The frame of the element `identifier` of `view` with no theme, and with
+  /// a theme that enlarges `role`.
+  ///
+  /// - Parameters:
+  ///   - identifier: The accessibility identifier of the element.
+  ///   - view: The view to lay out.
+  ///   - role: The font role that the theme enlarges.
+  /// - Returns: The frame with no theme and the frame with the theme, or
+  ///   `nil` when a layout has no single element with the identifier.
+  static func frames(
+    of identifier: String, in view: some View, enlarging role: FontRole
+  ) async -> (plain: CGRect, themed: CGRect)? {
+    guard
+      let plain = await read(identifier, in: view, accessibilityFrame(of:)) ?? nil,
+      let themed = await read(
+        identifier, in: view.editorTheme(EnlargedRoleTheme(enlargedRole: role)), accessibilityFrame(of:)) ?? nil
+    else { return nil }
+    return (plain, themed)
+  }
+}

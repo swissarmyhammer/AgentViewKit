@@ -129,6 +129,73 @@ text field, a list, and a button while Full Keyboard Access is on. Before
 this card it showed the system ring. The adoption card gives each such
 control the ring target in `.withoutSystemFocusEffect()`.
 
+## Raw controls
+
+Source: card ^8sdsx64 and the user rule of 2026-11-25 for each view kit:
+each control of the kit is an EditorKit component or an EditorKit wrapper,
+so that each control follows the theme. This table lists each raw SwiftUI
+or AppKit control of `Sources/AgentViewKit`, `Sources/AgentViewKitStyle`
+and `Sources/AgentViewKitDemoSupport`. `Sources/AgentViewKitStyle` and
+`Sources/AgentViewKitDemoSupport` have no raw control.
+
+A state of "Changed" means that the place uses the EditorKit component of
+EditorKit main now. A state of "Waits for ^id" means that the EditorKit
+component is not on EditorKit main yet. The EditorKit card ^id adds it.
+
+| Place | Raw control | EditorKit component or wrapper | State |
+|---|---|---|---|
+| `Elicitation/ElicitationFieldViews.swift`, `ElicitationToggleField` | `Toggle` (switch) | `ToggleField` with `.toggleFieldStyle(.switch)` | Changed |
+| `Elicitation/ElicitationFieldViews.swift`, `ElicitationMultiChoiceField` | `Toggle` (check box) for each choice | `ToggleField` | Changed |
+| `Elicitation/ElicitationFieldViews.swift`, `ElicitationSingleChoiceField` menu | `Picker` (menu) | `ChoiceField` | Changed |
+| `Sessions/SessionJumpList.swift`, the filter field | `TextField` | `AgentOneLineField` (`SingleLineField` with a placeholder) | Changed |
+| `Code/BlockHeader.swift`, the preview | `Button` with a title and a symbol | `EditorToolbarButton` | Changed |
+| `Elicitation/ElicitationFieldViews.swift`, `ElicitationNumberField` with no range | `Stepper` beside a `NumberField` | `StepperField` | Waits for EK: `StepperField` keeps its `EditorModel` after the field leaves the view (undo stays on the window stack), and `StepperField` has no option to step inside a range but keep a typed value outside it |
+| `Elicitation/ElicitationFieldViews.swift`, `ElicitationNumberField` with a range | `Slider` | `SliderField` | Waits for ^gkfzwd0 |
+| `Elicitation/ElicitationFieldViews.swift`, `ElicitationSingleChoiceField` radio group | `Button` with a custom label for each choice | `EditorPlainButton` | Waits for ^02gvsec |
+| `Elicitation/ElicitationTabChip.swift` | `Button` with a custom label | `EditorPlainButton` with `.selectableCapsule(isSelected:)` | Waits for ^02gvsec |
+| `Citations/InlineCitation.swift` | `Button` with a custom label (the pill) | `EditorPlainButton` | Waits for ^02gvsec |
+| `Sessions/SessionJumpList.swift`, a row | `Button` with a custom label | `EditorPlainButton` | Waits for ^02gvsec |
+| `Content/Blocks/LinkView.swift` | `Button` with a custom label that opens a URL | `EditorLink` with a custom label | Waits for ^svgy5v4 |
+| `Activity/ActivityTimeline.swift`, the row header | `Button` that opens and closes the row | `EditorDisclosure` with a custom label | Waits for ^fqpw7a4 |
+| `Items/ToolCallView.swift`, the row toggle | `Button` that opens and closes the row | `EditorDisclosure` with a custom label | Waits for ^fqpw7a4 |
+| `Items/JSONDisclosure.swift` | `DisclosureGroup` | `EditorDisclosure` | Waits for ^fqpw7a4 |
+| `Citations/SourcesView.swift` | `DisclosureGroup` | `EditorDisclosure` | Waits for ^fqpw7a4 |
+| `Activity/ActivityIndicator.swift` | `ProgressView` | `EditorProgressView` | Waits for ^sf518d4 |
+| `Input/DefaultPromptAccessory.swift` | `ProgressView` | `EditorProgressView` | Waits for ^sf518d4 |
+| `Elicitation/ElicitationURLConsentView.swift` | `ProgressView` | `EditorProgressView` | Waits for ^sf518d4 |
+| `Terminal/TerminalView.swift` | `ProgressView` | `EditorProgressView` | Waits for ^sf518d4 |
+| `Content/Blocks/AudioPlayerView.swift` | `ProgressView` | `EditorProgressView` | Waits for ^sf518d4 |
+| `Content/Blocks/BlobResourceView.swift` | `ProgressView` | `EditorProgressView` | Waits for ^sf518d4 |
+| `Content/Blocks/BlockFileWriteView.swift` | `ProgressView` | `EditorProgressView` | Waits for ^sf518d4 |
+| `Attachments/AttachmentPreview.swift` | `ProgressView` | `EditorProgressView` | Waits for ^sf518d4 |
+| `Thread/SideQuestionCard.swift` | `ProgressView` | `EditorProgressView` | Waits for ^sf518d4 |
+| `Commands/HostPathContextMenu.swift` | `Button` in `.contextMenu` for each command at a host path | `EditorMenuItem` (`.commandContextMenu(system)` builds its menu only at the path of an ancestor scope) | Waits for ^ndeex7s |
+| `Sessions/SessionBreadcrumb.swift`, a choice of the children menu | `Button` in an `EditorMenuButton` | `EditorMenuItem` | Waits for ^ndeex7s |
+| `Lists/AgentRowList.swift`, the preview | `Button` in `.contextMenu` | `EditorMenuItem` | Waits for ^ndeex7s |
+| `Lists/AgentRowList.swift`, the list | `ScrollView` of a list scope that takes the focus | `EditorScrollView` | Waits for ^3q46xdt |
+| `Attachments/AttachmentView.swift` | `Button` in `.accessibilityActions` (a named accessibility action, not a drawn control) | None. EditorKit `ChoiceField` uses the same form for its actions | Not a control; a person decides |
+
+The other scroll views of the kit (the chip rows, the timeline, the form
+pages and the text blocks) are not in a focus scope, so the table does not
+list them.
+
+The changed controls keep their behavior, with this change:
+
+- The menu of a single-choice field always has the item of no selection, so
+  a person can remove the answer of an optional field, as before.
+
+`Tests/AgentViewKitTests/Elicitation/ElicitationFieldControlTests.swift` and
+`Tests/AgentViewKitTests/Sessions/SessionJumpListFieldTests.swift` check
+that each changed view mounts the EditorKit control, and that the control
+takes the face of a custom theme (`EnlargedRoleTheme`). Two theme values
+are not visible in a unit test:
+
+- The accent of a check box or a switch. A window that is not key draws no
+  accent, and a unit test never makes a key window.
+- The `ui` face of a `ChoiceField` in the menu style. The pop-up button
+  keeps the same size with the enlarged `ui` face of a theme. EditorKit must
+  look at this.
+
 ## Tests
 
 `Tests/AgentViewKitTests/Style/FocusLookTests.swift` checks the behavior,

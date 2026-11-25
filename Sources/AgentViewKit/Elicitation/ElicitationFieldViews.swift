@@ -475,8 +475,8 @@ public struct ElicitationNumberField: View {
 
 /// The default view of a boolean field (plan.md §13.1).
 ///
-/// The view shows a switch. The switch shows `false` when there is no
-/// answer.
+/// The view shows EditorKit's `ToggleField` as a switch. The switch shows
+/// `false` when there is no answer.
 public struct ElicitationToggleField: View {
   /// The context of the field.
   let context: ElicitationFieldContext
@@ -491,7 +491,7 @@ public struct ElicitationToggleField: View {
   public var body: some View {
     let value = context.value
     ElicitationFieldChrome(context: context) {
-      Toggle(
+      ToggleField(
         context.schema.title,
         isOn: Binding(
           get: { value.wrappedValue?.boolValue ?? false },
@@ -499,7 +499,7 @@ public struct ElicitationToggleField: View {
         )
       )
       .labelsHidden()
-      .toggleStyle(.switch)
+      .toggleFieldStyle(.switch)
       .accessibilityIdentifier(context.controlIdentifier)
     }
   }
@@ -732,24 +732,23 @@ public struct ElicitationSingleChoiceField: View {
     .accessibilityIdentifier(Self.radioGroupIdentifier(for: name))
   }
 
-  /// A menu with each choice.
+  /// A menu with the item of no selection and each choice: EditorKit's
+  /// `ChoiceField`. The item of no selection is an option of the menu, so a
+  /// person can remove the answer of an optional field.
   ///
   /// - Parameter choices: The choices.
   /// - Returns: The menu.
   private func menu(_ choices: [ElicitationFieldSchema.Choice]) -> some View {
     let value = context.value
-    return Picker(
+    return ChoiceField(
       context.schema.title,
       selection: Binding<String?>(
         get: { value.wrappedValue?.stringValue },
         set: { value.wrappedValue = $0.map(JSONValue.string) }
-      )
-    ) {
-      Text(Self.noSelectionTitle).tag(String?.none)
-      ForEach(choices, id: \.const) { choice in
-        Text(choice.title).tag(Optional(choice.const))
-      }
-    }
+      ),
+      options: [ChoiceOption(String?.none, label: Self.noSelectionTitle)]
+        + choices.map { ChoiceOption(Optional($0.const), label: $0.title) }
+    )
     .pickerStyle(.menu)
     .labelsHidden()
     .accessibilityIdentifier(Self.menuIdentifier(for: context.schema.name))
@@ -760,9 +759,9 @@ public struct ElicitationSingleChoiceField: View {
 
 /// The default view of a multi-choice field (plan.md §13.1).
 ///
-/// The view shows a checkbox for each choice. When the answer has
-/// `maxItems` values, each clear checkbox is disabled. The answer keeps the
-/// order of the choices.
+/// The view shows a check box (EditorKit's `ToggleField`) for each choice.
+/// When the answer has `maxItems` values, each clear check box is disabled.
+/// The answer keeps the order of the choices.
 public struct ElicitationMultiChoiceField: View {
   /// The context of the field.
   let context: ElicitationFieldContext
@@ -817,14 +816,14 @@ public struct ElicitationMultiChoiceField: View {
     return VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
       ForEach(choices, id: \.const) { choice in
         let isOn = selected.contains(choice.const)
-        Toggle(
+        ToggleField(
           choice.title,
           isOn: Binding(
             get: { isOn },
             set: { write(choice.const, isOn: $0, choices: choices) }
           )
         )
-        .toggleStyle(.checkbox)
+        .toggleFieldStyle(.checkbox)
         .disabled(isAtLimit && !isOn)
         .help(choice.description ?? choice.title)
         .accessibilityIdentifier(

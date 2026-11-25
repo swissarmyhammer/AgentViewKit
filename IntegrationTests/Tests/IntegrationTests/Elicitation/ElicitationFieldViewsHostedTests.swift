@@ -8,25 +8,6 @@ import FoundationModelsACP
 import SwiftUI
 import Testing
 
-/// Holds the answer of one hosted field.
-@Observable
-final class AnswerBox {
-  /// The current answer.
-  var value: JSONValue?
-
-  /// Makes a box.
-  ///
-  /// - Parameter value: The first answer.
-  init(_ value: JSONValue? = nil) {
-    self.value = value
-  }
-
-  /// A binding to ``value``.
-  var binding: Binding<JSONValue?> {
-    Binding(get: { self.value }, set: { self.value = $0 })
-  }
-}
-
 /// Shows one field for a box. The body makes the context again on each
 /// change, so that the validation state is current.
 struct HostedField: View {

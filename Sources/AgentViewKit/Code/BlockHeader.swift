@@ -1,4 +1,5 @@
 import EditorStyle
+import EditorSwiftUI
 import EditorTheme
 import SwiftUI
 
@@ -353,8 +354,8 @@ extension BlockHeaderLayout {
       BlockHeader {
         Text(PreviewFixtures.codeSampleFilename)
       } actions: {
-        Button(String(localized: "Copy code", bundle: .module), systemImage: AgentSymbol.copy) {}
-          .labelStyle(.iconOnly)
+        EditorToolbarButton(String(localized: "Copy code", bundle: .module), systemImage: AgentSymbol.copy) {}
+          .editorButtonCaptions(.hidden)
       }
       .frame(width: width)
     }

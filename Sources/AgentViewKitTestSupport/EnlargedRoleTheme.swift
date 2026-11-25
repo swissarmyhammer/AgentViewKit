@@ -1,4 +1,3 @@
-import AgentViewKitTestSupport
 import EditorTheme
 import SwiftUI
 
@@ -8,36 +7,44 @@ import SwiftUI
 /// A view that draws text in the enlarged role is larger with this theme than
 /// with no theme, at each text style. A view that draws text in another role
 /// is the same size. So a test tells which role a view reads
-/// (``FontRoleExpectations``). The colors are the colors of `SystemTheme`, the
-/// theme of an environment with no theme.
-nonisolated struct EnlargedRoleTheme: EditorTheme.Theme {
+/// (`FontRoleExpectations` of the integration tests), and a test of a
+/// control sees the theme on the control. The colors are the colors of
+/// `SystemTheme`, the theme of an environment with no theme.
+public nonisolated struct EnlargedRoleTheme: EditorTheme.Theme {
   /// The face of the enlarged role: the system serif face at the size of the
   /// largest system text style, much larger than the `body` text style of the
   /// default faces.
-  static let enlargedFace = FontFace.serif(sizedAs: .largeTitle)
+  public static let enlargedFace = FontFace.serif(sizedAs: .largeTitle)
 
   /// The font of the enlarged role at the `body` text style.
-  static let enlargedFont = enlargedFace.font()
+  public static let enlargedFont = enlargedFace.font()
 
   /// The role that draws in ``enlargedFace``.
-  let enlargedRole: FontRole
+  public let enlargedRole: FontRole
+
+  /// Makes a theme that enlarges `enlargedRole`.
+  ///
+  /// - Parameter enlargedRole: The role that draws in ``enlargedFace``.
+  public init(enlargedRole: FontRole) {
+    self.enlargedRole = enlargedRole
+  }
 
   /// The theme that gives the colors.
   private let base = SystemTheme()
 
-  var editorForeground: Color { base.editorForeground }
-  var selection: Color { base.selection }
-  var statusBarBackground: Color { base.statusBarBackground }
-  var tabBarBackground: Color { base.tabBarBackground }
-  var uiFace: FontFace { face(enlargedIn: .ui, default: ThemeRoleDefaults.uiFace) }
-  var displayFace: FontFace { face(enlargedIn: .display, default: ThemeRoleDefaults.displayFace) }
-  var codeFace: FontFace { face(enlargedIn: .code, default: ThemeRoleDefaults.codeFace) }
+  public var editorForeground: Color { base.editorForeground }
+  public var selection: Color { base.selection }
+  public var statusBarBackground: Color { base.statusBarBackground }
+  public var tabBarBackground: Color { base.tabBarBackground }
+  public var uiFace: FontFace { face(enlargedIn: .ui, default: ThemeRoleDefaults.uiFace) }
+  public var displayFace: FontFace { face(enlargedIn: .display, default: ThemeRoleDefaults.displayFace) }
+  public var codeFace: FontFace { face(enlargedIn: .code, default: ThemeRoleDefaults.codeFace) }
 
   /// The attributes of a capture in `SystemTheme`.
   ///
   /// - Parameter key: The capture key.
   /// - Returns: The attributes of the capture.
-  func attributes(for key: StyleKey) -> AttributeContainer {
+  public func attributes(for key: StyleKey) -> AttributeContainer {
     base.attributes(for: key)
   }
 

@@ -1,4 +1,5 @@
 import EditorStyle
+import EditorSwiftUI
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
@@ -6,6 +7,9 @@ import SwiftUI
 /// The quick-open list of Jump to Session: the descendants and the ancestors
 /// of the shown session, filtered by name, each with its path, such as
 /// "Agent › Reviewer › Linter".
+///
+/// The filter field is a kit one-line field (``AgentOneLineField``), the
+/// EditorKit `SingleLineField`.
 ///
 /// The list reads the path entries that the model gives (``SessionModel``
 /// `ancestors` and `descendants`) and keeps no copy of the tree. The field
@@ -37,7 +41,8 @@ struct SessionJumpList: View {
   /// Called with the id of the chosen session.
   let choose: (SessionId) -> Void
 
-  @State private var query = ""
+  /// The model of the text of the filter field.
+  @State private var query = OwnModelSlot(editable: true)
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.locale) private var locale
 
@@ -77,14 +82,14 @@ struct SessionJumpList: View {
   }
 
   var body: some View {
-    let shown = Self.filter(entries, query: query, agent: agent, locale: locale)
+    let shown = Self.filter(entries, query: queryModel.text, agent: agent, locale: locale)
     VStack(alignment: .leading, spacing: editorStyle.spacing.s) {
-      TextField(String(localized: "Jump to session", bundle: .module), text: $query)
-        .textFieldStyle(.roundedBorder)
-        .accessibilityIdentifier(Self.fieldIdentifier)
-        .onSubmit {
-          if let first = shown.first { choose(first.sessionId) }
-        }
+      AgentOneLineField(
+        model: queryModel, identifier: Self.fieldIdentifier,
+        placeholder: String(localized: "Jump to session", bundle: .module)
+      ) { _ in
+        if let first = shown.first { choose(first.sessionId) }
+      }
       List(shown) { entry in
         Button {
           choose(entry.sessionId)
@@ -103,5 +108,11 @@ struct SessionJumpList: View {
     .withoutSystemFocusEffect()
     .padding(editorStyle.spacing.m)
     .frame(minWidth: Self.minimumWidth, minHeight: Self.minimumHeight)
+  }
+
+  /// The model of the text of the filter field. The first read makes an
+  /// empty model.
+  private var queryModel: EditorModel {
+    query.model(text: "")
   }
 }
