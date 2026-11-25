@@ -472,7 +472,7 @@ final class AgentCommandTarget {
     case .nextRequest: DeckSource.session(session).layout.next != nil
     case .jumpToNext: jumpTarget(forward: true) != nil
     case .jumpToPrevious: jumpTarget(forward: false) != nil
-    case .copyThread: !Self.plainText(of: session).isEmpty
+    case .copyThread: ThreadExporter.hasMessageText(in: session.transcript)
     case .exportMarkdown: SessionMarkdownExport.hasHistory(session)
     case .forkFromHere: forkRequest(payload: payload, in: session) != nil
     case .copyMessage: messageMarkdown(payload: payload, in: session)?.isEmpty == false
@@ -952,9 +952,24 @@ final class AgentCommandTarget {
   /// - Returns: The text, or an empty string when the transcript has no
   ///   message text.
   static func plainText(of session: SessionModel) -> String {
-    plainText(
+    #if DEBUG
+      BodyEvaluationCounter.note(plainTextCounterKey(for: session))
+    #endif
+    return plainText(
       of: ThreadExporter.messageTexts(in: session.transcript), templates: .bundled,
       locale: .autoupdatingCurrent)
+  }
+
+  /// The prefix of the counter key of the copy text renders.
+  private static let plainTextCounterPrefix = "copy-thread-text-"
+
+  /// The ``BodyEvaluationCounter`` key of the renders of the copy text of a
+  /// session model (``plainText(of:)``). Thus a test can count the renders.
+  ///
+  /// - Parameter session: The session model.
+  /// - Returns: The key.
+  static func plainTextCounterKey(for session: SessionModel) -> String {
+    BodyEvaluationKey.make(prefix: plainTextCounterPrefix, object: session)
   }
 
   /// The copy text of some messages: the `copy-text` template over the

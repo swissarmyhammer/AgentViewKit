@@ -15,7 +15,8 @@ import FoundationModelsACPClient
 /// The Stencil template `message-markdown` of the kit lays out the Markdown
 /// of the content (`Docs/decisions/text-templates.md`). Copy Thread
 /// (`AgentCommandTarget.plainText(of:)`) reads the message texts of a
-/// transcript through ``messageTexts(in:)``.
+/// transcript through ``messageTexts(in:)``, and its availability through
+/// ``hasMessageText(in:)``.
 public enum ThreadExporter {
   /// The Markdown of the content of a message entry.
   ///
@@ -97,6 +98,24 @@ public enum ThreadExporter {
       guard let message = message(of: entry) else { return nil }
       let shown = texts(of: message.content)
       return shown.isEmpty ? nil : MessageText(role: message.role, texts: shown)
+    }
+  }
+
+  /// Tells if a transcript has a message entry with text for the user.
+  ///
+  /// The answer is the same as for `!messageTexts(in:).isEmpty`, and thus
+  /// the same as for a copy text (`AgentCommandTarget.plainText(of:)`) that
+  /// is not empty. The function renders no template, and it stops at the
+  /// first message entry with text. Copy Thread reads its availability
+  /// through this function.
+  ///
+  /// - Parameter transcript: The entries of `SessionModel.transcript`.
+  /// - Returns: `true` when a `UserMessageEntry` or an `AgentMessageEntry`
+  ///   has a text block for the user.
+  static func hasMessageText(in transcript: [TranscriptEntry]) -> Bool {
+    transcript.contains { entry in
+      guard let message = message(of: entry) else { return false }
+      return !texts(of: message.content).isEmpty
     }
   }
 
