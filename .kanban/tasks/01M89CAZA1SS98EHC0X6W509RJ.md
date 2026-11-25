@@ -17,6 +17,13 @@ comments:
     - evidence: `review sha 9b3cab31..aaff3702` 0 findings; `review file` (code-hygiene) of ThreadExporter.swift through its worktree path 0 findings; both prior findings fixed (9b3cab31, aaff3702). `swift test`: 1744 tests in 197 suites and 59 tests in 12 suites pass, 0 failures, 0 code warnings. The harness refuses a command that sets HOME, so the suite ran with the normal HOME; the new tests do not touch home. That subtask stays open for a run by a person.
     - next: none. Branch worktree-agent-a1f63a2f80f41f3c0, commits 9c2888a4, 9b3cab31, aaff3702. Not pushed.
   timestamp: 2026-11-25T16:37:27.915320+00:00
+- actor: claude-code
+  id: 01m89tav801e29kqynschrjqm0
+  text: |-
+    ### review — clean
+    - evidence: `review sha 9c2888a4~1..aaff3702` in the main checkout after the merge (HEAD c4ac6dfa): findings 0, confirmed 0, refuted 0, attempted 7, failed 0, skipped 0. 3 files reviewed, 0 not reviewed. The engine read all new files. All prior Review Findings items are checked.
+    - next: none. The task stays in done.
+  timestamp: 2026-11-25T16:58:58.176431+00:00
 position_column: done
 position_ordinal: ffffffffa880
 title: 'Scroll perf 2: the Copy Thread availability check does not render the thread'

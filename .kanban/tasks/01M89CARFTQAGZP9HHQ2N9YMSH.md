@@ -53,6 +53,13 @@ comments:
     - evidence: review sha 101a75f1~1..101a75f1: 0 findings (attempted 7, refuted 0). The prior finding StatusLineView.swift:268 is fixed in 101a75f1 and checked. Local swiftlint (no_magic_numbers, force rules) on the 4 changed files: no warnings.
     - next: none. Needs a run on a free screen: the scroll profile harness (case A) and the gallery images (light, dark) of the status line.
   timestamp: 2026-11-25T16:20:52.647246+00:00
+- actor: claude-code
+  id: 01m89taser28y1akagnx6kf0s0
+  text: |-
+    ### review — clean
+    - evidence: `review sha 33aebfba~1..101a75f1` in the main checkout after the merge (HEAD c4ac6dfa): findings 0, confirmed 0, refuted 0, attempted 7, failed 0, skipped 0. 4 files reviewed, 0 not reviewed. The engine read all new files. All prior Review Findings items are checked.
+    - next: none. The task stays in done.
+  timestamp: 2026-11-25T16:58:56.344986+00:00
 position_column: done
 position_ordinal: ffffffffa780
 title: 'Scroll perf 1: the status line text is one flat Text, with no ViewThatFits in layout'

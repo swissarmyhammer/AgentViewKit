@@ -39,8 +39,15 @@ comments:
     - open item of the card: the `measureEstimates` share before and after (profile harness `scratchpad/ScrollProfile`) needs a run that can show a window.
     - next: merge or check out the branch in the main checkout, then run `/review ^c4sg6gz 574ebdf9~1..574ebdf9` there, and run the profile harness.
   timestamp: 2026-11-25T16:34:48.389649+00:00
-position_column: review
-position_ordinal: '8280'
+- actor: claude-code
+  id: 01m89taz125z7qp8yqhqr46045
+  text: |-
+    ### review — clean
+    - evidence: `review sha 574ebdf9~1..574ebdf9` in the main checkout after the merge (HEAD c4ac6dfa): findings 0, confirmed 0, refuted 2, attempted 7, failed 0, skipped 0. 3 files reviewed, 0 not reviewed. The engine read all new files, which the earlier review in the worktree could not read. There are no prior Review Findings sections.
+    - next: none. The task moved from review to done.
+  timestamp: 2026-11-25T16:59:02.050967+00:00
+position_column: done
+position_ordinal: ffffffffaa80
 title: 'Scroll perf 5: one view for each ForEach element of the transcript'
 ---
 User request (2026-11-25): "scrolling is still way too slow", stay with SwiftUI. The scroll profile found `LazyStack.measureEstimates` → `ForEachList.applyNodes` over all 200 elements at 9.25% of main-thread time. Each element gives a row and a nested `ForEach` of modelChanged status lines, so the view count of an element is not fixed. This gain is an estimate; the card measures it first.

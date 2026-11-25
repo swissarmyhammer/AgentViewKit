@@ -35,6 +35,13 @@ comments:
     - next: these runs are open, because the dispatcher forbids windowed runs in this session: (1) `ThreadBarAccessibilityFrameHostedTests` in IntegrationTests (tell testudoapp-9a before and after the run); (2) the scratch profile harness, case A, numbers on this card; (3) the gallery images of the thread (light, dark), after `swift package update` in each nested package.
     - Note: the window minimum size: with a flexible host in a borderless window, `contentMinSize` was (0, 0) before the change; the new layout also gives zero for its minimum.
   timestamp: 2026-11-25T16:45:31.982792+00:00
+- actor: claude-code
+  id: 01m89tax2dgkfr7vd4qe9qfhra
+  text: |-
+    ### review — clean
+    - evidence: `review sha 4ea3642f~1..4ea3642f` in the main checkout after the merge (HEAD c4ac6dfa): findings 0, confirmed 0, refuted 1, attempted 7, failed 0, skipped 0. 6 files reviewed, 0 not reviewed. The engine read all new files. There are no prior Review Findings sections.
+    - next: none. The task stays in done.
+  timestamp: 2026-11-25T16:59:00.045364+00:00
 position_column: done
 position_ordinal: ffffffffa980
 title: 'Scroll perf 3: the safe-area bars do not measure the transcript on each frame'
