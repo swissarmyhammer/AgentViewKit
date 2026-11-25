@@ -25,6 +25,13 @@ User request (2026-11-25): "scrolling is still way too slow", stay with SwiftUI.
 - [ ] A test that the model count stays at or below the limit after a scroll over all rows.
 - [ ] `HOME=$(mktemp -d) swift test` passes with 0 failures and 0 warnings.
 
+## EditorKit design (editorkit-7a, 2026-11-25): card ^8vgmyc7, after ^59ykv6h
+
+- A new modifier `.editorMountCache(cache)` keeps the realized coordinator of an `EditorView` when SwiftUI removes the view. The next `EditorView` over the SAME model uses it again: the laid-out text, the lanes and the `RowGrid` stay, and the first layout does not run again.
+- AVK puts the cache above the transcript list, and keeps its models cached (`CodeBlockModelCache` and the others).
+- A model swap under one view identity is not supported. Keep one `EditorView` for each model.
+- So the preferred option of this card becomes: keep the placeholder swap, and put `.editorMountCache` above the list, so that a row that comes back gets its realized host again. Wait for the ^8vgmyc7 sha. Bound the mount cache the same as the model cache.
+
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass.
 - After the change, run the scratch profile harness again and add the frame-time numbers to the card. #perf
