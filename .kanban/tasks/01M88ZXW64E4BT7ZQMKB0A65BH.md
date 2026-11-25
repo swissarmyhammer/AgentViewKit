@@ -47,8 +47,15 @@ comments:
     - evidence: 3 files — Sources/AgentViewKit/HumanInTheLoop/RequestCardFocus.swift, Sources/AgentViewKit/HumanInTheLoop/PermissionView.swift, Tests/AgentViewKitTests/Style/FocusLookTests.swift. `swift test`: 1764 tests in 205 suites passed, 59 tests in 12 suites passed, 0 failures, 0 code warnings. Both findings flipped to [x].
     - next: /test, /commit, then /review again.
   timestamp: 2026-11-25T18:53:16.142858+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m8a0zt04a7j8q1q03yw4cy89
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (commit 02215624): 0 findings (0 confirmed, 0 refuted, 7 attempted, 0 failed); 3 files reviewed. The 2 items of `## Review Findings (2026-11-25 12:43)` are checked.
+    - next: none. The task is in done.
+  timestamp: 2026-11-25T18:55:16.484908+00:00
+position_column: done
+position_ordinal: ffffffffab80
 title: 'Focus audit: list every focus visual and turn off every system focus effect'
 ---
 Request from TestudoApp (relayed by testudoapp-9a, 2026-11-25). User rule for all kits: "we need a 'focus ring' -- one style -- and a 'focus background' like we do for the cards and chips -- again ONE STYLE. I'm ok if we decide to use 'ring and background' together, but I'm not OK with multiple different 'ring' and 'background' focus styles."
