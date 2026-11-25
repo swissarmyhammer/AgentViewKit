@@ -352,6 +352,7 @@ public struct ConversationView<EmptyState: View>: View {
     let shownCount = ConversationLayout.shownCount(
       count: count, pageSize: pageSize, pageCount: pageCount)
     let anchors = anchors
+    let placements = ModelChangePlacements(notices: session.notices, transcript: session.transcript)
     return ScrollView {
       VStack(spacing: 0) {
         VStack(alignment: .leading, spacing: editorStyle.tile.margin) {
@@ -359,7 +360,11 @@ public struct ConversationView<EmptyState: View>: View {
             loadEarlierRow
           }
           LazyVStack(alignment: .leading, spacing: editorStyle.tile.margin) {
-            rows(shownCount: shownCount)
+            // A line before the first entry shows only with the first page.
+            if shownCount == count {
+              statusLines(placements.lines(at: .start))
+            }
+            rows(shownCount: shownCount, placements: placements)
           }
           .scrollTargetLayout()
         }
@@ -456,9 +461,16 @@ public struct ConversationView<EmptyState: View>: View {
   /// Each row gets the search mark of its entry
   /// (``TranscriptSearchRowMark``). A row with no search hit gets nothing.
   ///
-  /// - Parameter shownCount: The number of rows that the list shows.
-  /// - Returns: One row for each shown entry.
-  private func rows(shownCount: Int) -> some View {
+  /// The status lines of the modelChanged notices placed after an entry
+  /// follow the row of that entry (``ModelChangeNoticeView``). Thus a line
+  /// whose entry is on a page that is not loaded shows when that page loads.
+  ///
+  /// - Parameters:
+  ///   - shownCount: The number of rows that the list shows.
+  ///   - placements: The status lines of the modelChanged notices.
+  /// - Returns: One row for each shown entry, each followed by its status
+  ///   lines.
+  private func rows(shownCount: Int, placements: ModelChangePlacements) -> some View {
     let transcript = session.transcript
     let firstPosition = transcript.count - shownCount
     return ForEach(Array(transcript.suffix(shownCount).enumerated()), id: \.element.id) { offset, entry in
@@ -469,6 +481,22 @@ public struct ConversationView<EmptyState: View>: View {
         .modifier(TranscriptRowLiveness(position: firstPosition + offset))
         .coordinateSpace(.named(TranscriptFileOrder.rowSpace))
         .id(row.id)
+      statusLines(placements.lines(at: .after(entry.id)))
+    }
+  }
+
+  /// The status lines of the modelChanged notices at one place, in the
+  /// linked reading group of the thread.
+  ///
+  /// A line has no text identity, so it is not a scroll target of the
+  /// anchors (``ModelChangeLine/ID``).
+  ///
+  /// - Parameter lines: The lines, in arrival order.
+  /// - Returns: The lines.
+  private func statusLines(_ lines: [ModelChangeLine]) -> some View {
+    ForEach(lines) { line in
+      ModelChangeNoticeView(line: line)
+        .accessibilityReadingGroup(ThreadAccessibility.threadGroupID)
     }
   }
 

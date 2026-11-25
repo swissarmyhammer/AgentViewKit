@@ -10,8 +10,11 @@ import SwiftUI
 /// `Docs/decisions/acp-client-kit.md`).
 ///
 /// The view shows one banner for each notice in `SessionModel.notices`,
-/// in arrival order. Each banner shows a symbol and a tint for the severity,
-/// the title, and the description when the agent gave one. A notice with an
+/// in arrival order, except a notice of `_meta` `kind` `modelChanged`: the
+/// conversation shows that notice as a status line after the last message
+/// of the history (``ModelChangeNoticeView``). Each banner shows a symbol
+/// and a tint for the severity, the title, and the description when the
+/// agent gave one. A notice with an
 /// empty title, or with a sentence in its title and no description, takes the
 /// name of its severity as its title, and the text of the agent goes below it
 /// (``NoticeBanner/lines(severity:title:description:)``). The Dismiss button
@@ -66,7 +69,7 @@ public struct SessionNoticeBanner: View {
   }
 
   public var body: some View {
-    let notices = session.notices
+    let notices = session.notices.filter { !ModelChangeNotice.isModelChange($0) }
     if !notices.isEmpty {
       VStack(spacing: editorStyle.tile.margin) {
         ForEach(notices) { notice in
