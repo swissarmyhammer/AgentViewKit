@@ -44,8 +44,15 @@ comments:
     - evidence: 1 file — IntegrationTests/Tests/IntegrationTests/Thread/ThreadHeaderContextMenuHostedTests.swift. `swift test`: 1742 + 59 tests pass, 0 code warnings. `swift test --package-path IntegrationTests --filter ThreadHeaderContextMenuHostedTests`: 10 tests pass (one run). `swift format lint`: clean. The 5 findings are checked.
     - next: /review
   timestamp: 2026-11-25T14:28:51.128697+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m89hvajcem81dpgg1gyzh9a4
+  text: |-
+    ### review — clean
+    - evidence: `review sha HEAD~1..HEAD` (commit 02a25006): 0 findings (0 confirmed, 0 refuted), 7 validator runs, 0 failed. 1 file reviewed: IntegrationTests/Tests/IntegrationTests/Thread/ThreadHeaderContextMenuHostedTests.swift. All 5 prior findings are checked.
+    - next: none. The task is in done.
+  timestamp: 2026-11-25T14:30:40.972675+00:00
+position_column: done
+position_ordinal: ffffffffa480
 title: The host header and each top-bar banner show the header context menu
 ---
 Testudo request (TestudoApp card ^jgtq55d). The UI test testShareSessionShowsTheShareHeaderAndStopSharingRemovesIt fails. In a shared session, a right-click on the share notice ("Shared · …", the host header of `.threadHeader`) opens no context menu, so Stop Sharing is not reachable there. Only the status line (`ThreadStatusHeader`) has the menu of `headerContextMenuPath`. D108: each action is a command, and the menu is the same at each point of the bar.
