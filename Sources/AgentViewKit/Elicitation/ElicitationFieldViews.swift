@@ -289,8 +289,9 @@ public struct ElicitationTextField: View {
 /// The view shows a slider when the field has a minimum and a maximum.
 /// Otherwise it shows EditorKit's `StepperField`: a number input with an up
 /// and a down button beside it. An integer field moves in steps of one and
-/// writes whole numbers. A step and a commit keep the number in the bounds
-/// that the field has.
+/// writes whole numbers. The stepper does not keep the number in the bounds
+/// of the schema: the validator checks the bounds, as it does for each
+/// answer, so a typed or a stepped number past a bound shows its error.
 ///
 /// The number input is EditorKit's `NumberField` in the `StepperField`, with
 /// the slots of a kit one-line input, in the `ui` font role of EditorKit. Its text view carries
@@ -324,9 +325,18 @@ public struct ElicitationNumberField: View {
   static let numberInputMaximumWidth: CGFloat = 160
 
   /// The largest whole number that a JSON number holds with no loss: 2^53 - 1.
-  /// The bounds of the stepper of an integer field stay in this range, so
-  /// the width of the range fits in `Int`, as `StepperField` needs.
   static let largestExactWholeNumber = 9_007_199_254_740_991
+
+  /// The range of the stepper of an integer field: the whole numbers that a
+  /// JSON number holds with no loss. The width of the range fits in `Int`,
+  /// as `StepperField` needs. `StepperField` changes a typed number past its
+  /// range to the nearest bound, so the range is not the bounds of the
+  /// schema: a number past a bound of the schema stays, and shows its error.
+  static let integerStepperRange = -largestExactWholeNumber...largestExactWholeNumber
+
+  /// The range of the stepper of a number field: each finite number, for
+  /// the reason of ``integerStepperRange``.
+  static let numberStepperRange = -Double.greatestFiniteMagnitude...Double.greatestFiniteMagnitude
 
   /// The context of the field.
   let context: ElicitationFieldContext
@@ -368,7 +378,7 @@ public struct ElicitationNumberField: View {
             .accessibilityIdentifier(Self.readoutIdentifier(for: context.schema.name))
         }
       } else {
-        stepperField(number, integer: integer, minimum: minimum, maximum: maximum)
+        stepperField(number, integer: integer)
           .frame(maxWidth: Self.numberInputMaximumWidth * fontScale)
       }
     }
@@ -380,13 +390,9 @@ public struct ElicitationNumberField: View {
   /// - Parameters:
   ///   - number: The binding to the number.
   ///   - integer: Whether the field takes whole numbers only.
-  ///   - minimum: The lower bound, or `nil` for none.
-  ///   - maximum: The upper bound, or `nil` for none.
   /// - Returns: The stepper field.
   @ViewBuilder
-  private func stepperField(
-    _ number: Binding<Double>, integer: Bool, minimum: Double?, maximum: Double?
-  ) -> some View {
+  private func stepperField(_ number: Binding<Double>, integer: Bool) -> some View {
     if integer {
       stepperField(
         StepperField(
@@ -394,12 +400,12 @@ public struct ElicitationNumberField: View {
           value: Binding(
             get: { Self.wholeNumber(nearest: number.wrappedValue) },
             set: { number.wrappedValue = Double($0) }),
-          in: Self.integerRange(minimum: minimum, maximum: maximum), step: Int(Self.step)))
+          in: Self.integerStepperRange, step: Int(Self.step)))
     } else {
       stepperField(
         StepperField(
           model: inputModel.model(text: ""), id: context.controlIdentifier, value: number,
-          in: Self.numberRange(minimum: minimum, maximum: maximum), step: Self.step))
+          in: Self.numberStepperRange, step: Self.step))
     }
   }
 
@@ -415,35 +421,6 @@ public struct ElicitationNumberField: View {
         returnAction?()
       }
       .agentTextInputEdge()
-  }
-
-  /// The range of the stepper of a number field: from `minimum` to
-  /// `maximum`, with no bound on a side that has no bound. A minimum above
-  /// the maximum gives the range between the two.
-  ///
-  /// - Parameters:
-  ///   - minimum: The lower bound, or `nil` for none.
-  ///   - maximum: The upper bound, or `nil` for none.
-  /// - Returns: The range.
-  static func numberRange(minimum: Double?, maximum: Double?) -> ClosedRange<Double> {
-    let lower = minimum ?? -.greatestFiniteMagnitude
-    let upper = maximum ?? .greatestFiniteMagnitude
-    return min(lower, upper)...max(lower, upper)
-  }
-
-  /// The range of the stepper of an integer field: ``numberRange(minimum:maximum:)``
-  /// in whole numbers, in the range of ``largestExactWholeNumber`` on each
-  /// side.
-  ///
-  /// - Parameters:
-  ///   - minimum: The lower bound, or `nil` for none.
-  ///   - maximum: The upper bound, or `nil` for none.
-  /// - Returns: The range.
-  static func integerRange(minimum: Double?, maximum: Double?) -> ClosedRange<Int> {
-    let range = numberRange(minimum: minimum, maximum: maximum)
-    let limit = largestExactWholeNumber
-    let exact = { (bound: Double) in min(max(wholeNumber(nearest: bound), -limit), limit) }
-    return exact(range.lowerBound)...exact(range.upperBound)
   }
 
   /// The whole number nearest to `value`, or the nearest end of the range of

@@ -62,24 +62,30 @@ import Testing
     #expect(frames.themed.width > frames.plain.width)
   }
 
-  /// A production change that fails this test: a schema with a minimum
-  /// above its maximum makes a range that traps.
-  @Test func aMinimumAboveTheMaximumGivesTheRangeBetweenThem() {
-    #expect(ElicitationNumberField.numberRange(minimum: 5, maximum: 2) == 2...5)
+  /// The maximum of the field of ``aStepPastTheMaximumWritesTheNumber()``.
+  static let maximum = 9.0
+
+  /// A production change that fails this test: the stepper keeps the
+  /// number in the bounds of the schema. The stepper then also changes a
+  /// typed number above the maximum to the maximum, so the form shows no
+  /// error for the typed number. The validator checks the bounds, as it does
+  /// for each answer.
+  @Test func aStepPastTheMaximumWritesTheNumber() async {
+    let box = AnswerBox(.number(Self.maximum))
+    let field = ElicitationNumberField(
+      context: Self.context(.number(integer: true, minimum: nil, maximum: Self.maximum), box: box))
+
+    _ = await ControlProbe.read(Self.increaseIdentifier, in: field) { try? performAccessibilityPress(on: $0) }
+
+    #expect(box.value == .number(Self.maximum + 1))
   }
 
-  /// A production change that fails this test: an integer field with no
-  /// bounds makes a range wider than `Int` holds, so a step overflows.
-  @Test func anIntegerRangeWithNoBoundsStaysInTheExactWholeNumbers() {
+  /// A production change that fails this test: the stepper of an integer
+  /// field has a range wider than `Int` holds, so a step overflows.
+  @Test func theIntegerStepperStaysInTheExactWholeNumbers() {
     let limit = ElicitationNumberField.largestExactWholeNumber
 
-    #expect(ElicitationNumberField.integerRange(minimum: nil, maximum: nil) == -limit...limit)
-  }
-
-  /// A production change that fails this test: the integer range does not
-  /// keep the bounds of the schema.
-  @Test func anIntegerRangeKeepsTheBoundsOfTheSchema() {
-    #expect(ElicitationNumberField.integerRange(minimum: -3, maximum: nil).lowerBound == -3)
+    #expect(ElicitationNumberField.integerStepperRange == -limit...limit)
   }
 
   /// A production change that fails this test: the switch of a boolean

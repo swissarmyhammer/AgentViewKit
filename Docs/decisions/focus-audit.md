@@ -182,11 +182,17 @@ list them.
 The changed controls keep their behavior, with these changes:
 
 - The stepper of a number field is one `StepperField`: the number input and
-  an up and a down button in the edge of a kit text input. A step and a
-  commit keep the number in the bounds of the field. An integer field steps
-  in the whole numbers that a JSON number holds with no loss (2^53 - 1 on
-  each side). A minimum above the maximum gives the range between the two,
-  and no longer stops the app.
+  an up and a down button in the edge of a kit text input. `StepperField`
+  changes a typed number past its range to the nearest bound, so its range
+  is not the bounds of the schema. A typed or a stepped number past a bound
+  of the schema stays, and the validator shows its error, as before. Unlike
+  the system stepper, the buttons do not stop at a bound of the schema. An
+  integer field steps in the whole numbers that a JSON number holds with no
+  loss (2^53 - 1 on each side).
+- Known fault: EditorKit `StepperField` keeps its `EditorModel` after the
+  field leaves the view, so the typing of a submitted form stays on the
+  window undo stack. `NumberInputModelReleaseTests` records it as a known
+  issue. EditorKit must break the cycle.
 - The menu of a single-choice field always has the item of no selection, so
   a person can remove the answer of an optional field, as before.
 
