@@ -364,7 +364,7 @@ public struct ConversationView<EmptyState: View>: View {
           LazyVStack(alignment: .leading, spacing: editorStyle.tile.margin) {
             // A line before the first entry shows only with the first page.
             if shownCount == count {
-              statusLines(placements.lines(at: .start))
+              startLines(placements.lines(at: .start))
             }
             rows(shownCount: shownCount, placements: placements)
           }
@@ -452,67 +452,53 @@ public struct ConversationView<EmptyState: View>: View {
   /// accessibility identifier of the row holds, so a test can read the
   /// scroll target of a row from the accessibility tree.
   ///
-  /// Each row gives its position in the transcript and its coordinate space
-  /// to the file views in it, which place their files in the
-  /// ``TranscriptFileOrder`` of the thread (card ^4138tmp).
-  ///
-  /// Each row gets its liveness as a `Bool` (``TranscriptRowLiveness``), so
-  /// a move of the ``LiveRowRange`` evaluates only the responses of the rows
-  /// that enter or leave the range.
-  ///
-  /// Each row gets the search mark of its entry
-  /// (``TranscriptSearchRowMark``). A row with no search hit gets nothing.
+  /// Each row gets its position, its liveness and its search mark
+  /// (``TranscriptRowElement``).
   ///
   /// The status lines of the modelChanged notices placed after an entry
   /// follow the row of that entry (``ModelChangeNoticeView``). Thus a line
   /// whose entry is on a page that is not loaded shows when that page loads.
   ///
+  /// Each element of the `ForEach` is one view: the row and its status lines
+  /// in one ``TranscriptRowElement`` (task ^c4sg6gz). The lazy stack then
+  /// measures one view for each element. The element has the spacing of the
+  /// list, so the rows and the lines keep their places. The scroll target is
+  /// the element, because the scroll target layout reads the ids of its
+  /// direct children.
+  ///
+  /// The `ForEach` reads the positions of the shown entries, and builds no
+  /// array of the entries on each body (``TranscriptRowSlot``).
+  ///
   /// - Parameters:
   ///   - shownCount: The number of rows that the list shows.
   ///   - placements: The status lines of the modelChanged notices.
-  /// - Returns: One row for each shown entry, each followed by its status
-  ///   lines.
+  /// - Returns: One view for each shown entry: its row, followed by its
+  ///   status lines.
   private func rows(shownCount: Int, placements: ModelChangePlacements) -> some View {
     let transcript = session.transcript
-    let firstPosition = transcript.count - shownCount
-    return ForEach(Array(transcript.suffix(shownCount).enumerated()), id: \.element.id) { offset, entry in
-      let row = ItemRow(entry: entry)
-      readingRow(row)
-        .modifier(TranscriptSearchRowMark(rowKey: row.id))
-        .environment(\.transcriptRowPosition, firstPosition + offset)
-        .modifier(TranscriptRowLiveness(position: firstPosition + offset))
-        .coordinateSpace(.named(TranscriptFileOrder.rowSpace))
-        .id(row.id)
-      statusLines(placements.lines(at: .after(entry.id)))
+    let slots = (transcript.count - shownCount..<transcript.count).lazy.map { position in
+      TranscriptRowSlot(position: position, entry: transcript[position])
+    }
+    return ForEach(slots) { slot in
+      TranscriptRowElement(slot: slot, lines: placements.lines(at: .after(slot.id)))
+        .id(slot.entry.rowKey)
     }
   }
 
-  /// The status lines of the modelChanged notices at one place, in the
-  /// linked reading group of the thread.
+  /// The status lines of the modelChanged notices before the first entry,
+  /// as one view above the first row.
   ///
-  /// A line has no text identity, so it is not a scroll target of the
-  /// anchors (``ModelChangeLine/ID``).
+  /// With no line, the view is absent, so the lazy stack gives no spacing
+  /// above the first row.
   ///
   /// - Parameter lines: The lines, in arrival order.
-  /// - Returns: The lines.
-  private func statusLines(_ lines: [ModelChangeLine]) -> some View {
-    ForEach(lines) { line in
-      ModelChangeNoticeView(line: line)
-        .accessibilityReadingGroup(ThreadAccessibility.threadGroupID)
+  /// - Returns: A stack of the lines, or no view when `lines` is empty.
+  @ViewBuilder private func startLines(_ lines: [ModelChangeLine]) -> some View {
+    if !lines.isEmpty {
+      VStack(alignment: .leading, spacing: editorStyle.tile.margin) {
+        TranscriptStatusLines(lines: lines)
+      }
     }
-  }
-
-  /// One row, in the linked reading group of the thread.
-  ///
-  /// VoiceOver reads from one row into the next row
-  /// (``ThreadAccessibility/threadGroupID``).
-  ///
-  /// - Parameter row: The row of an entry.
-  /// - Returns: The row.
-  private func readingRow(_ row: ItemRow) -> some View {
-    row
-      .equatable()
-      .accessibilityReadingGroup(ThreadAccessibility.threadGroupID)
   }
 
   /// The row at the top of the list that shows one more page.
