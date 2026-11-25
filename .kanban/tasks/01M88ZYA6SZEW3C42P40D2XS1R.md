@@ -1,6 +1,14 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m8a10f0j23vntgqg3k9y31z5
+  text: |-
+    ### finish — stuck (blocked by EditorKit)
+    - evidence: EditorKit origin/main 80f9a486 has no `EditorFocusIndicatorKind` and no `.editorFocusIndicator(_:isFocused:radius:)` (git grep on Sources). The thin ring tokens (98dfbe5d) are there, but the API of the card is not.
+    - next: start this card when EditorKit sends the sha of the focus indicator API.
+  timestamp: 2026-11-25T18:55:38.002547+00:00
 depends_on:
 - 01M88ZXW64E4BT7ZQMKB0A65BH
 position_column: todo
