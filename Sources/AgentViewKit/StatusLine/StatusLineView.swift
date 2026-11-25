@@ -264,8 +264,9 @@ struct StatusLinePieceText: View {
   /// The measured width of each form, by its index in ``forms``.
   @State private var formWidths: [Int: CGFloat] = [:]
 
-  /// The measured width of the part, or `nil` before the first layout.
-  @State private var width: CGFloat?
+  /// The measured width of the part. Before the first layout, the width
+  /// has no limit, so the part shows its widest form.
+  @State private var width: CGFloat = .infinity
 
   /// The forms of the runs, from the widest.
   private var forms: [[StatusLineSpan]] {
