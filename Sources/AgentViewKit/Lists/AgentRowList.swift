@@ -120,11 +120,13 @@ public enum AgentRowDensity: Hashable, Sendable {
 /// EditorKit, its `nav.*` commands and its jump mode (EditorKit ^7wt12an: no
 /// SwiftUI `List`).
 ///
-/// The rows stand in a `LazyVStack` inside a `ScrollView`, which paints
-/// nothing, so the list is transparent. Each row is a command scope
-/// (``AgentRowListScope/rowSegment(for:)``), so a jump session of the host
-/// labels it, and a jump to it selects it. The selected row is the row whose
-/// scope is the focused scope of the window (`FocusedValues.commandPath`), or
+/// The rows stand in EditorKit's `EditorScrollStack` (a `LazyVStack` in an
+/// `EditorScrollView`), which paints nothing, so the list is transparent. The
+/// scroll view turns the system focus effect off for each view in it. Each
+/// row is a command scope (``AgentRowListScope/rowSegment(for:)``), so a jump
+/// session of the host labels it, and a jump to it selects it. The selected
+/// row is the row whose scope is the focused scope of the window
+/// (`FocusedValues.commandPath`), or
 /// the current row of the host (see below). It sits on the shared selectable
 /// surface
 /// (`.selectableSurface(_:corners:)`), the one place where the list paints the
@@ -327,22 +329,20 @@ public struct AgentRowList<Item, Row: View, Footer: View>: View {
     let system = ambientSystem ?? standaloneSystem
     let path = parentPath?.appending(scope.list) ?? .root(scope.list)
     ScrollViewReader { proxy in
-      ScrollView {
-        LazyVStack(alignment: .leading, spacing: density.rowSpacing(in: editorStyle)) {
-          ForEach(entries) { entry in
-            switch entry {
-            case .header(let sectionID, let title, let detail):
-              AgentRowSectionHeader(
-                title: title, detail: detail,
-                identifier: AgentRowSectionHeader.identifier(for: sectionID)
-              )
-              .padding(density.headerInsets(in: editorStyle))
-            case .row(let id, let item):
-              rowView(for: item, id: id, in: path, system: system)
-            }
+      EditorScrollStack(spacing: density.rowSpacing(in: editorStyle)) {
+        ForEach(entries) { entry in
+          switch entry {
+          case .header(let sectionID, let title, let detail):
+            AgentRowSectionHeader(
+              title: title, detail: detail,
+              identifier: AgentRowSectionHeader.identifier(for: sectionID)
+            )
+            .padding(density.headerInsets(in: editorStyle))
+          case .row(let id, let item):
+            rowView(for: item, id: id, in: path, system: system)
           }
-          footer
         }
+        footer
       }
       .background(
         AgentRowListMount(target: target, values: values(system: system, path: path, proxy: proxy))
