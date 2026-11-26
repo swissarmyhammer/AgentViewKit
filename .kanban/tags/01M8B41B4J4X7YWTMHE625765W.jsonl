@@ -1,0 +1,1 @@
+{"id":"01M8B41B4J5RY1QZARB7J1ZRJ2","timestamp":"2026-11-26T05:07:46.962802Z","op":"create","item_id":"01M8B41B4J4X7YWTMHE625765W","forward_patch":"--- original\n+++ modified\n@@ -0,0 +1,2 @@\n+color: 1d76db\n+tag_name: test\n","reverse_patch":"--- original\n+++ modified\n@@ -1,2 +0,0 @@\n-color: 1d76db\n-tag_name: test\n","transaction_id":null}
