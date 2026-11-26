@@ -1,6 +1,8 @@
 import AgentViewKitTestSupport
 import AppKit
 import EditorCommands
+import EditorCommandsUI
+import EditorSwiftUI
 import FoundationModelsACPClient
 import SwiftUI
 import Testing
@@ -10,12 +12,15 @@ import Testing
 
 /// The one focus look of the kit (Docs/decisions/focus-audit.md): no view of
 /// the kit shows a system focus effect, and an item that takes the keyboard
-/// focus shows the focus fill of its `SelectableSurface`.
+/// focus shows the one focus background of EditorKit
+/// (`EditorFocusIndicatorKind.background`), which EditorKit's
+/// `.selectableItem` draws in a `SelectableSurface`.
 ///
 /// A test of the system focus effect lays out the view in a hosting view
-/// with no window. A test of the focus fill puts the view in a window that is
-/// never ordered in, and gives the focus with the key view loop of the
-/// window, so no test shows a window or takes the focus of the screen.
+/// with no window. A test of the focus look puts the view in a window that is
+/// never ordered in, and gives the focus with the key view loop of the window
+/// or with the EditorKit focus request of a scope, so no test shows a window
+/// or takes the focus of the screen.
 @MainActor @Suite struct FocusLookTests {
   /// The size of the host of each view.
   static let hostSize = CGSize(width: 640, height: 900)
@@ -44,60 +49,83 @@ import Testing
     #expect(!SystemFocusEffects.census(under: hosting).isEmpty)
   }
 
+  /// A production change that fails this test: an EditorKit control that the
+  /// kit uses with no `.withoutSystemFocusEffect()` of its own shows the
+  /// system focus ring. The kit then needs the modifier on that control
+  /// again.
+  @Test(arguments: EditorKitControlSample.allCases)
+  func theEditorKitControlShowsNoSystemFocusEffect(_ sample: EditorKitControlSample) {
+    let hosting = StyleViewHost.host(sample.view, size: Self.hostSize)
+
+    #expect(SystemFocusEffects.census(under: hosting).isEmpty)
+  }
+
   /// A production change that fails this test: the permission card shows
-  /// its keyboard focus with no focus fill of its selectable surface.
-  @Test func theFocusedPermissionCardShowsTheFocusFill() throws {
+  /// its keyboard focus with no EditorKit focus background, for example with
+  /// a fill or an outline of its own.
+  @Test func theFocusedPermissionCardShowsTheEditorKitFocusBackground() throws {
     let session = SessionModel.previewSample
     let request = try #require(session.pendingPermissions.first)
 
-    let isFilled = FocusedHost.showsFocusFill(PermissionView(request: request, session: session))
+    let look = FocusedHost.focusIndicator(of: PermissionView(request: request, session: session))
 
-    #expect(isFilled)
+    #expect(look == .background)
   }
 
   /// A production change that fails this test: the elicitation form takes
-  /// the keyboard focus and shows no focus fill of its selectable surface.
-  @Test func theFocusedElicitationFormShowsTheFocusFill() throws {
+  /// the keyboard focus and shows no EditorKit focus background.
+  @Test func theFocusedElicitationFormShowsTheEditorKitFocusBackground() throws {
     let session = PreviewFixtures.elicitationSession
     let request = try #require(session.pendingElicitations.first)
 
-    let isFilled = FocusedHost.showsFocusFill(ElicitationView(request: request, owner: session))
+    let look = FocusedHost.focusIndicator(of: ElicitationView(request: request, owner: session))
 
-    #expect(isFilled)
+    #expect(look == .background)
   }
 
   /// A production change that fails this test: the URL consent card takes
-  /// the keyboard focus and shows no focus fill of its selectable surface.
-  @Test func theFocusedURLConsentCardShowsTheFocusFill() throws {
+  /// the keyboard focus and shows no EditorKit focus background.
+  @Test func theFocusedURLConsentCardShowsTheEditorKitFocusBackground() throws {
     let session = PreviewFixtures.elicitationSession
     let request = try #require(session.pendingElicitations.last)
 
-    let isFilled = FocusedHost.showsFocusFill(ElicitationURLConsentView(request: request, owner: session))
+    let look = FocusedHost.focusIndicator(of: ElicitationURLConsentView(request: request, owner: session))
 
-    #expect(isFilled)
+    #expect(look == .background)
   }
 
   /// A production change that fails this test: the elicitation card of a
-  /// ``RequestDeck`` takes the keyboard focus and the deck shows no focus
-  /// fill at the frame of the card.
-  @Test func theFocusedElicitationCardOfADeckShowsTheFocusFill() {
-    let isFilled = FocusedHost.showsFocusFill(RequestDeck(session: PreviewFixtures.elicitationSession))
+  /// ``RequestDeck`` takes the keyboard focus and the deck shows no EditorKit
+  /// focus background at the frame of the card.
+  @Test func theFocusedElicitationCardOfADeckShowsTheEditorKitFocusBackground() {
+    let look = FocusedHost.focusIndicator(of: RequestDeck(session: PreviewFixtures.elicitationSession))
 
-    #expect(isFilled)
+    #expect(look == .background)
   }
 
   /// A production change that fails this test: the focused row of an
-  /// ``AgentRowList`` shows its focus with no focus fill of its selectable
-  /// surface.
-  @Test func theFocusedRowOfARowListShowsTheFocusFill() {
+  /// ``AgentRowList`` shows its focus with no EditorKit focus background.
+  @Test func theFocusedRowOfARowListShowsTheEditorKitFocusBackground() {
     let list = AgentRowList(
       ["first", "second"], id: \.self,
       scope: AgentRowListScope(list: FocusSegment(kind: "focusLookList"), rowKind: "focusLookRow")
     ) { id in Text(verbatim: id) }
 
-    let isFilled = FocusedHost.showsFocusFill(list)
+    let look = FocusedHost.focusIndicator(of: list)
 
-    #expect(isFilled)
+    #expect(look == .background)
+  }
+
+  /// A production change that fails this test: an attachment chip shows the
+  /// focus of its scope with no EditorKit focus background, for example with
+  /// the focus ring of the scope, or with a fill of its own.
+  @Test func theChipWithTheFocusOfItsScopeShowsTheEditorKitFocusBackground() throws {
+    let attachment = try #require(PreviewFixtures.attachments.first)
+
+    let look = try FocusedHost.focusIndicator(
+      ofScope: AgentScopeKind.attachment(attachment.id), in: AttachmentChip(attachment))
+
+    #expect(look == .background)
   }
 }
 
@@ -119,6 +147,13 @@ enum FocusLookSample: CaseIterable, CustomTestStringConvertible {
   case sources
   case activityTimeline
   case statusBar
+  case elicitationDeck
+  case codeBlock
+  case outputCap
+  case reasoning
+  case toolCall
+  case configMenu
+  case toolTogglesMenu
 
   var testDescription: String { String(describing: self) }
 
@@ -133,13 +168,57 @@ enum FocusLookSample: CaseIterable, CustomTestStringConvertible {
     case .thread: Self.threadView
     case .composer: AnyView(DefaultThreadComposer().environment(\.sessionModel, .previewSample))
     case .rowList: Self.rowListView
-    case .sessionList: AnyView(SessionListView(connection: .previewSample) { _ in })
+    case .sessionList: AnyView(SessionListView(connection: .previewSample, onOpen: { _ in }, onNewSession: {}))
     case .sessionJumpList: AnyView(SessionJumpList(agent: nil, entries: []) { _ in })
-    case .diff: AnyView(DiffView(patch: PreviewFixtures.smallPatch))
+    case .diff: Self.diffView
     case .sources: AnyView(SourcesView(payload: PreviewFixtures.citations))
     case .activityTimeline: AnyView(ActivityTimeline(session: .previewSample))
     case .statusBar: Self.statusBarView
+    case .elicitationDeck: AnyView(RequestDeck(session: PreviewFixtures.elicitationSession))
+    case .codeBlock: AnyView(CodeBlockView(code: "let x = 1", language: "swift"))
+    case .outputCap: Self.outputCapView
+    case .reasoning: Self.reasoningView
+    case .toolCall: Self.toolCallView
+    case .configMenu: AnyView(ConfigOptionsView(session: PreviewFixtures.configuredSession, style: .menu))
+    case .toolTogglesMenu: Self.toolTogglesMenuView
     }
+  }
+
+  /// A diff with the actions of a hunk and the attach action, so the view
+  /// shows its buttons.
+  @MainActor private static var diffView: AnyView {
+    AnyView(
+      DiffView(
+        patch: PreviewFixtures.smallPatch, onAccept: { _, _ in }, onReject: { _, _ in }, onAttach: { _ in }))
+  }
+
+  /// The row of an output that shows its last rows, with its Show All
+  /// button.
+  @MainActor private static var outputCapView: AnyView {
+    AnyView(
+      OutputCapRow(
+        rows: PreviewFixtures.cappedOutputRows, capIdentifier: CommandOutputView.capIdentifier,
+        showAllIdentifier: CommandOutputView.showAllIdentifier, showAll: {}))
+  }
+
+  /// The first thought of the preview session, with its show reasoning
+  /// toggle.
+  @MainActor private static var reasoningView: AnyView {
+    AnyView(PreviewFixtures.firstEntry(in: .previewSample, as: ThoughtEntry.self).map { ReasoningView(entry: $0) })
+  }
+
+  /// A tool call card with its row toggle.
+  @MainActor private static var toolCallView: AnyView {
+    let item = PreviewTranscriptItem.toolCall(title: "Read the file", kind: .read, status: .completed)
+    return AnyView(PreviewFixtures.entry(item, as: ToolCallEntry.self).map { ToolCallView(entry: $0) })
+  }
+
+  /// The tools menu with one tool.
+  @MainActor private static var toolTogglesMenuView: AnyView {
+    AnyView(
+      ToolToggles(
+        tools: [ToolToggle(id: ToolToggleID("web-search"), name: "Web search", isEnabled: true)], style: .menu
+      ) { _, _ in })
   }
 
   /// The card of the first pending permission request of the preview session.
@@ -186,6 +265,41 @@ enum FocusLookSample: CaseIterable, CustomTestStringConvertible {
   }
 }
 
+/// An EditorKit control that the kit uses with no
+/// `.withoutSystemFocusEffect()` of its own, enabled, with no modifier of the
+/// kit (Docs/decisions/focus-audit.md).
+///
+/// The command form of `EditorToolbarButton` draws through the same body and
+/// look as the title form, so the title form stands for both.
+enum EditorKitControlSample: CaseIterable, CustomTestStringConvertible {
+  case button
+  case actionButton
+  case toolbarButton
+  case toolbarToggle
+  case menuButton
+
+  var testDescription: String { String(describing: self) }
+
+  /// The title of each control.
+  static let title = "Focus"
+
+  /// The symbol of each control.
+  static let systemImage = "star"
+
+  /// The view of the sample.
+  @MainActor var view: AnyView {
+    switch self {
+    case .button: AnyView(EditorButton(Self.title, systemImage: Self.systemImage) {})
+    case .actionButton: AnyView(EditorButton(Self.title, systemImage: Self.systemImage, look: .action) {})
+    case .toolbarButton: AnyView(EditorToolbarButton(Self.title, systemImage: Self.systemImage) {})
+    case .toolbarToggle:
+      AnyView(EditorToolbarButton(Self.title, symbol: .action(.disclosure), isOn: .constant(false)))
+    case .menuButton:
+      AnyView(EditorMenuButton(Self.title, systemImage: Self.systemImage) { EditorMenuItem(Self.title) {} })
+    }
+  }
+}
+
 /// The system focus effects that AppKit can show under a hosting view.
 ///
 /// SwiftUI draws the system focus ring of each focusable SwiftUI view, such
@@ -228,27 +342,79 @@ enum FocusLookSample: CaseIterable, CustomTestStringConvertible {
 }
 
 /// A host of one view in a window that is never ordered in, which gives the
-/// keyboard focus to the first view of the key view loop of the window.
+/// keyboard focus to the first view of the key view loop of the window, or to
+/// one command scope of the view.
 @MainActor enum FocusedHost {
-  /// Whether `view` shows the focus fill of a selectable surface after the
-  /// window gives the focus to its first focusable view.
+  /// The EditorKit focus look that `view` shows after the window gives the
+  /// focus to its first focusable view.
   ///
   /// The host takes the first responder, and the window then takes the next
   /// key view, as the Tab key does: the first focusable view in the order of
   /// the view tree, which is the item, because the item stands above its
-  /// controls. The host lays out the view again, and the test runs one pass
-  /// of the run loop that does not wait, so SwiftUI gives the preferences of
-  /// the new focus to the host.
+  /// controls.
   ///
   /// - Parameter view: The view to focus.
-  /// - Returns: `true` when a selectable surface in the view shows the focus
-  ///   fill.
-  static func showsFocusFill(_ view: some View) -> Bool {
-    let recorder = FocusFillRecorder()
+  /// - Returns: The kind of the EditorKit focus indicator that a selectable
+  ///   surface in the view shows, or `nil` when no surface shows the focus.
+  static func focusIndicator(of view: some View) -> EditorFocusIndicatorKind? {
+    mount(view) { window, hosting in
+      window.makeFirstResponder(hosting)
+      window.selectNextKeyView(nil)
+    }
+  }
+
+  /// The EditorKit focus look that `view` shows after the scope whose last
+  /// segment is `segment` takes the focus, as a jump or a `nav.*` move gives
+  /// it.
+  ///
+  /// The view stands in the agent command scope of the preview session, with
+  /// a command system, so its item scopes are live. The focus request of
+  /// EditorKit (`GeometryRegistry.requestFocus(at:)`) gives the focus to the
+  /// beacon of the scope, or to the focusable view of its content.
+  ///
+  /// - Parameters:
+  ///   - segment: The last segment of the path of the scope.
+  ///   - view: The view to focus.
+  /// - Returns: The kind of the EditorKit focus indicator that a selectable
+  ///   surface in the view shows, or `nil` when no surface shows the focus.
+  /// - Throws: An issue when no live scope has the segment, or when the scope
+  ///   does not take the focus.
+  static func focusIndicator(ofScope segment: FocusSegment, in view: some View) throws
+    -> EditorFocusIndicatorKind?
+  {
+    let system = CommandSystem()
+    var focusIssue: (any Error)?
+    let look = mount(view.agentCommandScope(session: .previewSample).commandSystem(system)) { _, _ in
+      do {
+        let path = try #require(system.geometry.livePaths.first { $0.segments.last == segment })
+        try #require(system.geometry.requestFocus(at: path))
+      } catch {
+        focusIssue = error
+      }
+    }
+    if let focusIssue { throw focusIssue }
+    return look
+  }
+
+  /// Mounts `view` in a window that is never ordered in, gives the focus with
+  /// `focus`, and reads the newest ``SurfaceFocusIndicatorKey`` of the view.
+  ///
+  /// The host lays out the view again after the focus, and the test runs one
+  /// pass of the run loop that does not wait, so SwiftUI gives the
+  /// preferences of the new focus to the host.
+  ///
+  /// - Parameters:
+  ///   - view: The view to mount.
+  ///   - focus: Gives the focus, from the window and its hosting view.
+  /// - Returns: The newest value of the key.
+  private static func mount(
+    _ view: some View, focus: (NSWindow, NSView) -> Void
+  ) -> EditorFocusIndicatorKind? {
+    let recorder = FocusLookRecorder()
     let hosting = NSHostingView(
       rootView: view
         .frame(width: FocusLookTests.hostSize.width, height: FocusLookTests.hostSize.height)
-        .onPreferenceChange(SelectableSurfaceFocusKey.self) { recorder.isFilled = $0 })
+        .onPreferenceChange(SurfaceFocusIndicatorKey.self) { recorder.look = $0 })
     let window = NSWindow(
       contentRect: NSRect(origin: .zero, size: FocusLookTests.hostSize), styleMask: [.titled],
       backing: .buffered, defer: true)
@@ -256,16 +422,16 @@ enum FocusLookSample: CaseIterable, CustomTestStringConvertible {
     window.contentView = hosting
     defer { window.close() }
     StyleViewHost.layOut(hosting)
-    window.makeFirstResponder(hosting)
-    window.selectNextKeyView(nil)
+    focus(window, hosting)
     StyleViewHost.layOut(hosting)
     RunLoop.main.run(mode: .default, before: .distantPast)
-    return recorder.isFilled
+    return recorder.look
   }
 }
 
-/// The newest value of ``SelectableSurfaceFocusKey`` at a host.
-@MainActor final class FocusFillRecorder {
-  /// Whether a selectable surface in the host shows the focus fill.
-  var isFilled = false
+/// The newest value of ``SurfaceFocusIndicatorKey`` at a host.
+@MainActor final class FocusLookRecorder {
+  /// The kind of the EditorKit focus indicator that a selectable surface in
+  /// the host shows, or `nil`.
+  var look: EditorFocusIndicatorKind?
 }

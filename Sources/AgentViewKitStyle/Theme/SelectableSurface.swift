@@ -155,8 +155,10 @@ extension View {
   /// ```
   ///
   /// While the beacon of the scope holds the focus, the scope draws the one
-  /// focus ring of EditorKit in these corners. This is the one place where a
-  /// view kit asks for a focus ring, so the ring of each item changes here.
+  /// focus ring of EditorKit (`EditorFocusIndicatorKind.ring`, through
+  /// `.scopeFocusRing(cornerRadius:)`) in these corners. This is the one
+  /// place where a view kit asks for a focus ring, so the ring of each item
+  /// changes here.
   ///
   /// - Parameter corners: The corners of the ring.
   /// - Returns: The scope, with the corners of its focus ring.
@@ -167,14 +169,17 @@ extension View {
   /// Turns off the system focus effect of this control and of each control
   /// in it (Docs/decisions/focus-audit.md).
   ///
-  /// The kit shows one focus look: the focus fill of a selectable surface,
-  /// or the focus ring of a scope. A button, a menu, a field or a list of
-  /// the kit thus shows no system focus ring. Put the modifier on the
+  /// The kit shows one focus look: the focus background of EditorKit on a
+  /// selectable surface, or the focus ring of EditorKit on a scope. An
+  /// EditorKit button, toolbar button or menu button turns off its own
+  /// system focus effect, so it takes no such modifier. Each other control
+  /// of the kit, such as a SwiftUI `List` or a `PathChip`, takes this
+  /// modifier, so it shows no system focus ring. Put the modifier on the
   /// control, inside each `.commandScope` that draws a ring, because a scope
   /// under `.focusEffectDisabled()` draws no ring:
   ///
   /// ```swift
-  /// EditorButton("Copy", systemImage: "doc.on.doc") { copy() }
+  /// List(entries) { entry in Row(entry) }
   ///   .withoutSystemFocusEffect()
   /// ```
   ///
@@ -211,6 +216,13 @@ private struct SurfaceFocusRing: ViewModifier {
 /// no focus ring. Thus the fill, the shape and the focus look always agree,
 /// and no view of a kit pairs them itself.
 ///
+/// The focus fill is the one focus background of EditorKit
+/// (`EditorFocusIndicatorKind.background`), and the selection fill is the
+/// selection fill of EditorKit. The modifier does not call
+/// `.editorFocusIndicator(.background, ...)` directly: that modifier does not
+/// tell the scope that an item surface shows the focus, so the scope would
+/// draw its ring over the fill (Docs/decisions/focus-audit.md).
+///
 /// The modifier reads the corners as a radius. When the corners of an item
 /// change, only the value of the radius changes, so the item keeps its
 /// identity and its state.
@@ -243,32 +255,61 @@ public struct SelectableSurface: ViewModifier {
     self.corners = corners
   }
 
+  /// The kind of the EditorKit focus indicator that the surface shows while
+  /// it has the focus: the one focus background, which EditorKit's
+  /// `.selectableItem` draws (EditorKit `EditorFocusLook.ofSelectableItem`).
+  static let focusIndicatorKind = EditorFocusIndicatorKind.background
+
   /// Gives `content` the fill of its state and its hit and focus shape, and
-  /// tells the views above whether the focus fill shows
-  /// (`SelectableSurfaceFocusKey`).
+  /// tells the views above which EditorKit focus indicator shows
+  /// (``SurfaceFocusIndicatorKey``).
   ///
   /// - Parameter content: The item.
   /// - Returns: The item with the look of its selection and its focus.
   public func body(content: Content) -> some View {
     content
+      .modifier(SurfaceFocusIndicatorReport(showsFocus: isFocused || scopeHoldsFocus))
       .selectableItem(
         isSelected: isSelected, isFocused: isFocused, cornerRadius: corners.radius(in: editorStyle))
-      .preference(key: SelectableSurfaceFocusKey.self, value: isFocused || scopeHoldsFocus)
   }
 }
 
-/// Whether a selectable surface in the content shows the focus fill now.
+/// Tells the views above a ``SelectableSurface`` which EditorKit focus
+/// indicator the surface shows (``SurfaceFocusIndicatorKey``).
 ///
-/// Each ``SelectableSurface`` gives the value of its own focus fill, so a
-/// view above the surfaces can read the one focus look of the kit
-/// (Docs/decisions/focus-audit.md).
-struct SelectableSurfaceFocusKey: PreferenceKey {
-  /// No surface shows the focus fill.
-  static let defaultValue = false
+/// The report stands inside EditorKit's `.selectableItem`, as the content of
+/// the item. It reads `\.isItemStateFillShown`, which EditorKit sets for the
+/// content while it draws the state fill of the item. So the report gives the
+/// focus background only while the item has the focus and EditorKit draws its
+/// fill.
+private struct SurfaceFocusIndicatorReport: ViewModifier {
+  /// Whether the item has the focus: from its host, or from the beacon of its
+  /// scope.
+  let showsFocus: Bool
 
-  /// One surface with the focus fill is enough.
-  static func reduce(value: inout Bool, nextValue: () -> Bool) {
-    value = value || nextValue()
+  /// Whether EditorKit draws the state fill of the item around this view.
+  @Environment(\.isItemStateFillShown) private var isStateFillShown
+
+  func body(content: Content) -> some View {
+    content.preference(
+      key: SurfaceFocusIndicatorKey.self,
+      value: showsFocus && isStateFillShown ? SelectableSurface.focusIndicatorKind : nil)
+  }
+}
+
+/// The kind of the EditorKit focus indicator that a selectable surface in
+/// the content shows now, or `nil` when no surface shows the focus.
+///
+/// Each ``SelectableSurface`` gives the kind of its own focus look, so a view
+/// above the surfaces can read the one focus look of the kit
+/// (Docs/decisions/focus-audit.md).
+struct SurfaceFocusIndicatorKey: PreferenceKey {
+  /// No surface shows the focus.
+  static var defaultValue: EditorFocusIndicatorKind? { nil }
+
+  /// The first surface that shows the focus gives the kind.
+  static func reduce(value: inout EditorFocusIndicatorKind?, nextValue: () -> EditorFocusIndicatorKind?) {
+    value = value ?? nextValue()
   }
 }
 

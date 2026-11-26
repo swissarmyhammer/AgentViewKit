@@ -5,8 +5,10 @@ import SwiftUI
 ///
 /// The card is a focusable view, so a jump, a move or the Tab key lands the
 /// focus on the card, and Esc reaches its `onExitCommand`. The card shows
-/// that focus as the focus fill of its selectable surface, never as an
-/// outline (EditorKit style.md, "Selection and focus"), and the system focus
+/// that focus as the one focus background of EditorKit
+/// (`EditorFocusIndicatorKind.background`), which its selectable surface
+/// draws through EditorKit's `.selectableItem`, never as an outline
+/// (EditorKit style.md, "Selection and focus"), and the system focus
 /// effect stays off (Docs/decisions/focus-audit.md). In a ``RequestDeck``
 /// (`\.requestFrameIsExternal`), the deck draws the fill at the frame of the
 /// card, and the card gives its focus to the deck with
