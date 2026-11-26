@@ -2,6 +2,7 @@ import AppKit
 import EditorCommands
 import EditorCommandsUI
 import EditorStyle
+import EditorSwiftUI
 import SwiftUI
 
 /// The scope of an ``AgentRowList``: the segment of the list and the segment
@@ -840,7 +841,7 @@ struct AgentRowClicks: ViewModifier {
     Text(suggestion)
   }
   .wrappingRows { row, suggestion in
-    row.contextMenu { Button(suggestion) {} }
+    row.contextMenu { EditorMenuItem(suggestion) {} }
   }
   .scrollContentMargins(\.tile.margin)
 }

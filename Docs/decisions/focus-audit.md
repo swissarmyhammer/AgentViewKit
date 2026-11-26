@@ -171,9 +171,9 @@ table does not fit the place as it is, and the row tells why.
 | `Content/Blocks/BlockFileWriteView.swift` | `ProgressView` | `EditorProgressView` | Changed |
 | `Attachments/AttachmentPreview.swift` | `ProgressView` | `EditorProgressView` | Changed |
 | `Thread/SideQuestionCard.swift` | `ProgressView` | `EditorProgressView` | Changed |
-| `Commands/HostPathContextMenu.swift` | `Button` in `.contextMenu` for each command at a host path | `EditorMenuItem` (`.commandContextMenu(system)` builds its menu only at the path of an ancestor scope) | Waits for ^ndeex7s |
-| `Sessions/SessionBreadcrumb.swift`, a choice of the children menu | `Button` in an `EditorMenuButton` | `EditorMenuItem` | Waits for ^ndeex7s |
-| `Lists/AgentRowList.swift`, the preview | `Button` in `.contextMenu` | `EditorMenuItem` | Waits for ^ndeex7s |
+| `Commands/HostPathContextMenu.swift` | `Button` in `.contextMenu` for each command at a host path | `EditorMenuItem` (`.commandContextMenu(system)` builds its menu only at the path of an ancestor scope) | Changed |
+| `Sessions/SessionBreadcrumb.swift`, a choice of the children menu | `Button` in an `EditorMenuButton` | `EditorMenuItem` | Waits for EK: `EditorMenuItem` takes its icon as an `EditorSymbol` only, and `EditorSymbol` has no symbol for the marks of a choice: the check mark of the shown session (`checkmark`) and the empty circle of each other session (`circle`) |
+| `Lists/AgentRowList.swift`, the preview | `Button` in `.contextMenu` | `EditorMenuItem` | Changed |
 | `Lists/AgentRowList.swift`, the list | `ScrollView` of a list scope that takes the focus | `EditorScrollView` | Waits for ^3q46xdt |
 | `Attachments/AttachmentView.swift` | `Button` in `.accessibilityActions` (a named accessibility action, not a drawn control) | None. EditorKit `ChoiceField` uses the same form for its actions | Not a control; a person decides |
 

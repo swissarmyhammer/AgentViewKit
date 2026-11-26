@@ -1,5 +1,6 @@
 import EditorCommands
 import EditorCommandsUI
+import EditorSwiftUI
 import SwiftUI
 
 /// The EditorKit context menu of a scope path that the host gives, such as
@@ -11,8 +12,9 @@ import SwiftUI
 /// so this modifier builds the menu at the given path itself. It reads
 /// `contextMenuMirror(at:mode:unavailable:)` of the command system of the
 /// nearest ``AgentCommandScope`` (``SwiftUI/EnvironmentValues/agentCommandSystem``)
-/// each time the menu shows, puts one `Divider` between two context menu
-/// groups, and leaves out each command that is not available at the path
+/// each time the menu shows, shows each command as an EditorKit
+/// `EditorMenuItem`, puts one `Divider` between two context menu groups, and
+/// leaves out each command that is not available at the path
 /// (``ContextMenuUnavailablePolicy/hostPath``). A chosen item runs its
 /// command at the path, with the path as the clicked path, as an item of
 /// `.commandContextMenu` does.
@@ -77,7 +79,7 @@ struct HostPathContextMenuItems: View {
         Divider()
       }
       ForEach(sections[index], id: \.id) { item in
-        Button(item.title) { run(item) }
+        EditorMenuItem(item.title) { run(item) }
       }
     }
   }
