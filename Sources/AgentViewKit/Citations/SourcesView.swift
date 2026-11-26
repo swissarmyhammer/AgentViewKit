@@ -6,7 +6,8 @@ import EditorTheme
 import FoundationModelsACP
 import SwiftUI
 
-/// The collapsible "Sources" footer of a response (plan.md §9 C).
+/// The collapsible "Sources" footer of a response (plan.md §9 C), in
+/// EditorKit's `EditorDisclosure`.
 ///
 /// The view shows one row for each ``CitationSource`` of a
 /// ``CitationPayload``, in payload order. A row has the number of the source,
@@ -105,9 +106,17 @@ public struct SourcesView: View {
     AccessibilityIdentifier.make(prefix: cardIdentifierPrefix, value: String(index))
   }
 
+  /// The title of the footer: the count of the sources.
+  ///
+  /// - Parameter count: The count of the sources.
+  /// - Returns: Text such as "Sources (2)".
+  static func title(count: Int) -> String {
+    String(localized: "Sources (\(count))", bundle: .module)
+  }
+
   public var body: some View {
     let highlighted = selection?.index
-    DisclosureGroup(isExpanded: $isExpanded) {
+    EditorDisclosure(Self.title(count: payload.sources.count), isExpanded: $isExpanded) {
       VStack(alignment: .leading, spacing: editorStyle.spacing.l) {
         ForEach(Array(payload.sources.enumerated()), id: \.offset) { position, source in
           let index = position + 1
@@ -122,7 +131,7 @@ public struct SourcesView: View {
       .padding(.top, editorStyle.spacing.s)
     } label: {
       Label {
-        Text("Sources (\(payload.sources.count))", bundle: .module)
+        Text(Self.title(count: payload.sources.count))
       } icon: {
         Image(systemName: AgentSymbol.sources)
           .symbolColumn()
@@ -130,7 +139,6 @@ public struct SourcesView: View {
       .font(editorTheme.font(for: .ui, style: .subheadline))
       .foregroundStyle(themeSecondary)
     }
-    .withoutSystemFocusEffect()
     .onChange(of: selection?.revision) {
       guard let index = selection?.index, payload.sources.indices.contains(index - 1) else { return }
       isExpanded = true

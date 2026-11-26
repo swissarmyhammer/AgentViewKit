@@ -140,7 +140,9 @@ and `Sources/AgentViewKitDemoSupport`. `Sources/AgentViewKitStyle` and
 
 A state of "Changed" means that the place uses the EditorKit component of
 EditorKit main now. A state of "Waits for ^id" means that the EditorKit
-component is not on EditorKit main yet. The EditorKit card ^id adds it.
+component is not on EditorKit main yet. The EditorKit card ^id adds it. A
+state of "Not changed; a person decides" means that the component of the
+table does not fit the place as it is, and the row tells why.
 
 | Place | Raw control | EditorKit component or wrapper | State |
 |---|---|---|---|
@@ -156,10 +158,10 @@ component is not on EditorKit main yet. The EditorKit card ^id adds it.
 | `Citations/InlineCitation.swift` | `Button` with a custom label (the pill) | `EditorPlainButton` | Changed |
 | `Sessions/SessionJumpList.swift`, a row (`SessionJumpRow`) | `Button` with a custom label | `EditorPlainButton` | Changed |
 | `Content/Blocks/LinkView.swift` | `Button` with a custom label that opens a URL | `EditorLink` with a custom label | Changed |
-| `Activity/ActivityTimeline.swift`, the row header | `Button` that opens and closes the row | `EditorDisclosure` with a custom label | Waits for ^fqpw7a4 |
-| `Items/ToolCallView.swift`, the row toggle | `Button` that opens and closes the row | `EditorDisclosure` with a custom label | Waits for ^fqpw7a4 |
-| `Items/JSONDisclosure.swift` | `DisclosureGroup` | `EditorDisclosure` | Waits for ^fqpw7a4 |
-| `Citations/SourcesView.swift` | `DisclosureGroup` | `EditorDisclosure` | Waits for ^fqpw7a4 |
+| `Activity/ActivityTimeline.swift`, the row header | `Button` that opens and closes the row | `EditorDisclosure` with a custom label | Not changed; a person decides. `EditorDisclosure` puts the identifier of a host on its container, not on its header, and its header has no hint. So the row loses the identifier that a press finds (`ActivityTimeline.rowIdentifier(for:)`, which the hosted tests press) and the hint "Shows the details". `EditorPlainButton` keeps both |
+| `Items/ToolCallView.swift`, the row toggle | `Button` that opens and closes the row | `EditorDisclosure` with a custom label | Not changed; a person decides. The header (`ToolCallHeader`) and the body of a tool call are two views, and the header has the MCP status and the background caption beside its button. `EditorDisclosure` holds a header and its body in one view, and puts the identifier on its container, not on the header (`ToolCallView.toggleIdentifier(for:)`). `EditorPlainButton` fits the header as it is |
+| `Items/JSONDisclosure.swift` | `DisclosureGroup` | `EditorDisclosure` | Changed |
+| `Citations/SourcesView.swift` | `DisclosureGroup` | `EditorDisclosure` | Changed |
 | `Activity/ActivityIndicator.swift` | `ProgressView` | `EditorProgressView` | Changed |
 | `Input/DefaultPromptAccessory.swift` | `ProgressView` | `EditorProgressView` | Changed |
 | `Elicitation/ElicitationURLConsentView.swift` | `ProgressView` | `EditorProgressView` | Changed |

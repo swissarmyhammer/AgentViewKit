@@ -5,7 +5,8 @@ import EditorTheme
 import FoundationModelsACP
 import SwiftUI
 
-/// A collapsible block with a title and a monospaced JSON text (plan.md §9 A2).
+/// A collapsible block with a title and a monospaced JSON text (plan.md §9 A2),
+/// in EditorKit's `EditorDisclosure`.
 ///
 /// ``UnknownItemView`` uses this view. The expanded state is in the
 /// ``ExpandedBlocksStore`` of the environment, keyed by the record id. When
@@ -53,7 +54,8 @@ struct JSONDisclosure: View {
   var body: some View {
     let store = environmentStore ?? ownStore
     let id = id
-    DisclosureGroup(
+    EditorDisclosure(
+      title,
       isExpanded: Binding(
         get: { store.isExpanded(id: id) },
         set: { isExpanded in
@@ -75,7 +77,6 @@ struct JSONDisclosure: View {
         .lineLimit(1)
     }
     .contentTile()
-    .withoutSystemFocusEffect()
     .accessibilityIdentifier(identifier)
   }
 }

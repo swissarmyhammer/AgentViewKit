@@ -71,10 +71,17 @@ import SwiftUI
   ///   tree.
   static func labels(in view: some View) async -> [String] {
     await host(view) { hosting in
-      accessibilityNodes(of: hosting)
-        .flatMap { accessibilitySubtree(of: $0) }
-        .compactMap(accessibilityLabel(of:))
+      nodes(under: hosting).compactMap(accessibilityLabel(of:))
     }
+  }
+
+  /// Each accessibility element under `hosting`, with the elements in each
+  /// container, in the order of the tree.
+  ///
+  /// - Parameter hosting: The hosting view of the read.
+  /// - Returns: The elements.
+  private static func nodes(under hosting: NSView) -> [NSObject] {
+    accessibilityNodes(of: hosting).flatMap { accessibilitySubtree(of: $0) }
   }
 
   /// The frame of the element `identifier` of `view` with no theme, and with
