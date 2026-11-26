@@ -17,7 +17,15 @@ comments:
     - items: checked the scan item, the AttachmentView item, the first acceptance criterion and the behavior test item (note: ^dk9phr2). Open: the change item (the PathChip button waits for EK, editorkit-7a), the demo build-and-tests criterion and the swift test item. The evidence has no run of the demo end-to-end tests in `Examples/AgentViewKitDemo/Tests`.
     - next: the card stays in `review`, because more than the PathChip item is open. A person runs the demo end-to-end tests or decides that the demo build is sufficient. If only the PathChip item then stays open, move the card to `todo` with the comment "review clean; the PathChip button waits for EK".
   timestamp: 2026-11-26T10:37:09.428089+00:00
-position_column: review
+- actor: claude-code
+  id: 01m8bvfg3xkav39fq8bjyste79
+  text: |-
+    ### review clean; the PathChip button waits for EK
+    - evidence: CI run 45803072037 on f2f2ff00 is green (Build & test, Examples, Integration). The Examples job built the demo and ran its UI tests. The two demo items are checked.
+    - open: the change item. Only the PathChip plain Button stays, and it is in EditorKit (EditorSwiftUI/PathChip.swift). editorkit-7a has an EK card for it and for 6 more raw Buttons in EK.
+    - next: when EK sends the sha, update the EK pin, build, test, and check the item.
+  timestamp: 2026-11-26T11:57:28.061121+00:00
+position_column: todo
 position_ordinal: '80'
 title: No raw control in Examples, the demo, the doc samples, or the last places in Sources
 ---
@@ -39,13 +47,13 @@ A scan found:
 
 ## Acceptance Criteria
 - [x] No raw SwiftUI or AppKit control from the ^8sdsx64 list (and `ScrollView`, `List`, `Form`) is in Examples, the demo, the doc samples or Sources, except the decided one.
-- [ ] The demo app builds, and its tests pass.
+- [x] The demo app builds, and its tests pass. (CI run 45803072037 on f2f2ff00: the Examples job (AgentViewKitDemo) built the demo and ran its UI tests with success. Build & test and Integration also passed.)
   - Note (2026-11-26): the demo xcodebuild build succeeded. The evidence has no run of the demo end-to-end tests (`Examples/AgentViewKitDemo/Tests`). This item stays open until a person records that run.
 
 ## Tests
 - [x] Behavior tests for each changed view: it mounts the EK component (view tree or accessibility element), in a window that is never ordered in. No source-scan test.
   - Note (2026-11-26): the demo app has no headless test target, so its 3 changed views have no behavior test. Follow-up card ^dk9phr2 covers them.
-- [ ] `swift test` (root) and the demo tests pass with 0 failures and 0 warnings. A temp HOME is not possible, because the harness refuses the HOME override. Gallery images after the change.
+- [x] `swift test` (root) and the demo tests pass with 0 failures and 0 warnings. A temp HOME is not possible, because the harness refuses the HOME override. Gallery images after the change. (CI run 45803072037 on f2f2ff00: the Examples job (AgentViewKitDemo) built the demo and ran its UI tests with success. Build & test and Integration also passed.)
   - Note (2026-11-26): root `swift test` passed (1836 + 59). All IntegrationTests passed (1090 tests, 5 known issues). The gallery passed (46 tests). The evidence has no run of the demo end-to-end tests, so this item stays open.
 
 ## Workflow
