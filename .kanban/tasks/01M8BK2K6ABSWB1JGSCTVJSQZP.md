@@ -1,7 +1,15 @@
 ---
 assignees:
 - claude-code
-position_column: todo
+comments:
+- actor: claude-code
+  id: 01m8bpbmnmmf4jjv8xwcq6jdpy
+  text: |-
+    ### review — findings
+    - evidence: review sha 23ce9256..771cb9ed; 1 finding (1 confirmed, 0 refuted) — Sources/AgentViewKit/Sessions/SessionJumpList.swift:58 (code-hygiene/dead-code-swift: var.instance `selection` is unused). Docs/decisions/focus-audit.md is not reviewed, because no validator matches it.
+    - next: remove the unused `selection` property from SessionJumpList.swift and remove each other unused property in that file. Then run the review again. The evidence items (root swift test 1835 + 59, IntegrationTests 1090 with 5 known issues, gallery 46, demo build) stay unchecked, because the review is not clean. PathChip waits for EK (editorkit-7a). The demo behavior tests are on ^dk9phr2.
+  timestamp: 2026-11-26T10:27:58.772192+00:00
+position_column: review
 position_ordinal: '80'
 title: No raw control in Examples, the demo, the doc samples, or the last places in Sources
 ---
@@ -30,3 +38,12 @@ A scan found:
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass. #bug
+
+## Review Findings (2026-11-26 04:23)
+
+> Scope: `review sha 23ce9256..771cb9ed` — reviewed the diffs only — lines this change added or modified. 23 file(s) reviewed, 1 not reviewed.
+
+> 1 file(s) not reviewed — no validator matched:
+> - `Docs/decisions/focus-audit.md` — no validator matches this file
+
+- [x] `Sources/AgentViewKit/Sessions/SessionJumpList.swift:58` `code-hygiene/dead-code-swift` — var.instance `selection` is unused.

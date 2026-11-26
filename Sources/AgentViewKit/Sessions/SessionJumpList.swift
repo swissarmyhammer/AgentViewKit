@@ -55,6 +55,8 @@ struct SessionJumpList: View {
   @State private var query = OwnModelSlot(editable: true)
 
   /// The id of the row that holds the selection of the list, or `nil`.
+  /// Return in the filter field chooses this row when the list shows it
+  /// (``returnChoice(selection:shown:)``).
   @State private var selection: SessionId?
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.locale) private var locale
@@ -94,6 +96,23 @@ struct SessionJumpList: View {
     }
   }
 
+  /// The session that Return in the filter field chooses: the selected row
+  /// when the list shows it, else the first shown row.
+  ///
+  /// A row that the filter hides cannot be chosen, so a selection that the
+  /// filter hides gives the first shown row.
+  ///
+  /// - Parameters:
+  ///   - selection: The id of the selected row of the list, or `nil`.
+  ///   - shown: The entries that the list shows, in their order.
+  /// - Returns: The id of the chosen session, or `nil` when the list is empty.
+  static func returnChoice(selection: SessionId?, shown: [SessionPathEntry]) -> SessionId? {
+    if let selection, shown.contains(where: { $0.sessionId == selection }) {
+      return selection
+    }
+    return shown.first?.sessionId
+  }
+
   var body: some View {
     let shown = Self.filter(entries, query: queryModel.text, agent: agent, locale: locale)
     VStack(alignment: .leading, spacing: editorStyle.spacing.s) {
@@ -101,7 +120,7 @@ struct SessionJumpList: View {
         model: queryModel, identifier: Self.fieldIdentifier,
         placeholder: String(localized: "Jump to session", bundle: .module)
       ) { _ in
-        if let first = shown.first { choose(first.sessionId) }
+        if let chosen = Self.returnChoice(selection: selection, shown: shown) { choose(chosen) }
       }
       EditorSelectionList(shown, selection: $selection, rowKind: Self.rowKind) { entry in
         SessionJumpRow(entry: entry, agent: agent, choose: choose)

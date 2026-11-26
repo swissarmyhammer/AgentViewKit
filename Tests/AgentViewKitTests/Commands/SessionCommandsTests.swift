@@ -134,6 +134,21 @@ import Testing
     #expect(SessionJumpList.filter(entries, query: "agent", agent: "Agent").count == 3)
   }
 
+  @Test func returnChoosesTheSelectedRowWhenTheListShowsIt() async throws {
+    let (session, _, _) = try await Self.open(shown: nil)
+    defer { session.close() }
+    let entries = session.model.jumpEntries
+    let ids = entries.map(\.sessionId)
+    let grandchild = try #require(entries.first { $0.title == "Grandchild" }?.sessionId)
+    let filtered = SessionJumpList.filter(entries, query: "grand")
+    let hidden = try #require(ids.first { $0 != grandchild })
+
+    #expect(SessionJumpList.returnChoice(selection: nil, shown: entries) == ids.first)
+    #expect(SessionJumpList.returnChoice(selection: grandchild, shown: entries) == grandchild)
+    #expect(SessionJumpList.returnChoice(selection: hidden, shown: filtered) == grandchild)
+    #expect(SessionJumpList.returnChoice(selection: grandchild, shown: []) == nil)
+  }
+
   // MARK: - Keys, titles and menus
 
   @Test func eachSessionVerbHasATitleAKeyAndAMenuPlace() {
