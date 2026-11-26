@@ -115,8 +115,9 @@ public enum ConversationLayout {
     }
   }
 
-  /// Removes the bottom edge from the scroll position of the list when the
-  /// list is at the bottom.
+  /// Removes the bottom edge, or the last row of the first scroll to the
+  /// bottom, from the scroll position of the list when the list is at the
+  /// bottom.
   ///
   /// SwiftUI applies an edge that the position keeps again in each later
   /// layout pass of the list. The offset of the list then follows the
@@ -135,16 +136,56 @@ public enum ConversationLayout {
   /// bottom anchor for a change of its size (`ConversationFollowAnchor`), and
   /// the manager sends a scroll to the bottom for each append.
   ///
-  /// A position that keeps no edge, such as a position at an item, does not
-  /// change.
+  /// The first scroll to the bottom keeps the last row in the position
+  /// (``scrollToLastRow(_:rowKey:)``), and SwiftUI applies that row again in
+  /// later passes in the same way. When the position keeps that row, it is
+  /// removed in the same way.
+  ///
+  /// A position that keeps no edge and not the row of the first scroll, such
+  /// as a position at an item, does not change.
   ///
   /// - Parameters:
   ///   - position: The scroll position of the list.
   ///   - isNearBottom: Whether the end of the list is in the tolerance of
   ///     the manager.
-  static func releaseBottomEdge(_ position: inout ScrollPosition, isNearBottom: Bool) {
-    guard isNearBottom, position.edge == .bottom else { return }
+  ///   - firstScrollRowKey: The row key of the last row that the first
+  ///     scroll to the bottom went to, or `nil` when no such scroll is kept.
+  static func releaseBottomEdge(
+    _ position: inout ScrollPosition, isNearBottom: Bool, firstScrollRowKey: String? = nil
+  ) {
+    guard isNearBottom else { return }
+    let keepsFirstScrollRow =
+      firstScrollRowKey != nil && position.viewID(type: String.self) == firstScrollRowKey
+    guard position.edge == .bottom || keepsFirstScrollRow else { return }
     position.isPositionedByUser = true
+  }
+
+  /// Applies the first scroll to the bottom of the list: a scroll to the
+  /// bottom of the last row (task ^pc1w14d).
+  ///
+  /// At the first layout of a long transcript, the lazy stack measures only
+  /// the first rows, and it gives each other row an estimated height. With a
+  /// very tall first row, the estimate of one row can be taller than the
+  /// view. The initial offset at the bottom then shows only the last row.
+  /// The stack lays out that row, the estimated content height becomes less,
+  /// and the list moves to the new bottom. In that pass, the stack lays out
+  /// no row at the new bottom. A scroll to the bottom edge then goes to where
+  /// the list already is, so no later pass comes, and the list shows no row.
+  ///
+  /// A scroll to the last row makes the stack lay out that row at its real
+  /// place, and the rows before it then come into view. The id of the last
+  /// row is the id of an element of the `ForEach` of the rows, so SwiftUI
+  /// does not search the elements for it (task ^48x2jb7). The position keeps
+  /// the row only until the list is at the bottom
+  /// (``releaseBottomEdge(_:isNearBottom:firstScrollRowKey:)``). Each later
+  /// scroll to the bottom goes to the bottom edge
+  /// (``scroll(_:to:)``).
+  ///
+  /// - Parameters:
+  ///   - position: The scroll position of the list.
+  ///   - rowKey: The row key of the last row.
+  static func scrollToLastRow(_ position: inout ScrollPosition, rowKey: String) {
+    position.scrollTo(id: rowKey, anchor: .bottom)
   }
 
   /// The accessibility value of the list.
@@ -290,6 +331,21 @@ public struct ConversationView<EmptyState: View>: View {
   /// row comes after the stack laid the row out, so the list scrolls to the
   /// row again then (``settleItemScroll(visible:)``).
   @State private var unsettledItemID: String?
+
+  /// Whether the list made its first scroll to the bottom.
+  ///
+  /// The first scroll to the bottom goes to the last row, and each later
+  /// scroll to the bottom goes to the bottom edge
+  /// (``ConversationLayout/scrollToLastRow(_:rowKey:)``, task ^pc1w14d).
+  @State private var didFirstBottomScroll = false
+
+  /// The row key of the last row that the first scroll to the bottom went
+  /// to, while the scroll position keeps it, or `nil`.
+  ///
+  /// When the list is at the bottom, the geometry action removes that row
+  /// from the scroll position
+  /// (``ConversationLayout/releaseBottomEdge(_:isNearBottom:firstScrollRowKey:)``).
+  @State private var firstScrollRowKey: String?
 
   /// The rows that keep their EditorKit models: the rows in view and a
   /// margin on each side of them. A row far from them drops its models
@@ -463,7 +519,11 @@ public struct ConversationView<EmptyState: View>: View {
     .onScrollGeometryChange(for: ConversationBottomGeometry.self) { geometry in
       ConversationBottomGeometry(geometry, tolerance: anchors.tolerance)
     } action: { old, new in
-      ConversationLayout.releaseBottomEdge(&position, isNearBottom: new.isNearBottom)
+      ConversationLayout.releaseBottomEdge(
+        &position, isNearBottom: new.isNearBottom, firstScrollRowKey: firstScrollRowKey)
+      if new.isNearBottom {
+        firstScrollRowKey = nil
+      }
       if new.isNearBottom != old.isNearBottom {
         noteVisible(ids: anchors.visibleIDs, isNearBottom: new.isNearBottom)
       }
@@ -618,7 +678,13 @@ public struct ConversationView<EmptyState: View>: View {
     switch target {
     case .bottom:
       unsettledItemID = nil
-      guard lastRowKey != nil else { return }
+      guard let lastRowKey else { return }
+      if !didFirstBottomScroll {
+        didFirstBottomScroll = true
+        firstScrollRowKey = lastRowKey
+        ConversationLayout.scrollToLastRow(&position, rowKey: lastRowKey)
+        return
+      }
     case .item(let id):
       pageCount = ConversationLayout.pageCount(
         forScrollTo: rowIndex.position(ofRowKey: id, in: session), count: session.transcript.count,
