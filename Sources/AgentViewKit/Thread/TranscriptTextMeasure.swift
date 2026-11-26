@@ -61,13 +61,32 @@ nonisolated public enum TranscriptLabelFont: Hashable, Sendable {
   case systemCaption
 }
 
+/// The height of one text part at a width, and whether that height is exact.
+nonisolated public struct TranscriptTextMeasurement: Hashable, Sendable {
+  /// The height of the view of the part.
+  public let height: CGFloat
+
+  /// Whether the height is the height of the mounted view of the part
+  /// (``TranscriptTextMeasure/isExact(_:)``).
+  public let isExact: Bool
+
+  /// Makes a measurement.
+  ///
+  /// - Parameters:
+  ///   - height: The height of the view of the part.
+  ///   - isExact: Whether the height is exact.
+  public init(height: CGFloat, isExact: Bool) {
+    self.height = height
+    self.isExact = isExact
+  }
+}
+
 /// Gives the height of one text part at a width, with no view.
 ///
 /// ``TranscriptRowHeights`` calls the measure on a background task. A measure
 /// must be exact for the cached height to be the height of the mounted row.
-/// The exact measure is EditorKit's `EditorLayoutMeasure` (EditorKit card
-/// ^ep9f55d). Until it is on EditorKit main, ``InterimTranscriptTextMeasure``
-/// is the default.
+/// The default is ``EditorLayoutTranscriptTextMeasure``, which uses
+/// EditorKit's `EditorLayoutMeasure`.
 nonisolated public protocol TranscriptTextMeasure: Sendable {
   /// The height of a text part.
   ///
@@ -88,4 +107,30 @@ nonisolated public protocol TranscriptTextMeasure: Sendable {
   /// - Parameter part: The text part.
   /// - Returns: `true` when ``height(of:width:)`` is exact for the part.
   nonisolated func isExact(_ part: TranscriptTextPart) -> Bool
+
+  /// The height of a text part, and whether it is exact.
+  ///
+  /// ``TranscriptRowHeights`` calls this function for each text part. A
+  /// measure that gets the height and the exact state from one layout
+  /// gives both from that layout. The default calls ``height(of:width:)``
+  /// and ``isExact(_:)``.
+  ///
+  /// - Parameters:
+  ///   - part: The text part.
+  ///   - width: The width that the view of the part gets.
+  /// - Returns: The height and the exact state.
+  nonisolated func measurement(of part: TranscriptTextPart, width: CGFloat) -> TranscriptTextMeasurement
+}
+
+extension TranscriptTextMeasure {
+  /// The height of a text part from ``height(of:width:)``, and its exact
+  /// state from ``isExact(_:)``.
+  ///
+  /// - Parameters:
+  ///   - part: The text part.
+  ///   - width: The width that the view of the part gets.
+  /// - Returns: The height and the exact state.
+  public nonisolated func measurement(of part: TranscriptTextPart, width: CGFloat) -> TranscriptTextMeasurement {
+    TranscriptTextMeasurement(height: height(of: part, width: width), isExact: isExact(part))
+  }
 }
