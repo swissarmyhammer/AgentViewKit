@@ -46,8 +46,15 @@ comments:
     - evidence: `review sha 574ebdf9~1..574ebdf9` in the main checkout after the merge (HEAD c4ac6dfa): findings 0, confirmed 0, refuted 2, attempted 7, failed 0, skipped 0. 3 files reviewed, 0 not reviewed. The engine read all new files, which the earlier review in the worktree could not read. There are no prior Review Findings sections.
     - next: none. The task moved from review to done.
   timestamp: 2026-11-25T16:59:02.050967+00:00
-position_column: done
-position_ordinal: ffffffffaa80
+- actor: claude-code
+  id: 01m8amj2n6esmsdrhvj7gwz4hn
+  text: |-
+    ### reverted — back to todo
+    - evidence: 91dcb5f5 reverts 574ebdf9 (^pc1w14d). A ForEach data that is equal from one body to the next leaves the lazy stack with no row after the first layout from the bottom, when the first row is very tall (the recorded session django__django-14672). A per-body token fix made other shapes worse.
+    - next: a new approach must pass RecordedSessionsGalleryHostedTests and ConversationRowElementTests. The probe and the shape matrix are in the scratchpad (ScratchShapeProbeTests.swift, matrix.sh). The tall first row also breaks the code before 574ebdf9 for some shapes, so look at that first.
+  timestamp: 2026-11-26T00:37:18.118601+00:00
+position_column: todo
+position_ordinal: 8d80
 title: 'Scroll perf 5: one view for each ForEach element of the transcript'
 ---
 User request (2026-11-25): "scrolling is still way too slow", stay with SwiftUI. The scroll profile found `LazyStack.measureEstimates` → `ForEachList.applyNodes` over all 200 elements at 9.25% of main-thread time. Each element gives a row and a nested `ForEach` of modelChanged status lines, so the view count of an element is not fixed. This gain is an estimate; the card measures it first.
