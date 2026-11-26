@@ -45,6 +45,38 @@ import SwiftUI
     }
   }
 
+  /// The focus ring type of the outermost scroll view of `view`, and of each
+  /// of its scrollers.
+  ///
+  /// EditorKit's `EditorScrollView` turns the system focus effect off for
+  /// the scroll view, and sets the focus ring type `.none` on its scrollers,
+  /// so neither draws the system focus ring. A SwiftUI `ScrollView`, and the
+  /// scroll view of the table of a SwiftUI `List`, keep the default type.
+  ///
+  /// - Parameter view: The view to lay out.
+  /// - Returns: The type of the scroll view, then the type of the vertical
+  ///   scroller and of the horizontal scroller that the scroll view has, or
+  ///   `nil` when the view lays out no scroll view.
+  static func outerScrollRingTypes(in view: some View) async -> [NSFocusRingType]? {
+    await host(view) { hosting in
+      firstView(ofType: NSScrollView.self, in: hosting).map { scrollView in
+        [scrollView.focusRingType]
+          + [scrollView.verticalScroller, scrollView.horizontalScroller].compactMap { $0?.focusRingType }
+      }
+    }
+  }
+
+  /// Tells whether `view` lays out an AppKit table, the table of a SwiftUI
+  /// `List`.
+  ///
+  /// - Parameter view: The view to lay out.
+  /// - Returns: `true` when a view under the host is an `NSTableView`.
+  static func laysOutATable(_ view: some View) async -> Bool {
+    await host(view) { hosting in
+      firstView(ofType: NSTableView.self, in: hosting) != nil
+    }
+  }
+
   /// Lays out `view` in a window that is never ordered in, and reads the
   /// hosting view while the accessibility tree is built.
   ///

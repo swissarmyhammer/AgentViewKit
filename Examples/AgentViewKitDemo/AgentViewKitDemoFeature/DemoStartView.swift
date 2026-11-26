@@ -1,3 +1,5 @@
+import EditorCommandsUI
+import EditorStyle
 import SwiftUI
 
 /// A demo tab that starts its content and shows the start with
@@ -18,8 +20,9 @@ protocol DemoStartingTab {
 
 /// The state of the start of a demo tab, in a column that has no content yet.
 ///
-/// While the start runs, the view shows a progress view with the starting
-/// text of the tab. After a failed start, it shows the ``DemoFailureLabel`` of
+/// While the start runs, the view shows the EditorKit spinner
+/// (`EditorProgressView`) over the starting text of the tab. The spinner
+/// speaks the starting text, so VoiceOver reads the start one time. After a failed start, it shows the ``DemoFailureLabel`` of
 /// the error. After a start that gave the content of the tab, it shows
 /// nothing. The ACP tab and the Gallery tab show their start with this view.
 struct DemoStartView<Started>: View {
@@ -34,6 +37,8 @@ struct DemoStartView<Started>: View {
 
   /// The accessibility identifier of the failure label.
   let failureIdentifier: String
+
+  @Environment(\.editorStyle) private var editorStyle
 
   /// Makes the start view of a tab.
   ///
@@ -51,9 +56,13 @@ struct DemoStartView<Started>: View {
   var body: some View {
     switch phase {
     case .starting:
-      ProgressView(startingText)
-        .accessibilityIdentifier(startingIdentifier)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+      VStack(spacing: editorStyle.spacing.s) {
+        EditorProgressView(label: startingText)
+          .accessibilityIdentifier(startingIdentifier)
+        Text(startingText)
+          .accessibilityHidden(true)
+      }
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
     case .failed(let error):
       DemoFailureLabel(error: error, identifier: failureIdentifier)
     case .started:

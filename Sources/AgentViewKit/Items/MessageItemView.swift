@@ -167,7 +167,7 @@ private struct MessageLayoutSample: View {
 }
 
 #Preview("A very long agent message") {
-  ScrollView {
+  EditorScrollView {
     MessageLayoutSample(sample: .long)
   }
 }

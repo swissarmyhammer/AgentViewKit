@@ -1,3 +1,4 @@
+import EditorCommandsUI
 import EditorStyle
 import EditorSwiftUI
 import FoundationModelsACP
@@ -16,6 +17,12 @@ import SwiftUI
 /// filters as the user types. Return chooses the first entry that matches,
 /// and a click chooses a row (``SessionJumpRow``). The list shows each entry
 /// at any level of the tree.
+///
+/// The rows stand in EditorKit's `EditorSelectionList`, not in a SwiftUI
+/// `List`: the native table of a `List` draws its own focus ring and its own
+/// selection fill (EditorKit style.md, "Controls"). The selection of the
+/// list follows the focus of the rows, and a press of a row chooses its
+/// session.
 struct SessionJumpList: View {
   /// The accessibility identifier of the filter field.
   static let fieldIdentifier = "session-jump-field"
@@ -32,6 +39,9 @@ struct SessionJumpList: View {
   /// The least height of the list.
   static let minimumHeight: CGFloat = 240
 
+  /// The kind of the scope segment of each row of the selection list.
+  static let rowKind = "sessionJumpRow"
+
   /// The name of the agent, the first name of each path, or `nil`.
   let agent: String?
 
@@ -43,6 +53,9 @@ struct SessionJumpList: View {
 
   /// The model of the text of the filter field.
   @State private var query = OwnModelSlot(editable: true)
+
+  /// The id of the row that holds the selection of the list, or `nil`.
+  @State private var selection: SessionId?
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.locale) private var locale
 
@@ -90,7 +103,7 @@ struct SessionJumpList: View {
       ) { _ in
         if let first = shown.first { choose(first.sessionId) }
       }
-      List(shown) { entry in
+      EditorSelectionList(shown, selection: $selection, rowKind: Self.rowKind) { entry in
         SessionJumpRow(entry: entry, agent: agent, choose: choose)
       }
     }

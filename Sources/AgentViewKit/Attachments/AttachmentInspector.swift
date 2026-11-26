@@ -1,4 +1,5 @@
 import EditorInspector
+import EditorStyle
 import EditorSwiftUI
 import Observation
 import SwiftUI
@@ -390,7 +391,7 @@ public struct AttachmentInspector: View {
     }
     .inspectorScrolling(.host)
     switch scrolling {
-    case .form: ScrollView { stack }
+    case .form: EditorScrollView { stack }
     case .host: stack
     }
   }

@@ -538,7 +538,7 @@ public struct ConversationView<EmptyState: View>: View {
       count: count, pageSize: pageSize, pageCount: pageCount)
     let anchors = anchors
     let placements = ModelChangePlacements(notices: session.notices, transcript: session.transcript)
-    return ScrollView {
+    return EditorScrollView {
       VStack(alignment: .leading, spacing: editorStyle.tile.margin) {
         if shownCount < count {
           loadEarlierRow

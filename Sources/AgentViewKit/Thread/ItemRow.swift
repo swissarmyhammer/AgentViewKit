@@ -1,3 +1,4 @@
+import EditorStyle
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -195,7 +196,7 @@ private struct OverridableItemView<Entry, Fallback: View>: View {
 }
 
 #Preview("Item rows") {
-  ScrollView {
+  EditorScrollView {
     VStack(alignment: .leading) {
       ForEach(SessionModel.previewSample.transcript) { entry in
         ItemRow(entry: entry)

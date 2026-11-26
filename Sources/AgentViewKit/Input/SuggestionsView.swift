@@ -49,7 +49,7 @@ public struct SuggestionsView: View {
 
   public var body: some View {
     if let text, !suggestions.isEmpty {
-      ScrollView(.horizontal) {
+      EditorScrollView(.horizontal) {
         HStack(spacing: editorStyle.spacing.s) {
           ForEach(Array(suggestions.enumerated()), id: \.offset) { index, suggestion in
             SuggestionChip(suggestion: suggestion, index: index, text: text)

@@ -133,7 +133,7 @@ public struct ElicitationLayout: View {
     let selected =
       context.fields.first { $0.schema.name == selection } ?? context.fields.first
     return VStack(alignment: .leading, spacing: editorStyle.tile.gap) {
-      ScrollView(.horizontal) {
+      EditorScrollView(.horizontal) {
         HStack(spacing: editorStyle.spacing.xs) {
           ForEach(context.fields, id: \.schema.name) { field in
             let name = field.schema.name

@@ -105,7 +105,7 @@ public struct ActivityTimeline: View {
         )
         .accessibilityIdentifier(Self.emptyStateIdentifier)
       } else {
-        ScrollView {
+        EditorScrollView {
           VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
             ForEach(entries) { entry in
               let key = entry.id.rowKey

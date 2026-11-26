@@ -123,7 +123,7 @@ private struct JSONDisclosureSample: View {
 }
 
 #Preview("Deep JSON with long values, open") {
-  ScrollView {
+  EditorScrollView {
     JSONDisclosureSample(json: PreviewFixtures.deepJSON, isExpanded: true)
   }
 }

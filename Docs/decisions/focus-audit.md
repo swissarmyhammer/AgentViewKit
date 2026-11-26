@@ -196,16 +196,32 @@ later card can move the jump list to it.
 
 ## Raw controls
 
-Source: card ^8sdsx64 and the user rule of 2026-11-25 for each view kit:
-each control of the kit is an EditorKit component or an EditorKit wrapper,
-so that each control follows the theme. This table lists each raw SwiftUI
-or AppKit control of `Sources/AgentViewKit`, `Sources/AgentViewKitStyle`
-and `Sources/AgentViewKitDemoSupport`. `Sources/AgentViewKitStyle` and
-`Sources/AgentViewKitDemoSupport` have no raw control.
+Source: cards ^8sdsx64 and ^tvjsqzp, the user rule of 2026-11-25 for each
+view kit, and EditorKit style.md, "Controls" (EditorKit a4bfc1dc): each
+control of the kit and of its example app is an EditorKit component or an
+EditorKit wrapper, so that each control follows the theme. This table lists
+each raw SwiftUI or AppKit control of `Sources/AgentViewKit`,
+`Sources/AgentViewKitStyle`, `Sources/AgentViewKitDemoSupport` and
+`Examples/AgentViewKitDemo`, in the code, in the previews and in the Swift
+samples of the doc comments. `Sources/AgentViewKitDemoSupport` has no raw
+control.
+
+The scan of card ^tvjsqzp read each Swift file and each Markdown file of
+`Sources`, `Examples` (the app, the feature views and the UI tests),
+`Docs` and `README.md`, the DocC catalogs too, for these controls, also in
+the form with a trailing closure: `Button`, `Toggle`, `TextField`,
+`SecureField`, `Picker`, `Menu`, `Link`, `Slider`, `Stepper`,
+`DatePicker`, `ProgressView`, `DisclosureGroup`, `TextEditor`,
+`ScrollView`, `List`, `Form`, `Table`, `NSButton`, `NSTextField`,
+`NSPopUpButton` and `NSSegmentedControl`. The rows of that scan are the
+rows below with the card ^tvjsqzp. `README.md`, the DocC catalogs, the UI
+tests of the example app and `Docs` have no raw control.
 
 A state of "Changed" means that the place uses the EditorKit component of
-EditorKit main now. Each place has an EditorKit component now, except the
-`AttachmentView` accessibility action, which stays raw by decision.
+EditorKit main now. Each place of AgentViewKit has an EditorKit component
+now, except the `AttachmentView` accessibility action, which stays raw by
+decision. The plain button inside EditorKit's `PathChip` is an EditorKit
+place, and it stays open there.
 
 | Place | Raw control | EditorKit component or wrapper | State |
 |---|---|---|---|
@@ -239,10 +255,21 @@ EditorKit main now. Each place has an EditorKit component now, except the
 | `Lists/AgentRowList.swift`, the preview | `Button` in `.contextMenu` | `EditorMenuItem` | Changed |
 | `Lists/AgentRowList.swift`, the list | `ScrollView` of a list scope that takes the focus | `EditorScrollView` (in the form `EditorScrollStack`) | Changed |
 | `Attachments/AttachmentView.swift` | `Button` in `.accessibilityActions` (a named accessibility action, not a drawn control) | None. EditorKit `ChoiceField` uses the same form for its actions | Stays (decision of 2026-11-25): it is an accessibility action, not a drawn control |
-
-The other scroll views of the kit (the chip rows, the timeline, the form
-pages and the text blocks) are not in a focus scope, so the table does not
-list them.
+| `Sessions/SessionJumpList.swift`, the list of the rows (^tvjsqzp) | `List` | `EditorSelectionList`. Each row stays a `SessionJumpRow` (`EditorPlainButton`) with its identifier, and a press chooses the session | Changed |
+| `Input/SuggestionsView.swift`, the chip row (^tvjsqzp) | `ScrollView(.horizontal)` | `EditorScrollView(.horizontal)` | Changed |
+| `Input/AttachmentChips.swift`, the chip row (^tvjsqzp) | `ScrollView(.horizontal)` | `EditorScrollView(.horizontal)` | Changed |
+| `Activity/ActivityTimeline.swift`, the timeline (^tvjsqzp) | `ScrollView` | `EditorScrollView` | Changed |
+| `Elicitation/ElicitationLayout.swift`, the tab row (^tvjsqzp) | `ScrollView(.horizontal)` | `EditorScrollView(.horizontal)` | Changed |
+| `Attachments/AttachmentInspector.swift`, the stacked blocks of several files (^tvjsqzp) | `ScrollView` | `EditorScrollView` | Changed |
+| `Thread/ConversationView.swift`, the list of the rows (^tvjsqzp) | `ScrollView` | `EditorScrollView`. The scroll position, the anchors and the scroll geometry modifiers stay on the scroll view | Changed |
+| `Thread/ConversationEmptyState.swift` (^tvjsqzp) | `ScrollView` | `EditorScrollView` | Changed |
+| The previews of `Content/Blocks/TextBlockView.swift`, `Content/EntryContentView.swift`, `Items/TranscriptMessageView.swift`, `Items/MessageItemView.swift`, `Items/JSONDisclosure.swift`, `Attachments/AttachmentPreview.swift` and `Thread/ItemRow.swift` (^tvjsqzp) | `ScrollView` | `EditorScrollView` | Changed |
+| The two previews of `Elicitation/ElicitationFieldViews.swift` (^tvjsqzp) | `Form` | `InspectorForm` with one `Section` | Changed |
+| `AgentViewKitStyle`, the doc sample of `withoutSystemFocusEffect()` in `Theme/SelectableSurface.swift` (^tvjsqzp) | `List` | `PathChip` with an action | Changed |
+| `Examples/AgentViewKitDemo/AgentViewKitDemoFeature/ACPSettingsSheet.swift` (^tvjsqzp) | `ScrollView` | `EditorScrollView` | Changed |
+| `Examples/AgentViewKitDemo/AgentViewKitDemoFeature/DemoStartView.swift` (^tvjsqzp) | `ProgressView` with a title | `EditorProgressView` with the starting text as its label, over the starting text | Changed |
+| `Examples/AgentViewKitDemo/AgentViewKitDemoFeature/GalleryLook.swift`, `GalleryLookControls` (^tvjsqzp) | `Form` with four `Picker`s | `InspectorForm` with one `Section` of four `ChoiceField`s | Changed |
+| EditorKit `PathChip` with an action, in `DiffView` and in the inspector (^tvjsqzp) | `Button` with `.buttonStyle(.plain)`, in EditorKit `Sources/EditorSwiftUI/PathChip.swift` | `EditorPlainButton`, in EditorKit | Open: the button is in EditorKit, so the change is an EditorKit change. AgentViewKit has no raw button around a chip |
 
 The changed controls keep their behavior, with these changes:
 
@@ -266,8 +293,11 @@ The unit tests next to the tests of each changed view check that the view
 mounts the EditorKit control, with the `ControlProbe` helper: the stepper
 buttons and the slider of a number field, the switch, the check boxes and
 the menu of a form (`ElicitationFieldControlTests`), the tab chip
-(`ElicitationTabChipTests`), the jump field and the jump row
-(`SessionJumpListFieldTests`), the pill of a citation
+(`ElicitationTabChipTests`), the jump field, the jump row, and the list of
+the jump rows, which lays out no native table, and whose row a press
+chooses (`SessionJumpListFieldTests`), the scrollers of each view of the
+kit that scrolls, which draw no system focus ring
+(`ScrollViewControlTests`), the pill of a citation
 (`InlineCitationTests`), the link card (`LinkViewTests`), the JSON block
 (`JSONDisclosureTests`), the sources footer (`SourcesViewDisclosureTests`),
 the spinners (`ActivityIndicatorProgressTests`,

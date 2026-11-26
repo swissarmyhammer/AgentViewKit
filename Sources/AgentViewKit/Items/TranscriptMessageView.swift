@@ -125,7 +125,7 @@ private struct TranscriptMessageSample: View {
 }
 
 #Preview("A very long agent message") {
-  ScrollView {
+  EditorScrollView {
     TranscriptMessageSample(sample: .long)
   }
 }

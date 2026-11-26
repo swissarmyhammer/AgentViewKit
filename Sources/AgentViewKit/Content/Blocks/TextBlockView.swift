@@ -1,3 +1,4 @@
+import EditorStyle
 import SwiftUI
 
 /// The default view of one text block (plan.md §4.2, §9 A2).
@@ -19,7 +20,7 @@ struct TextBlockView: View {
 }
 
 #Preview("Headings, lists, a table, inline code and links") {
-  ScrollView {
+  EditorScrollView {
     TextBlockView(text: PreviewFixtures.formattedMarkdown, id: "preview-text-formatted")
       .padding()
   }
