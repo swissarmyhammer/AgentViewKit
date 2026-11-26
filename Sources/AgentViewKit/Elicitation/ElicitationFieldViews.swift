@@ -286,12 +286,16 @@ public struct ElicitationTextField: View {
 
 /// The default view of a number field (plan.md §13.1).
 ///
-/// The view shows a slider when the field has a minimum and a maximum.
-/// Otherwise it shows a number input beside a stepper. An integer field
-/// moves in steps of one and writes whole numbers.
+/// The view shows EditorKit's `SliderField` when the field has a minimum
+/// below its maximum. Otherwise it shows EditorKit's `StepperField`: a
+/// number input with an up and a down button beside it. An integer field
+/// moves in steps of one and writes whole numbers. A step stays in the
+/// bounds of the schema, but a typed number past a bound stays as typed, so
+/// the validator shows the error of the bound.
 ///
-/// The number input is EditorKit's `NumberField`, with the slots of a kit
-/// one-line input, in the `ui` font role of EditorKit. Its text view carries
+/// The number input is EditorKit's `NumberField` in the `StepperField`,
+/// with the slots of a kit one-line input, in the `ui` font role of
+/// EditorKit. Its text view carries
 /// the control identifier of the field and the title of the field as its
 /// label. Typing changes only the text. A commit (Return, Esc, a focus loss)
 /// writes the number when the whole text is one number of the format of the
@@ -317,8 +321,8 @@ public struct ElicitationNumberField: View {
     ElicitationFieldView.identifier(for: name) + "-readout"
   }
 
-  /// The largest width of the number input of the stepper, in points at the
-  /// default theme font.
+  /// The largest width of the stepper field, in points at the default theme
+  /// font.
   static let numberInputMaximumWidth: CGFloat = 160
 
   /// The context of the field.
@@ -361,17 +365,8 @@ public struct ElicitationNumberField: View {
             .accessibilityIdentifier(Self.readoutIdentifier(for: context.schema.name))
         }
       } else {
-        HStack(spacing: editorStyle.spacing.xs) {
-          numberInput(number, integer: integer)
-            .frame(maxWidth: Self.numberInputMaximumWidth * fontScale)
-          Stepper(
-            context.schema.title,
-            value: number,
-            in: Self.stepperRange(minimum: minimum, maximum: maximum),
-            step: Self.step
-          )
-          .labelsHidden()
-        }
+        stepperField(number, integer: integer, minimum: minimum, maximum: maximum)
+          .frame(maxWidth: Self.numberInputMaximumWidth * fontScale)
       }
     }
   }
@@ -401,6 +396,42 @@ public struct ElicitationNumberField: View {
     return min(lower, upper)...max(lower, upper)
   }
 
+  /// The largest whole number that a JSON number holds with no loss: 2^53 - 1.
+  static let largestExactWholeNumber = 9_007_199_254_740_991
+
+  /// The range of the stepper of an integer field with the schema bounds
+  /// `minimum` and `maximum`: the whole numbers of
+  /// ``stepperRange(minimum:maximum:)``.
+  ///
+  /// Each bound that is not whole rounds into the range of the schema, so a
+  /// step never goes past a bound of the schema. Each bound stays in the
+  /// whole numbers that a JSON number holds with no loss
+  /// (``largestExactWholeNumber``), so the width of the range fits in `Int`,
+  /// as EditorKit's `StepperField` needs. When no whole number is between
+  /// the bounds, the range goes from the lower to the higher of the two
+  /// rounded bounds, so it never traps.
+  ///
+  /// - Parameters:
+  ///   - minimum: The `minimum` of the schema.
+  ///   - maximum: The `maximum` of the schema.
+  /// - Returns: The range of the stepper of an integer field.
+  static func integerStepperRange(minimum: Double?, maximum: Double?) -> ClosedRange<Int> {
+    let range = stepperRange(minimum: minimum, maximum: maximum)
+    let lower = exactWholeNumber(range.lowerBound.rounded(.up))
+    let upper = exactWholeNumber(range.upperBound.rounded(.down))
+    return min(lower, upper)...max(lower, upper)
+  }
+
+  /// The whole number `bound`, kept in the whole numbers that a JSON number
+  /// holds with no loss.
+  ///
+  /// - Parameter bound: A whole bound of a range.
+  /// - Returns: `bound`, or the nearest end of the exact whole numbers.
+  private static func exactWholeNumber(_ bound: Double) -> Int {
+    let limit = Double(largestExactWholeNumber)
+    return Int(min(max(bound, -limit), limit))
+  }
+
   /// `bound`, or `nil` when `bound` is not a number.
   ///
   /// - Parameter bound: A bound of the schema.
@@ -409,38 +440,53 @@ public struct ElicitationNumberField: View {
     bound.isNaN ? nil : bound
   }
 
-  /// The number input of the stepper: an integer input for an integer field,
-  /// and a number input for another field.
+  /// The stepper field of the field: an integer stepper for an integer
+  /// field, and a number stepper for another field.
+  ///
+  /// The range of the stepper is the range of the schema bounds
+  /// (``stepperRange(minimum:maximum:)``, or
+  /// ``integerStepperRange(minimum:maximum:)`` for an integer field). A
+  /// step stays in that range. A typed number outside the range stays as
+  /// typed (`typedValues: .keep`), so the validator shows the error of the
+  /// bound, as it does for each answer.
   ///
   /// - Parameters:
   ///   - number: The binding to the number.
   ///   - integer: Whether the field takes whole numbers only.
-  /// - Returns: The input.
+  ///   - minimum: The `minimum` of the schema.
+  ///   - maximum: The `maximum` of the schema.
+  /// - Returns: The stepper field.
   @ViewBuilder
-  private func numberInput(_ number: Binding<Double>, integer: Bool) -> some View {
+  private func stepperField(
+    _ number: Binding<Double>, integer: Bool, minimum: Double?, maximum: Double?
+  ) -> some View {
+    let model = inputModel.model(text: "")
     if integer {
-      numberInput(
-        value: Binding(
-          get: { Self.wholeNumber(nearest: number.wrappedValue) },
-          set: { number.wrappedValue = Double($0) }),
-        format: .integer)
+      stepperField(
+        StepperField(
+          model: model, id: context.controlIdentifier,
+          value: Binding(
+            get: { Self.wholeNumber(nearest: number.wrappedValue) },
+            set: { number.wrappedValue = Double($0) }),
+          in: Self.integerStepperRange(minimum: minimum, maximum: maximum), step: Int(Self.step),
+          typedValues: .keep))
     } else {
-      numberInput(value: number, format: .floatingPoint)
+      stepperField(
+        StepperField(
+          model: model, id: context.controlIdentifier, value: number,
+          in: Self.stepperRange(minimum: minimum, maximum: maximum), step: Self.step,
+          typedValues: .keep))
     }
   }
 
-  /// EditorKit's `NumberField` that edits `value` through `format`, with the
-  /// slots of a kit one-line input, in the edge of a kit text input. Return
-  /// and Command-Return run ``returnAction`` after the commit writes the
-  /// value.
+  /// `field` with the slots of a kit one-line input, in the edge of a kit
+  /// text input. Return and Command-Return run ``returnAction`` after the
+  /// commit writes the value.
   ///
-  /// - Parameters:
-  ///   - value: The value that the input edits.
-  ///   - format: The format that the input shows the value in and reads the
-  ///     text with.
-  /// - Returns: The input.
-  private func numberInput<Value>(value: Binding<Value>, format: ValueFieldFormat<Value>) -> some View {
-    NumberField(model: inputModel.model(text: ""), id: context.controlIdentifier, value: value, format: format)
+  /// - Parameter field: EditorKit's `StepperField` of the field.
+  /// - Returns: The stepper field.
+  private func stepperField<Value>(_ field: StepperField<Value>) -> some View {
+    field
       .agentOneLineInput(identifier: context.controlIdentifier, placeholder: context.schema.title) { _ in
         returnAction?()
       }
@@ -460,30 +506,21 @@ public struct ElicitationNumberField: View {
     return rounded < 0 ? .min : .max
   }
 
-  /// The slider over `range`.
+  /// EditorKit's `SliderField` over `range`, with its title hidden: the
+  /// chrome of the field shows the title.
   ///
   /// - Parameters:
   ///   - number: The binding to the number.
   ///   - range: The bounds of the field.
   ///   - integer: Whether the slider moves in steps of one.
   /// - Returns: The slider.
-  @ViewBuilder
   private func slider(
     _ number: Binding<Double>,
     range: ClosedRange<Double>,
     integer: Bool
   ) -> some View {
-    if integer {
-      Slider(value: number, in: range, step: Self.step) {
-        Text(context.schema.title)
-      }
+    SliderField(context.schema.title, value: number, in: range, step: integer ? Self.step : nil)
       .labelsHidden()
-    } else {
-      Slider(value: number, in: range) {
-        Text(context.schema.title)
-      }
-      .labelsHidden()
-    }
   }
 
   /// A binding that reads the answer as a number and writes a number.

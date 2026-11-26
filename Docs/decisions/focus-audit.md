@@ -149,8 +149,8 @@ component is not on EditorKit main yet. The EditorKit card ^id adds it.
 | `Elicitation/ElicitationFieldViews.swift`, `ElicitationSingleChoiceField` menu | `Picker` (menu) | `ChoiceField` | Changed |
 | `Sessions/SessionJumpList.swift`, the filter field | `TextField` | `AgentOneLineField` (`SingleLineField` with a placeholder) | Changed |
 | `Code/BlockHeader.swift`, the preview | `Button` with a title and a symbol | `EditorToolbarButton` | Changed |
-| `Elicitation/ElicitationFieldViews.swift`, `ElicitationNumberField` with no range | `Stepper` beside a `NumberField` | `StepperField` | Waits for EK: `StepperField` keeps its `EditorModel` after the field leaves the view (undo stays on the window stack), and `StepperField` has no option to step inside a range but keep a typed value outside it |
-| `Elicitation/ElicitationFieldViews.swift`, `ElicitationNumberField` with a range | `Slider` | `SliderField` | Waits for ^gkfzwd0 |
+| `Elicitation/ElicitationFieldViews.swift`, `ElicitationNumberField` with no range | `Stepper` beside a `NumberField` | `StepperField` with `typedValues: .keep` | Changed |
+| `Elicitation/ElicitationFieldViews.swift`, `ElicitationNumberField` with a range | `Slider` | `SliderField` | Changed |
 | `Elicitation/ElicitationFieldViews.swift`, `ElicitationSingleChoiceField` radio group | `Button` with a custom label for each choice | `EditorPlainButton` | Waits for ^02gvsec |
 | `Elicitation/ElicitationTabChip.swift` | `Button` with a custom label | `EditorPlainButton` with `.selectableCapsule(isSelected:)` | Waits for ^02gvsec |
 | `Citations/InlineCitation.swift` | `Button` with a custom label (the pill) | `EditorPlainButton` | Waits for ^02gvsec |
@@ -183,6 +183,11 @@ The changed controls keep their behavior, with this change:
 
 - The menu of a single-choice field always has the item of no selection, so
   a person can remove the answer of an optional field, as before.
+- The stepper of a number field steps in the range of the schema bounds
+  (`stepperRange(minimum:maximum:)`, and the whole numbers of that range
+  for an integer field). A typed number outside the range stays as typed
+  (`typedValues: .keep`), so the validator shows the error of the bound. A
+  step from such a number toward the range goes to the nearest bound.
 
 `Tests/AgentViewKitTests/Elicitation/ElicitationFieldControlTests.swift` and
 `Tests/AgentViewKitTests/Sessions/SessionJumpListFieldTests.swift` check
