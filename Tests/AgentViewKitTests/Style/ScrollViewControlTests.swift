@@ -6,9 +6,11 @@ import SwiftUI
 import Testing
 
 @testable import AgentViewKit
+@testable import AgentViewKitDemoSupport
 
-/// The scroll view of each view of the kit that scrolls: EditorKit's
-/// `EditorScrollView` (Docs/decisions/focus-audit.md, "Raw controls").
+/// The scroll view of each view of the kit that scrolls, and of the settings
+/// sheet of the demo app: EditorKit's `EditorScrollView`
+/// (Docs/decisions/focus-audit.md, "Raw controls").
 ///
 /// The `EditorScrollView` turns the system focus effect off for the scroll
 /// view, and sets the focus ring type `.none` on its scrollers, so neither
@@ -32,8 +34,8 @@ import Testing
   }
 }
 
-/// A view of the kit that scrolls in a scroll view of its own, which a
-/// ``ScrollViewControlTests`` test lays out.
+/// A view of the kit, or of the demo app, that scrolls in a scroll view of
+/// its own, which a ``ScrollViewControlTests`` test lays out.
 enum ScrollingSample: CaseIterable, CustomTestStringConvertible {
   case suggestions
   case attachmentChips
@@ -42,6 +44,7 @@ enum ScrollingSample: CaseIterable, CustomTestStringConvertible {
   case stackedAttachmentInspector
   case conversation
   case conversationEmptyState
+  case demoSettingsSheet
 
   var testDescription: String { String(describing: self) }
 
@@ -55,6 +58,7 @@ enum ScrollingSample: CaseIterable, CustomTestStringConvertible {
     case .stackedAttachmentInspector: AnyView(AttachmentInspector(PreviewFixtures.attachments))
     case .conversation: AnyView(ConversationView(session: .previewSample))
     case .conversationEmptyState: AnyView(ConversationEmptyState(markdown: "Ask about the **code**."))
+    case .demoSettingsSheet: AnyView(ACPSettingsSheet(connection: .previewSample, session: .previewSample))
     }
   }
 

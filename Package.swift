@@ -108,6 +108,20 @@ let demoAgentProducts: [Target.Dependency] = [
   .product(name: "FoundationModelsACPAgent", package: "FoundationModelsACPAgent")
 ]
 
+/// The EditorKit products that the demo support target links: the button
+/// of the toolbar of the gallery columns and the choice fields
+/// (`EditorSwiftUI`), the scroll view and the style tokens (`EditorStyle`),
+/// the themes of the Gallery look (`EditorTheme`), the spinner of the start
+/// view (`EditorCommandsUI`), and the forms of the settings sheet and of the
+/// Gallery look (`EditorInspector`).
+let demoSupportEditorKitProducts: [Target.Dependency] = [
+  .product(name: "EditorSwiftUI", package: "EditorKit"),
+  .product(name: "EditorStyle", package: "EditorKit"),
+  .product(name: "EditorTheme", package: "EditorKit"),
+  .product(name: "EditorCommandsUI", package: "EditorKit"),
+  .product(name: "EditorInspector", package: "EditorKit"),
+]
+
 /// The EditorKit test support products that the model and view tests link:
 /// the recording command system, and the hosted window and accessibility
 /// helpers, such as the accessibility hit test.
@@ -216,18 +230,19 @@ let package = Package(
       swiftSettings: mainActorIsolated
     ),
     // The scripted in-memory ACP agent, the agent starter of the demo app
-    // (`DemoAgent`), and the launch options of the demo app. The ACP tests
-    // link this target. The demo app (Examples/AgentViewKitDemo) compiles its
-    // sources into the app. It is a test support product for the
-    // IntegrationTests package; the two library products of a host are the
-    // kit and its style (plan.md §11 decision 1). It links
-    // FoundationModelsACPAgent for the agent of the ACP tab and of the
-    // Gallery tab, which runs in the process of the app.
+    // (`DemoAgent`), the launch options of the demo app, and the views of
+    // the demo app that show EditorKit controls: the settings sheet of the
+    // ACP tab, the start view of a tab and the look controls of the Gallery
+    // tab. The ACP tests and the control tests of these views link this
+    // target. The demo app (Examples/AgentViewKitDemo) compiles its sources
+    // into the app. It is a test support product for the IntegrationTests
+    // package; the two library products of a host are the kit and its style
+    // (plan.md §11 decision 1). It links FoundationModelsACPAgent for the
+    // agent of the ACP tab and of the Gallery tab, which runs in the process
+    // of the app.
     .target(
       name: "AgentViewKitDemoSupport",
-      // EditorSwiftUI draws the button of the toolbar of the gallery columns.
-      dependencies: ["AgentViewKit", .product(name: "EditorSwiftUI", package: "EditorKit")] + acpProducts
-        + demoAgentProducts,
+      dependencies: ["AgentViewKit"] + demoSupportEditorKitProducts + acpProducts + demoAgentProducts,
       swiftSettings: mainActorIsolated
     ),
     .testTarget(

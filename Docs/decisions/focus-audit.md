@@ -266,9 +266,9 @@ place, and it stays open there.
 | The previews of `Content/Blocks/TextBlockView.swift`, `Content/EntryContentView.swift`, `Items/TranscriptMessageView.swift`, `Items/MessageItemView.swift`, `Items/JSONDisclosure.swift`, `Attachments/AttachmentPreview.swift` and `Thread/ItemRow.swift` (^tvjsqzp) | `ScrollView` | `EditorScrollView` | Changed |
 | The two previews of `Elicitation/ElicitationFieldViews.swift` (^tvjsqzp) | `Form` | `InspectorForm` with one `Section` | Changed |
 | `AgentViewKitStyle`, the doc sample of `withoutSystemFocusEffect()` in `Theme/SelectableSurface.swift` (^tvjsqzp) | `List` | `PathChip` with an action | Changed |
-| `Examples/AgentViewKitDemo/AgentViewKitDemoFeature/ACPSettingsSheet.swift` (^tvjsqzp) | `ScrollView` | `EditorScrollView` | Changed |
-| `Examples/AgentViewKitDemo/AgentViewKitDemoFeature/DemoStartView.swift` (^tvjsqzp) | `ProgressView` with a title | `EditorProgressView` with the starting text as its label, over the starting text | Changed |
-| `Examples/AgentViewKitDemo/AgentViewKitDemoFeature/GalleryLook.swift`, `GalleryLookControls` (^tvjsqzp) | `Form` with four `Picker`s | `InspectorForm` with one `Section` of four `ChoiceField`s | Changed |
+| `Sources/AgentViewKitDemoSupport/ACPSettingsSheet.swift` (^tvjsqzp) | `ScrollView` | `EditorScrollView` | Changed |
+| `Sources/AgentViewKitDemoSupport/DemoStartView.swift` (^tvjsqzp) | `ProgressView` with a title | `EditorProgressView` with the starting text as its label, over the starting text | Changed |
+| `Sources/AgentViewKitDemoSupport/GalleryLook.swift`, `GalleryLookControls` (^tvjsqzp) | `Form` with four `Picker`s | `InspectorForm` with one `Section` of four `ChoiceField`s | Changed |
 | EditorKit `PathChip` with an action, in `DiffView` and in the inspector (^tvjsqzp) | `Button` with `.buttonStyle(.plain)`, in EditorKit `Sources/EditorSwiftUI/PathChip.swift` | `EditorPlainButton`, in EditorKit | Open: the button is in EditorKit, so the change is an EditorKit change. AgentViewKit has no raw button around a chip |
 
 The changed controls keep their behavior, with these changes:

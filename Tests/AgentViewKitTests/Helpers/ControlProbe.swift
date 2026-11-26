@@ -107,6 +107,21 @@ import SwiftUI
     }
   }
 
+  /// The names of the accessibility custom actions of each element of
+  /// `view` that has a custom action, with the elements in each container.
+  ///
+  /// EditorKit's `ChoiceField` names each of its options as a custom action.
+  /// A SwiftUI `Picker` has no custom action.
+  ///
+  /// - Parameter view: The view to lay out.
+  /// - Returns: The action names of each element that has one or more, in
+  ///   the order of the tree.
+  static func customActionNames(in view: some View) async -> [[String]] {
+    await host(view) { hosting in
+      nodes(under: hosting).map(accessibilityCustomActionNames(of:)).filter { !$0.isEmpty }
+    }
+  }
+
   /// Each accessibility element under `hosting`, with the elements in each
   /// container, in the order of the tree.
   ///
