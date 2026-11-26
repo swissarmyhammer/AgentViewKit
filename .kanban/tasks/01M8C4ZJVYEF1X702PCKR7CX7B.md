@@ -1,0 +1,29 @@
+---
+assignees:
+- claude-code
+depends_on:
+- 01M8C4Z702KVEKGM5TY9H7BM9J
+position_column: todo
+position_ordinal: '8580'
+title: 'Scroll 2: a virtual transcript layout with an exact total height in ConversationView'
+---
+From spike ^fa3j934 (2026-11-26). The LazyVStack of `ConversationView` estimates its total height +72 % too high (88,271 pt against 51,365 pt), and it corrects while the user scrolls. The spike variant V1 (an exact height and a fixed pool of rows) gave -9 % main-thread time and a largest hitch of 33 ms against 50 ms. It is also the base of the static rows (the next card).
+
+## What
+- [ ] In `Sources/AgentViewKit/Thread/ConversationView.swift`, replace the `LazyVStack` with one custom SwiftUI `Layout`: `sizeThatFits` returns the exact total height from the prefix sums of the cached heights (^9h7bm9j), and the placement places only the rows in view plus 1 screen of overscan.
+- [ ] The visible range comes from the scroll geometry, but the state changes only when the first or the last visible index changes, not on each frame.
+- [ ] Slot ids come from a fixed pool (index modulo the pool size), as in the spike (`scratchpad/spike-virtual/Tests/ScrollProfileTests/VirtualTranscript.swift`). Row `@State` that must survive stays in the model.
+- [ ] Keep the `ScrollView`, the bottom anchor, `scrollPosition`, the floating controls, the jump to an item and the visibility reports. With prefix sums, a scroll to an item or to the bottom goes to an exact offset.
+- [ ] Keep the `TranscriptRowElement` contract (one view for each element), the row ids, the reading order and the accessibility identifiers.
+
+## Acceptance Criteria
+- [ ] The total content height equals the sum of the row heights plus the spacing.
+- [ ] All hosted thread suites pass: ThreadFloatingControlsHostedTests, RecordedSessionsGalleryHostedTests, ThreadBarBannerOverlapHostedTests, AgentItemFocusHostedTests and the full IntegrationTests run.
+- [ ] The flick trace of the spike harness shows main-thread time at or below V1 of the spike.
+
+## Tests
+- [ ] Unit tests: the prefix sums, the visible range for an offset, the pool slot ids, and the exact offset of a scroll to an item.
+- [ ] `swift test` passes with 0 failures and 0 warnings. The full IntegrationTests run passes (a hosted run with start and end lines).
+
+## Workflow
+- Use `/tdd` — write failing tests first, then implement to make them pass. #perf
