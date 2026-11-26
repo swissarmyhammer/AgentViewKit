@@ -113,7 +113,7 @@ import Testing
   @Test func aRowThatWasRealAtRestHoldsItsRealForm() {
     let holds = TranscriptRowHolds(wasRealAtRest: true)
 
-    #expect(!TranscriptRowForm.isStatic(rowsMove: true, holds: holds, knowsHeight: true))
+    #expect(!TranscriptRowForm.isStatic(rowsMove: true, waitsToMount: false, holds: holds, knowsHeight: true))
   }
 
   /// A production change that fails this test: the row keeps its static
@@ -132,7 +132,7 @@ import Testing
   @Test func aRowWithTheFocusStaysReal() {
     let holds = TranscriptRowHolds(hasFocus: true)
 
-    #expect(!TranscriptRowForm.isStatic(rowsMove: true, holds: holds, knowsHeight: true))
+    #expect(!TranscriptRowForm.isStatic(rowsMove: true, waitsToMount: false, holds: holds, knowsHeight: true))
   }
 
   /// A production change that fails this test: the focus check does not
@@ -158,13 +158,13 @@ import Testing
   /// shows its static form, which then has no height of the real row and
   /// jumps.
   @Test func aRowWithNoKnownHeightStaysReal() {
-    #expect(!TranscriptRowForm.isStatic(rowsMove: true, holds: TranscriptRowHolds(), knowsHeight: false))
+    #expect(!TranscriptRowForm.isStatic(rowsMove: true, waitsToMount: false, holds: TranscriptRowHolds(), knowsHeight: false))
   }
 
   /// A production change that fails this test: each hold keeps the row
   /// real, but a row with no hold is not static either.
   @Test func aRowWithNoHoldAndAKnownHeightIsStaticWhileTheRowsMove() {
-    #expect(TranscriptRowForm.isStatic(rowsMove: true, holds: TranscriptRowHolds(), knowsHeight: true))
+    #expect(TranscriptRowForm.isStatic(rowsMove: true, waitsToMount: false, holds: TranscriptRowHolds(), knowsHeight: true))
   }
 
   /// A production change that fails this test: the hover, the selection or
@@ -175,7 +175,7 @@ import Testing
       TranscriptRowHolds(streams: true),
     ]
 
-    #expect(holds.allSatisfy { !TranscriptRowForm.isStatic(rowsMove: true, holds: $0, knowsHeight: true) })
+    #expect(holds.allSatisfy { !TranscriptRowForm.isStatic(rowsMove: true, waitsToMount: false, holds: $0, knowsHeight: true) })
   }
 
   // MARK: - The height of the static form

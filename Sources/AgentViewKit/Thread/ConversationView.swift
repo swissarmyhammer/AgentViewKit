@@ -438,6 +438,10 @@ public struct ConversationView<EmptyState: View>: View {
   /// (``TranscriptRowHeightsFeed``).
   @State private var rowHeights = TranscriptStaticRowHeights()
 
+  /// The queue that mounts the real rows a few at a time when the rows
+  /// come to rest (card ^7625j1b). The display link of the view drives it.
+  @State private var rowMounts = TranscriptRowMountQueue(frames: TranscriptDisplayLinkFrames())
+
   /// The command system of the thread, whose jump session keeps each row
   /// real.
   @Environment(\.agentCommandSystem) private var commandSystem
@@ -602,6 +606,10 @@ public struct ConversationView<EmptyState: View>: View {
     }
     .environment(\.transcriptRowsMove, rowsMove)
     .environment(\.staticRowHeights, rowHeights)
+    .environment(\.transcriptRowMounts, rowMounts)
+    .background { TranscriptFrameAnchor(frames: rowMounts.frames) }
+    .onChange(of: rowsMove) { rowMounts.noteRowsMove(rowsMove) }
+    .onChange(of: isJumping) { noteJump() }
     .onScrollGeometryChange(for: ConversationBottomGeometry.self) { geometry in
       ConversationBottomGeometry(geometry, tolerance: anchors.tolerance)
     } action: { old, new in
@@ -635,8 +643,19 @@ public struct ConversationView<EmptyState: View>: View {
   /// Whether the rows show their static forms: the list moves, and no jump
   /// session of EditorKit is open (``TranscriptRowMotion``).
   private var rowsMove: Bool {
-    TranscriptRowMotion.rowsMove(
-      isMoving: isMoving, isJumping: commandSystem?.accessibility.activeLayer?.kind == .jump)
+    TranscriptRowMotion.rowsMove(isMoving: isMoving, isJumping: isJumping)
+  }
+
+  /// Whether a jump session of EditorKit is open.
+  private var isJumping: Bool {
+    commandSystem?.accessibility.activeLayer?.kind == .jump
+  }
+
+  /// Mounts each row that waits in the queue, when a jump session opens,
+  /// so the jump targets are the targets of the real views.
+  private func noteJump() {
+    guard isJumping else { return }
+    rowMounts.mountAll()
   }
 
   /// Records a new scroll phase of the list.

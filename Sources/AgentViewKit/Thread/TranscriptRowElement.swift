@@ -52,6 +52,13 @@ struct TranscriptRowSlot: Identifiable {
 /// motion, so a flick does not swap the editors of the rows in view. A row whose height the thread does not know yet
 /// shows its real form. The mouse holds a row only when it comes on the row
 /// at rest: a row that moves under the mouse does not mount its editors.
+///
+/// A row that comes into the list while the rows move puts its mount in
+/// the ``TranscriptRowMountQueue`` of the thread (card ^7625j1b). At rest,
+/// the row stays static until its turn, so the rows in view do not mount
+/// their editors in one frame. While the row waits, it gives the queue its
+/// distance from the vertical center of the view. A row that is real at
+/// rest for a different cause, such as a hold, leaves the queue at once.
 struct TranscriptRowElement: View {
   /// The entry of the row, and its position.
   let slot: TranscriptRowSlot
@@ -70,6 +77,7 @@ struct TranscriptRowElement: View {
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.transcriptRowsMove) private var rowsMove
   @Environment(\.staticRowHeights) private var heights
+  @Environment(\.transcriptRowMounts) private var mounts
   @Environment(\.sessionModel) private var session
   @Environment(\.textSelectionRegion) private var threadSelection
   @FocusedValue(\.commandPath) private var focusedPath
@@ -80,15 +88,19 @@ struct TranscriptRowElement: View {
   /// Whether the mouse came on the row at rest, and is still on it.
   @State private var isHovered = false
 
-  /// Whether the row was shown at rest, and thus in its real form. A row
-  /// that the list makes while the rows move was not.
+  /// Whether the row showed its real form at rest. A row that the list
+  /// makes while the rows move did not, until its turn in the queue.
   @State private var wasShownAtRest = false
+
+  /// The turn of the row in the queue of the thread.
+  @State private var mount = TranscriptRowMount()
 
   var body: some View {
     let row = ItemRow(entry: slot.entry)
     let rowsMove = rowsMove
     let isStatic = TranscriptRowForm.isStatic(
-      rowsMove: rowsMove, holds: holds, knowsHeight: heights?.knowsHeight(of: slot.id) ?? false)
+      rowsMove: rowsMove, waitsToMount: mount.waits, holds: holds,
+      knowsHeight: heights?.knowsHeight(of: slot.id) ?? false)
     VStack(alignment: .leading, spacing: editorStyle.tile.margin) {
       row
         .equatable()
@@ -109,16 +121,40 @@ struct TranscriptRowElement: View {
       TranscriptStatusLines(lines: lines)
     }
     .padding(.bottom, isLast ? editorStyle.rowPadding : 0)
-    .onAppear { noteRest(rowsMove: rowsMove) }
-    .onChange(of: rowsMove) { noteRest(rowsMove: rowsMove) }
+    .background {
+      if mount.waits {
+        Color.clear.onGeometryChange(for: CGFloat.self, of: TranscriptRowMount.centerDistance(of:)) { distance in
+          mount.centerDistance = distance
+        }
+      }
+    }
+    .onAppear { noteAppear(rowsMove: rowsMove) }
+    .onDisappear { mounts?.release(mount) }
+    .onChange(of: !rowsMove && !isStatic, initial: true) { _, isRealAtRest in
+      noteForm(isRealAtRest: isRealAtRest)
+    }
   }
 
-  /// Records that the row was shown at rest, when the rows do not move.
+  /// Puts the mount of the row in the queue of the thread, when the row
+  /// comes into the list while the rows move.
   ///
   /// - Parameter rowsMove: Whether the rows of the thread move.
-  private func noteRest(rowsMove: Bool) {
-    guard !rowsMove, !wasShownAtRest else { return }
-    wasShownAtRest = true
+  private func noteAppear(rowsMove: Bool) {
+    guard rowsMove else { return }
+    mounts?.enqueue(mount)
+  }
+
+  /// Records that the row shows its real form at rest: the row leaves the
+  /// queue, and holds its real form in the next motion.
+  ///
+  /// - Parameter isRealAtRest: Whether the rows do not move and the row
+  ///   shows its real form.
+  private func noteForm(isRealAtRest: Bool) {
+    guard isRealAtRest else { return }
+    mounts?.release(mount)
+    if !wasShownAtRest {
+      wasShownAtRest = true
+    }
   }
 
   /// The holds that keep the row real while the rows move.
