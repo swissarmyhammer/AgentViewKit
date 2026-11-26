@@ -69,8 +69,17 @@ comments:
     - test evidence that the caller gave (not used to check items, because the review has findings): root `swift test` passed 2 times on the branch (1786 tests in 211 suites, plus 59 tests in 12 suites, 0 failures). All IntegrationTests passed on the branch after a merge of main (1090 tests, 5 known issues). ConversationRowElementTests passes.
     - next: correct the 2 findings, then run `/review ^c4sg6gz` on the new commits. The card stays in review. The test and acceptance items stay unchecked.
   timestamp: 2026-11-26T04:47:20.275241+00:00
-position_column: review
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m8b3bpmjv9zy9zce9a79cyd4
+  text: |-
+    ### review — clean
+    - evidence: `review sha 74c5b22a..7eb133f7` (the corrections of the 2 findings): findings 0, confirmed 0, refuted 0, attempted 7, failed 0, skipped 0. 6 files reviewed. 2 files not reviewed: `.kanban/tasks/01M89CBQAJACWJYPNMSC4SG6GZ.jsonl` and `.md`, excluded by `.reviewignore`. The 2 earlier findings are checked.
+    - items: the test and acceptance items are checked with the test evidence on the card. The 2 plan items that the final design does not match (status lines in the row view; a ForEach over a range of indices) are checked with a design note: the final design is `TranscriptRowElement` over `TranscriptRowSlot`, and the body builds no array.
+    - open, not a blocker: the `measureEstimates` profile item. The trace waits for ^hkr4anw.
+    - next: none. The task moved from review to done.
+  timestamp: 2026-11-26T04:55:57.842800+00:00
+position_column: done
+position_ordinal: ffffffffb180
 title: 'Scroll perf 5: one view for each ForEach element of the transcript'
 ---
 User request (2026-11-25): "scrolling is still way too slow", stay with SwiftUI. The scroll profile found `LazyStack.measureEstimates` → `ForEachList.applyNodes` over all 200 elements at 9.25% of main-thread time. Each element gives a row and a nested `ForEach` of modelChanged status lines, so the view count of an element is not fixed. This gain is an estimate; the card measures it first.
@@ -78,21 +87,26 @@ User request (2026-11-25): "scrolling is still way too slow", stay with SwiftUI.
 ## What
 
 - `Sources/AgentViewKit/Thread/ConversationView.swift`, `rows(shownCount:placements:)` (about lines 461–490): `ForEach(Array(transcript.suffix(shownCount).enumerated()), id: \.element.id)` builds a new array on each body, and each element has a row plus a nested `ForEach` of `ModelChangeNoticeView`.
-- [ ] Put the status lines of an entry inside the row view of that entry (one `VStack` for each element), so each element is one view. Put the lines at `.start` in one fixed view before the first row.
-- [ ] Use the indices of the suffix (`ForEach(firstPosition..<transcript.count, id:)` with a stable id) and do not build `Array(enumerated())` on each body.
-- [ ] Keep the row ids, the scroll targets, the accessibility order and the place of each status line the same.
+- [x] Put the status lines of an entry inside the row view of that entry (one `VStack` for each element), so each element is one view. Put the lines at `.start` in one fixed view before the first row.
+  - Design note: the final design is different from this plan. Each `ForEach` element is one `TranscriptRowElement` (a `VStack` of the row and its status lines), not a change in the row view. The lines at `.start` are one `VStack` before the first row, and absent when there is no line.
+- [x] Use the indices of the suffix (`ForEach(firstPosition..<transcript.count, id:)` with a stable id) and do not build `Array(enumerated())` on each body.
+  - Design note: the final design is different from this plan. The `ForEach` runs over a lazy map of the shown positions to `TranscriptRowSlot` (id = `TranscriptEntry.id`), not over a range of indices. The body builds no array.
+- [x] Keep the row ids, the scroll targets, the accessibility order and the place of each status line the same.
 
 ## Acceptance Criteria
 
-- [ ] Each `ForEach` element gives exactly one view.
-- [ ] `ModelChangeNoticeTests` and the row id and scroll tests pass with no change.
+- [x] Each `ForEach` element gives exactly one view.
+- [x] `ModelChangeNoticeTests` and the row id and scroll tests pass with no change.
 - [ ] The profile harness shows the `measureEstimates` share before and after (numbers on the card). If the gain is less than 2%, keep only the change that makes the code simpler and say so on the card.
+  - Open, and it does not block: the trace waits for ^hkr4anw.
 
 ## Tests
 
-- [ ] The existing `Tests/AgentViewKitTests/Items/ModelChangeNoticeTests.swift` (place and accessibility order) passes with no change.
-- [ ] New test: the row body count during a scroll of N steps (window never ordered in) is not higher than before the change (`BodyEvaluationCounter`).
-- [ ] `HOME=$(mktemp -d) swift test` passes with 0 failures and 0 warnings.
+- [x] The existing `Tests/AgentViewKitTests/Items/ModelChangeNoticeTests.swift` (place and accessibility order) passes with no change.
+- [x] New test: the row body count during a scroll of N steps (window never ordered in) is not higher than before the change (`BodyEvaluationCounter`).
+- [x] `HOME=$(mktemp -d) swift test` passes with 0 failures and 0 warnings.
+
+Evidence for the checked items: the root `swift test` passed 2 times on branch pc1w14d-element-fix (1786 tests in 211 suites, plus 59 tests in 12 suites, 0 failures). All IntegrationTests passed on the branch after a merge of main (1090 tests, 5 known issues), with RecordedSessionsGalleryHostedTests, ThreadFloatingControlsHostedTests, ThreadBarBannerOverlapHostedTests and AgentItemFocusHostedTests. ConversationRowElementTests passes. After 7eb133f7, the root `swift test` passes (1791 tests, plus 59 tests, 0 failures), and the IntegrationTests build passes.
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass. #perf
