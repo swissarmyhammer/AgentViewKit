@@ -1,4 +1,7 @@
+import EditorCommands
+import EditorCommandsUI
 import EditorStyle
+import EditorSwiftUI
 import FoundationModelsACPClient
 import SwiftUI
 
@@ -39,6 +42,14 @@ struct TranscriptRowSlot: Identifiable {
 /// The row and the lines are in the linked reading group of the thread, so
 /// VoiceOver reads from one row into the next row
 /// (``ThreadAccessibility/threadGroupID``).
+///
+/// While the rows move (``TranscriptRowMotion``), the row shows its static
+/// form (``TranscriptStaticRow``, card ^9ync5h3), unless a hold keeps it
+/// real (``TranscriptRowHolds``): the keyboard focus in its item scope, the
+/// mouse, the text selection of the thread in one of its text areas, or the
+/// stream of its entry. A row whose height the thread does not know yet
+/// shows its real form. The mouse holds a row only when it comes on the row
+/// at rest: a row that moves under the mouse does not mount its editors.
 struct TranscriptRowElement: View {
   /// The entry of the row, and its position.
   let slot: TranscriptRowSlot
@@ -55,9 +66,23 @@ struct TranscriptRowElement: View {
   let lines: [ModelChangeLine]
 
   @Environment(\.editorStyle) private var editorStyle
+  @Environment(\.transcriptRowsMove) private var rowsMove
+  @Environment(\.measuredRowHeights) private var heights
+  @Environment(\.sessionModel) private var session
+  @Environment(\.textSelectionRegion) private var threadSelection
+  @FocusedValue(\.commandPath) private var focusedPath
+
+  /// The text selection region of the row.
+  @State private var selection = TranscriptRowSelection()
+
+  /// Whether the mouse came on the row at rest, and is still on it.
+  @State private var isHovered = false
 
   var body: some View {
     let row = ItemRow(entry: slot.entry)
+    let rowsMove = rowsMove
+    let isStatic = TranscriptRowForm.isStatic(
+      rowsMove: rowsMove, holds: holds, knowsHeight: heights?.knowsHeight(of: slot.id) ?? false)
     VStack(alignment: .leading, spacing: editorStyle.tile.margin) {
       row
         .equatable()
@@ -66,9 +91,30 @@ struct TranscriptRowElement: View {
         .environment(\.transcriptRowPosition, slot.position)
         .modifier(TranscriptRowLiveness(position: slot.position))
         .coordinateSpace(.named(TranscriptFileOrder.rowSpace))
+        .textSelectionRegion(selection.forwarding(to: threadSelection))
+        .modifier(TranscriptStaticRow(id: slot.id, isStatic: isStatic, heights: heights))
+        .onHover { hovering in
+          // A row that comes under the mouse while the rows move takes no
+          // hold, so it does not mount its editors during the move.
+          if !hovering || !rowsMove {
+            isHovered = hovering
+          }
+        }
       TranscriptStatusLines(lines: lines)
     }
     .padding(.bottom, isLast ? editorStyle.rowPadding : 0)
+  }
+
+  /// The holds that keep the row real while the rows move.
+  ///
+  /// Only the last row reads the state of the agent, so a change of the
+  /// state evaluates no other row.
+  private var holds: TranscriptRowHolds {
+    TranscriptRowHolds(
+      hasFocus: TranscriptRowHolds.hasFocus(itemScope: slot.entry.itemScopeSegment, focusedPath: focusedPath),
+      isHovered: isHovered,
+      hasSelection: selection.holdsSelection,
+      streams: isLast && session?.isRunning == true)
   }
 }
 

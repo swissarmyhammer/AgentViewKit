@@ -91,6 +91,22 @@ struct RenderedMarkdownView: View {
   var body: some View {
     let model = hostModel ?? ownModel.model(text: markdown, make: Self.makeModel)
     let selection = citationSelection
+    // In the static form of a thread row, the text shows in SwiftUI `Text`
+    // (card ^9ync5h3).
+    StaticEditorSlot {
+      editor(model: model, selection: selection)
+    } still: {
+      StaticMarkdownText(markdown: markdown)
+    }
+  }
+
+  /// The read-only editor that shows `model`.
+  ///
+  /// - Parameters:
+  ///   - model: The model of the text.
+  ///   - selection: The citation selection that a press on a chip changes.
+  /// - Returns: The editor.
+  private func editor(model: EditorModel, selection: CitationSelection?) -> some View {
     EditorView(model: model)
       // A right click on the text gives the menu of the row, not the text
       // menu of AppKit (D108, D193 (f)).
