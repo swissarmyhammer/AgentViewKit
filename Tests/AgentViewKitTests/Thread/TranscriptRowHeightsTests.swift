@@ -1,0 +1,215 @@
+import AgentViewKitTestSupport
+import CoreGraphics
+import EditorTestSupport
+import FoundationModelsACP
+import FoundationModelsACPClient
+import os
+import Testing
+
+@testable import AgentViewKit
+
+/// A text measure that records each part that it measures.
+///
+/// The height of a part is its count of characters over the width, so that
+/// a new text or a new width gives a new height.
+nonisolated final class RecordingTextMeasure: TranscriptTextMeasure {
+  /// The scale of the height of a part.
+  static let scale: CGFloat = 1000
+
+  /// The texts of the measured parts, in the order of the calls.
+  private let texts = OSAllocatedUnfairLock<[String]>(initialState: [])
+
+  /// The height of a part at a width.
+  ///
+  /// - Parameters:
+  ///   - part: The text part.
+  ///   - width: The width.
+  /// - Returns: The height.
+  static func height(of part: TranscriptTextPart, width: CGFloat) -> CGFloat {
+    CGFloat(part.text.count) * scale / width
+  }
+
+  func height(of part: TranscriptTextPart, width: CGFloat) -> CGFloat {
+    texts.withLock { $0.append(part.text) }
+    return Self.height(of: part, width: width)
+  }
+
+  /// The texts of the measured parts, in the order of the calls.
+  var measuredTexts: [String] {
+    texts.withLock { $0 }
+  }
+
+  /// Forgets the measured parts.
+  func reset() {
+    texts.withLock { $0.removeAll() }
+  }
+}
+
+/// The cache of the row heights computes off the main thread, computes only
+/// the rows that change, and computes the rows in view first after a width
+/// change (card ^9h7bm9j).
+@MainActor @Suite struct TranscriptRowHeightsTests {
+  /// The first width of the tests.
+  static let width: CGFloat = 480
+
+  /// The second width of the tests.
+  static let newWidth: CGFloat = 320
+
+  /// A content chunk of one text block.
+  ///
+  /// - Parameters:
+  ///   - text: The text.
+  ///   - id: The raw message id.
+  /// - Returns: The chunk.
+  static func chunk(_ text: String, id: String) -> ContentChunk {
+    ContentChunk(content: .text(TextContent(text: text)), messageId: MessageId(rawValue: id))
+  }
+
+  /// The height that the chrome rule gives an entry with the recording
+  /// measure.
+  ///
+  /// - Parameters:
+  ///   - entry: The entry.
+  ///   - width: The width.
+  ///   - metrics: The theme metrics.
+  /// - Returns: The height.
+  static func expectedHeight(of entry: TranscriptEntry, width: CGFloat, metrics: TranscriptRowMetrics) -> CGFloat? {
+    TranscriptRowChrome.height(
+      of: TranscriptRowContent(entry: entry, isExpanded: false), width: width, metrics: metrics,
+      measure: RecordingTextMeasure.height(of:width:))
+  }
+
+  /// Waits until the cache holds the height that the rule gives each entry.
+  ///
+  /// - Parameters:
+  ///   - heights: The cache.
+  ///   - entries: The entries.
+  ///   - width: The width.
+  ///   - metrics: The theme metrics.
+  static func waitForEachHeight(
+    in heights: TranscriptRowHeights, of entries: [TranscriptEntry], width: CGFloat, metrics: TranscriptRowMetrics,
+    sourceLocation: SourceLocation = #_sourceLocation
+  ) async {
+    await ObservationWait.until(sourceLocation: sourceLocation) {
+      entries.allSatisfy { entry in
+        let expected = expectedHeight(of: entry, width: width, metrics: metrics)
+        return expected != nil && heights.height(of: entry.rowKey) == expected
+      }
+    }
+  }
+
+  /// Sends a chunk of the agent message, and waits until the message holds it.
+  ///
+  /// - Parameters:
+  ///   - text: The text of the chunk.
+  ///   - session: The session.
+  static func stream(_ text: String, to session: ScriptedSession) async throws {
+    try await session.send(update: .agentMessageChunk(chunk(text, id: "agent")))
+    let model = session.model
+    await ObservationWait.until {
+      guard case .agentMessage(let message) = model.transcript.last else { return false }
+      return TranscriptRowContent.textBlocks(of: message.content)?.joined().hasSuffix(text) == true
+    }
+  }
+
+  /// Opens a session with a user message and an agent message.
+  static func openSession() async throws -> ScriptedSession {
+    let session = try await ScriptedSession.open()
+    try await session.send(update: .userMessageChunk(chunk("A question about the heights.", id: "user")))
+    try await session.send(update: .agentMessageChunk(chunk("The first part of the answer.", id: "agent")))
+    let model = session.model
+    await ObservationWait.until { model.transcript.count == 2 }
+    return session
+  }
+
+  @Test func aStreamedChunkMeasuresOnlyTheStreamingRow() async throws {
+    let session = try await Self.openSession()
+    defer { session.close() }
+    let metrics = TranscriptRowMetrics.probe()
+    let measure = RecordingTextMeasure()
+    let heights = TranscriptRowHeights(measure: measure, metrics: metrics)
+    let model = session.model
+    heights.update(entries: model.transcript, width: Self.width, rowsInView: 0..<2)
+    await Self.waitForEachHeight(in: heights, of: model.transcript, width: Self.width, metrics: metrics)
+    measure.reset()
+
+    try await Self.stream(" And the rest of it.", to: session)
+    await Self.waitForEachHeight(in: heights, of: model.transcript, width: Self.width, metrics: metrics)
+
+    #expect(!measure.measuredTexts.contains { $0.contains("question") })
+  }
+
+  @Test func aStreamedChunkGivesTheStreamingRowItsNewHeight() async throws {
+    let session = try await Self.openSession()
+    defer { session.close() }
+    let metrics = TranscriptRowMetrics.probe()
+    let heights = TranscriptRowHeights(measure: RecordingTextMeasure(), metrics: metrics)
+    let model = session.model
+    heights.update(entries: model.transcript, width: Self.width, rowsInView: 0..<2)
+    await Self.waitForEachHeight(in: heights, of: model.transcript, width: Self.width, metrics: metrics)
+    let agentKey = try #require(model.transcript.last?.rowKey)
+    let before = heights.height(of: agentKey)
+
+    try await Self.stream(" And the rest of it.", to: session)
+    await Self.waitForEachHeight(in: heights, of: model.transcript, width: Self.width, metrics: metrics)
+
+    #expect(heights.height(of: agentKey) != before)
+  }
+
+  #if DEBUG
+    @Test func aStreamedChunkCopiesNoOtherRowOnTheMainThread() async throws {
+      let session = try await Self.openSession()
+      defer { session.close() }
+      let metrics = TranscriptRowMetrics.probe()
+      let heights = TranscriptRowHeights(measure: RecordingTextMeasure(), metrics: metrics)
+      let model = session.model
+      let userKey = try #require(model.transcript.first?.rowKey)
+      let counterKey = TranscriptRowHeights.copyCounterKey(for: userKey)
+      heights.update(entries: model.transcript, width: Self.width, rowsInView: 0..<2)
+      await Self.waitForEachHeight(in: heights, of: model.transcript, width: Self.width, metrics: metrics)
+      let copies = BodyEvaluationCounter.count(counterKey)
+
+      try await Self.stream(" And the rest of it.", to: session)
+      await Self.waitForEachHeight(in: heights, of: model.transcript, width: Self.width, metrics: metrics)
+      heights.update(entries: model.transcript, width: Self.width, rowsInView: 0..<2)
+
+      #expect(BodyEvaluationCounter.count(counterKey) == copies)
+    }
+  #endif
+
+  @Test func anUpdateWithNoChangeMeasuresNothing() async throws {
+    let session = try await Self.openSession()
+    defer { session.close() }
+    let metrics = TranscriptRowMetrics.probe()
+    let measure = RecordingTextMeasure()
+    let heights = TranscriptRowHeights(measure: measure, metrics: metrics)
+    let model = session.model
+    heights.update(entries: model.transcript, width: Self.width, rowsInView: 0..<2)
+    await Self.waitForEachHeight(in: heights, of: model.transcript, width: Self.width, metrics: metrics)
+    measure.reset()
+
+    heights.update(entries: model.transcript, width: Self.width, rowsInView: 0..<2)
+    try await Self.stream(" More.", to: session)
+    await Self.waitForEachHeight(in: heights, of: model.transcript, width: Self.width, metrics: metrics)
+
+    #expect(measure.measuredTexts.allSatisfy { $0.contains("answer") })
+  }
+
+  @Test func aWidthChangeMeasuresTheRowsInViewFirst() async throws {
+    let session = try await Self.openSession()
+    defer { session.close() }
+    let metrics = TranscriptRowMetrics.probe()
+    let measure = RecordingTextMeasure()
+    let heights = TranscriptRowHeights(measure: measure, metrics: metrics)
+    let model = session.model
+    heights.update(entries: model.transcript, width: Self.width, rowsInView: 0..<2)
+    await Self.waitForEachHeight(in: heights, of: model.transcript, width: Self.width, metrics: metrics)
+    measure.reset()
+
+    heights.update(entries: model.transcript, width: Self.newWidth, rowsInView: 1..<2)
+    await Self.waitForEachHeight(in: heights, of: model.transcript, width: Self.newWidth, metrics: metrics)
+
+    #expect(measure.measuredTexts.first?.contains("answer") == true)
+    #expect(measure.measuredTexts.contains { $0.contains("question") })
+  }
+}

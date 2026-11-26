@@ -24,7 +24,7 @@ public struct SessionMessageView: View {
   public static let identifierPrefix = "session-message-"
 
   /// The space between the line of the participants and the content.
-  private static let spacing: CGFloat = 4
+  nonisolated static let spacing: CGFloat = 4
 
   /// The entry to show.
   let entry: SessionMessageEntry
