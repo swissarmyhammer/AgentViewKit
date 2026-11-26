@@ -1,10 +1,16 @@
 ---
 assignees:
 - claude-code
-depends_on:
-- 01M8C4ZJVYEF1X702PCKR7CX7B
-position_column: todo
-position_ordinal: '8680'
+comments:
+- actor: claude-code
+  id: 01m8c9kmpwt8zrv4wzf82w6b92
+  text: |-
+    ### review — findings
+    - evidence: review sha ac33f639..70c4b045 — 6 findings (9 confirmed, 2 refuted, 14 attempted, 0 failed): Sources/AgentViewKit/Content/CommandOutputView.swift:200, Sources/AgentViewKit/Content/StaticMarkdownText.swift:58, Sources/AgentViewKit/Terminal/TerminalView.swift:186, Tests/AgentViewKitTests/Thread/StaticRowHost.swift:144, Tests/AgentViewKitTests/Thread/StaticRowHost.swift:195, Tests/AgentViewKitTests/Thread/TranscriptStaticRowTests.swift:45. ARCHITECTURE.md is not reviewed (no validator matches it).
+    - next: Correct the 6 findings in "Review Findings (2026-11-26 09:55)". Then do the review again. The review is not clean, so the evidence items (unit tests, root swift test, IntegrationTests, gallery) are not checked yet. The flick target of 2000 ms or less waits for ^9h7bm9j.
+  timestamp: 2026-11-26T16:04:23.900979+00:00
+position_column: review
+position_ordinal: '8180'
 title: 'Scroll 3: static rows while the transcript moves, real rows at rest'
 ---
 From spike ^fa3j934 (2026-11-26). This card gives most of the gain: in the spike, static rows in motion (V2) used 1927 ms of main-thread time in a 15 s flick, against 6731 ms for the current list (-71 %), with 16 hitches against 63. The cost is the EK editor that mounts in each row while the list moves.
@@ -26,3 +32,17 @@ From spike ^fa3j934 (2026-11-26). This card gives most of the gain: in the spike
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass. #perf
+
+## Review Findings (2026-11-26 09:55)
+
+> Scope: `review sha ac33f639..70c4b045` — reviewed the diffs only — lines this change added or modified. 16 file(s) reviewed, 1 not reviewed.
+
+> 1 file(s) not reviewed — no validator matched:
+> - `ARCHITECTURE.md` — no validator matches this file
+
+- [x] `Sources/AgentViewKit/Content/CommandOutputView.swift:200` `duplication/duplication` — The static-form block of the output text area (a StaticEditorSlot with an EditorView that has editorTextMenu(.ancestor), sizedToContent(), and transcriptSearchMarks(searchMark), and a StaticCodeText.colored still view) is copied almost word for word into TerminalView. Both copies must change together, so a fix to one can drift from the other. Extract one shared view, for example OutputTextArea(model:, text:, runs:, searchMark:), that holds the StaticEditorSlot, the EditorView modifiers, and the StaticCodeText.colored fallback. Call it from both CommandOutputView and TerminalView, and delete the copy in each file.
+- [x] `Sources/AgentViewKit/Content/StaticMarkdownText.swift:58` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Sources/AgentViewKit/Terminal/TerminalView.swift:186` `duplication/duplication` — The static-form block of the terminal output text area repeats the block in CommandOutputView. The two copies hold the same editor modifiers and the same colored static fallback, so they will drift apart as the output views change. Move the shared block into one view that both output views use, as described for CommandOutputView.swift:200. Keep the call sites small so each file passes only its text and its color runs.
+- [x] `Tests/AgentViewKitTests/Thread/StaticRowHost.swift:144` `reuse/reuse` — The new `StaticRowHost.textViews(in:)` reimplements a helper that already exists in the test suite. Its body is identical to the private `textViews(in:)` in `LiveRowModelsTests`. Two copies of the same view-tree walk will drift apart, and a fix to one will not reach the other. Move the walk to one shared test-support helper, for example an extension on `NSView` in `Sources/AgentViewKitTestSupport/`, and call it from both `StaticRowHost` and `LiveRowModelsTests`. Do this in an existing target, since the rules forbid a new SwiftPM target unless the user asks. Delete both private copies.
+- [x] `Tests/AgentViewKitTests/Thread/StaticRowHost.swift:195` `code-hygiene/magic-numbers-swift` — Magic numbers should be replaced by named constants.
+- [x] `Tests/AgentViewKitTests/Thread/TranscriptStaticRowTests.swift:45` `reuse/reuse` — The new static helper `update(_:)` repeats the body of a private helper that already exists. `InspectionNameTests` has `private func update(_ json: String)` with the same one-line body: decode `SessionUpdate` from `json`, then wrap it with `.update(...)`. Two copies of one test helper must be kept in step. Shared test code belongs in one place. Move the helper to a shared test support file under Tests/AgentViewKitTests/Helpers/ (for example, as an internal static func on a test support type). Have TranscriptStaticRowTests and InspectionNameTests call it. Do not add a new SwiftPM target to hold it.
