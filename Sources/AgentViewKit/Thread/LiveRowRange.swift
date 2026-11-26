@@ -57,9 +57,9 @@ package final class LiveRowRange {
   /// - Parameter visible: The positions in the transcript of the rows in
   ///   view, in any order.
   func noteVisible(positions visible: [Int]) {
-    guard let first = visible.min(), let last = visible.max() else { return }
-    guard !covers(first - Self.slack, last + Self.slack) else { return }
-    positions = (first - Self.margin)...(last + Self.margin)
+    guard let span = visible.positionSpan else { return }
+    guard !covers(span.lowerBound - Self.slack, span.upperBound + Self.slack) else { return }
+    positions = (span.lowerBound - Self.margin)...(span.upperBound + Self.margin)
   }
 
   /// Tells if the range holds both positions.
@@ -79,6 +79,18 @@ package final class LiveRowRange {
   /// - Returns: `true` when the row keeps its models.
   func isLive(_ position: Int) -> Bool {
     positions?.contains(position) ?? true
+  }
+}
+
+extension Collection<Int> {
+  /// The span of the positions of the collection: from the first position
+  /// to the last position, or `nil` for an empty collection.
+  ///
+  /// ``LiveRowRange`` and ``TranscriptStaticRowHeights`` read the rows in
+  /// view as this span. Each caller decides what an empty report does.
+  var positionSpan: ClosedRange<Int>? {
+    guard let first = self.min(), let last = self.max() else { return nil }
+    return first...last
   }
 }
 

@@ -82,6 +82,9 @@ enum TranscriptRowForm {
 /// the modifier records the size of the row in
 /// ``TranscriptMeasuredRowHeights``.
 struct TranscriptStaticRow: ViewModifier {
+  /// The start of the ``BodyEvaluationCounter`` key of each row.
+  static let counterKeyPrefix = "static-row-"
+
   /// The id of the entry of the row.
   let id: TranscriptEntry.ID
 
@@ -93,8 +96,19 @@ struct TranscriptStaticRow: ViewModifier {
   /// provider of the static form.
   let heights: TranscriptStaticRowHeights?
 
+  /// The ``BodyEvaluationCounter`` key of the row of `id`.
+  ///
+  /// - Parameter id: The row key of the entry.
+  /// - Returns: `static-row-<id>`.
+  static func counterKey(for id: String) -> String {
+    BodyEvaluationKey.make(prefix: counterKeyPrefix, id: id)
+  }
+
   func body(content: Content) -> some View {
-    TranscriptStaticRowFrame(staticHeight: staticHeight) {
+    #if DEBUG
+      BodyEvaluationCounter.note(Self.counterKey(for: id.rowKey))
+    #endif
+    return TranscriptStaticRowFrame(id: id, staticHeight: staticHeight) {
       content.environment(\.transcriptRowIsStatic, isStatic)
     }
     .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
@@ -125,6 +139,13 @@ struct TranscriptStaticRow: ViewModifier {
 /// The layout is the same type in each form, so a change of form keeps the
 /// identity of the row.
 struct TranscriptStaticRowFrame: Layout {
+  /// The start of the ``BodyEvaluationCounter`` key of the layouts of each
+  /// row.
+  static let counterKeyPrefix = "static-row-frame-"
+
+  /// The id of the entry of the row.
+  let id: TranscriptEntry.ID
+
   /// The height of the static form of the row at a width, from the height
   /// provider, or `nil` when the provider knows no height at that width.
   typealias Height = @MainActor (CGFloat) -> CGFloat?
@@ -132,7 +153,19 @@ struct TranscriptStaticRowFrame: Layout {
   /// The height of the static form, or `nil` in the real form.
   let staticHeight: Height?
 
+  /// The ``BodyEvaluationCounter`` key of the size computations of the row
+  /// of `id`.
+  ///
+  /// - Parameter id: The row key of the entry.
+  /// - Returns: `static-row-frame-<id>`.
+  @MainActor static func counterKey(for id: String) -> String {
+    BodyEvaluationKey.make(prefix: counterKeyPrefix, id: id)
+  }
+
   func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+    #if DEBUG
+      MainActor.assumeIsolated { BodyEvaluationCounter.note(Self.counterKey(for: id.rowKey)) }
+    #endif
     let content = subviews.first?.sizeThatFits(proposal) ?? .zero
     let width = proposal.width ?? content.width
     // SwiftUI lays out its views on the main actor.
