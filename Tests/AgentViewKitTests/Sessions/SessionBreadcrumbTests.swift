@@ -1,9 +1,11 @@
 import AgentViewKitTestSupport
+import AppKit
 import EditorSwiftUI
 import EditorTestSupport
 import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
+import SwiftUI
 import Testing
 
 @testable import AgentViewKit
@@ -233,15 +235,53 @@ import Testing
     #expect(ChildrenMenu.split(entries).more == 0)
   }
 
-  @Test func aMarkShowsTheShownSessionAndTheSessionsThatNeedTheUser() async throws {
+  @Test func aMarkShowsTheSessionsThatNeedTheUser() async throws {
     let session = try await ScriptedSession.open()
     defer { session.close() }
     let child = try await session.announceChild(SessionId(rawValue: "c"))
     try await session.sendInOrder([.permission(id: 1, sessionId: child.sessionId)], to: child)
 
-    #expect(SessionBreadcrumb.mark(of: child.pathEntry, isCurrent: true) == "checkmark")
-    #expect(
-      SessionBreadcrumb.mark(of: child.pathEntry, isCurrent: false) == EditorSymbol.severity(.warning).systemImage)
+    #expect(SessionBreadcrumb.mark(of: child.pathEntry) == .severity(.warning))
+  }
+
+  /// The accessibility identifier of the view whose context menu holds the
+  /// choices of a test.
+  static let choicesIdentifier = "session-choices"
+
+  /// The menu that AppKit builds from a choice of the shown session and a
+  /// choice of a session that needs nothing, in this order. The menu comes
+  /// from a right press that the harness makes and never posts, so no
+  /// window shows and no view takes the focus.
+  ///
+  /// - Returns: The menu.
+  /// - Throws: An error when the scripted session does not open, or when no
+  ///   menu is under the view.
+  static func choicesMenu() async throws -> NSMenu {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let shown = try await session.announceChild(SessionId(rawValue: "shown"))
+    let other = try await session.announceChild(SessionId(rawValue: "other"))
+    let harness = HostedViewHarness {
+      Text(verbatim: "Choices")
+        .accessibilityIdentifier(choicesIdentifier)
+        .contextMenu {
+          SessionBreadcrumb.choice(shown.pathEntry, isCurrent: true, locale: SessionBreadcrumbTests.locale) { _ in }
+          SessionBreadcrumb.choice(other.pathEntry, isCurrent: false, locale: SessionBreadcrumbTests.locale) { _ in }
+        }
+    }
+    return try #require(try harness.contextMenu(identifier: choicesIdentifier))
+  }
+
+  @Test func onlyTheChoiceOfTheShownSessionHasTheCheckMarkOfTheMenu() async throws {
+    let menu = try await Self.choicesMenu()
+
+    #expect(menu.items.map(\.state) == [.on, .off])
+  }
+
+  @Test func aChoiceThatNeedsNothingShowsNoIcon() async throws {
+    let menu = try await Self.choicesMenu()
+
+    #expect(menu.items.last?.image == nil)
   }
 
   @Test func theBannerFindsAWaitingSiblingAndAWaitingAncestor() async throws {

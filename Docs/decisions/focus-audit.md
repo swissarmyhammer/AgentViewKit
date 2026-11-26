@@ -169,7 +169,7 @@ control: the modifier did the work of EditorKit a second time. The column
 | `Input/ToolToggles.swift` | The tools menu (`EditorMenuButton`) | EditorKit |
 | `Sessions/SessionListView.swift` | Refresh, New Session, Load More (`EditorButton`) | EditorKit |
 | `Sessions/SessionBreadcrumb.swift` | The children menu (`EditorMenuButton`) | EditorKit |
-| `Sessions/SessionBreadcrumb.swift` | The choice buttons (a `Button` in the menu) | The kit: `.withoutSystemFocusEffect()` |
+| `Sessions/SessionBreadcrumb.swift` | The choices of the menus (`EditorMenuItem`) | EditorKit |
 | `Sessions/SessionJumpList.swift` | The field (`AgentOneLineField`), the list (a SwiftUI `List`) and its rows (`EditorPlainButton`) | The kit: `.withoutSystemFocusEffect()` around the field and the list |
 | `Activity/ActivityTimeline.swift` | The row button (`EditorPlainButton`) | EditorKit |
 | `Attachments/AttachmentActions.swift` | The action buttons (`EditorToolbarButton`) | EditorKit |
@@ -201,8 +201,8 @@ and `Sources/AgentViewKitDemoSupport`. `Sources/AgentViewKitStyle` and
 `Sources/AgentViewKitDemoSupport` have no raw control.
 
 A state of "Changed" means that the place uses the EditorKit component of
-EditorKit main now. A state of "Waits for ^id" means that the EditorKit
-component is not on EditorKit main yet. The EditorKit card ^id adds it.
+EditorKit main now. Each place has an EditorKit component now, except the
+`AttachmentView` accessibility action, which stays raw by decision.
 
 | Place | Raw control | EditorKit component or wrapper | State |
 |---|---|---|---|
@@ -232,7 +232,7 @@ component is not on EditorKit main yet. The EditorKit card ^id adds it.
 | `Attachments/AttachmentPreview.swift` | `ProgressView` | `EditorProgressView` | Changed |
 | `Thread/SideQuestionCard.swift` | `ProgressView` | `EditorProgressView` | Changed |
 | `Commands/HostPathContextMenu.swift` | `Button` in `.contextMenu` for each command at a host path | `EditorMenuItem` (`.commandContextMenu(system)` builds its menu only at the path of an ancestor scope) | Changed |
-| `Sessions/SessionBreadcrumb.swift`, a choice of the children menu | `Button` in an `EditorMenuButton` | `EditorMenuItem` | Waits for EK: `EditorMenuItem` takes its icon as an `EditorSymbol` only, and `EditorSymbol` has no symbol for the marks of a choice: the check mark of the shown session (`checkmark`) and the empty circle of each other session (`circle`) |
+| `Sessions/SessionBreadcrumb.swift`, a choice of a crumb menu and of the children menu | `Button` in an `EditorMenuButton`, with a check mark or a circle | `EditorMenuItem` with `isSelected:`. The choice of the shown session shows the system check mark of the menu. The other choices show no mark, as each macOS menu does. A choice that needs the user shows the warning symbol | Changed |
 | `Lists/AgentRowList.swift`, the preview | `Button` in `.contextMenu` | `EditorMenuItem` | Changed |
 | `Lists/AgentRowList.swift`, the list | `ScrollView` of a list scope that takes the focus | `EditorScrollView` (in the form `EditorScrollStack`) | Changed |
 | `Attachments/AttachmentView.swift` | `Button` in `.accessibilityActions` (a named accessibility action, not a drawn control) | None. EditorKit `ChoiceField` uses the same form for its actions | Stays (decision of 2026-11-25): it is an accessibility action, not a drawn control |
