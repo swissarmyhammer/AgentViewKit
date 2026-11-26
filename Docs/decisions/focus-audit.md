@@ -181,7 +181,7 @@ The other scroll views of the kit (the chip rows, the timeline, the form
 pages and the text blocks) are not in a focus scope, so the table does not
 list them.
 
-The changed controls keep their behavior, with this change:
+The changed controls keep their behavior, with these changes:
 
 - The menu of a single-choice field always has the item of no selection, so
   a person can remove the answer of an optional field, as before.
@@ -193,18 +193,37 @@ The changed controls keep their behavior, with this change:
 - The label of an `EditorPlainButton` takes the caption font of the button
   tokens. The pill of an `InlineCitation` gets the font of the text around
   it back, so it keeps the size of that text.
+- Each spinner has an accessibility label. The spinner of a preview that
+  loads or writes its file is one view, `PreviewLoadingSpinner`, with the
+  label "Loading". The spinner of the activity indicator has the label
+  "Running".
+- VoiceOver reads the card of a resource link as a link, not as a button.
 
-`Tests/AgentViewKitTests/Elicitation/ElicitationFieldControlTests.swift` and
-`Tests/AgentViewKitTests/Sessions/SessionJumpListFieldTests.swift` check
-that each changed view mounts the EditorKit control, and that the control
-takes the face of a custom theme (`EnlargedRoleTheme`). Two theme values
-are not visible in a unit test:
+The unit tests next to the tests of each changed view check that the view
+mounts the EditorKit control, with the `ControlProbe` helper: the stepper
+buttons and the slider of a number field, the switch, the check boxes and
+the menu of a form (`ElicitationFieldControlTests`), the tab chip
+(`ElicitationTabChipTests`), the jump field and the jump row
+(`SessionJumpListFieldTests`), the pill of a citation
+(`InlineCitationTests`), the link card (`LinkViewTests`), the JSON block
+(`JSONDisclosureTests`), the sources footer (`SourcesViewDisclosureTests`),
+the spinners (`ActivityIndicatorProgressTests`,
+`PreviewLoadingSpinnerTests`) and the scroll view of a row list
+(`AgentRowListScrollTests`). A control with text takes the face of a custom
+theme (`EnlargedRoleTheme`), or the caption style of custom button tokens.
+These theme values are not visible in a unit test:
 
 - The accent of a check box or a switch. A window that is not key draws no
   accent, and a unit test never makes a key window.
 - The `ui` face of a `ChoiceField` in the menu style. The pop-up button
   keeps the same size with the enlarged `ui` face of a theme. EditorKit must
   look at this.
+- The fill of an `EditorProgressView` and the track of a `SliderField`: the
+  secondary color of the theme. A unit test reads no color of a drawn
+  control.
+- The link color of an `EditorLink`. The link card draws its own text.
+- An item of a menu (`EditorMenuItem`). AppKit draws the menu, and the
+  menu shows the same rows as before.
 
 ## Tests
 
