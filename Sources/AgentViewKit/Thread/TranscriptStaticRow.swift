@@ -55,20 +55,24 @@ struct TranscriptRowHolds: Equatable {
 enum TranscriptRowForm {
   /// Tells if a row shows its static form.
   ///
-  /// A row is static only while the rows move, while nothing holds it real
-  /// (a row that was real at rest before the motion holds itself), and
-  /// while the height provider knows its height. A row with no known
-  /// height shows its real form, so the change of form never moves it.
+  /// A row is static only while the rows move or while the row waits for
+  /// its turn in the ``TranscriptRowMountQueue`` (card ^7625j1b), while
+  /// nothing holds it real (a row that was real at rest before the motion
+  /// holds itself), and while the height provider knows its height. A row
+  /// with no known height shows its real form, so the change of form never
+  /// moves it.
   ///
   /// - Parameters:
   ///   - rowsMove: Whether the rows of the thread move
   ///     (``TranscriptRowMotion``).
+  ///   - waitsToMount: Whether the row waits for its turn in the queue
+  ///     (``TranscriptRowMount/waits``).
   ///   - holds: The holds of the row.
   ///   - knowsHeight: Whether the height provider knows the height of the
   ///     row.
   /// - Returns: `true` when the row shows its static form.
-  static func isStatic(rowsMove: Bool, holds: TranscriptRowHolds, knowsHeight: Bool) -> Bool {
-    rowsMove && !holds.keepsRealRow && knowsHeight
+  static func isStatic(rowsMove: Bool, waitsToMount: Bool, holds: TranscriptRowHolds, knowsHeight: Bool) -> Bool {
+    (rowsMove || waitsToMount) && !holds.keepsRealRow && knowsHeight
   }
 }
 

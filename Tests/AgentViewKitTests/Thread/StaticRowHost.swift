@@ -33,6 +33,10 @@ import SwiftUI
   /// The cache of the EditorKit models of the row, as a thread gives it.
   let cache = CodeBlockModelCache(limit: CodeBlockModelCache.threadLimit)
 
+  /// The queue that mounts the real row at rest, or `nil` for a row that
+  /// shows its real form at once at rest (card ^7625j1b).
+  var mounts: TranscriptRowMountQueue?
+
   /// The window of the host. It is never ordered in.
   private let window: NSWindow
 
@@ -201,6 +205,7 @@ import SwiftUI
       .fixedSize(horizontal: false, vertical: true)
       .environment(\.transcriptRowsMove, rowsMove)
       .environment(\.staticRowHeights, heights)
+      .environment(\.transcriptRowMounts, mounts)
       .environment(\.expandedBlocksStore, store)
       .environment(\.sessionModel, session)
       .environment(\.codeBlockModelCache, cache)
