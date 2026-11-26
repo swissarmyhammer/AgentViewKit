@@ -85,10 +85,8 @@
     ///
     /// - Parameter keys: The row keys of the rows.
     static func resetCounts(of keys: [String]) {
-      for key in keys {
-        BodyEvaluationCounter.reset(ItemRow.counterKey(for: key))
-        BodyEvaluationCounter.reset(ItemRow.contentCounterKey(for: key))
-      }
+      BodyEvaluationCounter.reset(keys.map(ItemRow.counterKey(for:)))
+      BodyEvaluationCounter.reset(keys.map(ItemRow.contentCounterKey(for:)))
     }
 
     @Test func aStreamOfChunksEvaluatesOnlyTheStreamedRowAndShowsTheEntryText() async throws {

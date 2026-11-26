@@ -96,9 +96,7 @@
     ///
     /// - Parameter session: The session model.
     static func resetRowBodyCounts(of session: SessionModel) {
-      for key in rowCounterKeys(of: session) {
-        BodyEvaluationCounter.reset(key)
-      }
+      BodyEvaluationCounter.reset(rowCounterKeys(of: session))
     }
 
     /// The position in the transcript of the row that a scroll step jumps

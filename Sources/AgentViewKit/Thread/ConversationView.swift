@@ -154,10 +154,22 @@ public enum ConversationLayout {
     _ position: inout ScrollPosition, isNearBottom: Bool, firstScrollRowKey: String? = nil
   ) {
     guard isNearBottom else { return }
-    let keepsFirstScrollRow =
-      firstScrollRowKey != nil && position.viewID(type: String.self) == firstScrollRowKey
-    guard position.edge == .bottom || keepsFirstScrollRow else { return }
+    if let firstScrollRowKey, keepsRow(position, rowKey: firstScrollRowKey) {
+      releaseFirstScrollRow(&position, rowKey: firstScrollRowKey)
+      return
+    }
+    guard position.edge == .bottom else { return }
     position.isPositionedByUser = true
+  }
+
+  /// Whether the scroll position keeps the row of a row key as its target.
+  ///
+  /// - Parameters:
+  ///   - position: The scroll position of the list.
+  ///   - rowKey: The row key.
+  /// - Returns: `true` when the target of `position` is the row of `rowKey`.
+  static func keepsRow(_ position: ScrollPosition, rowKey: String) -> Bool {
+    position.viewID(type: String.self) == rowKey
   }
 
   /// Applies the first scroll to the bottom of the list: a scroll to the
@@ -235,7 +247,7 @@ public enum ConversationLayout {
   ///   - position: The scroll position of the list.
   ///   - rowKey: The row key of the row of the first scroll.
   static func releaseFirstScrollRow(_ position: inout ScrollPosition, rowKey: String) {
-    guard position.viewID(type: String.self) == rowKey else { return }
+    guard keepsRow(position, rowKey: rowKey) else { return }
     position.isPositionedByUser = true
   }
 

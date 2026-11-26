@@ -56,9 +56,7 @@
     ///
     /// - Parameter keys: The ``BodyEvaluationCounter`` keys of the responses.
     static func resetCounts(of keys: [String]) {
-      for key in keys {
-        BodyEvaluationCounter.reset(key)
-      }
+      BodyEvaluationCounter.reset(keys)
     }
 
     /// The positions of the rows in view of a report that starts at `start`.

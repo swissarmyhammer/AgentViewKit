@@ -61,8 +61,16 @@ comments:
     - rule: the first layout measures rows 0 and 1. A very tall row 0 makes the estimated height of each row that is not measured very large. The initial offset goes to the bottom of the estimate. When one estimated row is taller than the viewport, the viewport holds only the last row. The stack measures that row, and the estimate falls. The viewport moves to the new bottom, but the stack makes no row there in that pass. No visibility report comes, and the scroll to the bottom edge goes to where the list already is. So no layout pass follows, and the list stays empty. With 574ebdf9, the estimate is about 2 times larger (one child for each element, not two), so more shapes fail.
     - next: try a scroll to the id of the last row (an element of the ForEach) for the scroll to the bottom, or a second scroll in the geometry action when the content height changes and no visibility report has come. The test uses shape a (it fails on feadf6c1) and shape i (it fails on main).
   timestamp: 2026-11-26T01:47:32.811510+00:00
-position_column: todo
-position_ordinal: 8d80
+- actor: claude-code
+  id: 01m8b2vx6ktt8c44z48ky5hcgm
+  text: |-
+    ### review — findings
+    - evidence: `review sha 4bc77925..74c5b22a` (the merge of branch pc1w14d-element-fix, on main, not pushed): findings 2, confirmed 2, refuted 7, attempted 7, failed 0, skipped 0. 7 files reviewed, 0 not reviewed. Open findings: `Sources/AgentViewKit/Thread/ConversationView.swift:238` (reuse/reuse), `Tests/AgentViewKitTests/Thread/ConversationRowElementTests.swift:98` (reuse/reuse). The findings are in the section "Review Findings (2026-11-25 22:42)".
+    - test evidence that the caller gave (not used to check items, because the review has findings): root `swift test` passed 2 times on the branch (1786 tests in 211 suites, plus 59 tests in 12 suites, 0 failures). All IntegrationTests passed on the branch after a merge of main (1090 tests, 5 known issues). ConversationRowElementTests passes.
+    - next: correct the 2 findings, then run `/review ^c4sg6gz` on the new commits. The card stays in review. The test and acceptance items stay unchecked.
+  timestamp: 2026-11-26T04:47:20.275241+00:00
+position_column: review
+position_ordinal: '80'
 title: 'Scroll perf 5: one view for each ForEach element of the transcript'
 ---
 User request (2026-11-25): "scrolling is still way too slow", stay with SwiftUI. The scroll profile found `LazyStack.measureEstimates` → `ForEachList.applyNodes` over all 200 elements at 9.25% of main-thread time. Each element gives a row and a nested `ForEach` of modelChanged status lines, so the view count of an element is not fixed. This gain is an estimate; the card measures it first.
@@ -88,3 +96,10 @@ User request (2026-11-25): "scrolling is still way too slow", stay with SwiftUI.
 
 ## Workflow
 - Use `/tdd` — write failing tests first, then implement to make them pass. #perf
+
+## Review Findings (2026-11-25 22:42)
+
+> Scope: `review sha 4bc77925..74c5b22a` — reviewed the diffs only — lines this change added or modified. 7 file(s) reviewed, 0 not reviewed.
+
+- [x] `Sources/AgentViewKit/Thread/ConversationView.swift:238` `reuse/reuse` — releaseFirstScrollRow repeats the row-key check that releaseBottomEdge already does in keepsFirstScrollRow (the nil-guarded viewID(type:) == key test, then isPositionedByUser = true). Two copies of the same predicate and the same flag write can drift apart. This is a minor near-match that was not generalized. Add one small helper, for example a static func that tests whether the position keeps a given row key, and use it in both releaseBottomEdge and releaseFirstScrollRow. Or have releaseBottomEdge call releaseFirstScrollRow when keepsFirstScrollRow holds. Keep the behavior the same, and keep the existing ConversationScrollPositionTests passing.
+- [x] `Tests/AgentViewKitTests/Thread/ConversationRowElementTests.swift:98` `reuse/reuse` — The new resetRowBodyCounts helper repeats the reset loop over row counter keys that already exists in several integration test suites. Each copy drifts on its own when the counter keys change. The same reset-and-count pattern is written again instead of being shared. Move the counter-key and reset helpers into the shared test support target next to BodyEvaluationCounter, and call them from both the unit and the integration suites. If that target cannot be reached from the integration package, record the copies as a known follow-up instead of adding a new one.
