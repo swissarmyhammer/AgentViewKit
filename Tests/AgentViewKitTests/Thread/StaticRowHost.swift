@@ -1,4 +1,5 @@
 import AppKit
+import EditorTestSupport
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
@@ -9,8 +10,9 @@ import SwiftUI
 /// window that is never ordered in (card ^9ync5h3).
 ///
 /// The host shows the ``TranscriptRowElement`` of the one entry of a
-/// session, with the record of the row heights and the motion signal of a
-/// thread. ``show(rowsMove:)`` sets the motion signal and lays the row out
+/// session, with the heights of the static rows and the motion signal of a
+/// thread. A host from ``cached(_:width:)`` gives the rows the height cache
+/// of a thread too. ``show(rowsMove:)`` sets the motion signal and lays the row out
 /// again, so a test reads the row at rest and while the rows move. No
 /// window shows, and no window takes the focus. The window has the light
 /// appearance, so the text is dark on a clear background.
@@ -21,8 +23,12 @@ import SwiftUI
   /// The width of the row, in points.
   let width: CGFloat
 
-  /// The record of the heights of the real row.
-  let heights = TranscriptMeasuredRowHeights()
+  /// The heights of the static row: the record of the real row, and the
+  /// height cache of a host from ``cached(_:width:)``.
+  let heights = TranscriptStaticRowHeights()
+
+  /// The store of the expanded blocks of the row.
+  let store: ExpandedBlocksStore
 
   /// The cache of the EditorKit models of the row, as a thread gives it.
   let cache = CodeBlockModelCache(limit: CodeBlockModelCache.threadLimit)
@@ -38,7 +44,20 @@ import SwiftUI
   /// - Parameters:
   ///   - item: The transcript item of the one entry.
   ///   - width: The width of the row, in points.
-  init(_ item: PreviewTranscriptItem, width: CGFloat) {
+  convenience init(_ item: PreviewTranscriptItem, width: CGFloat) {
+    self.init(item, width: width, isExpanded: false, showsAtRest: true)
+  }
+
+  /// Makes the host of the row of `item`, and shows the row at rest only
+  /// when `showsAtRest` is `true`.
+  ///
+  /// - Parameters:
+  ///   - item: The transcript item of the one entry.
+  ///   - width: The width of the row, in points.
+  ///   - isExpanded: Whether the blocks of the row are expanded.
+  ///   - showsAtRest: Whether the host shows the row at rest.
+  private init(_ item: PreviewTranscriptItem, width: CGFloat, isExpanded: Bool, showsAtRest: Bool) {
+    store = ExpandedBlocksStore { _ in isExpanded }
     session = .preview(transcript: [item])
     self.width = width
     hosting = NSHostingView(rootView: AnyView(EmptyView()))
@@ -48,7 +67,47 @@ import SwiftUI
     window.isReleasedWhenClosed = false
     window.appearance = NSAppearance(named: .aqua)
     window.contentView = hosting
+    if showsAtRest {
+      show(rowsMove: false)
+    }
+  }
+
+  /// Gives the row of a fixture the height cache of a thread, waits until the
+  /// cache publishes the height of the row, and then shows the row for the
+  /// first time, while the rows move.
+  ///
+  /// The row has no record of a real layout, so the cache alone can give
+  /// the height of its static form. The row of each fixture has a chrome
+  /// rule, so the cache publishes a height.
+  ///
+  /// - Parameters:
+  ///   - row: The fixture of the row.
+  ///   - width: The width of the row, in points.
+  /// - Returns: The host, with the row in its first frame.
+  static func cached(_ row: TranscriptRowFixtures.Row, width: CGFloat) async -> StaticRowHost {
+    let host = StaticRowHost(row.item, width: width, isExpanded: row.isExpanded, showsAtRest: false)
+    let cache = TranscriptRowHeights(metrics: TranscriptRowMetrics.probe(), expandedBlocks: host.store)
+    host.heights.attach(cache: cache, session: host.session)
+    host.heights.noteRowWidth(width)
+    let rowKey = host.entry.rowKey
+    await ObservationWait.until { cache.height(of: rowKey) != nil }
+    host.show(rowsMove: true)
+    return host
+  }
+
+  /// Shows the row at rest, and lays it out again after the blocks of the
+  /// main run loop that the layout added, so each EditorKit view of the row
+  /// has its height.
+  func showAtRestAndSettle() async {
     show(rowsMove: false)
+    await RunLoopBlockFence.afterPendingBlocks()
+    layOut()
+  }
+
+  /// Whether the height cache of the row gives the height of its static
+  /// form. The record of the real row does not count.
+  var cacheKnowsHeight: Bool {
+    heights.cache?.knowsHeight(of: entry.id) == true
   }
 
   /// The entry of the row.
@@ -98,7 +157,7 @@ import SwiftUI
   /// The number of EditorKit text views in the row: zero in the static
   /// form, and one for each text area in the real form.
   var textViewCount: Int {
-    Self.textViews(in: hosting).count
+    TextViewTree.textViews(in: hosting).count
   }
 
   /// The row drawn into a bitmap at the size of the host.
@@ -130,20 +189,12 @@ import SwiftUI
       .frame(width: width)
       .fixedSize(horizontal: false, vertical: true)
       .environment(\.transcriptRowsMove, rowsMove)
-      .environment(\.measuredRowHeights, heights)
+      .environment(\.staticRowHeights, heights)
+      .environment(\.expandedBlocksStore, store)
       .environment(\.sessionModel, session)
       .environment(\.codeBlockModelCache, cache)
       .threadTextSelection()
       .transaction { $0.disablesAnimations = true }
-  }
-
-  /// The text views in the view tree under `view`.
-  ///
-  /// - Parameter view: The root of the tree.
-  /// - Returns: Each text view of the tree.
-  private static func textViews(in view: NSView) -> [NSTextView] {
-    let own = (view as? NSTextView).map { [$0] } ?? []
-    return own + view.subviews.flatMap { textViews(in: $0) }
   }
 }
 
@@ -170,6 +221,10 @@ enum InkBands {
   /// The smallest alpha of a dark pixel.
   static let opaqueAlpha: CGFloat = 0.5
 
+  /// The count of color components of a pixel: red, green and blue. The
+  /// luminance of a pixel is their mean.
+  static let colorComponentCount: CGFloat = 3
+
   /// The bands of dark pixel rows of `bitmap`, from the top.
   ///
   /// - Parameter bitmap: The bitmap.
@@ -192,7 +247,7 @@ enum InkBands {
   static func hasInk(_ bitmap: NSBitmapImageRep, row y: Int) -> Bool {
     (0..<bitmap.pixelsWide).contains { x in
       guard let color = bitmap.colorAt(x: x, y: y)?.usingColorSpace(.sRGB) else { return false }
-      let luminance = (color.redComponent + color.greenComponent + color.blueComponent) / 3
+      let luminance = (color.redComponent + color.greenComponent + color.blueComponent) / colorComponentCount
       return color.alphaComponent >= opaqueAlpha && luminance <= darkLuminance
     }
   }

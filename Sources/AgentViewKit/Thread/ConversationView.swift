@@ -432,9 +432,11 @@ public struct ConversationView<EmptyState: View>: View {
   /// forms (card ^9ync5h3).
   @State private var isMoving = false
 
-  /// The size of each real row at its last layout: the heights of the
-  /// static forms of the rows (``TranscriptStaticRow``).
-  @State private var rowHeights = TranscriptMeasuredRowHeights()
+  /// The heights of the static forms of the rows (``TranscriptStaticRow``):
+  /// the exact height of the cache of the rows, else the size of the real
+  /// row at its last layout. The stack of the rows feeds the cache
+  /// (``TranscriptRowHeightsFeed``).
+  @State private var rowHeights = TranscriptStaticRowHeights()
 
   /// The command system of the thread, whose jump session keeps each row
   /// real.
@@ -564,6 +566,7 @@ public struct ConversationView<EmptyState: View>: View {
           rows(shownCount: shownCount, placements: placements)
         }
         .scrollTargetLayout()
+        .modifier(TranscriptRowHeightsFeed(heights: rowHeights, session: session))
       }
       // The list keeps the inset of its rows in its content, and gives no
       // content margin (^rgsq3k4): SwiftUI gives a content margin to the
@@ -598,7 +601,7 @@ public struct ConversationView<EmptyState: View>: View {
       noteScrollPhase(phase)
     }
     .environment(\.transcriptRowsMove, rowsMove)
-    .environment(\.measuredRowHeights, rowHeights)
+    .environment(\.staticRowHeights, rowHeights)
     .onScrollGeometryChange(for: ConversationBottomGeometry.self) { geometry in
       ConversationBottomGeometry(geometry, tolerance: anchors.tolerance)
     } action: { old, new in
@@ -868,7 +871,9 @@ public struct ConversationView<EmptyState: View>: View {
     // Each id gets its position one time from the index, and the sort
     // compares the stored positions.
     let positioned = ids.map { (id: $0, position: rowIndex.position(ofRowKey: $0, in: session)) }
-    liveRows.noteVisible(positions: positioned.compactMap(\.position))
+    let positions = positioned.compactMap(\.position)
+    liveRows.noteVisible(positions: positions)
+    rowHeights.noteRowsInView(positions: positions)
     let sorted = positioned.sorted { ($0.position ?? 0) < ($1.position ?? 0) }.map(\.id)
     anchors.noteVisible(
       ids: sorted, distanceFromBottom: self.isNearBottom ? 0 : .greatestFiniteMagnitude)

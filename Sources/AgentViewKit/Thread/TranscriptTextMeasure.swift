@@ -76,4 +76,16 @@ nonisolated public protocol TranscriptTextMeasure: Sendable {
   ///   - width: The width that the view of the part gets.
   /// - Returns: The height of the view of the part.
   nonisolated func height(of part: TranscriptTextPart, width: CGFloat) -> CGFloat
+
+  /// Tells if the height of a part is the height of the mounted view of the
+  /// part, within 0.5 pt at each width.
+  ///
+  /// The static form of a row takes the height of the cache only when each
+  /// text part of the row is exact (``TranscriptStaticRowHeights``). A part
+  /// that is not exact can give a wrong height, and the row then jumps when
+  /// it changes from its static form to its real form.
+  ///
+  /// - Parameter part: The text part.
+  /// - Returns: `true` when ``height(of:width:)`` is exact for the part.
+  nonisolated func isExact(_ part: TranscriptTextPart) -> Bool
 }

@@ -8,7 +8,11 @@ import SwiftUI
 /// (``SwiftUI/EnvironmentValues/transcriptRowIsStatic``), the slot shows the
 /// still view in place of the editor: the same text in SwiftUI `Text`, at
 /// the height of the last layout of the editor, so no view of the row moves.
-/// A slot whose editor was never laid out shows its editor in each form.
+/// A slot whose editor was never laid out, such as the slot of a row that
+/// shows its static form from its first frame, shows the still view at the
+/// height of its text. The row then has the exact height of the height
+/// cache (``TranscriptStaticRowHeights``), so the row does not move when it
+/// changes form.
 ///
 /// The height is not observable, so a new height does not make the slot
 /// evaluate its body again. The slot reads it when the form of its row
@@ -37,10 +41,10 @@ struct StaticEditorSlot<Editor: View, Still: View>: View {
   }
 
   var body: some View {
-    if isStatic, let height = laidOutHeight.points {
+    if isStatic {
       still()
         .frame(maxWidth: .infinity, alignment: .topLeading)
-        .frame(height: height, alignment: .top)
+        .frame(height: laidOutHeight.points, alignment: .top)
         .clipped()
     } else {
       let laidOutHeight = laidOutHeight

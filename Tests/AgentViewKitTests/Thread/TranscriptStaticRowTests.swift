@@ -38,14 +38,6 @@ import Testing
   static let plainAnswer = PreviewTranscriptItem.agent(plainText)
 
 
-  /// The item of an update that the agent sends as JSON.
-  ///
-  /// - Parameter json: The JSON text of the update.
-  /// - Returns: The item.
-  static func update(_ json: String) throws -> PreviewTranscriptItem {
-    .update(try JSONDecoder().decode(SessionUpdate.self, from: Data(json.utf8)))
-  }
-
   /// One item of each row kind.
   static func itemOfEachKind() throws -> [PreviewTranscriptItem] {
     [
@@ -56,17 +48,17 @@ import Testing
       .plan([PlanEntry(content: "Fix the lexer", priority: .high, status: .inProgress)]),
       .terminal(command: "swift build", output: "Building for debugging\nBuild complete.", exitCode: 0),
       .error(code: .internalError, message: "The agent stopped before it sent an answer."),
-      try update(
+      try PreviewTranscriptItem.decodedUpdate(
         #"""
         {"sessionUpdate": "compaction_update", "compactionId": "static-row-compaction", "status": "completed",
          "summary": [{"type": "text", "text": "The parser work so far."}]}
         """#),
-      try update(
+      try PreviewTranscriptItem.decodedUpdate(
         #"""
         {"sessionUpdate": "session_message", "messageId": "static-row-mail", "senderSessionId": "child-1",
          "content": [{"type": "text", "text": "The lexer change is ready."}]}
         """#),
-      try update(#"{"sessionUpdate": "x_static_row_update", "note": "first"}"#),
+      try PreviewTranscriptItem.decodedUpdate(#"{"sessionUpdate": "x_static_row_update", "note": "first"}"#),
     ]
   }
 
@@ -192,6 +184,72 @@ import Testing
     heights.record(CGSize(width: Self.widths[0], height: Self.widths[1]), for: id)
 
     #expect(heights.height(of: id, width: Self.widths[2]) == nil)
+  }
+
+  // MARK: - The height cache of the static form
+
+  /// The row kinds whose text parts are each exact with the default text
+  /// measure: a row of these kinds is static from its first frame.
+  nonisolated static let exactRows: [TranscriptRowFixtures.Row] = [
+    .userMessage, .agentProse, .thought, .toolCall, .plan,
+  ]
+
+  /// The row kinds with a text part that the default text measure does not
+  /// give exactly: a row of these kinds is real in its first frame.
+  nonisolated static let inexactRows: [TranscriptRowFixtures.Row] = [
+    .agentFenced, .diff, .commandOutput, .terminal, .notice,
+  ]
+
+  /// A production change that fails this test: the rows do not take the
+  /// heights of the cache, so a row seen for the first time stays real
+  /// while the rows move.
+  @Test func anExactRowSeenForTheFirstTimeIsStaticWhileTheRowsMove() async {
+    let host = await StaticRowHost.cached(.agentProse, width: Self.widths[1])
+
+    #expect(host.textViewCount == 0)
+  }
+
+  /// A production change that fails this test: the cache gives no height
+  /// of a row kind whose text parts are each exact.
+  @Test(arguments: exactRows)
+  func theCacheKnowsTheHeightOfAnExactRowSeenForTheFirstTime(row: TranscriptRowFixtures.Row) async {
+    let host = await StaticRowHost.cached(row, width: Self.widths[1])
+
+    #expect(host.cacheKnowsHeight)
+  }
+
+  /// A production change that fails this test: the rows take the cache
+  /// height of a row with a code fence, which the text measure does not
+  /// give exactly, so the row jumps when it changes form.
+  @Test func aRowWithACodeFenceSeenForTheFirstTimeStaysReal() async {
+    let host = await StaticRowHost.cached(.agentFenced, width: Self.widths[1])
+
+    #expect(host.textViewCount > 0)
+  }
+
+  /// A production change that fails this test: the rows take the cache
+  /// height of a row kind with a text part that is not exact.
+  @Test(arguments: inexactRows)
+  func theCacheKnowsNoHeightOfAnInexactRowSeenForTheFirstTime(row: TranscriptRowFixtures.Row) async {
+    let host = await StaticRowHost.cached(row, width: Self.widths[1])
+
+    #expect(!host.cacheKnowsHeight)
+  }
+
+  /// A production change that fails this test: the cache height of an
+  /// exact row kind is not the height of the real row, so the row jumps
+  /// when it changes from static to real.
+  @Test(arguments: exactRows, widths)
+  func aCachedRowKeepsItsFrameHeightWhenItChangesFromStaticToReal(
+    row: TranscriptRowFixtures.Row, width: CGFloat
+  ) async throws {
+    let host = await StaticRowHost.cached(row, width: width)
+    try #require(host.cacheKnowsHeight)
+    let still = host.rowHeight
+
+    await host.showAtRestAndSettle()
+
+    #expect(abs(host.rowHeight - still) <= Self.heightTolerance, "static \(still), real \(host.rowHeight)")
   }
 
   // MARK: - The pixels of the text

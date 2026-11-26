@@ -91,3 +91,32 @@ struct OutputExitLabel: View {
     }
   }
 }
+
+/// The text area of an output: the EditorKit editor of the rows that show,
+/// or their static form in a moving thread row (card ^9ync5h3).
+///
+/// ``CommandOutputView`` and ``TerminalView`` show their output in this
+/// area. A right click on the output gives the menu of the row, not the
+/// text menu of AppKit (D108, D193 (f)). In the static form of a thread
+/// row, the output shows in SwiftUI `Text`, with its colors.
+struct OutputTextArea: View {
+  /// The model of the editor.
+  let model: EditorModel
+
+  /// The rows of the output that show, and their color runs.
+  let output: TerminalOutput
+
+  /// The search mark of the row around the view, or `nil`.
+  @Environment(\.transcriptSearchMark) private var searchMark
+
+  var body: some View {
+    StaticEditorSlot {
+      EditorView(model: model)
+        .editorTextMenu(.ancestor)
+        .sizedToContent()
+        .transcriptSearchMarks(searchMark)
+    } still: {
+      StaticCodeText(StaticCodeText.colored(output.rows.text, runs: output.colorRuns))
+    }
+  }
+}

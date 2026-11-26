@@ -26,10 +26,11 @@ import Observation
   /// no chrome rule covers has no height.
   private var heights: [String: CGFloat] = [:]
 
-  /// The same heights, not observable, for the static rows
-  /// (``TranscriptRowHeightProvider``): a new height does not make a row
-  /// evaluate its body again.
-  @ObservationIgnored private var unobservedHeights: [String: CGFloat] = [:]
+  /// The heights of the rows whose text parts are each exact
+  /// (``TranscriptTextMeasure/isExact(_:)``), by row key, for the static
+  /// rows (``TranscriptRowHeightProvider``). They are not observable, so a
+  /// new height does not make a row evaluate its body again.
+  @ObservationIgnored private var exactHeights: [String: CGFloat] = [:]
 
   /// The worker that computes the heights.
   @ObservationIgnored private let worker: TranscriptRowHeightWorker
@@ -108,7 +109,7 @@ import Observation
     }
     generation += 1
     heights = [:]
-    unobservedHeights = [:]
+    exactHeights = [:]
     compute(entries.map(\.rowKey), inView: inView)
   }
 
@@ -183,7 +184,7 @@ import Observation
     guard generation == self.generation else { return }
     for result in results where revisions[result.rowKey] == result.revision {
       heights[result.rowKey] = result.height
-      unobservedHeights[result.rowKey] = result.height
+      exactHeights[result.rowKey] = result.isExact ? result.height : nil
     }
   }
 }
@@ -191,14 +192,18 @@ import Observation
 /// The cache is the height provider of the static rows (^9ync5h3): a row
 /// whose height the cache knows can show its static form from its first
 /// frame.
+///
+/// The provider gives only the height of a row whose text parts are each
+/// exact with the text measure. A height that is not exact can differ from
+/// the height of the real row, and the row then jumps when it changes form.
 extension TranscriptRowHeights: TranscriptRowHeightProvider {
   func knowsHeight(of id: TranscriptEntry.ID) -> Bool {
-    unobservedHeights[id.rowKey] != nil
+    exactHeights[id.rowKey] != nil
   }
 
   func height(of id: TranscriptEntry.ID, width: CGFloat) -> CGFloat? {
     guard abs(width - self.width) <= TranscriptMeasuredRowHeights.widthTolerance else { return nil }
-    return unobservedHeights[id.rowKey]
+    return exactHeights[id.rowKey]
   }
 }
 
@@ -223,6 +228,9 @@ actor TranscriptRowHeightWorker {
 
     /// The height, or `nil` when no chrome rule covers the row.
     let height: CGFloat?
+
+    /// Whether each text part of the row is exact with the text measure.
+    let isExact: Bool
   }
 
   /// A computed height of a row at one width.
@@ -233,8 +241,18 @@ actor TranscriptRowHeightWorker {
     /// The content digest.
     let digest: Int
 
-    /// The height.
+    /// The height, and whether it is exact.
+    let measured: Measured
+  }
+
+  /// The height of a row from the rule, and whether each text part of the
+  /// row is exact with the text measure.
+  private struct Measured {
+    /// The height, or `nil` when no chrome rule covers the row.
     let height: CGFloat?
+
+    /// Whether each text part of the row is exact.
+    let isExact: Bool
   }
 
   /// The most widths that the worker keeps for one row.
@@ -268,30 +286,39 @@ actor TranscriptRowHeightWorker {
   /// - Returns: The height of each row, in the order of the jobs.
   func heights(of jobs: [Job], width: CGFloat) -> [Result] {
     jobs.map { job in
-      Result(rowKey: job.content.rowKey, revision: job.revision, height: height(of: job.content, width: width))
+      let measured = measured(job.content, width: width)
+      return Result(
+        rowKey: job.content.rowKey, revision: job.revision, height: measured.height, isExact: measured.isExact)
     }
   }
 
   /// The height of one row at a width, from the kept heights or the rule.
   ///
+  /// The row is exact when the text measure is exact for each text part
+  /// that the rule measures. A row with no text part, such as a collapsed
+  /// thought, has only chrome, so it is exact.
+  ///
   /// - Parameters:
   ///   - content: The copy of the row.
   ///   - width: The width.
-  /// - Returns: The height.
-  private func height(of content: TranscriptRowContent, width: CGFloat) -> CGFloat? {
+  /// - Returns: The height, and whether it is exact.
+  private func measured(_ content: TranscriptRowContent, width: CGFloat) -> Measured {
     let key = content.rowKey
     let digest = content.hashValue
     var versions = kept[key, default: []]
     if let hit = versions.first(where: { $0.width == width && $0.digest == digest }) {
-      return hit.height
+      return hit.measured
     }
     let measure = measure
-    let height = TranscriptRowChrome.height(of: content, width: width, metrics: metrics) {
-      measure.height(of: $0, width: $1)
+    var isExact = true
+    let height = TranscriptRowChrome.height(of: content, width: width, metrics: metrics) { part, partWidth in
+      isExact = isExact && measure.isExact(part)
+      return measure.height(of: part, width: partWidth)
     }
+    let measured = Measured(height: height, isExact: isExact)
     versions.removeAll { $0.width == width }
-    versions.append(Kept(width: width, digest: digest, height: height))
+    versions.append(Kept(width: width, digest: digest, measured: measured))
     kept[key] = Array(versions.suffix(Self.widthLimit))
-    return height
+    return measured
   }
 }

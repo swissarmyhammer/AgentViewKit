@@ -45,6 +45,17 @@ extension EnvironmentValues {
 
   /// The override of the view of a `SessionMessageEntry`.
   @Entry public var sessionMessageViewOverride: ItemViewRenderer<SessionMessageEntry>? = nil
+
+  /// Whether the environment has an override of the view of one or more
+  /// cases.
+  var hasItemViewOverride: Bool {
+    let overrides: [Any?] = [
+      userMessageViewOverride, assistantMessageViewOverride, reasoningViewOverride, toolCallViewOverride,
+      terminalViewOverride, planViewOverride, errorViewOverride, unknownItemViewOverride,
+      compactionEntryViewOverride, sessionMessageViewOverride,
+    ]
+    return overrides.contains { $0 != nil }
+  }
 }
 
 extension View {
