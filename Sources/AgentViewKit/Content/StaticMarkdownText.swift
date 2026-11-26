@@ -13,8 +13,11 @@ import SwiftUI
 /// Markdown starts a new row, and a blank line is one empty row. A level 1
 /// or level 2 heading takes two rows for each of its lines, and its font is
 /// two times its relative size (``StaticMarkdownLine/rowScale``). The view
-/// shows each source line as one `Text` with that exact line height, so the
-/// lines of the text stand at the rows of EditorKit.
+/// shows each block of the text as one `Text` with that exact line height,
+/// so the lines of the text stand at the rows of EditorKit. A block is one
+/// heading line, or a run of the other lines, with their line breaks
+/// (``StaticMarkdownLine/blocks(in:)``). Thus a plain answer is one `Text`,
+/// which SwiftUI draws in one layer.
 ///
 /// Each line shows its inline Markdown: strong, emphasis, inline code and
 /// links. The view conceals the marker of a heading, and shows the marker
@@ -45,18 +48,19 @@ struct StaticMarkdownText: View {
     let base = editorTheme.displayFont.resolve(in: fontContext).ctFont
     let rowHeight = EditorTextFont(font: base).lineHeight
     VStack(alignment: .leading, spacing: .zero) {
-      ForEach(Array(StaticMarkdownLine.lines(in: markdown).enumerated()), id: \.offset) { _, line in
-        let font = line.font(base: base)
-        Text(line.text)
+      ForEach(Array(StaticMarkdownLine.blocks(in: markdown).enumerated()), id: \.offset) { _, block in
+        let font = block.font(base: base)
+        Text(block.text)
           .font(Font(font))
-          .editorRows(font: font, rowHeight: rowHeight * CGFloat(line.rowScale))
+          .editorRows(font: font, rowHeight: rowHeight * CGFloat(block.rowScale))
       }
     }
   }
 }
 
 /// One source line of Markdown in the static form of the rendered text
-/// (``StaticMarkdownText``).
+/// (``StaticMarkdownText``), or one block of such lines
+/// (``blocks(in:)``).
 struct StaticMarkdownLine: Equatable {
   /// The number of rows that each wrapped segment of a level 1 or a level 2
   /// heading takes in the rendered form (the `render.rowScale` of the
@@ -146,6 +150,34 @@ struct StaticMarkdownLine: Equatable {
   static func lines(in markdown: String) -> [StaticMarkdownLine] {
     markdown.split(separator: "\n", omittingEmptySubsequences: false).map { line(String($0)) }
   }
+
+  /// The blocks of `markdown`, in order: each heading line is one block, and
+  /// each run of the other lines is one block, whose text is the text of
+  /// its lines with a line break between two lines.
+  ///
+  /// - Parameter markdown: The Markdown text.
+  /// - Returns: The blocks. A block of other lines has no heading level.
+  static func blocks(in markdown: String) -> [StaticMarkdownLine] {
+    lines(in: markdown).reduce(into: []) { blocks, line in add(line, to: &blocks) }
+  }
+
+  /// Adds a line to the blocks before it: to the end of the last block when
+  /// the line and that block are not headings, else as a new block.
+  ///
+  /// - Parameters:
+  ///   - line: The next line.
+  ///   - blocks: The blocks of the lines before it.
+  private static func add(_ line: StaticMarkdownLine, to blocks: inout [StaticMarkdownLine]) {
+    guard line.headingLevel == nil, let last = blocks.last, last.headingLevel == nil else {
+      blocks.append(line)
+      return
+    }
+    blocks[blocks.count - 1] = StaticMarkdownLine(
+      headingLevel: nil, text: last.text + AttributedString(lineBreak) + line.text)
+  }
+
+  /// The line break between two lines of a block.
+  static let lineBreak = "\n"
 
   /// One source line, with its block marker concealed or replaced.
   ///

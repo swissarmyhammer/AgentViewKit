@@ -374,4 +374,27 @@ import Testing
   @Test func aBlankLineIsOneLine() {
     #expect(StaticMarkdownLine.lines(in: "One\n\nTwo").count == 3)
   }
+  /// A production change that fails this test: the static text shows each
+  /// line of a plain answer in its own `Text`, so a row draws one text
+  /// layer for each line.
+  @Test func thePlainLinesOfAnAnswerAreOneBlock() {
+    #expect(StaticMarkdownLine.blocks(in: Self.plainText).count == 1)
+  }
+
+  /// A production change that fails this test: a block joins the lines
+  /// with no line break, or drops the blank line, so the lines of the block
+  /// stand in other rows.
+  @Test func aBlockKeepsTheLineBreaksOfItsLines() {
+    let block = StaticMarkdownLine.blocks(in: "One\n\n- Two")
+
+    #expect(block.map { String($0.text.characters) } == ["One\n \n•\tTwo"])
+  }
+
+  /// A production change that fails this test: a heading joins the block of
+  /// the lines around it, so it takes the font and the rows of the body.
+  @Test func eachHeadingIsABlockOfItsOwn() {
+    let levels = StaticMarkdownLine.blocks(in: Self.headingText).map(\.headingLevel)
+
+    #expect(levels == [1, nil, 2, nil, 3, nil])
+  }
 }
