@@ -367,13 +367,46 @@ public struct ElicitationNumberField: View {
           Stepper(
             context.schema.title,
             value: number,
-            in: (minimum ?? -.greatestFiniteMagnitude)...(maximum ?? .greatestFiniteMagnitude),
+            in: Self.stepperRange(minimum: minimum, maximum: maximum),
             step: Self.step
           )
           .labelsHidden()
         }
       }
     }
+  }
+
+  /// The range of the stepper of a field with the schema bounds `minimum`
+  /// and `maximum`. The range always has its lower end at or below its
+  /// upper end, so it never traps.
+  ///
+  /// The schema comes from the agent, so the kit does not trust it. When
+  /// `minimum` is above `maximum`, the range goes from the lower bound to
+  /// the higher bound, and the field keeps its stepper. This is clearer for
+  /// the user than a field with no stepper: the field has the same layout
+  /// as each other number field, the stepper stays between the two numbers
+  /// of the schema, and the validator still reports the schema bounds as
+  /// they are, so its messages tell the user what the agent asks for.
+  ///
+  /// A missing bound, or a bound that is not a number, leaves that end
+  /// open at the largest finite number.
+  ///
+  /// - Parameters:
+  ///   - minimum: The `minimum` of the schema.
+  ///   - maximum: The `maximum` of the schema.
+  /// - Returns: The range of the stepper.
+  static func stepperRange(minimum: Double?, maximum: Double?) -> ClosedRange<Double> {
+    let lower = minimum.flatMap(Self.usableBound) ?? -.greatestFiniteMagnitude
+    let upper = maximum.flatMap(Self.usableBound) ?? .greatestFiniteMagnitude
+    return min(lower, upper)...max(lower, upper)
+  }
+
+  /// `bound`, or `nil` when `bound` is not a number.
+  ///
+  /// - Parameter bound: A bound of the schema.
+  /// - Returns: The bound that a range can use.
+  private static func usableBound(_ bound: Double) -> Double? {
+    bound.isNaN ? nil : bound
   }
 
   /// The number input of the stepper: an integer input for an integer field,
