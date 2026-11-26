@@ -181,6 +181,13 @@ public enum ConversationLayout {
   /// scroll to the bottom goes to the bottom edge
   /// (``scroll(_:to:)``).
   ///
+  /// The bottom of the last row is above the end of the content by the
+  /// bottom row padding of the style (about 8.5 points). After the first
+  /// scroll, that padding is out of view until the next scroll to the
+  /// bottom. A scroll to the bottom edge after the release would keep an
+  /// edge that no geometry action removes (task ^48x2jb7), so the list
+  /// accepts that gap.
+  ///
   /// - Parameters:
   ///   - position: The scroll position of the list.
   ///   - rowKey: The row key of the last row.
