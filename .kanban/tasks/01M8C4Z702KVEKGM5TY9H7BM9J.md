@@ -9,6 +9,13 @@ comments:
     - evidence: review sha 70c4b045..5bb17441; 29 findings (31 confirmed, 6 refuted, 14 files). Files: TerminalView.swift:63 (2), InterimTranscriptTextMeasure.swift:24, TranscriptRowChrome.swift:85,156,188,195,219,259,272,273,320,337, TranscriptRowContent.swift:173,274, TranscriptRowChromeTests.swift:16, TranscriptRowHeightBed.swift:29,68,97, TranscriptRowHeightsTests.swift:126,136,161,181,199,244,253,264,270, TranscriptRowMeasureTests.swift:14.
     - next: correct each finding in the "Review Findings (2026-11-26 10:02)" section, then review again. The card stays in review. The checklist items and the "waits for EK ^ep9f55d" note are not written, because the review is not clean.
   timestamp: 2026-11-26T16:14:47.874995+00:00
+- actor: claude-code
+  id: 01m8cd02aa0v08af41b5ndy2rp
+  text: |-
+    ### review — clean
+    - evidence: review sha 14047377..70c6ba4a (the merge of 5d0809f5) — 0 findings (0 confirmed, 1 refuted, 7 attempted, 0 failed); 13 files reviewed, 4 .kanban files not reviewed (.reviewignore). Five Swift code-hygiene rules found no file at Tests/AgentViewKitTests/Helpers/TextViewTree.swift and Tests/AgentViewKitTests/Thread/TranscriptRowMeasureTests.swift and did not read them. Evidence of the checked items: the chrome rules equal the mounted row with 0.0 pt for 12 row kinds (compaction and session message included) at 320/480/720; the cache copies no unchanged row; the root swift test: 1897 + 59 passed, 0 skipped. The EK measure item is open: EK EditorLayoutMeasure (^ep9f55d) is not on EK main; the measure tests come back with it (section on the card).
+    - next: review clean; waits for EK ^ep9f55d
+  timestamp: 2026-11-26T17:03:36.778634+00:00
 position_column: review
 position_ordinal: '80'
 title: 'Scroll 1: a row height cache from data, off the main thread'
@@ -18,7 +25,8 @@ From spike ^fa3j934 (2026-11-26). The virtual transcript needs the exact height 
 ## What
 - [x] A new type `TranscriptRowHeights` (Sources/AgentViewKit/Thread/): a cache of the height of each entry by entry id, entry version (row key and content digest) and width. It computes on a background task, and it publishes the heights to the main actor.
 - [x] A chrome rule for each row kind (user message, agent message, collapsed thought, tool call card, diff, command output, plan, notice): the row padding, the header heights and the block frames that AVK adds around the EK text. Each rule is a pure function of the entry and the theme metrics.
-- [x] The EK measure for the text parts, when EK ^ep9f55d is on EK main. Until then, the type takes an injected measure, so the next cards can start.
+- [ ] The EK measure for the text parts, when EK ^ep9f55d is on EK main. Until then, the type takes an injected measure, so the next cards can start.
+  - Note: EK EditorLayoutMeasure (^ep9f55d) is not on EK main; the measure tests come back with it (section on the card).
 - [x] Only the last row, while it streams, gets a new height per update. A width change computes again in the background, and the rows in view first.
 
 ## Acceptance Criteria
