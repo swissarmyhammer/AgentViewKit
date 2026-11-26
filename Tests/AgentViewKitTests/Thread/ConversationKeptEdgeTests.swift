@@ -1,5 +1,6 @@
 import AgentViewKitTestSupport
 import AppKit
+import EditorTestSupport
 import FoundationModelsACPClient
 import SwiftUI
 import Testing
@@ -78,7 +79,7 @@ import Testing
   /// bottom edge after the scroll to the bottom is at the bottom, so SwiftUI
   /// applies the edge again in a later layout pass, and the list moves to the
   /// new end of its content although it does not follow the bottom.
-  @Test func aLaterPassDoesNotMoveTheListToTheEdgeOfAScrollThatEnded() throws {
+  @Test func aLaterPassDoesNotMoveTheListToTheEdgeOfAScrollThatEnded() async throws {
     let session = Self.session()
     let anchors = ScrollAnchorManager()
     let window = Self.mount(session, anchors: anchors)
@@ -92,6 +93,10 @@ import Testing
     Self.layOut(hosting)
     anchors.onScroll(.bottom)
     Self.layOut(hosting)
+    // SwiftUI reports the visible rows after the layout pass, on the main
+    // run loop. The test waits for that report: the change of the visible
+    // rows of the manager, which is observable.
+    await ObservationWait.until { anchors.visibleIDs.last == lastKey }
     try #require(anchors.visibleIDs.last == lastKey)
 
     // The list stops to follow the bottom: the manager keeps a jump anchor,
