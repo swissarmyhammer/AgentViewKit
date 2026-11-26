@@ -173,13 +173,13 @@ extension View {
   /// selectable surface, or the focus ring of EditorKit on a scope. An
   /// EditorKit button, toolbar button or menu button turns off its own
   /// system focus effect, so it takes no such modifier. Each other control
-  /// of the kit, such as a SwiftUI `List` or a `PathChip`, takes this
-  /// modifier, so it shows no system focus ring. Put the modifier on the
-  /// control, inside each `.commandScope` that draws a ring, because a scope
-  /// under `.focusEffectDisabled()` draws no ring:
+  /// of the kit, such as a `PathChip` with an action, takes this modifier,
+  /// so it shows no system focus ring. Put the modifier on the control,
+  /// inside each `.commandScope` that draws a ring, because a scope under
+  /// `.focusEffectDisabled()` draws no ring:
   ///
   /// ```swift
-  /// List(entries) { entry in Row(entry) }
+  /// PathChip(file.path) { open(file) }
   ///   .withoutSystemFocusEffect()
   /// ```
   ///

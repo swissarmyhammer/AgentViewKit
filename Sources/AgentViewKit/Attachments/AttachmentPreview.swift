@@ -1,5 +1,6 @@
 import AVKit
 import EditorCommandsUI
+import EditorStyle
 import EditorSwiftUI
 import EditorTheme
 import QuickLookThumbnailing
@@ -398,7 +399,7 @@ extension AttachmentPreviewSample where Content == ThumbnailPreview {
 }
 
 #Preview("A long text file") {
-  ScrollView {
+  EditorScrollView {
     AttachmentPreviewSample(attachment: PreviewFixtures.longLogFileAttachment, renderer: .text)
   }
 }

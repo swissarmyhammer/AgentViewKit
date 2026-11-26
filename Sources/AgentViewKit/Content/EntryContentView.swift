@@ -1,3 +1,4 @@
+import EditorStyle
 import FoundationModelsACP
 import SwiftUI
 
@@ -145,7 +146,7 @@ struct EntryContentView: View {
 
 #Preview("Each kind of content, one after the other") {
   // The image and the sound hold their bytes, so the blocks read no file.
-  ScrollView {
+  EditorScrollView {
     VStack(alignment: .leading) {
       EntryContentView(content: PreviewFixtures.contentOfEachKind, id: "preview-content")
     }
