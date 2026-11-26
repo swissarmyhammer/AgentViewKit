@@ -177,7 +177,7 @@ public struct AttachmentChips: View {
     // The row reads the capabilities from the model at each draw, so a new
     // `initialize` answer or a second connection changes the marks at once.
     let capabilities = connection?.promptCapabilities
-    ScrollView(.horizontal) {
+    EditorScrollView(.horizontal) {
       HStack(spacing: editorStyle.spacing.s) {
         ForEach(attachments) { attachment in
           HStack(spacing: editorStyle.spacing.xs) {

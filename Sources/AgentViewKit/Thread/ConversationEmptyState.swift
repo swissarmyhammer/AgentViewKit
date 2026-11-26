@@ -119,7 +119,7 @@ public struct ConversationEmptyState: View {
 
   public var body: some View {
     let shown = content ?? environmentContent ?? .standard
-    ScrollView {
+    EditorScrollView {
       VStack(alignment: .leading, spacing: editorStyle.spacing.m) {
         ConversationEmptyHeader(title: shown.title, systemImage: shown.systemImage)
         RenderedMarkdownView(
