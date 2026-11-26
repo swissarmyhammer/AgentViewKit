@@ -115,8 +115,9 @@ public enum ConversationLayout {
     }
   }
 
-  /// Removes the bottom edge from the scroll position of the list when the
-  /// list is at the bottom.
+  /// Removes the bottom edge, or the last row of the first scroll to the
+  /// bottom, from the scroll position of the list when the list is at the
+  /// bottom.
   ///
   /// SwiftUI applies an edge that the position keeps again in each later
   /// layout pass of the list. The offset of the list then follows the
@@ -135,15 +136,106 @@ public enum ConversationLayout {
   /// bottom anchor for a change of its size (`ConversationFollowAnchor`), and
   /// the manager sends a scroll to the bottom for each append.
   ///
-  /// A position that keeps no edge, such as a position at an item, does not
-  /// change.
+  /// The first scroll to the bottom keeps the last row in the position
+  /// (``scrollToLastRow(_:rowKey:)``), and SwiftUI applies that row again in
+  /// later passes in the same way. When the position keeps that row, it is
+  /// removed in the same way.
+  ///
+  /// A position that keeps no edge and not the row of the first scroll, such
+  /// as a position at an item, does not change.
   ///
   /// - Parameters:
   ///   - position: The scroll position of the list.
   ///   - isNearBottom: Whether the end of the list is in the tolerance of
   ///     the manager.
-  static func releaseBottomEdge(_ position: inout ScrollPosition, isNearBottom: Bool) {
-    guard isNearBottom, position.edge == .bottom else { return }
+  ///   - firstScrollRowKey: The row key of the last row that the first
+  ///     scroll to the bottom went to, or `nil` when no such scroll is kept.
+  static func releaseBottomEdge(
+    _ position: inout ScrollPosition, isNearBottom: Bool, firstScrollRowKey: String? = nil
+  ) {
+    guard isNearBottom else { return }
+    let keepsFirstScrollRow =
+      firstScrollRowKey != nil && position.viewID(type: String.self) == firstScrollRowKey
+    guard position.edge == .bottom || keepsFirstScrollRow else { return }
+    position.isPositionedByUser = true
+  }
+
+  /// Applies the first scroll to the bottom of the list: a scroll to the
+  /// bottom of the last row (task ^pc1w14d).
+  ///
+  /// At the first layout of a long transcript, the lazy stack measures only
+  /// the first rows, and it gives each other row an estimated height. With a
+  /// very tall first row, the estimate of one row can be taller than the
+  /// view. The initial offset at the bottom then shows only the last row.
+  /// The stack lays out that row, the estimated content height becomes less,
+  /// and the list moves to the new bottom. In that pass, the stack lays out
+  /// no row at the new bottom. A scroll to the bottom edge then goes to where
+  /// the list already is, so no later pass comes, and the list shows no row.
+  ///
+  /// A scroll to the last row makes the stack lay out that row at its real
+  /// place, and the rows before it then come into view. The id of the last
+  /// row is the id of an element of the `ForEach` of the rows, so SwiftUI
+  /// does not search the elements for it (task ^48x2jb7). The position keeps
+  /// the row only until the list is at the bottom
+  /// (``releaseBottomEdge(_:isNearBottom:firstScrollRowKey:)``). Each later
+  /// scroll to the bottom goes to the bottom edge
+  /// (``scroll(_:to:)``).
+  ///
+  /// The element of the last row holds the bottom row padding of the list
+  /// (``TranscriptRowElement/isLast``), so the bottom of that element is the
+  /// end of the content. The scroll then stops at the end of the content,
+  /// as a scroll to the bottom edge does, and the padding stays in view
+  /// between the last row and the bottom bar
+  /// (`ThreadBarBannerOverlapHostedTests`).
+  ///
+  /// - Parameters:
+  ///   - position: The scroll position of the list.
+  ///   - rowKey: The row key of the last row.
+  static func scrollToLastRow(_ position: inout ScrollPosition, rowKey: String) {
+    position.scrollTo(id: rowKey, anchor: .bottom)
+  }
+
+  /// Applies the first scroll to the bottom of the list (task ^pc1w14d).
+  ///
+  /// When the content is taller than the part of the list in view, the
+  /// scroll goes to the last row (``scrollToLastRow(_:rowKey:)``). When the
+  /// content fits in view, the scroll goes to the bottom edge, as each later
+  /// scroll to the bottom does (``scroll(_:to:)``): the lazy stack then lays
+  /// out each row, so the list cannot show an empty part. A scroll to the
+  /// bottom of the last row of a short list moves the content past its
+  /// start, and the accessibility frames of the rows are then not where the
+  /// list draws them (`AgentItemFocusHostedTests`).
+  ///
+  /// - Parameters:
+  ///   - position: The scroll position of the list.
+  ///   - rowKey: The row key of the last row.
+  ///   - contentFitsInView: Whether the content of the list fits in the part
+  ///     of the list in view (``ConversationBottomGeometry/contentFitsInView``).
+  /// - Returns: The row key that the position keeps, or `nil` for a scroll
+  ///   to the bottom edge.
+  static func scrollFirstTimeToBottom(
+    _ position: inout ScrollPosition, rowKey: String, contentFitsInView: Bool
+  ) -> String? {
+    guard !contentFitsInView else {
+      scroll(&position, to: .bottom)
+      return nil
+    }
+    scrollToLastRow(&position, rowKey: rowKey)
+    return rowKey
+  }
+
+  /// Removes the row of the first scroll to the bottom from the scroll
+  /// position, when the position still keeps it, after a new last row came.
+  ///
+  /// The position is set to positioned by the user, so SwiftUI applies the
+  /// row in no later pass. A position that keeps another target, such as
+  /// the bottom edge or an item, does not change.
+  ///
+  /// - Parameters:
+  ///   - position: The scroll position of the list.
+  ///   - rowKey: The row key of the row of the first scroll.
+  static func releaseFirstScrollRow(_ position: inout ScrollPosition, rowKey: String) {
+    guard position.viewID(type: String.self) == rowKey else { return }
     position.isPositionedByUser = true
   }
 
@@ -291,6 +383,28 @@ public struct ConversationView<EmptyState: View>: View {
   /// row again then (``settleItemScroll(visible:)``).
   @State private var unsettledItemID: String?
 
+  /// Whether the list made its first scroll to the bottom.
+  ///
+  /// The first scroll to the bottom goes to the last row, and each later
+  /// scroll to the bottom goes to the bottom edge
+  /// (``ConversationLayout/scrollToLastRow(_:rowKey:)``, task ^pc1w14d).
+  @State private var didFirstBottomScroll = false
+
+  /// The row key of the last row that the first scroll to the bottom went
+  /// to, while the scroll position keeps it, or `nil`.
+  ///
+  /// When the list is at the bottom, the geometry action removes that row
+  /// from the scroll position
+  /// (``ConversationLayout/releaseBottomEdge(_:isNearBottom:firstScrollRowKey:)``).
+  @State private var firstScrollRowKey: String?
+
+  /// Whether the content of the list was not taller than the part of the
+  /// list in view at the last geometry action
+  /// (``ConversationBottomGeometry/contentFitsInView``). Before the first
+  /// action, the list takes that the content fits, so the first scroll goes
+  /// to the bottom edge.
+  @State private var contentFitsInView = true
+
   /// The rows that keep their EditorKit models: the rows in view and a
   /// margin on each side of them. A row far from them drops its models
   /// (task ^t9416x5).
@@ -391,6 +505,7 @@ public struct ConversationView<EmptyState: View>: View {
     // view, the conversation uses the selection of the thread view.
     .threadTextSelection()
     .onChange(of: lastRowKey) {
+      releaseFirstScrollRow()
       noteLastItem()
     }
     .onChange(of: pageCount) {
@@ -419,7 +534,7 @@ public struct ConversationView<EmptyState: View>: View {
         LazyVStack(alignment: .leading, spacing: editorStyle.tile.margin) {
           // A line before the first entry shows only with the first page.
           if shownCount == count {
-            statusLines(placements.lines(at: .start))
+            startLines(placements.lines(at: .start))
           }
           rows(shownCount: shownCount, placements: placements)
         }
@@ -463,9 +578,16 @@ public struct ConversationView<EmptyState: View>: View {
     .onScrollGeometryChange(for: ConversationBottomGeometry.self) { geometry in
       ConversationBottomGeometry(geometry, tolerance: anchors.tolerance)
     } action: { old, new in
-      ConversationLayout.releaseBottomEdge(&position, isNearBottom: new.isNearBottom)
+      ConversationLayout.releaseBottomEdge(
+        &position, isNearBottom: new.isNearBottom, firstScrollRowKey: firstScrollRowKey)
+      if new.isNearBottom {
+        firstScrollRowKey = nil
+      }
       if new.isNearBottom != old.isNearBottom {
         noteVisible(ids: anchors.visibleIDs, isNearBottom: new.isNearBottom)
+      }
+      if new.contentFitsInView != contentFitsInView {
+        contentFitsInView = new.contentFitsInView
       }
     }
     .overlay(alignment: .bottom) {
@@ -485,15 +607,21 @@ public struct ConversationView<EmptyState: View>: View {
 
   /// The inset of the content of the list from the edges of the scroll view.
   ///
-  /// The top and the bottom inset are the row padding of the style. The
-  /// leading and the trailing inset are the leading and the trailing value of
+  /// The top inset is the row padding of the style. The leading and the
+  /// trailing inset are the leading and the trailing value of
   /// ``barInsets``, so the leading edge of each row surface (a message row, a
   /// tool call card) stands under the leading edge of the bars (^0er2xf6).
   /// With no `.barInsets()`, the content has no horizontal inset.
+  ///
+  /// The content has no bottom inset. The element of the last row has the
+  /// row padding of the style below it (``TranscriptRowElement/isLast``), so
+  /// the bottom of that element is the end of the content. Thus the first
+  /// scroll to the bottom, which goes to the bottom of the last element,
+  /// stops at the end of the content, and the padding stays in view between
+  /// the last row and the bottom bar (``ConversationLayout/scrollToLastRow(_:rowKey:)``).
   private var listContentInsets: EdgeInsets {
-    let rowPadding = editorStyle.rowPadding
-    return EdgeInsets(
-      top: rowPadding, leading: barInsets.leading, bottom: rowPadding, trailing: barInsets.trailing)
+    EdgeInsets(
+      top: editorStyle.rowPadding, leading: barInsets.leading, bottom: 0, trailing: barInsets.trailing)
   }
 
   /// The rows of the last `shownCount` entries.
@@ -504,67 +632,55 @@ public struct ConversationView<EmptyState: View>: View {
   /// accessibility identifier of the row holds, so a test can read the
   /// scroll target of a row from the accessibility tree.
   ///
-  /// Each row gives its position in the transcript and its coordinate space
-  /// to the file views in it, which place their files in the
-  /// ``TranscriptFileOrder`` of the thread (card ^4138tmp).
-  ///
-  /// Each row gets its liveness as a `Bool` (``TranscriptRowLiveness``), so
-  /// a move of the ``LiveRowRange`` evaluates only the responses of the rows
-  /// that enter or leave the range.
-  ///
-  /// Each row gets the search mark of its entry
-  /// (``TranscriptSearchRowMark``). A row with no search hit gets nothing.
+  /// Each row gets its position, its liveness and its search mark
+  /// (``TranscriptRowElement``).
   ///
   /// The status lines of the modelChanged notices placed after an entry
   /// follow the row of that entry (``ModelChangeNoticeView``). Thus a line
   /// whose entry is on a page that is not loaded shows when that page loads.
   ///
+  /// Each element of the `ForEach` is one view: the row and its status lines
+  /// in one ``TranscriptRowElement`` (task ^c4sg6gz). The lazy stack then
+  /// measures one view for each element. The element has the spacing of the
+  /// list, so the rows and the lines keep their places. The scroll target is
+  /// the element, because the scroll target layout reads the ids of its
+  /// direct children.
+  ///
+  /// The `ForEach` reads the positions of the shown entries, and builds no
+  /// array of the entries on each body (``TranscriptRowSlot``).
+  ///
   /// - Parameters:
   ///   - shownCount: The number of rows that the list shows.
   ///   - placements: The status lines of the modelChanged notices.
-  /// - Returns: One row for each shown entry, each followed by its status
-  ///   lines.
+  /// - Returns: One view for each shown entry: its row, followed by its
+  ///   status lines.
   private func rows(shownCount: Int, placements: ModelChangePlacements) -> some View {
     let transcript = session.transcript
-    let firstPosition = transcript.count - shownCount
-    return ForEach(Array(transcript.suffix(shownCount).enumerated()), id: \.element.id) { offset, entry in
-      let row = ItemRow(entry: entry)
-      readingRow(row)
-        .modifier(TranscriptSearchRowMark(rowKey: row.id))
-        .environment(\.transcriptRowPosition, firstPosition + offset)
-        .modifier(TranscriptRowLiveness(position: firstPosition + offset))
-        .coordinateSpace(.named(TranscriptFileOrder.rowSpace))
-        .id(row.id)
-      statusLines(placements.lines(at: .after(entry.id)))
+    let slots = (transcript.count - shownCount..<transcript.count).lazy.map { position in
+      TranscriptRowSlot(position: position, entry: transcript[position])
+    }
+    return ForEach(slots) { slot in
+      TranscriptRowElement(
+        slot: slot, isLast: slot.position == transcript.count - 1,
+        lines: placements.lines(at: .after(slot.id)))
+        .id(slot.entry.rowKey)
     }
   }
 
-  /// The status lines of the modelChanged notices at one place, in the
-  /// linked reading group of the thread.
+  /// The status lines of the modelChanged notices before the first entry,
+  /// as one view above the first row.
   ///
-  /// A line has no text identity, so it is not a scroll target of the
-  /// anchors (``ModelChangeLine/ID``).
+  /// With no line, the view is absent, so the lazy stack gives no spacing
+  /// above the first row.
   ///
   /// - Parameter lines: The lines, in arrival order.
-  /// - Returns: The lines.
-  private func statusLines(_ lines: [ModelChangeLine]) -> some View {
-    ForEach(lines) { line in
-      ModelChangeNoticeView(line: line)
-        .accessibilityReadingGroup(ThreadAccessibility.threadGroupID)
+  /// - Returns: A stack of the lines, or no view when `lines` is empty.
+  @ViewBuilder private func startLines(_ lines: [ModelChangeLine]) -> some View {
+    if !lines.isEmpty {
+      VStack(alignment: .leading, spacing: editorStyle.tile.margin) {
+        TranscriptStatusLines(lines: lines)
+      }
     }
-  }
-
-  /// One row, in the linked reading group of the thread.
-  ///
-  /// VoiceOver reads from one row into the next row
-  /// (``ThreadAccessibility/threadGroupID``).
-  ///
-  /// - Parameter row: The row of an entry.
-  /// - Returns: The row.
-  private func readingRow(_ row: ItemRow) -> some View {
-    row
-      .equatable()
-      .accessibilityReadingGroup(ThreadAccessibility.threadGroupID)
   }
 
   /// The row at the top of the list that shows one more page.
@@ -632,7 +748,13 @@ public struct ConversationView<EmptyState: View>: View {
     switch target {
     case .bottom:
       unsettledItemID = nil
-      guard lastRowKey != nil else { return }
+      guard let lastRowKey else { return }
+      if !didFirstBottomScroll {
+        didFirstBottomScroll = true
+        firstScrollRowKey = ConversationLayout.scrollFirstTimeToBottom(
+          &position, rowKey: lastRowKey, contentFitsInView: contentFitsInView)
+        return
+      }
     case .item(let id):
       pageCount = ConversationLayout.pageCount(
         forScrollTo: rowIndex.position(ofRowKey: id, in: session), count: session.transcript.count,
@@ -640,6 +762,25 @@ public struct ConversationView<EmptyState: View>: View {
       unsettledItemID = id
     }
     ConversationLayout.scroll(&position, to: target)
+  }
+
+  /// Removes the row of the first scroll to the bottom from the scroll
+  /// position when a new last row comes (task ^pc1w14d).
+  ///
+  /// The first scroll keeps its row until the list is near the bottom
+  /// (``ConversationLayout/releaseBottomEdge(_:isNearBottom:firstScrollRowKey:)``).
+  /// With a bottom inset that is taller than the part of the list in view,
+  /// a short list is never near the bottom, so the position keeps the row.
+  /// After an append, SwiftUI then applies that row again in a later pass:
+  /// the row is no longer the last row, so the list moves away from the
+  /// bottom, and its report unpins the manager during a streamed turn
+  /// (`ThreadFloatingControlsHostedTests`). So when the last row changes,
+  /// the position no longer keeps the row of the first scroll. The scroll
+  /// to the bottom for the append then goes to the bottom edge.
+  private func releaseFirstScrollRow() {
+    guard let key = firstScrollRowKey, key != lastRowKey else { return }
+    firstScrollRowKey = nil
+    ConversationLayout.releaseFirstScrollRow(&position, rowKey: key)
   }
 
   /// Scrolls to the item of the last scroll to an item again, when `ids`
@@ -887,6 +1028,11 @@ struct ConversationBottomGeometry: Equatable {
   /// Whether the end of the list is in the tolerance of the manager.
   let isNearBottom: Bool
 
+  /// Whether the content of the list is not taller than the part of the
+  /// list in view, inside the insets of the bars. The first scroll to the
+  /// bottom reads it (``ConversationLayout/scrollFirstTimeToBottom(_:rowKey:contentFitsInView:)``).
+  let contentFitsInView: Bool
+
   /// The height of the content of the list, in points.
   let contentHeight: CGFloat
 
@@ -898,19 +1044,22 @@ struct ConversationBottomGeometry: Equatable {
   ///     content that counts as near the end (``ScrollAnchorManager/tolerance``).
   init(_ geometry: ScrollGeometry, tolerance: CGFloat) {
     isNearBottom = geometry.contentSize.height - geometry.visibleRect.maxY <= tolerance
+    contentFitsInView = geometry.contentSize.height <= geometry.containerSize.height
     contentHeight = geometry.contentSize.height
   }
 
-  /// Two values are equal when the near state and the content height are
-  /// both equal. Thus a change of the height alone runs the geometry
-  /// action.
+  /// Two values are equal when the near state, the fit state and the
+  /// content height are all equal. Thus a change of the height alone runs
+  /// the geometry action, and so does a change of the part in view that
+  /// changes the fit state.
   ///
   /// - Parameters:
   ///   - lhs: A value.
   ///   - rhs: Another value.
   /// - Returns: Whether the two values are equal.
   static func == (lhs: Self, rhs: Self) -> Bool {
-    lhs.isNearBottom == rhs.isNearBottom && lhs.contentHeight == rhs.contentHeight
+    lhs.isNearBottom == rhs.isNearBottom && lhs.contentFitsInView == rhs.contentFitsInView
+      && lhs.contentHeight == rhs.contentHeight
   }
 }
 
