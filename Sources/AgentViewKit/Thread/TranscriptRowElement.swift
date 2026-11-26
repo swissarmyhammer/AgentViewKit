@@ -43,11 +43,13 @@ struct TranscriptRowSlot: Identifiable {
 /// VoiceOver reads from one row into the next row
 /// (``ThreadAccessibility/threadGroupID``).
 ///
-/// While the rows move (``TranscriptRowMotion``), the row shows its static
-/// form (``TranscriptStaticRow``, card ^9ync5h3), unless a hold keeps it
-/// real (``TranscriptRowHolds``): the keyboard focus in its item scope, the
-/// mouse, the text selection of the thread in one of its text areas, or the
-/// stream of its entry. A row whose height the thread does not know yet
+/// A row that comes into the list while the rows move
+/// (``TranscriptRowMotion``) shows its static form (``TranscriptStaticRow``,
+/// card ^9ync5h3), unless a hold keeps it real (``TranscriptRowHolds``): the
+/// keyboard focus in its item scope, the mouse, the text selection of the
+/// thread in one of its text areas, or the stream of its entry. A row that
+/// was shown at rest before the motion started stays real for the whole
+/// motion, so a flick does not swap the editors of the rows in view. A row whose height the thread does not know yet
 /// shows its real form. The mouse holds a row only when it comes on the row
 /// at rest: a row that moves under the mouse does not mount its editors.
 struct TranscriptRowElement: View {
@@ -78,6 +80,10 @@ struct TranscriptRowElement: View {
   /// Whether the mouse came on the row at rest, and is still on it.
   @State private var isHovered = false
 
+  /// Whether the row was shown at rest, and thus in its real form. A row
+  /// that the list makes while the rows move was not.
+  @State private var wasShownAtRest = false
+
   var body: some View {
     let row = ItemRow(entry: slot.entry)
     let rowsMove = rowsMove
@@ -103,6 +109,16 @@ struct TranscriptRowElement: View {
       TranscriptStatusLines(lines: lines)
     }
     .padding(.bottom, isLast ? editorStyle.rowPadding : 0)
+    .onAppear { noteRest(rowsMove: rowsMove) }
+    .onChange(of: rowsMove) { noteRest(rowsMove: rowsMove) }
+  }
+
+  /// Records that the row was shown at rest, when the rows do not move.
+  ///
+  /// - Parameter rowsMove: Whether the rows of the thread move.
+  private func noteRest(rowsMove: Bool) {
+    guard !rowsMove, !wasShownAtRest else { return }
+    wasShownAtRest = true
   }
 
   /// The holds that keep the row real while the rows move.
@@ -111,6 +127,7 @@ struct TranscriptRowElement: View {
   /// state evaluates no other row.
   private var holds: TranscriptRowHolds {
     TranscriptRowHolds(
+      wasRealAtRest: wasShownAtRest,
       hasFocus: TranscriptRowHolds.hasFocus(itemScope: slot.entry.itemScopeSegment, focusedPath: focusedPath),
       isHovered: isHovered,
       hasSelection: selection.holdsSelection,

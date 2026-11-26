@@ -86,21 +86,41 @@ import Testing
 
   // MARK: - The form of a row
 
-  /// A production change that fails this test: the row keeps its real form
-  /// while the rows move.
-  @Test func aRowShowsItsStaticFormWhileTheRowsMove() {
+  /// A production change that fails this test: a row that comes into the
+  /// list while the rows move mounts its editors.
+  @Test func aRowThatEntersWhileTheRowsMoveIsStatic() {
     let host = StaticRowHost(Self.plainAnswer, width: Self.widths[1])
+
+    host.enterWhileMoving()
+
+    #expect(host.textViewCount == 0)
+  }
+
+  /// A production change that fails this test: a row in view at rest takes
+  /// its static form when the rows start to move, so the start of a flick
+  /// swaps the editors of each row in view.
+  @Test func aRowThatIsRealWhenTheRowsStartToMoveStaysReal() async {
+    let host = StaticRowHost(Self.plainAnswer, width: Self.widths[1])
+    await host.showAtRestAndSettle()
 
     host.show(rowsMove: true)
 
-    #expect(host.textViewCount == 0)
+    #expect(host.textViewCount > 0)
+  }
+
+  /// A production change that fails this test: the hold of a row that was
+  /// real at rest does not keep the row real.
+  @Test func aRowThatWasRealAtRestHoldsItsRealForm() {
+    let holds = TranscriptRowHolds(wasRealAtRest: true)
+
+    #expect(!TranscriptRowForm.isStatic(rowsMove: true, holds: holds, knowsHeight: true))
   }
 
   /// A production change that fails this test: the row keeps its static
   /// form after the rows stop.
   @Test func aRowShowsItsRealFormAtRest() {
     let host = StaticRowHost(Self.plainAnswer, width: Self.widths[1])
-    host.show(rowsMove: true)
+    host.enterWhileMoving()
 
     host.show(rowsMove: false)
 
@@ -167,7 +187,7 @@ import Testing
     let results = try Self.itemOfEachKind().map { item in
       let host = StaticRowHost(item, width: width)
       let real = host.rowHeight
-      host.show(rowsMove: true)
+      host.enterWhileMoving()
       return (kind: String(describing: host.entry).prefix(while: { $0 != "(" }), real: real, still: host.rowHeight)
     }
 
@@ -266,7 +286,7 @@ import Testing
     let host = StaticRowHost(.agent(text), width: widths[1])
     try await host.awaitParse(of: text)
     let real = InkBands.bands(in: try host.bitmap())
-    host.show(rowsMove: true)
+    host.enterWhileMoving()
     try #require(host.textViewCount == 0)
     return (real, InkBands.bands(in: try host.bitmap()))
   }

@@ -5,11 +5,19 @@ import SwiftUI
 /// The things that keep a row of a thread in its real form while the rows
 /// move (``TranscriptStaticRow``).
 ///
-/// A row that the user works with stays real, so that the work does not
-/// stop when the list moves: the row that holds the keyboard focus, the row
-/// under the mouse, the row that holds the text selection of the thread,
-/// and the row of the entry that streams.
+/// A row that was real at rest before the rows started to move stays real
+/// for the whole motion: the list does not swap the editors of the rows in
+/// view at the start of a flick, and it does not mount them again at its
+/// end. Only a row that comes into the list during the motion shows its
+/// static form. A row that the user works with also stays real, so that
+/// the work does not stop when the list moves: the row that holds the
+/// keyboard focus, the row under the mouse, the row that holds the text
+/// selection of the thread, and the row of the entry that streams.
 struct TranscriptRowHolds: Equatable {
+  /// Whether the row was shown at rest, in its real form, before the rows
+  /// started to move.
+  var wasRealAtRest = false
+
   /// Whether the keyboard focus is in a command scope of the row.
   var hasFocus = false
 
@@ -39,7 +47,7 @@ struct TranscriptRowHolds: Equatable {
 
   /// Whether one of the holds keeps the row real.
   var keepsRealRow: Bool {
-    hasFocus || isHovered || hasSelection || streams
+    wasRealAtRest || hasFocus || isHovered || hasSelection || streams
   }
 }
 
@@ -47,8 +55,9 @@ struct TranscriptRowHolds: Equatable {
 enum TranscriptRowForm {
   /// Tells if a row shows its static form.
   ///
-  /// A row is static only while the rows move, while nothing holds it real,
-  /// and while the height provider knows its height. A row with no known
+  /// A row is static only while the rows move, while nothing holds it real
+  /// (a row that was real at rest before the motion holds itself), and
+  /// while the height provider knows its height. A row with no known
   /// height shows its real form, so the change of form never moves it.
   ///
   /// - Parameters:

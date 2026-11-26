@@ -39,6 +39,10 @@ import SwiftUI
   /// The host of the row.
   private let hosting: NSHostingView<AnyView>
 
+  /// The identity of the row. A new identity is a new row, as the list
+  /// makes for a row that comes into it.
+  private var rowIdentity = 0
+
   /// Shows the row of `item` at rest, at `width`.
   ///
   /// - Parameters:
@@ -111,7 +115,17 @@ import SwiftUI
     session.transcript[0]
   }
 
-  /// Sets the motion signal of the thread, and lays the row out again.
+  /// Shows the row as a row that comes into the list while the rows move: a
+  /// new row, with no state of the row that showed before, and lays it out.
+  /// The heights of the static rows keep the size of the real row.
+  func enterWhileMoving() {
+    rowIdentity += 1
+    show(rowsMove: true)
+  }
+
+  /// Sets the motion signal of the thread, and lays the row out again. The
+  /// row keeps its identity, as a row in view of a list keeps it when the
+  /// rows start or stop to move.
   ///
   /// - Parameter rowsMove: Whether the rows of the thread move.
   func show(rowsMove: Bool) {
@@ -182,6 +196,7 @@ import SwiftUI
   private func row(rowsMove: Bool) -> some View {
     TranscriptRowElement(
       slot: TranscriptRowSlot(position: 0, entry: entry), isLast: false, lines: [])
+      .id(rowIdentity)
       .frame(width: width)
       .fixedSize(horizontal: false, vertical: true)
       .environment(\.transcriptRowsMove, rowsMove)
