@@ -129,28 +129,32 @@ struct SessionBreadcrumb: View {
   @ViewBuilder
   private func choiceRows(_ choices: [SessionPathEntry], current: SessionId?, more: Int = 0) -> some View {
     ForEach(choices) { entry in
-      choiceButton(entry, isCurrent: entry.sessionId == current)
+      Self.choice(entry, isCurrent: entry.sessionId == current, locale: locale, select: select)
     }
     if more > 0 {
       Text(String(localized: "\(more) more. Use Jump to Session to search.", bundle: .module))
     }
   }
 
-  /// One choice of a menu.
+  /// One choice of a menu: an EditorKit `EditorMenuItem`. The choice of the
+  /// shown session shows the system check mark of the menu. The other
+  /// choices show no mark, as each macOS menu does.
   ///
   /// - Parameters:
   ///   - entry: The session of the choice.
   ///   - isCurrent: Whether the choice is the shown session.
-  private func choiceButton(_ entry: SessionPathEntry, isCurrent: Bool) -> some View {
-    let text = SessionStateText.choiceLabel(for: entry, locale: locale)
-    let symbol = Self.mark(of: entry, isCurrent: isCurrent)
-    return Button {
+  ///   - locale: The locale of the label of the choice.
+  ///   - select: Called with the id of the session when the user chooses it.
+  /// - Returns: The row of the menu.
+  static func choice(
+    _ entry: SessionPathEntry, isCurrent: Bool, locale: Locale, select: @escaping (SessionId) -> Void
+  ) -> some View {
+    EditorMenuItem(
+      SessionStateText.choiceLabel(for: entry, locale: locale), symbol: mark(of: entry), isSelected: isCurrent
+    ) {
       select(entry.sessionId)
-    } label: {
-      Label(text, systemImage: symbol)
     }
     .accessibilityAddTraits(isCurrent ? .isSelected : [])
-    .withoutSystemFocusEffect()
   }
 
   /// The menu of the children of the shown session, after the bar: an
@@ -175,16 +179,14 @@ struct SessionBreadcrumb: View {
     .accessibilityIdentifier(Self.childrenIdentifier)
   }
 
-  /// The symbol of a choice: a checkmark for the shown session, a warning for
-  /// a session that needs the user, and a plain circle for the others. The
-  /// text of the choice tells the same, so the symbol is not the only sign.
+  /// The symbol of a choice: a warning for a session that needs the user,
+  /// and no symbol for the others. The check mark of the shown session is
+  /// the system mark of the menu, not a symbol. The text of the choice tells
+  /// the same, so the symbol is not the only sign.
   ///
-  /// - Parameters:
-  ///   - entry: The choice.
-  ///   - isCurrent: Whether the choice is the shown session.
-  /// - Returns: The SF Symbol name.
-  static func mark(of entry: SessionPathEntry, isCurrent: Bool) -> String {
-    if isCurrent { return "checkmark" }
-    return entry.needsAttention ? EditorSymbol.severity(.warning).systemImage : "circle"
+  /// - Parameter entry: The choice.
+  /// - Returns: The warning symbol, or `nil` when the session needs nothing.
+  static func mark(of entry: SessionPathEntry) -> EditorSymbol? {
+    entry.needsAttention ? .severity(.warning) : nil
   }
 }
