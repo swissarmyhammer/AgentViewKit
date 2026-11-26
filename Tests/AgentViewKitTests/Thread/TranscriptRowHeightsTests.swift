@@ -212,4 +212,67 @@ nonisolated final class RecordingTextMeasure: TranscriptTextMeasure {
     #expect(measure.measuredTexts.first?.contains("answer") == true)
     #expect(measure.measuredTexts.contains { $0.contains("question") })
   }
+
+  // MARK: - Height provider of the static rows
+
+  /// A cache with the heights of the rows of `session` at ``width``.
+  ///
+  /// - Parameter session: The session.
+  /// - Returns: The cache, as the provider of the static rows.
+  static func provider(of session: ScriptedSession) async -> any TranscriptRowHeightProvider {
+    let metrics = TranscriptRowMetrics.probe()
+    let heights = TranscriptRowHeights(measure: RecordingTextMeasure(), metrics: metrics)
+    let model = session.model
+    heights.update(entries: model.transcript, width: width, rowsInView: 0..<2)
+    await waitForEachHeight(in: heights, of: model.transcript, width: width, metrics: metrics)
+    return heights
+  }
+
+  @Test func theProviderGivesTheCachedHeightAtTheWidthOfTheCache() async throws {
+    let session = try await Self.openSession()
+    defer { session.close() }
+    let provider = await Self.provider(of: session)
+    let entry = try #require(session.model.transcript.last)
+    let metrics = TranscriptRowMetrics.probe()
+
+    #expect(
+      provider.height(of: entry.id, width: Self.width)
+        == Self.expectedHeight(of: entry, width: Self.width, metrics: metrics))
+  }
+
+  @Test func theProviderGivesNoHeightAtAnotherWidth() async throws {
+    let session = try await Self.openSession()
+    defer { session.close() }
+    let provider = await Self.provider(of: session)
+    let entry = try #require(session.model.transcript.last)
+
+    #expect(provider.height(of: entry.id, width: Self.newWidth) == nil)
+  }
+
+  @Test func theProviderKnowsTheHeightOfACachedRow() async throws {
+    let session = try await Self.openSession()
+    defer { session.close() }
+    let provider = await Self.provider(of: session)
+    let entry = try #require(session.model.transcript.first)
+
+    #expect(provider.knowsHeight(of: entry.id))
+  }
+
+  @Test func theProviderKnowsNoHeightOfARowThatNoRuleCovers() async throws {
+    let session = try await Self.openSession()
+    defer { session.close() }
+    let unknown = try #require(
+      SessionModel.preview(
+        transcript: [
+          .update(.agentMessageChunk(ContentChunk(content: .unknown("x", .null), messageId: MessageId(rawValue: "x"))))
+        ]
+      ).transcript.first)
+    let metrics = TranscriptRowMetrics.probe()
+    let heights = TranscriptRowHeights(measure: RecordingTextMeasure(), metrics: metrics)
+    let entries = session.model.transcript + [unknown]
+    heights.update(entries: entries, width: Self.width, rowsInView: 0..<3)
+    await Self.waitForEachHeight(in: heights, of: session.model.transcript, width: Self.width, metrics: metrics)
+
+    #expect(!(heights as any TranscriptRowHeightProvider).knowsHeight(of: unknown.id))
+  }
 }

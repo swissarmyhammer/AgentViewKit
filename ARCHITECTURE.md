@@ -66,7 +66,7 @@ While the list of a `ConversationView` moves (its scroll phase is not idle, and 
 
 ## Row heights from data
 
-`TranscriptRowHeights` (`Sources/AgentViewKit/Thread/`) gives the height of each transcript row with no view, off the main thread (^9h7bm9j). It is for the virtual transcript of the next scroll cards; `ConversationView` does not use it yet. The parts:
+`TranscriptRowHeights` (`Sources/AgentViewKit/Thread/`) gives the height of each transcript row with no view, off the main thread (^9h7bm9j). It conforms to `TranscriptRowHeightProvider`, so a static row can read its height from its first frame. Its provider reads are not observable, as the provider contract asks. `ConversationView` does not give it to its rows yet (^kr7cx7b). The parts:
 
 - `TranscriptRowContent` is a value copy of the data of a row that sets its height. The cache makes it on the main actor and observes the values that it reads, so a row that does not change costs no work on the main thread. Its hash is the content digest of the entry version.
 - `TranscriptRowChrome` holds the chrome rule of each row kind: the padding, the header heights and the block frames that AgentViewKit adds around the text parts. Each rule is a pure function of the content, the theme metrics and a text measure. A rule follows the layout of the views of its row kind, so a change to that layout changes the rule too. A row that no rule covers (for example a view override or an image block) has no height.

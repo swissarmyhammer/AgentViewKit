@@ -26,6 +26,11 @@ import Observation
   /// no chrome rule covers has no height.
   private var heights: [String: CGFloat] = [:]
 
+  /// The same heights, not observable, for the static rows
+  /// (``TranscriptRowHeightProvider``): a new height does not make a row
+  /// evaluate its body again.
+  @ObservationIgnored private var unobservedHeights: [String: CGFloat] = [:]
+
   /// The worker that computes the heights.
   @ObservationIgnored private let worker: TranscriptRowHeightWorker
 
@@ -103,6 +108,7 @@ import Observation
     }
     generation += 1
     heights = [:]
+    unobservedHeights = [:]
     compute(entries.map(\.rowKey), inView: inView)
   }
 
@@ -177,7 +183,22 @@ import Observation
     guard generation == self.generation else { return }
     for result in results where revisions[result.rowKey] == result.revision {
       heights[result.rowKey] = result.height
+      unobservedHeights[result.rowKey] = result.height
     }
+  }
+}
+
+/// The cache is the height provider of the static rows (^9ync5h3): a row
+/// whose height the cache knows can show its static form from its first
+/// frame.
+extension TranscriptRowHeights: TranscriptRowHeightProvider {
+  func knowsHeight(of id: TranscriptEntry.ID) -> Bool {
+    unobservedHeights[id.rowKey] != nil
+  }
+
+  func height(of id: TranscriptEntry.ID, width: CGFloat) -> CGFloat? {
+    guard abs(width - self.width) <= TranscriptMeasuredRowHeights.widthTolerance else { return nil }
+    return unobservedHeights[id.rowKey]
   }
 }
 
