@@ -82,7 +82,38 @@ nonisolated private struct TranscriptRowRule {
   ///   rule covers.
   /// - Returns: The height.
   func tile(_ parts: [CGFloat?]) -> CGFloat? {
-    stack(parts, spacing: metrics.tileGap).map { $0 + 2 * metrics.tilePadding }
+    stack(parts, spacing: metrics.tileGap).map { $0 + bothEdges(metrics.tilePadding) }
+  }
+
+  /// The width of the content of a tile in a view of `width`.
+  ///
+  /// - Parameter width: The width of the view.
+  /// - Returns: The width less the tile padding on each side.
+  func tileContent(_ width: CGFloat) -> CGFloat {
+    width - bothEdges(metrics.tilePadding)
+  }
+
+  /// The number of edges that a padding pads on one axis: SwiftUI
+  /// `padding(_:)` pads the leading and the trailing edge, or the top and the
+  /// bottom edge.
+  static let paddedEdgesPerAxis: CGFloat = 2
+
+  /// The length that a padding of `padding` on each edge adds on one axis.
+  ///
+  /// - Parameter padding: The padding of one edge.
+  /// - Returns: The padding of the two edges.
+  func bothEdges(_ padding: CGFloat) -> CGFloat {
+    padding * Self.paddedEdgesPerAxis
+  }
+
+  /// The heights of all parts.
+  ///
+  /// - Parameter parts: The heights of the parts, or `nil` for a part that no
+  ///   rule covers.
+  /// - Returns: The heights, or `nil` when a part has no height.
+  func all(_ parts: [CGFloat?]) -> [CGFloat]? {
+    let heights = parts.compactMap(\.self)
+    return heights.count == parts.count ? heights : nil
   }
 
   /// The height of a stack of parts with a spacing between them.
@@ -92,12 +123,7 @@ nonisolated private struct TranscriptRowRule {
   ///   - spacing: The spacing.
   /// - Returns: The height, or `nil` when a part has no height.
   func stack(_ parts: [CGFloat?], spacing: CGFloat) -> CGFloat? {
-    var total: CGFloat = .zero
-    for part in parts {
-      guard let part else { return nil }
-      total += part
-    }
-    return total + spacing * CGFloat(max(parts.count - 1, .zero))
+    all(parts).map { heights in heights.reduce(.zero, +) + spacing * CGFloat(max(heights.count - 1, .zero)) }
   }
 
   /// The height of a row of views that a horizontal stack centers.
@@ -105,12 +131,7 @@ nonisolated private struct TranscriptRowRule {
   /// - Parameter parts: The heights of the views.
   /// - Returns: The largest height, or `nil` when a view has no height.
   func line(_ parts: CGFloat?...) -> CGFloat? {
-    var tallest: CGFloat = .zero
-    for part in parts {
-      guard let part else { return nil }
-      tallest = max(tallest, part)
-    }
-    return tallest
+    all(parts).map { heights in heights.max() ?? .zero }
   }
 
   /// The height of a text part.
@@ -153,7 +174,7 @@ nonisolated private struct TranscriptRowRule {
   /// - Returns: The height.
   func codeBlock(_ code: String, language: String?, width: CGFloat) -> CGFloat? {
     let header = line(metrics.height(.blockHeaderTitle), metrics.height(.copyButton))
-    return tile(header, text(code, .code(language: language), width: width - 2 * metrics.tilePadding))
+    return tile(header, text(code, .code(language: language), width: tileContent(width)))
   }
 
   /// The height of a `StatusTitleLayout`: the symbol and the headline title
@@ -185,14 +206,12 @@ nonisolated private struct TranscriptRowRule {
   ///   - width: The width of the row.
   /// - Returns: The height.
   func message(blocks: [String], sendState: SendState?, width: CGFloat) -> CGFloat? {
-    let inner = width - 2 * metrics.spacingXS
+    let inner = width - bothEdges(metrics.spacingXS)
     let parts = [metrics.height(.messageHeader)] + blocks.map { response($0, width: inner) }
-    guard var height = stack(parts, spacing: metrics.spacingS) else { return nil }
-    if let sendState {
-      guard let caption = metrics.height(.sendState(sendState)) else { return nil }
-      height += metrics.spacingXS + caption
-    }
-    return height + 2 * metrics.spacingXS
+    guard let height = stack(parts, spacing: metrics.spacingS) else { return nil }
+    let padded = height + bothEdges(metrics.spacingXS)
+    guard let sendState else { return padded }
+    return metrics.height(.sendState(sendState)).map { padded + metrics.spacingXS + $0 }
   }
 
   /// The rule of a collapsed thought (`ReasoningBlock`): a tile with the
@@ -216,7 +235,7 @@ nonisolated private struct TranscriptRowRule {
       metrics.height(.buttonSymbol(call.statusSymbol)),
       metrics.height(.buttonSymbol(metrics.disclosureSymbol)))
     guard let body = call.body else { return tile(header) }
-    let inner = width - 2 * metrics.tilePadding
+    let inner = tileContent(width)
     return tile(header, stack(body.map { bodyPart($0, width: inner) }, spacing: metrics.tileGap))
   }
 
@@ -256,7 +275,7 @@ nonisolated private struct TranscriptRowRule {
   /// - Returns: The height.
   func commandOutput(_ output: String, exitSymbol: String?, width: CGFloat) -> CGFloat? {
     let header = line(metrics.height(.codeText), metrics.height(.copyButton))
-    let body = text(output, .output, width: width - 2 * metrics.tilePadding)
+    let body = text(output, .output, width: tileContent(width))
     guard let exitSymbol else { return tile(header, body) }
     return tile(header, body, metrics.height(.exitLabel(exitSymbol)))
   }
@@ -269,13 +288,19 @@ nonisolated private struct TranscriptRowRule {
   ///   - width: The width of the row.
   /// - Returns: The height.
   func terminal(_ terminal: TranscriptRowContent.Terminal, width: CGFloat) -> CGFloat? {
-    let inner = width - 2 * metrics.tilePadding
-    let labelWidth = inner - metrics.symbolColumnWidth - 2 * metrics.spacingS
+    let inner = tileContent(width)
+    let gaps = metrics.spacingS * CGFloat(TranscriptRowRule.terminalHeaderGapCount)
+    let labelWidth = inner - metrics.symbolColumnWidth - gaps
     let command = text(terminal.command, .label(.code), width: labelWidth)
     let folder = terminal.folder.map { text($0, .label(.ui(.caption)), width: labelWidth) } ?? .zero
     let header = line(metrics.height(.symbol(metrics.terminalSymbol)), command, folder)
     return tile(header, text(terminal.output, .output, width: inner), metrics.height(.exitLabel(terminal.exitSymbol)))
   }
+
+  /// The number of small gaps that the rule takes from the width of the
+  /// labels of a terminal header: the stack space after the symbol column,
+  /// and the least width of the spacer after the command.
+  static let terminalHeaderGapCount = 2
 
   /// The rule of a plan (`TaskListView`): the headline, then the rows with
   /// the large spacing, with the medium spacing between the two.
@@ -317,13 +342,10 @@ nonisolated private struct TranscriptRowRule {
   ///   - width: The width of the row.
   /// - Returns: The height.
   func compaction(_ compaction: TranscriptRowContent.Compaction, width: CGFloat) -> CGFloat? {
-    let inner = width - 2 * metrics.tilePadding
-    var parts = [statusTitle(symbol: compaction.symbol, explanation: compaction.summary, width: inner)]
-    if let error = compaction.error {
-      parts.append(text(error, .label(.ui(.callout)), width: inner))
-    }
-    parts += compaction.blocks.map { response($0, width: inner) }
-    return tile(parts)
+    let inner = tileContent(width)
+    let title = statusTitle(symbol: compaction.symbol, explanation: compaction.summary, width: inner)
+    let error = compaction.error.map { text($0, .label(.ui(.callout)), width: inner) }
+    return tile([title] + [error].compactMap(\.self) + compaction.blocks.map { response($0, width: inner) })
   }
 
   /// The rule of an error notice (`ErrorView`): a tile with the status
@@ -334,7 +356,7 @@ nonisolated private struct TranscriptRowRule {
   ///   - width: The width of the row.
   /// - Returns: The height.
   func error(detail: String, width: CGFloat) -> CGFloat? {
-    tile(statusTitle(symbol: metrics.errorSymbol, explanation: detail, width: width - 2 * metrics.tilePadding))
+    tile(statusTitle(symbol: metrics.errorSymbol, explanation: detail, width: tileContent(width)))
   }
 
   /// The rule of a message from another session (`SessionMessageView`): the

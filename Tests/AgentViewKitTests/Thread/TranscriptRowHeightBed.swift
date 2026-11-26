@@ -30,8 +30,19 @@ nonisolated struct MountedTextMeasure: TranscriptTextMeasure {
 /// Mounts transcript rows in a window that is never ordered in, and reads
 /// their heights.
 @MainActor enum TranscriptRowHeightBed {
-  /// The widths of each row test.
-  nonisolated static let widths: [CGFloat] = [320, 480, 720]
+  /// The width of a narrow thread, such as a thread in a side panel, in
+  /// points.
+  nonisolated static let narrowWidth: CGFloat = 320
+
+  /// The width of a thread of regular width, in points.
+  nonisolated static let regularWidth: CGFloat = 480
+
+  /// The width of a wide thread, in points.
+  nonisolated static let wideWidth: CGFloat = 720
+
+  /// The widths of each row test: the three widths of the acceptance
+  /// criteria of card ^9h7bm9j.
+  nonisolated static let widths = [narrowWidth, regularWidth, wideWidth]
 
   /// The largest difference between the cached and the mounted height.
   static let tolerance: CGFloat = 0.5
@@ -71,42 +82,37 @@ nonisolated struct MountedTextMeasure: TranscriptTextMeasure {
   ///   - store: The store that tells whether a block is expanded.
   /// - Returns: The layout of the row.
   static func mount(_ entry: TranscriptEntry, width: CGFloat, store: ExpandedBlocksStore) async -> MountedRow {
-    let hosting = NSHostingView(
-      rootView: ItemRow(entry: entry)
+    let (hosting, window) = UnorderedWindow.mount(
+      ItemRow(entry: entry)
         .frame(width: width)
-        .environment(\.expandedBlocksStore, store))
-    let window = NSWindow(
-      contentRect: NSRect(x: 0, y: 0, width: width, height: windowHeight), styleMask: [.borderless],
-      backing: .buffered, defer: true)
-    window.isReleasedWhenClosed = false
-    window.contentView = hosting
-    defer {
-      window.contentView = nil
-      window.close()
-    }
+        .environment(\.expandedBlocksStore, store),
+      size: CGSize(width: width, height: windowHeight))
+    defer { UnorderedWindow.close(window) }
     StyleViewHost.layOut(hosting)
     await RunLoopBlockFence.afterPendingBlocks()
     StyleViewHost.layOut(hosting)
-    let frames = textViewFrames(under: hosting, in: hosting).sorted { lhs, rhs in
+    let frames = textViewFrames(in: hosting).sorted { lhs, rhs in
       lhs.minY == rhs.minY ? lhs.minX < rhs.minX : lhs.minY < rhs.minY
     }
     return MountedRow(height: hosting.frame.height, textHeights: frames.map(\.height))
   }
 
-  /// The frames of the outermost EditorKit text views under `view`.
+  /// The frames of the outermost EditorKit text views under `root`.
   ///
-  /// - Parameters:
-  ///   - view: The view to search.
-  ///   - root: The view of the coordinates.
+  /// The walk of the view tree is the one walk of the test support,
+  /// `NSView.descendants`. The bed keeps only the views that lay out text
+  /// and that no other such view holds.
+  ///
+  /// - Parameter root: The view to search, and the view of the coordinates.
   /// - Returns: The frames in the coordinates of `root`.
-  private static func textViewFrames(under view: NSView, in root: NSView) -> [CGRect] {
-    view.subviews.flatMap { subview -> [CGRect] in
-      let name = String(describing: type(of: subview))
-      if textViewClassEnds.contains(where: name.hasSuffix) {
-        return [root.convert(subview.bounds, from: subview)]
-      }
-      return textViewFrames(under: subview, in: root)
+  private static func textViewFrames(in root: NSView) -> [CGRect] {
+    let textViews = root.descendants.filter { view in
+      textViewClassEnds.contains(where: String(describing: type(of: view)).hasSuffix)
     }
+    let outermost = textViews.filter { view in
+      !textViews.contains { other in other !== view && view.isDescendant(of: other) }
+    }
+    return outermost.map { root.convert($0.bounds, from: $0) }
   }
 
   /// The text parts of the chrome rule of `content`, in the order of the rule.
@@ -134,12 +140,9 @@ nonisolated struct MountedTextMeasure: TranscriptTextMeasure {
   ///   - entry: The entry of the row.
   ///   - width: The width of the row.
   ///   - expanded: Whether the blocks of the row are expanded.
-  ///   - measure: The text measure of the cache, or `nil` for a
-  ///     ``MountedTextMeasure`` of the mounted row.
   ///   - sourceLocation: The location of the caller.
   static func expectCachedHeightMatchesTheMountedRow(
-    _ entry: TranscriptEntry, width: CGFloat, expanded: Bool = false,
-    measure: (any TranscriptTextMeasure)? = nil, sourceLocation: SourceLocation = #_sourceLocation
+    _ entry: TranscriptEntry, width: CGFloat, expanded: Bool = false, sourceLocation: SourceLocation = #_sourceLocation
   ) async throws {
     let store = ExpandedBlocksStore { _ in expanded }
     let mounted = await mount(entry, width: width, store: store)
@@ -149,7 +152,7 @@ nonisolated struct MountedTextMeasure: TranscriptTextMeasure {
     try #require(parts.count == mounted.textHeights.count, sourceLocation: sourceLocation)
     let mountedMeasure = MountedTextMeasure(
       heights: Dictionary(zip(parts, mounted.textHeights)) { first, _ in first })
-    let heights = TranscriptRowHeights(measure: measure ?? mountedMeasure, metrics: metrics, expandedBlocks: store)
+    let heights = TranscriptRowHeights(measure: mountedMeasure, metrics: metrics, expandedBlocks: store)
     heights.update(entries: [entry], width: width, rowsInView: 0..<1)
     await ObservationWait.until(sourceLocation: sourceLocation) { heights.height(of: entry.rowKey) != nil }
     let cached = try #require(heights.height(of: entry.rowKey), sourceLocation: sourceLocation)

@@ -62,7 +62,7 @@ import Testing
 
   /// The number of text views in the view tree of the host.
   var mountedTextViewCount: Int {
-    TextViewTree.textViews(in: hosting).count
+    views(ofType: NSTextView.self, in: hosting).count
   }
 
   /// The height of the rows, in points.
@@ -85,7 +85,7 @@ import Testing
     autoreleasepool {
       hosting.frame = NSRect(origin: .zero, size: hosting.fittingSize)
       hosting.layoutSubtreeIfNeeded()
-      for scaffold in TextViewTree.textViews(in: hosting).compactMap({ $0.delegate as? EditorTextScaffold })
+      for scaffold in views(ofType: NSTextView.self, in: hosting).compactMap({ $0.delegate as? EditorTextScaffold })
       {
         scaffolds[ObjectIdentifier(scaffold)] = WeakScaffold(scaffold)
       }

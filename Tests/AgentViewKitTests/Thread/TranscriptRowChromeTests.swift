@@ -10,8 +10,8 @@ import Testing
 /// Each test case mounts one row kind at one width: a user message, an agent
 /// message of prose, an agent message with a code fence, a collapsed
 /// thought, a collapsed tool call card, an expanded call with a diff, an
-/// expanded call with command output, a terminal, a plan and an error
-/// notice.
+/// expanded call with command output, a terminal, a plan, an error notice,
+/// a compaction notice and a message from another session.
 @MainActor @Suite struct TranscriptRowChromeTests {
   @Test(arguments: TranscriptRowFixtures.Row.allCases, TranscriptRowHeightBed.widths)
   func theChromeRuleGivesTheMountedHeight(row: TranscriptRowFixtures.Row, width: CGFloat) async throws {

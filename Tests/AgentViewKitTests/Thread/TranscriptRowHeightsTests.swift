@@ -131,6 +131,18 @@ nonisolated final class RecordingTextMeasure: TranscriptTextMeasure {
     }
   }
 
+  /// Sends a chunk of the agent message, and waits until the cache holds the
+  /// height that the rule gives each entry of the session at ``width``.
+  ///
+  /// - Parameters:
+  ///   - text: The text of the chunk.
+  ///   - session: The session.
+  ///   - cache: The cache of the rows of the session.
+  static func streamAndSettle(_ text: String, in session: ScriptedSession, cache: SettledHeights) async throws {
+    try await stream(text, to: session)
+    await waitForEachHeight(in: cache.heights, of: session.model.transcript, width: width, metrics: cache.metrics)
+  }
+
   /// Opens a session with a user message and an agent message.
   static func openSession() async throws -> ScriptedSession {
     let session = try await ScriptedSession.open()
@@ -141,158 +153,159 @@ nonisolated final class RecordingTextMeasure: TranscriptTextMeasure {
     return session
   }
 
-  @Test func aStreamedChunkMeasuresOnlyTheStreamingRow() async throws {
-    let session = try await Self.openSession()
-    defer { session.close() }
+  /// A cache of the row heights with a recording measure, after the cache
+  /// holds the height of each entry that a rule covers.
+  struct SettledHeights {
+    /// The cache.
+    let heights: TranscriptRowHeights
+
+    /// The theme metrics of the cache.
+    let metrics: TranscriptRowMetrics
+
+    /// The measure of the cache.
+    let measure: RecordingTextMeasure
+
+    /// The cache, as the height provider of the static rows.
+    var provider: any TranscriptRowHeightProvider {
+      heights
+    }
+  }
+
+  /// Makes a cache with a recording measure, gives it each entry at
+  /// ``width`` with each row in view, and waits until the cache holds the
+  /// height that the rule gives each entry that a rule covers.
+  ///
+  /// - Parameter entries: The entries.
+  /// - Returns: The cache.
+  static func settledHeights(of entries: [TranscriptEntry]) async -> SettledHeights {
     let metrics = TranscriptRowMetrics.probe()
     let measure = RecordingTextMeasure()
     let heights = TranscriptRowHeights(measure: measure, metrics: metrics)
-    let model = session.model
-    heights.update(entries: model.transcript, width: Self.width, rowsInView: 0..<2)
-    await Self.waitForEachHeight(in: heights, of: model.transcript, width: Self.width, metrics: metrics)
-    measure.reset()
+    heights.update(entries: entries, width: width, rowsInView: entries.indices)
+    let covered = entries.filter { expectedHeight(of: $0, width: width, metrics: metrics) != nil }
+    await waitForEachHeight(in: heights, of: covered, width: width, metrics: metrics)
+    return SettledHeights(heights: heights, metrics: metrics, measure: measure)
+  }
 
-    try await Self.stream(" And the rest of it.", to: session)
-    await Self.waitForEachHeight(in: heights, of: model.transcript, width: Self.width, metrics: metrics)
+  /// Opens a session with ``openSession()``, runs `body`, and closes the
+  /// session.
+  ///
+  /// - Parameter body: The test body.
+  static func withSession(_ body: (ScriptedSession) async throws -> Void) async throws {
+    let session = try await openSession()
+    defer { session.close() }
+    try await body(session)
+  }
 
-    #expect(!measure.measuredTexts.contains { $0.contains("question") })
+  /// Opens a session with ``openSession()``, makes a settled cache of its
+  /// rows, runs `body`, and closes the session.
+  ///
+  /// - Parameter body: The test body.
+  static func withSettledSession(_ body: (ScriptedSession, SettledHeights) async throws -> Void) async throws {
+    try await withSession { session in
+      try await body(session, await settledHeights(of: session.model.transcript))
+    }
+  }
+
+  @Test func aStreamedChunkMeasuresOnlyTheStreamingRow() async throws {
+    try await Self.withSettledSession { session, cache in
+      cache.measure.reset()
+
+      try await Self.streamAndSettle(" And the rest of it.", in: session, cache: cache)
+
+      #expect(!cache.measure.measuredTexts.contains { $0.contains("question") })
+    }
   }
 
   @Test func aStreamedChunkGivesTheStreamingRowItsNewHeight() async throws {
-    let session = try await Self.openSession()
-    defer { session.close() }
-    let metrics = TranscriptRowMetrics.probe()
-    let heights = TranscriptRowHeights(measure: RecordingTextMeasure(), metrics: metrics)
-    let model = session.model
-    heights.update(entries: model.transcript, width: Self.width, rowsInView: 0..<2)
-    await Self.waitForEachHeight(in: heights, of: model.transcript, width: Self.width, metrics: metrics)
-    let agentKey = try #require(model.transcript.last?.rowKey)
-    let before = heights.height(of: agentKey)
+    try await Self.withSettledSession { session, cache in
+      let agentKey = try #require(session.model.transcript.last?.rowKey)
+      let before = cache.heights.height(of: agentKey)
 
-    try await Self.stream(" And the rest of it.", to: session)
-    await Self.waitForEachHeight(in: heights, of: model.transcript, width: Self.width, metrics: metrics)
+      try await Self.streamAndSettle(" And the rest of it.", in: session, cache: cache)
 
-    #expect(heights.height(of: agentKey) != before)
+      #expect(cache.heights.height(of: agentKey) != before)
+    }
   }
 
   #if DEBUG
     @Test func aStreamedChunkCopiesNoOtherRowOnTheMainThread() async throws {
-      let session = try await Self.openSession()
-      defer { session.close() }
-      let metrics = TranscriptRowMetrics.probe()
-      let heights = TranscriptRowHeights(measure: RecordingTextMeasure(), metrics: metrics)
-      let model = session.model
-      let userKey = try #require(model.transcript.first?.rowKey)
-      let counterKey = TranscriptRowHeights.copyCounterKey(for: userKey)
-      heights.update(entries: model.transcript, width: Self.width, rowsInView: 0..<2)
-      await Self.waitForEachHeight(in: heights, of: model.transcript, width: Self.width, metrics: metrics)
-      let copies = BodyEvaluationCounter.count(counterKey)
+      try await Self.withSettledSession { session, cache in
+        let userKey = try #require(session.model.transcript.first?.rowKey)
+        let counterKey = TranscriptRowHeights.copyCounterKey(for: userKey)
+        let copies = BodyEvaluationCounter.count(counterKey)
 
-      try await Self.stream(" And the rest of it.", to: session)
-      await Self.waitForEachHeight(in: heights, of: model.transcript, width: Self.width, metrics: metrics)
-      heights.update(entries: model.transcript, width: Self.width, rowsInView: 0..<2)
+        try await Self.streamAndSettle(" And the rest of it.", in: session, cache: cache)
+        let entries = session.model.transcript
+        cache.heights.update(entries: entries, width: Self.width, rowsInView: entries.indices)
 
-      #expect(BodyEvaluationCounter.count(counterKey) == copies)
+        #expect(BodyEvaluationCounter.count(counterKey) == copies)
+      }
     }
   #endif
 
   @Test func anUpdateWithNoChangeMeasuresNothing() async throws {
-    let session = try await Self.openSession()
-    defer { session.close() }
-    let metrics = TranscriptRowMetrics.probe()
-    let measure = RecordingTextMeasure()
-    let heights = TranscriptRowHeights(measure: measure, metrics: metrics)
-    let model = session.model
-    heights.update(entries: model.transcript, width: Self.width, rowsInView: 0..<2)
-    await Self.waitForEachHeight(in: heights, of: model.transcript, width: Self.width, metrics: metrics)
-    measure.reset()
+    try await Self.withSettledSession { session, cache in
+      cache.measure.reset()
 
-    heights.update(entries: model.transcript, width: Self.width, rowsInView: 0..<2)
-    try await Self.stream(" More.", to: session)
-    await Self.waitForEachHeight(in: heights, of: model.transcript, width: Self.width, metrics: metrics)
+      let entries = session.model.transcript
+      cache.heights.update(entries: entries, width: Self.width, rowsInView: entries.indices)
+      try await Self.streamAndSettle(" More.", in: session, cache: cache)
 
-    #expect(measure.measuredTexts.allSatisfy { $0.contains("answer") })
+      #expect(cache.measure.measuredTexts.allSatisfy { $0.contains("answer") })
+    }
   }
 
   @Test func aWidthChangeMeasuresTheRowsInViewFirst() async throws {
-    let session = try await Self.openSession()
-    defer { session.close() }
-    let metrics = TranscriptRowMetrics.probe()
-    let measure = RecordingTextMeasure()
-    let heights = TranscriptRowHeights(measure: measure, metrics: metrics)
-    let model = session.model
-    heights.update(entries: model.transcript, width: Self.width, rowsInView: 0..<2)
-    await Self.waitForEachHeight(in: heights, of: model.transcript, width: Self.width, metrics: metrics)
-    measure.reset()
+    try await Self.withSettledSession { session, cache in
+      cache.measure.reset()
+      let entries = session.model.transcript
 
-    heights.update(entries: model.transcript, width: Self.newWidth, rowsInView: 1..<2)
-    await Self.waitForEachHeight(in: heights, of: model.transcript, width: Self.newWidth, metrics: metrics)
+      cache.heights.update(entries: entries, width: Self.newWidth, rowsInView: entries.indices.suffix(1))
+      await Self.waitForEachHeight(in: cache.heights, of: entries, width: Self.newWidth, metrics: cache.metrics)
 
-    #expect(measure.measuredTexts.first?.contains("answer") == true)
-    #expect(measure.measuredTexts.contains { $0.contains("question") })
+      #expect(cache.measure.measuredTexts.first?.contains("answer") == true)
+      #expect(cache.measure.measuredTexts.contains { $0.contains("question") })
+    }
   }
 
   // MARK: - Height provider of the static rows
 
-  /// A cache with the heights of the rows of `session` at ``width``.
-  ///
-  /// - Parameter session: The session.
-  /// - Returns: The cache, as the provider of the static rows.
-  static func provider(of session: ScriptedSession) async -> any TranscriptRowHeightProvider {
-    let metrics = TranscriptRowMetrics.probe()
-    let heights = TranscriptRowHeights(measure: RecordingTextMeasure(), metrics: metrics)
-    let model = session.model
-    heights.update(entries: model.transcript, width: width, rowsInView: 0..<2)
-    await waitForEachHeight(in: heights, of: model.transcript, width: width, metrics: metrics)
-    return heights
-  }
-
   @Test func theProviderGivesTheCachedHeightAtTheWidthOfTheCache() async throws {
-    let session = try await Self.openSession()
-    defer { session.close() }
-    let provider = await Self.provider(of: session)
-    let entry = try #require(session.model.transcript.last)
-    let metrics = TranscriptRowMetrics.probe()
+    try await Self.withSettledSession { session, cache in
+      let entry = try #require(session.model.transcript.last)
 
-    #expect(
-      provider.height(of: entry.id, width: Self.width)
-        == Self.expectedHeight(of: entry, width: Self.width, metrics: metrics))
+      #expect(
+        cache.provider.height(of: entry.id, width: Self.width)
+          == Self.expectedHeight(of: entry, width: Self.width, metrics: cache.metrics))
+    }
   }
 
   @Test func theProviderGivesNoHeightAtAnotherWidth() async throws {
-    let session = try await Self.openSession()
-    defer { session.close() }
-    let provider = await Self.provider(of: session)
-    let entry = try #require(session.model.transcript.last)
+    try await Self.withSettledSession { session, cache in
+      let entry = try #require(session.model.transcript.last)
 
-    #expect(provider.height(of: entry.id, width: Self.newWidth) == nil)
+      #expect(cache.provider.height(of: entry.id, width: Self.newWidth) == nil)
+    }
   }
 
   @Test func theProviderKnowsTheHeightOfACachedRow() async throws {
-    let session = try await Self.openSession()
-    defer { session.close() }
-    let provider = await Self.provider(of: session)
-    let entry = try #require(session.model.transcript.first)
+    try await Self.withSettledSession { session, cache in
+      let entry = try #require(session.model.transcript.first)
 
-    #expect(provider.knowsHeight(of: entry.id))
+      #expect(cache.provider.knowsHeight(of: entry.id))
+    }
   }
 
   @Test func theProviderKnowsNoHeightOfARowThatNoRuleCovers() async throws {
-    let session = try await Self.openSession()
-    defer { session.close() }
-    let unknown = try #require(
-      SessionModel.preview(
-        transcript: [
-          .update(.agentMessageChunk(ContentChunk(content: .unknown("x", .null), messageId: MessageId(rawValue: "x"))))
-        ]
-      ).transcript.first)
-    let metrics = TranscriptRowMetrics.probe()
-    let heights = TranscriptRowHeights(measure: RecordingTextMeasure(), metrics: metrics)
-    let entries = session.model.transcript + [unknown]
-    heights.update(entries: entries, width: Self.width, rowsInView: 0..<3)
-    await Self.waitForEachHeight(in: heights, of: session.model.transcript, width: Self.width, metrics: metrics)
+    try await Self.withSession { session in
+      let unknown = try TranscriptRowHeightBed.entry([
+        .update(.agentMessageChunk(ContentChunk(content: .unknown("x", .null), messageId: MessageId(rawValue: "x"))))
+      ])
+      let cache = await Self.settledHeights(of: session.model.transcript + [unknown])
 
-    #expect(!(heights as any TranscriptRowHeightProvider).knowsHeight(of: unknown.id))
+      #expect(!cache.provider.knowsHeight(of: unknown.id))
+    }
   }
 
   @Test func theProviderKnowsNoHeightOfARowWithAPartThatIsNotExact() async throws {
