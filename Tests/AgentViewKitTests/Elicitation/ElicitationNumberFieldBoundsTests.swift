@@ -36,4 +36,36 @@ import Testing
 
     #expect(role == NSAccessibility.Role.textArea.rawValue)
   }
+
+  /// A production change that fails this test: the stepper range keeps the
+  /// schema bounds in the order of the schema when they are not in order.
+  @Test func theStepperRangeOfBoundsNotInOrderGoesFromTheLowerToTheHigher() {
+    let range = ElicitationNumberField.stepperRange(minimum: Self.high, maximum: Self.low)
+
+    #expect(range == Self.low...Self.high)
+  }
+
+  /// A production change that fails this test: the stepper range of bounds
+  /// in order is not the range from the minimum to the maximum.
+  @Test func theStepperRangeOfBoundsInOrderGoesFromTheMinimumToTheMaximum() {
+    let range = ElicitationNumberField.stepperRange(minimum: Self.low, maximum: Self.high)
+
+    #expect(range == Self.low...Self.high)
+  }
+
+  /// A production change that fails this test: a field with no bounds has a
+  /// stepper range that does not go across all finite numbers.
+  @Test func theStepperRangeOfNoBoundsGoesAcrossAllFiniteNumbers() {
+    let range = ElicitationNumberField.stepperRange(minimum: nil, maximum: nil)
+
+    #expect(range == -Double.greatestFiniteMagnitude...Double.greatestFiniteMagnitude)
+  }
+
+  /// A production change that fails this test: a bound that is not a number
+  /// goes into the stepper range, which then traps.
+  @Test func aBoundThatIsNotANumberLeavesThatEndOfTheStepperRangeOpen() {
+    let range = ElicitationNumberField.stepperRange(minimum: .nan, maximum: Self.high)
+
+    #expect(range == -Double.greatestFiniteMagnitude...Self.high)
+  }
 }
