@@ -49,7 +49,7 @@ CI run 45690990838 (commit 7b783755) failed in the Integration job. The last gre
 ## Acceptance Criteria
 - [x] `RecordedSessionsGalleryHostedTests` passes with `--no-parallel` (3 tests, 0 issues).
   - Evidence: a local hosted run of the filter "Thread|Conversation|Scroll|Transcript|RecordedSessionsGallery" passed (171 tests, 0 issues). The full IntegrationTests passed (1090 tests, 5 known issues).
-- [ ] The CI Integration job is green.
+- [x] The CI Integration job is green. (CI run 45734992569 on ecb3a865: Build & test, Examples and Integration are all green.)
   - This item stays open until CI for ecb3a865 is green.
 
 ## Tests
