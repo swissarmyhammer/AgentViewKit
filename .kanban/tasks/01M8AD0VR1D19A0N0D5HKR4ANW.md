@@ -11,8 +11,18 @@ comments:
     - send: the main-thread totals of each pair, and the mount hitch frames if the trace has them.
     - next: run when the machine is quiet (no headless test runs in other AVK agents), with start and end lines.
   timestamp: 2026-11-26T04:07:09.058349+00:00
-position_column: todo
-position_ordinal: '8980'
+- actor: claude-code
+  id: 01m8b4h2yprywzefx4xchys8t5
+  text: |-
+    ### traces — done (neither spike uses less main-thread time than its base)
+    - setup: case A (200 rows shown of 312), release with -enable-testing, Time Profiler + Hitches, 15 s scroll, AVK fe695322, 3 rounds in the order 1 2 3 4. The load average fell from 13 (round 1) to 2.3 (round 3). Script: scratchpad/run_ek_traces.sh. Output: scratchpad/ek-traces-run.txt.
+    - ^q41mdew main-thread ms in the scroll, rounds 1/2/3: caption-layout 0078a05f 13477 / 13301 / 12903, base ccba113d 13675 / 13223 / 12773. The difference is within the noise.
+    - ^8vgmyc7: mount-cache 20db34ef 13276 / 13210 / 12870, EK main 44b9f941 13458 / 12826 / 12762. The cache is not less than main.
+    - hitches in round 3 (count / sum ms): caption-layout 290 / 4133, base 245 / 3617, mount-cache 277 / 3900, main 250 / 3758.
+    - sent to editorkit-7a on 2026-11-25.
+  timestamp: 2026-11-26T05:16:22.870074+00:00
+position_column: done
+position_ordinal: ffffffffb280
 title: Scroll traces for the EditorKit perf cards ^q41mdew, ^8vgmyc7 and ^59ykv6h
 ---
 Request from editorkit-7a (2026-11-25). EditorKit decides three perf cards from the AVK scroll trace: the 200-row transcript, a release build, and the main-thread total against EK main. The `.safeAreaBar` fix (4ea3642f) is in each run.
