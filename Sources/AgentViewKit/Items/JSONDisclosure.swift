@@ -21,7 +21,8 @@ struct JSONDisclosure: View {
   /// The JSON text that the expanded block shows.
   let json: String
 
-  /// The accessibility identifier of the block.
+  /// The accessibility identifier of the block: the identifier of its header,
+  /// the disclosure element with the title as its label.
   let identifier: String
 
   /// The store that the view uses when the environment has no store.
@@ -73,11 +74,15 @@ struct JSONDisclosure: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.top, editorStyle.tile.gap)
     } label: {
+      // The identifier names the header, the disclosure element with the
+      // title as its label. On the disclosure, it would name the container
+      // of `EditorDisclosure`, which has no label, and which SwiftUI can
+      // merge into the container of a row (`contentContainer(identifier:)`).
       Text(title)
         .lineLimit(1)
+        .accessibilityIdentifier(identifier)
     }
     .contentTile()
-    .accessibilityIdentifier(identifier)
   }
 }
 
