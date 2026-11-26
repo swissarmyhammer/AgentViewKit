@@ -283,6 +283,67 @@ import Testing
     #expect(realSlotCount == Self.slotCount)
   }
 
+  /// A production change that fails this test: a row that leaves the view
+  /// stops to wait, so the list mounts its editors out of view at rest.
+  @Test func aRowThatLeavesTheViewKeepsItsWait() {
+    queue.withdraw(mounts[Self.centerRow])
+
+    #expect(mounts[Self.centerRow].waits)
+  }
+
+  /// A production change that fails this test: a row that leaves the view
+  /// stays in the queue, so its turn mounts an editor out of view.
+  @Test func aRowThatLeftTheViewTakesNoTurn() {
+    queue.withdraw(mounts[Self.centerRow])
+    queue.noteRowsMove(false)
+
+    frames.advance()
+
+    #expect(realTops(ofRow: Self.secondRow) == [0])
+  }
+
+  /// A production change that fails this test: a hold on a row that left
+  /// the queue with its wait does not make the row real, so the row stays
+  /// static for ever when the hold ends.
+  @Test func aReleaseOfARowOutOfTheQueueEndsItsWait() {
+    queue.withdraw(mounts[Self.centerRow])
+
+    queue.release(mounts[Self.centerRow])
+
+    #expect(!mounts[Self.centerRow].waits)
+  }
+
+  /// A production change that fails this test: a row that comes into view
+  /// while a jump session is open waits for its turn, so a jump target
+  /// stands on static text.
+  @Test func aRowThatComesIntoTheQueueInAJumpSessionIsReal() {
+    let mount = TranscriptRowMount(waits: true)
+    queue.mountAll()
+
+    queue.enqueue(mount)
+
+    #expect(!mount.waits)
+  }
+
+  /// A production change that fails this test: the end of a jump session
+  /// does not end the real mounts, so the rows mount in one frame again.
+  @Test func aRowThatComesIntoTheQueueAfterAJumpSessionWaits() {
+    let mount = TranscriptRowMount()
+    queue.mountAll()
+    queue.endMountAll()
+
+    queue.enqueue(mount)
+
+    #expect(mount.waits)
+  }
+
+  /// A production change that fails this test: the slot of a row that the
+  /// list made while the rows moved, and that did not appear yet, shows its
+  /// editor at rest.
+  @Test func aSlotThatIsNotInARowYetWaits() {
+    #expect(TranscriptSlotMount().waits)
+  }
+
   // MARK: - The form of a waiting row
 
   /// A production change that fails this test: a row that waits for its

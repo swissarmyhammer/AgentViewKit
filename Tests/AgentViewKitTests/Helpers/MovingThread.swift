@@ -36,9 +36,19 @@ import Testing
   /// Shows the list of `session` at the bottom.
   ///
   /// - Parameter session: The session of the list.
-  init(session: SessionModel) throws {
+  convenience init(session: SessionModel) throws {
+    try self.init(session: session, frames: TranscriptDisplayLinkFrames())
+  }
+
+  /// Shows the list of `session` at the bottom, with the frames that drive
+  /// the queue of its rows (``TranscriptRowMountQueue``, card ^7625j1b).
+  ///
+  /// - Parameters:
+  ///   - session: The session of the list.
+  ///   - frames: The frames of the queue, such as ``ManualFrames``.
+  init(session: SessionModel, frames: any TranscriptFrameSource) throws {
     self.session = session
-    window = AnswerTextHitTests.mount(ConversationView(session: session, anchors: anchors))
+    window = AnswerTextHitTests.mount(ConversationView(session: session, anchors: anchors, frames: frames))
     hosting = try #require(window.contentView)
     scrollView = try #require(
       views(ofType: NSScrollView.self, in: hosting).max { $0.frame.height < $1.frame.height })
