@@ -18,8 +18,9 @@ require_relative '../../Scripts/xcodeproj_generator'
 PACKAGE_PRODUCTS = %w[AgentViewKit].freeze
 
 # The package target that compiles into the app: the in-memory agent, `DemoAgent` (which starts
-# the agent and connects a `ConnectionModel`), and the launch options. It is not a product, so
-# the app compiles its files.
+# the agent and connects a `ConnectionModel`), the launch options, and the views that show
+# EditorKit controls (the settings sheet, the start view and the Gallery look controls). The app
+# compiles its files into the app module, so the app reaches the internal types of the target.
 SHARED_SOURCES = %w[../../Sources/AgentViewKitDemoSupport].freeze
 
 # The packages whose modules `Sources/AgentViewKitDemoSupport` imports. FoundationModelsACPAgent is the
