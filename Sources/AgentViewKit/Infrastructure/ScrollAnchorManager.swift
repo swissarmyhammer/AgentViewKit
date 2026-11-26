@@ -19,6 +19,9 @@ public enum ScrollAnchorTarget: Equatable, Sendable {
 ///
 /// - While the list shows its last item, the manager is pinned to the bottom,
 ///   and each append scrolls the list to the new end.
+///   Until the list shows the new end, a report of the old end does not
+///   unpin the list. Only a report above the old end, or a report after a
+///   scroll of the user (``noteScrollByUser()``), unpins it.
 /// - While the user reads earlier items, the manager is unpinned, counts the
 ///   new items for the scroll-to-bottom pill, and does not move the list.
 /// - ``requestScrollToBottom()`` sends at most one scroll for each main-actor
@@ -85,6 +88,22 @@ public final class ScrollAnchorManager {
   /// the list moved to the bottom, for example after the pill goes away.
   @ObservationIgnored private var waitsForBottomReport = false
 
+  /// The rows at the end of the list that a pinned manager follows, from the
+  /// last item before an append to the new last item, until the list
+  /// reports rows at the bottom. The value is empty when the manager waits
+  /// for no new end.
+  ///
+  /// After an append, the manager sends its scroll to the new end on the
+  /// next main-actor tick, and the list applies the scroll in a later layout
+  /// pass. Before that pass, the list still shows the old end, and it can
+  /// report those rows: a visibility report, or a geometry change of the
+  /// taller content. The order of these reports and of the scroll changes
+  /// with the load of the machine. While the last visible row of a report
+  /// is one of these rows, the report does not unpin the list (task
+  /// ^fmaanyq). The scroll that the manager sent moves the list to the new
+  /// end.
+  @ObservationIgnored private var followedEndIDs: [String] = []
+
   /// The task that sends the requested scroll to the bottom, or `nil` when no
   /// scroll is requested.
   @ObservationIgnored private var pendingScroll: Task<Void, Never>?
@@ -133,6 +152,14 @@ public final class ScrollAnchorManager {
   /// layout of the list before the list moves, and the list can then report
   /// its old rows again.
   ///
+  /// After an append while pinned, a report whose last visible row is the
+  /// old last item or a row that came after it does not unpin the list,
+  /// until the first report at the bottom, the next ``noteJump(to:)`` or
+  /// the next ``noteScrollByUser()``. Such a report comes from a layout pass
+  /// before the list applied the scroll to the new end. A report whose last
+  /// visible row is above the old last item ends this wait, and unpins the
+  /// list.
+  ///
   /// A report with no identifier, for a list that has items, changes
   /// nothing. The list sends such a report when its bars are taller than its
   /// viewport, and the bottom scroll puts the rows under the top bar. An
@@ -158,18 +185,28 @@ public final class ScrollAnchorManager {
     if isAtBottom {
       waitsForBottomReport = false
     }
-    setPinned(isAtBottom || waitsForBottomReport)
+    let showsFollowedEnd = showsFollowedEnd(visibleIDs: ids)
+    if isAtBottom || !showsFollowedEnd {
+      followedEndIDs = []
+    }
+    setPinned(isAtBottom || waitsForBottomReport || showsFollowedEnd)
   }
 
   /// Records items that the list appended.
   ///
-  /// While pinned, the manager requests a scroll to the new end. While
-  /// unpinned, it adds the count of `ids` to ``newItemsSinceUnpinned``.
+  /// While pinned, the manager requests a scroll to the new end, and a
+  /// report of the old end does not unpin the list until the list reports
+  /// rows at the bottom (see ``noteVisible(ids:distanceFromBottom:)``).
+  /// While unpinned, it adds the count of `ids` to
+  /// ``newItemsSinceUnpinned``.
   ///
   /// - Parameter ids: The identifiers of the new items, in list order. An
   ///   empty array does nothing.
   public func noteAppended(ids: [String]) {
     guard let last = ids.last else { return }
+    if isPinnedToBottom {
+      followNewEnd(from: lastItemID, to: ids)
+    }
     lastItemID = last
     if isPinnedToBottom {
       requestScrollToBottom()
@@ -182,17 +219,21 @@ public final class ScrollAnchorManager {
   /// removal or a clear.
   ///
   /// The call does not add to ``newItemsSinceUnpinned``. While pinned, the
-  /// manager requests a scroll to the new end. An empty list is pinned.
+  /// manager requests a scroll to the new end, and waits for it as after
+  /// ``noteAppended(ids:)``. An empty list is pinned.
   ///
   /// - Parameter id: The identifier of the last item, or `nil` for an empty
   ///   list.
   public func noteLastItemChanged(to id: String?) {
+    let old = lastItemID
     lastItemID = id
-    guard id != nil else {
+    guard let id else {
+      followedEndIDs = []
       setPinned(true)
       return
     }
-    if isPinnedToBottom {
+    if isPinnedToBottom, id != old {
+      followNewEnd(from: old, to: [id])
       requestScrollToBottom()
     }
   }
@@ -230,6 +271,18 @@ public final class ScrollAnchorManager {
     requestScrollToBottom()
   }
 
+  /// Records that the user started a scroll of the list, such as with the
+  /// trackpad, the scroll wheel or the scroller.
+  ///
+  /// The call ends the wait for the new end after an append (see
+  /// ``noteVisible(ids:distanceFromBottom:)``). Thus each later report that
+  /// is not at the bottom unpins the list. The list calls this function
+  /// from its scroll phase, and only for a phase that the user starts. A
+  /// scroll of the kit does not call it.
+  public func noteScrollByUser() {
+    followedEndIDs = []
+  }
+
   // MARK: - Anchor
 
   /// Keeps the first visible item as the anchor, before a list update.
@@ -264,6 +317,7 @@ public final class ScrollAnchorManager {
     visibleIDs = [id]
     jumpItemID = id
     waitsForBottomReport = false
+    followedEndIDs = []
     pendingScroll?.cancel()
     pendingScroll = nil
   }
@@ -292,6 +346,34 @@ public final class ScrollAnchorManager {
   private func isAtBottom(visibleIDs: [String], distanceFromBottom: CGFloat) -> Bool {
     guard let lastItemID else { return true }
     return visibleIDs.last == lastItemID && distanceFromBottom <= tolerance
+  }
+
+  /// Starts or extends the wait for the new end after a change of the last
+  /// item while pinned.
+  ///
+  /// With no old last item, the list showed no end yet, so the manager
+  /// starts no wait.
+  ///
+  /// - Parameters:
+  ///   - oldLastID: The last item before the change, or `nil`.
+  ///   - newIDs: The new items at the end, in list order.
+  private func followNewEnd(from oldLastID: String?, to newIDs: [String]) {
+    guard let oldLastID else { return }
+    if followedEndIDs.isEmpty {
+      followedEndIDs = [oldLastID]
+    }
+    followedEndIDs.append(contentsOf: newIDs)
+  }
+
+  /// Tells if the last visible row of a report is one of the rows of the
+  /// new end that the manager waits for (``followedEndIDs``).
+  ///
+  /// - Parameter visibleIDs: The identifiers of the items in view.
+  /// - Returns: `true` when the manager waits for a new end, and the last
+  ///   identifier of `visibleIDs` is one of its rows.
+  private func showsFollowedEnd(visibleIDs: [String]) -> Bool {
+    guard let last = visibleIDs.last else { return false }
+    return followedEndIDs.contains(last)
   }
 
   /// Tells if a report of the rows in view replaces ``visibleIDs``.

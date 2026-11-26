@@ -582,9 +582,12 @@ public struct ConversationView<EmptyState: View>: View {
       noteVisible(ids: ids, isNearBottom: nil)
     }
     .onScrollPhaseChange { _, phase in
-      // A scroll of the user ends the wait for the row of an item scroll.
+      // A scroll of the user ends the wait for the row of an item scroll,
+      // and the wait of the manager for the new end after an append. A
+      // scroll of the kit has the animating phase or no phase.
       if phase.isScrolling, phase != .animating {
         unsettledItemID = nil
+        anchors.noteScrollByUser()
       }
     }
     .onScrollGeometryChange(for: ConversationBottomGeometry.self) { geometry in
