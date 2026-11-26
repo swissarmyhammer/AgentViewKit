@@ -52,8 +52,11 @@ internal `ScopeItemSurfaceKey` of EditorKit). A card or a chip in a
 `.commandScope` would then show the ring of the scope over the fill: two
 focus looks at a time. `.selectableItem` also draws the focus of the scope
 itself, so `.editorFocusIndicator(.background, ...)` beside it would stack a
-second fill. This gap went to EditorKit as a possible change: an
-`.editorFocusIndicator` form that tells the scope about the item surface.
+second fill. AVK sent this gap to EditorKit. Since EditorKit fd4b5ad9
+(^kjyc8sn), `.editorFocusIndicator(.background)` and `.ringAndBackground` act
+like `.selectableItem` inside a command scope. The kit still uses
+`.selectableItem`, because it also draws the selection fill, and one
+modifier for the two states keeps one look.
 
 ## The rule
 
