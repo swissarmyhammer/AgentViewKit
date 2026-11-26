@@ -160,15 +160,15 @@ component is not on EditorKit main yet. The EditorKit card ^id adds it.
 | `Items/ToolCallView.swift`, the row toggle | `Button` that opens and closes the row | `EditorDisclosure` with a custom label | Waits for ^fqpw7a4 |
 | `Items/JSONDisclosure.swift` | `DisclosureGroup` | `EditorDisclosure` | Waits for ^fqpw7a4 |
 | `Citations/SourcesView.swift` | `DisclosureGroup` | `EditorDisclosure` | Waits for ^fqpw7a4 |
-| `Activity/ActivityIndicator.swift` | `ProgressView` | `EditorProgressView` | Waits for ^sf518d4 |
-| `Input/DefaultPromptAccessory.swift` | `ProgressView` | `EditorProgressView` | Waits for ^sf518d4 |
-| `Elicitation/ElicitationURLConsentView.swift` | `ProgressView` | `EditorProgressView` | Waits for ^sf518d4 |
-| `Terminal/TerminalView.swift` | `ProgressView` | `EditorProgressView` | Waits for ^sf518d4 |
-| `Content/Blocks/AudioPlayerView.swift` | `ProgressView` | `EditorProgressView` | Waits for ^sf518d4 |
-| `Content/Blocks/BlobResourceView.swift` | `ProgressView` | `EditorProgressView` | Waits for ^sf518d4 |
-| `Content/Blocks/BlockFileWriteView.swift` | `ProgressView` | `EditorProgressView` | Waits for ^sf518d4 |
-| `Attachments/AttachmentPreview.swift` | `ProgressView` | `EditorProgressView` | Waits for ^sf518d4 |
-| `Thread/SideQuestionCard.swift` | `ProgressView` | `EditorProgressView` | Waits for ^sf518d4 |
+| `Activity/ActivityIndicator.swift` | `ProgressView` | `EditorProgressView` | Changed |
+| `Input/DefaultPromptAccessory.swift` | `ProgressView` | `EditorProgressView` | Changed |
+| `Elicitation/ElicitationURLConsentView.swift` | `ProgressView` | `EditorProgressView` | Changed |
+| `Terminal/TerminalView.swift` | `ProgressView` | `EditorProgressView` | Changed |
+| `Content/Blocks/AudioPlayerView.swift` | `ProgressView` | `EditorProgressView` | Changed |
+| `Content/Blocks/BlobResourceView.swift` | `ProgressView` | `EditorProgressView` | Changed |
+| `Content/Blocks/BlockFileWriteView.swift` | `ProgressView` | `EditorProgressView` | Changed |
+| `Attachments/AttachmentPreview.swift` | `ProgressView` | `EditorProgressView` | Changed |
+| `Thread/SideQuestionCard.swift` | `ProgressView` | `EditorProgressView` | Changed |
 | `Commands/HostPathContextMenu.swift` | `Button` in `.contextMenu` for each command at a host path | `EditorMenuItem` (`.commandContextMenu(system)` builds its menu only at the path of an ancestor scope) | Waits for ^ndeex7s |
 | `Sessions/SessionBreadcrumb.swift`, a choice of the children menu | `Button` in an `EditorMenuButton` | `EditorMenuItem` | Waits for ^ndeex7s |
 | `Lists/AgentRowList.swift`, the preview | `Button` in `.contextMenu` | `EditorMenuItem` | Waits for ^ndeex7s |

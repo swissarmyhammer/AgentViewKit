@@ -37,6 +37,20 @@ import SwiftUI
   static func read<Value>(
     _ identifier: String, in view: some View, _ read: (NSObject) -> Value
   ) async -> Value? {
+    await host(view) { hosting in
+      let elements = accessibilityElements(identifiedAs: identifier, under: hosting)
+      return elements.count == 1 ? elements.first.map(read) : nil
+    }
+  }
+
+  /// Lays out `view` in a window that is never ordered in, and reads the
+  /// hosting view while the accessibility tree is built.
+  ///
+  /// - Parameters:
+  ///   - view: The view to lay out.
+  ///   - read: The read of the hosting view.
+  /// - Returns: What `read` returns.
+  private static func host<Value>(_ view: some View, _ read: (NSView) -> Value) async -> Value {
     let hosting = NSHostingView(rootView: view.frame(width: hostSize.width, height: hostSize.height))
     let window = NSWindow(
       contentRect: NSRect(origin: .zero, size: hostSize), styleMask: [.titled], backing: .buffered, defer: true)
@@ -44,9 +58,20 @@ import SwiftUI
     window.contentView = hosting
     defer { window.close() }
     StyleViewHost.layOut(hosting)
-    return await withAccessibilityTree {
-      let elements = accessibilityElements(identifiedAs: identifier, under: hosting)
-      return elements.count == 1 ? elements.first.map(read) : nil
+    return await withAccessibilityTree { read(hosting) }
+  }
+
+  /// The accessibility labels of each element of `view`, with the elements
+  /// in each container.
+  ///
+  /// - Parameter view: The view to lay out.
+  /// - Returns: The label of each element that has one, in the order of the
+  ///   tree.
+  static func labels(in view: some View) async -> [String] {
+    await host(view) { hosting in
+      accessibilityNodes(of: hosting)
+        .flatMap { accessibilitySubtree(of: $0) }
+        .compactMap(accessibilityLabel(of:))
     }
   }
 

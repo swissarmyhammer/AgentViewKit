@@ -1,4 +1,5 @@
 import AVKit
+import EditorCommandsUI
 import EditorSwiftUI
 import EditorTheme
 import QuickLookThumbnailing
@@ -93,6 +94,21 @@ enum PreviewLoadState<Value> {
   case failed
 }
 
+/// The spinner of a preview while it loads its file or writes it: EditorKit's
+/// `EditorProgressView`, with ``label`` as its accessibility label.
+///
+/// ``LoadStateView``, ``AudioPlayerView`` and ``BlobResourceView`` show it in
+/// the ``PreviewLoadState/loading`` state.
+struct PreviewLoadingSpinner: View {
+  /// The accessibility label of the spinner.
+  static var label: String { String(localized: "Loading", bundle: .module) }
+
+  var body: some View {
+    EditorProgressView(label: Self.label)
+      .controlSize(.small)
+  }
+}
+
 /// Shows a spinner, the loaded value, or the chip of the file.
 private struct LoadStateView<Value, Content: View>: View {
   /// The attached file, for the chip.
@@ -107,8 +123,7 @@ private struct LoadStateView<Value, Content: View>: View {
   var body: some View {
     switch state {
     case .loading:
-      ProgressView()
-        .controlSize(.small)
+      PreviewLoadingSpinner()
     case .loaded(let value):
       content(value)
     case .failed:

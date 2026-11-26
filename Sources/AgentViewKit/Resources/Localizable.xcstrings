@@ -1112,6 +1112,17 @@
         }
       }
     },
+    "Loading" : {
+      "comment" : "The accessibility label of the spinner of a preview while it loads or writes its file.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading"
+          }
+        }
+      }
+    },
     "Loading the history" : {
       "localizations" : {
         "en" : {

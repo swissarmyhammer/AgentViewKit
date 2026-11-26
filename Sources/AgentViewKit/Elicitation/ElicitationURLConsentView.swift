@@ -241,7 +241,7 @@ public struct ElicitationURLConsentView: View {
   private var waiting: some View {
     VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
       HStack(spacing: editorStyle.spacing.s) {
-        ProgressView()
+        EditorProgressView(label: waitingMessage)
           .controlSize(.small)
         Text(waitingMessage)
           .foregroundStyle(placedSecondary)
