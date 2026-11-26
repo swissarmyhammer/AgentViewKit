@@ -88,7 +88,7 @@ private struct AttachmentChipFill: ViewModifier {
   func body(content: Content) -> some View {
     content.background {
       if !isStateFillShown {
-        ScrolledSurface.shape(radius: AttachmentChip.corners.radius(in: editorStyle)).fill(themeFill.quaternary)
+        SurfaceFill(themeFill.quaternary, radius: AttachmentChip.corners.radius(in: editorStyle))
       }
     }
   }

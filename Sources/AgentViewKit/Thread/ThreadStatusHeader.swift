@@ -40,8 +40,8 @@ struct ThreadStatusHeader: View {
     // The glass takes no click. The whole shape of the glass takes a click,
     // so that a right click on the inset of the line opens the context menu
     // of the header, and does not go through the glass to the list (D193
-    // (f)). The shape is the shape of `floatingGlass()`.
-    .contentShape(EditorSurface.shape(radius: editorStyle.radii.l))
+    // (f)). The shape is the window shape of `floatingGlass()`.
+    .contentShape(EditorSurface.windowShape(radius: editorStyle.radii.l))
     .floatingGlass()
     .hostPathContextMenu(contextMenuPath)
   }
