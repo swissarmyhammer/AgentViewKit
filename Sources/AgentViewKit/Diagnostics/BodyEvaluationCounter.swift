@@ -40,6 +40,18 @@
       storage.counts[key] = nil
     }
 
+    /// Sets the count for each key in `keys` to zero.
+    ///
+    /// The one reset loop of the unit tests and the integration tests, such
+    /// as the reset of the row counts of a transcript before a scroll.
+    ///
+    /// - Parameter keys: The keys to reset.
+    public static func reset(_ keys: some Sequence<String>) {
+      for key in keys {
+        reset(key)
+      }
+    }
+
     /// Sets the count for each key that starts with `prefix` to zero.
     ///
     /// Tests run in parallel. A test uses a key prefix of its own and resets

@@ -57,9 +57,7 @@
 
     /// Sets the count of each key of the transcript to zero.
     static func resetCounts() {
-      for key in keys {
-        BodyEvaluationCounter.reset(key)
-      }
+      BodyEvaluationCounter.reset(keys)
     }
 
     /// The keys of the transcript that have one count or more.
