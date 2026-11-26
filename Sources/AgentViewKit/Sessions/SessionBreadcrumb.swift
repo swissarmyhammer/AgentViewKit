@@ -115,8 +115,20 @@ struct SessionBreadcrumb: View {
   /// - Parameter session: The session of the crumb.
   /// - Returns: The warning mark, or `nil` when the session needs nothing.
   static func attentionMark(of session: SessionModel) -> EditorBreadcrumbMark? {
-    guard session.needsAttention else { return nil }
-    return .symbol(.severity(.warning), label: SessionStateText.needsAttention)
+    attentionSymbol(needsAttention: session.needsAttention).map {
+      .symbol($0, label: SessionStateText.needsAttention)
+    }
+  }
+
+  /// The one rule of the warning of the breadcrumb: a session that needs the
+  /// user shows the warning symbol, and a session that needs nothing shows
+  /// no symbol. The crumb, the choice of a menu and the children menu use it.
+  ///
+  /// - Parameter needsAttention: Whether the session, or a session below
+  ///   it, needs the user.
+  /// - Returns: The warning symbol, or `nil` when the session needs nothing.
+  static func attentionSymbol(needsAttention: Bool) -> EditorSymbol? {
+    needsAttention ? .severity(.warning) : nil
   }
 
   /// The rows of a menu: a choice for each session entry, then the note of
@@ -167,7 +179,7 @@ struct SessionBreadcrumb: View {
     let attention = entries.contains(where: \.needsAttention)
     return EditorMenuButton(
       String(localized: "Children (\(entries.count))", bundle: .module),
-      systemImage: attention ? EditorSymbol.severity(.warning).systemImage : AgentSymbol.childSession
+      systemImage: Self.attentionSymbol(needsAttention: attention)?.systemImage ?? AgentSymbol.childSession
     ) {
       choiceRows(split.listed, current: nil, more: split.more)
     }
@@ -187,6 +199,6 @@ struct SessionBreadcrumb: View {
   /// - Parameter entry: The choice.
   /// - Returns: The warning symbol, or `nil` when the session needs nothing.
   static func mark(of entry: SessionPathEntry) -> EditorSymbol? {
-    entry.needsAttention ? .severity(.warning) : nil
+    attentionSymbol(needsAttention: entry.needsAttention)
   }
 }

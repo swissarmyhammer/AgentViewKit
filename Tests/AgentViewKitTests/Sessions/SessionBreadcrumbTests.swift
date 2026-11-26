@@ -281,7 +281,8 @@ import Testing
   @Test func aChoiceThatNeedsNothingShowsNoIcon() async throws {
     let menu = try await Self.choicesMenu()
 
-    #expect(menu.items.last?.image == nil)
+    try #require(menu.items.count == 2)
+    #expect(menu.items[1].image == nil)
   }
 
   @Test func theBannerFindsAWaitingSiblingAndAWaitingAncestor() async throws {
