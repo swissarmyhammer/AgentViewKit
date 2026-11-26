@@ -309,10 +309,16 @@ public struct DiffView: View {
     if let renderer {
       renderer(patch, file?.path)
     } else {
-      PreviewField(Self.previewSource(of: patch, file: file?.path))
-        .transcriptSearchMarks(searchMark)
-        .accessibilityLabel(String(localized: "Changes", bundle: .module))
-        .accessibilityIdentifier(Self.previewIdentifier)
+      // In the static form of a thread row, the patch shows in SwiftUI
+      // `Text`, with no diff colors (card ^9ync5h3).
+      StaticEditorSlot {
+        PreviewField(Self.previewSource(of: patch, file: file?.path))
+          .transcriptSearchMarks(searchMark)
+      } still: {
+        StaticCodeText(patch)
+      }
+      .accessibilityLabel(String(localized: "Changes", bundle: .module))
+      .accessibilityIdentifier(Self.previewIdentifier)
     }
   }
 

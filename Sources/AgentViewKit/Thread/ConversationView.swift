@@ -427,6 +427,19 @@ public struct ConversationView<EmptyState: View>: View {
   /// change of the transcript (task ^q1fy0n2).
   @State private var rowIndex = TranscriptRowIndex()
 
+  /// Whether the list moves: its scroll phase is not idle
+  /// (``TranscriptRowMotion``). While it moves, the rows show their static
+  /// forms (card ^9ync5h3).
+  @State private var isMoving = false
+
+  /// The size of each real row at its last layout: the heights of the
+  /// static forms of the rows (``TranscriptStaticRow``).
+  @State private var rowHeights = TranscriptMeasuredRowHeights()
+
+  /// The command system of the thread, whose jump session keeps each row
+  /// real.
+  @Environment(\.agentCommandSystem) private var commandSystem
+
   /// The cache of the EditorKit models of the rows that the view makes
   /// when the host gives no cache. A row that leaves the live rows drops
   /// its editor, and its models stay in the cache, so the row does not make
@@ -582,14 +595,10 @@ public struct ConversationView<EmptyState: View>: View {
       noteVisible(ids: ids, isNearBottom: nil)
     }
     .onScrollPhaseChange { _, phase in
-      // A scroll of the user ends the wait for the row of an item scroll,
-      // and the wait of the manager for the new end after an append. A
-      // scroll of the kit has the animating phase or no phase.
-      if phase.isScrolling, phase != .animating {
-        unsettledItemID = nil
-        anchors.noteScrollByUser()
-      }
+      noteScrollPhase(phase)
     }
+    .environment(\.transcriptRowsMove, rowsMove)
+    .environment(\.measuredRowHeights, rowHeights)
     .onScrollGeometryChange(for: ConversationBottomGeometry.self) { geometry in
       ConversationBottomGeometry(geometry, tolerance: anchors.tolerance)
     } action: { old, new in
@@ -618,6 +627,32 @@ public struct ConversationView<EmptyState: View>: View {
       anchors.noteLastItemChanged(to: lastRowKey)
     }
     .accessibilityReadingScope()
+  }
+
+  /// Whether the rows show their static forms: the list moves, and no jump
+  /// session of EditorKit is open (``TranscriptRowMotion``).
+  private var rowsMove: Bool {
+    TranscriptRowMotion.rowsMove(
+      isMoving: isMoving, isJumping: commandSystem?.accessibility.activeLayer?.kind == .jump)
+  }
+
+  /// Records a new scroll phase of the list.
+  ///
+  /// A scroll of the user ends the wait for the row of an item scroll, and
+  /// the wait of the manager for the new end after an append. A scroll of
+  /// the kit has the animating phase or no phase. Each phase that is not
+  /// idle moves the rows (``TranscriptRowMotion``).
+  ///
+  /// - Parameter phase: The new scroll phase.
+  private func noteScrollPhase(_ phase: ScrollPhase) {
+    if phase.isScrolling, phase != .animating {
+      unsettledItemID = nil
+      anchors.noteScrollByUser()
+    }
+    let moving = TranscriptRowMotion.isMoving(phase)
+    if moving != isMoving {
+      isMoving = moving
+    }
   }
 
   /// The inset of the content of the list from the edges of the scroll view.
