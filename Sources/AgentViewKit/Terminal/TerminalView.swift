@@ -213,7 +213,7 @@ public struct TerminalView: View {
     if let command = entry.command {
       String(localized: "Terminal, \(command)", bundle: .module)
     } else {
-      String(localized: "Terminal", bundle: .module)
+      Self.untitledCommand
     }
   }
 

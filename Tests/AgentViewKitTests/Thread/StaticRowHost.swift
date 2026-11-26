@@ -1,4 +1,5 @@
 import AppKit
+import EditorTestSupport
 import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
@@ -42,12 +43,8 @@ import SwiftUI
     session = .preview(transcript: [item])
     self.width = width
     hosting = NSHostingView(rootView: AnyView(EmptyView()))
-    window = NSWindow(
-      contentRect: NSRect(x: 0, y: 0, width: width, height: width), styleMask: [.borderless],
-      backing: .buffered, defer: true)
-    window.isReleasedWhenClosed = false
+    window = UnorderedWindow.make(holding: hosting, size: CGSize(width: width, height: width))
     window.appearance = NSAppearance(named: .aqua)
-    window.contentView = hosting
     show(rowsMove: false)
   }
 
@@ -98,7 +95,7 @@ import SwiftUI
   /// The number of EditorKit text views in the row: zero in the static
   /// form, and one for each text area in the real form.
   var textViewCount: Int {
-    Self.textViews(in: hosting).count
+    views(ofType: NSTextView.self, in: hosting).count
   }
 
   /// The row drawn into a bitmap at the size of the host.
@@ -135,15 +132,6 @@ import SwiftUI
       .environment(\.codeBlockModelCache, cache)
       .threadTextSelection()
       .transaction { $0.disablesAnimations = true }
-  }
-
-  /// The text views in the view tree under `view`.
-  ///
-  /// - Parameter view: The root of the tree.
-  /// - Returns: Each text view of the tree.
-  private static func textViews(in view: NSView) -> [NSTextView] {
-    let own = (view as? NSTextView).map { [$0] } ?? []
-    return own + view.subviews.flatMap { textViews(in: $0) }
   }
 }
 

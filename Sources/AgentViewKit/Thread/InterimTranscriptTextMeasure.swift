@@ -21,6 +21,17 @@ nonisolated public struct InterimTranscriptTextMeasure: TranscriptTextMeasure {
     self.fontSize = fontSize
   }
 
+  /// The height of a text part at a width.
+  ///
+  /// The height of code, output and a diff is the count of its lines at the
+  /// line height of the system monospaced font. The height of prose and a
+  /// label is the height of the text that wraps at `width`, at the system
+  /// font.
+  ///
+  /// - Parameters:
+  ///   - part: The text part.
+  ///   - width: The width of the view that shows the text.
+  /// - Returns: The height.
   public func height(of part: TranscriptTextPart, width: CGFloat) -> CGFloat {
     switch part.style {
     case .code, .output, .diff:

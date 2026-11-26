@@ -86,6 +86,20 @@ enum TranscriptRowFixtures {
   /// An error notice.
   static let notice = PreviewTranscriptItem.error(code: .internalError, message: paragraph)
 
+  /// A completed compaction with a summary of one text block.
+  static let compaction = PreviewTranscriptItem.update(
+    .compactionUpdate(
+      CompactionUpdate(
+        compactionId: CompactionId(rawValue: "compaction"), status: .completed,
+        summary: .value([.text(TextContent(text: paragraph))]))))
+
+  /// A message from a child session, with one text block.
+  static let sessionMessage = PreviewTranscriptItem.update(
+    .sessionMessage(
+      SessionMessage(
+        messageId: MessageId(rawValue: "mail"), content: .value([.text(TextContent(text: paragraph))]),
+        senderSessionId: .value(SessionId(rawValue: "child-1")))))
+
   /// Each row kind of the fixtures.
   enum Row: String, CaseIterable, Sendable {
     /// ``TranscriptRowFixtures/userMessage``.
@@ -108,6 +122,10 @@ enum TranscriptRowFixtures {
     case plan
     /// ``TranscriptRowFixtures/notice``.
     case notice
+    /// ``TranscriptRowFixtures/compaction``.
+    case compaction
+    /// ``TranscriptRowFixtures/sessionMessage``.
+    case sessionMessage
 
     /// The preview item of the row kind.
     var item: PreviewTranscriptItem {
@@ -122,6 +140,8 @@ enum TranscriptRowFixtures {
       case .terminal: TranscriptRowFixtures.terminal
       case .plan: TranscriptRowFixtures.plan
       case .notice: TranscriptRowFixtures.notice
+      case .compaction: TranscriptRowFixtures.compaction
+      case .sessionMessage: TranscriptRowFixtures.sessionMessage
       }
     }
 

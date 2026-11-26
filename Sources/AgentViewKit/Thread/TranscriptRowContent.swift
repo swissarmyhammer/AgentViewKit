@@ -170,12 +170,12 @@ nonisolated public struct TranscriptRowContent: Hashable, Sendable {
   /// - Parameter content: The content blocks.
   /// - Returns: The texts, or `nil` when a shown block is not text.
   static func textBlocks(of content: [ContentBlock]) -> [String]? {
-    var texts: [String] = []
-    for block in EntryContentView.joiningAdjacentText(in: content) where block.isVisibleToUser {
+    let visible = EntryContentView.joiningAdjacentText(in: content).filter(\.isVisibleToUser)
+    let texts = visible.compactMap { block -> String? in
       guard case .text(let text) = block else { return nil }
-      texts.append(text.text)
+      return text.text
     }
-    return texts
+    return texts.count == visible.count ? texts : nil
   }
 
   /// The data of a tool call card.
@@ -207,20 +207,11 @@ nonisolated public struct TranscriptRowContent: Hashable, Sendable {
     }
     let showsCommandOutput = call.shownKind == .execute && !parts.contains(where: \.isTerminal)
     let exitCode = ToolCallView.exitCode(from: call.rawOutput)
-    var body: [BodyPart] = []
-    if let rawInput = call.rawInput {
-      body.append(.json(rawInput.prettyPrinted))
-    }
-    for part in parts {
-      guard let shown = bodyPart(part, showsCommandOutput: showsCommandOutput, exitCode: exitCode) else {
-        return nil
-      }
-      body.append(shown)
-    }
-    if let rawOutput = call.rawOutput {
-      body.append(.json(rawOutput.prettyPrinted))
-    }
-    return body
+    let shown = parts.compactMap { bodyPart($0, showsCommandOutput: showsCommandOutput, exitCode: exitCode) }
+    guard shown.count == parts.count else { return nil }
+    let input = call.rawInput.map { BodyPart.json($0.prettyPrinted) }
+    let output = call.rawOutput.map { BodyPart.json($0.prettyPrinted) }
+    return [input].compactMap(\.self) + shown + [output].compactMap(\.self)
   }
 
   /// The data of one part of a tool call body.
@@ -256,12 +247,22 @@ nonisolated public struct TranscriptRowContent: Hashable, Sendable {
   /// - Returns: The data, or `nil` when the output has more rows than the
   ///   row limit.
   @MainActor private static func commandOutput(_ output: String, exitCode: Int?) -> BodyPart? {
-    let shown = TerminalOutput(
-      output: output, palette: EnvironmentValues().editorTheme.terminalPalette,
-      limit: CommandOutputView.defaultRowLimit)
-    guard !shown.rows.isCapped else { return nil }
+    guard let shown = uncappedText(of: output, limit: CommandOutputView.defaultRowLimit) else { return nil }
     let symbol = CommandOutputView.ExitOutcome(exitCode: exitCode)?.symbol.systemImage
-    return .commandOutput(output: shown.rows.text, exitSymbol: symbol)
+    return .commandOutput(output: shown, exitSymbol: symbol)
+  }
+
+  /// The shown text of an output, as the output views show it with the
+  /// terminal palette of the theme.
+  ///
+  /// - Parameters:
+  ///   - output: The output text.
+  ///   - limit: The row limit of the view that shows the output.
+  /// - Returns: The shown text, or `nil` when the output has more rows than
+  ///   `limit`.
+  @MainActor private static func uncappedText(of output: String, limit: Int) -> String? {
+    let shown = TerminalOutput(output: output, palette: EnvironmentValues().editorTheme.terminalPalette, limit: limit)
+    return shown.rows.isCapped ? nil : shown.rows.text
   }
 
   /// The data of a terminal.
@@ -270,14 +271,12 @@ nonisolated public struct TranscriptRowContent: Hashable, Sendable {
   /// - Returns: The data, or `nil` when the terminal still runs or its
   ///   output has more rows than the row limit.
   @MainActor private static func terminal(_ terminal: TerminalEntry) -> Terminal? {
-    guard let status = terminal.exitStatus else { return nil }
-    let shown = TerminalOutput(
-      output: terminal.text, palette: EnvironmentValues().editorTheme.terminalPalette,
-      limit: TerminalView.defaultRowLimit)
-    guard !shown.rows.isCapped else { return nil }
+    guard let status = terminal.exitStatus,
+      let shown = uncappedText(of: terminal.text, limit: TerminalView.defaultRowLimit)
+    else { return nil }
     return Terminal(
       command: terminal.command ?? TerminalView.untitledCommand, folder: terminal.cwd?.rawValue,
-      output: shown.rows.text,
+      output: shown,
       exitSymbol: TerminalView.ExitSummary(code: status.exitCode, signal: status.signal).symbolName)
   }
 
