@@ -25,7 +25,7 @@ comments:
     - open: the change item. Only the PathChip plain Button stays, and it is in EditorKit (EditorSwiftUI/PathChip.swift). editorkit-7a has an EK card for it and for 6 more raw Buttons in EK.
     - next: when EK sends the sha, update the EK pin, build, test, and check the item.
   timestamp: 2026-11-26T11:57:28.061121+00:00
-position_column: todo
+position_column: done
 position_ordinal: '80'
 title: No raw control in Examples, the demo, the doc samples, or the last places in Sources
 ---
@@ -40,7 +40,7 @@ A scan found:
 - `Sources/AgentViewKitStyle/Theme/SelectableSurface.swift:182`: a doc sample with a raw `List`.
 
 ## What
-- [ ] Change each place above to the EK component (`EditorScrollView`, `EditorProgressView`, `ChoiceField` in an EK form layout, `EditorSelectionList`, `EditorPlainButton`). Change the doc sample to an EK control.
+- [x] Change each place above to the EK component (`EditorScrollView`, `EditorProgressView`, `ChoiceField` in an EK form layout, `EditorSelectionList`, `EditorPlainButton`). Change the doc sample to an EK control. (PathChip: EK f2ed9109, EK card ^a8d6dcd, makes it EditorPlainButton. AVK on EK f2ed9109: root swift test 1839 + 59 passed; gallery 46 tests passed, and config-controls and elicitation-form show no cut-off toggle or choice after EK ^7aqpwtd.)
   - Note (2026-11-26): each AgentViewKit place is changed. The `PathChip` plain `Button` is in EditorKit (`Sources/EditorSwiftUI/PathChip.swift`). This item waits for EK: editorkit-7a has an EK card for it.
 - [x] Scan again: Examples (all targets, the app, its tests), `Sources/AgentViewKitDemoSupport`, `Sources`, the README and each DocC file and doc comment with a Swift sample. List each result in `Docs/decisions/focus-audit.md`, "Raw controls".
 - [x] The only raw control that stays is the `AttachmentView` `.accessibilityActions` Button (by decision).

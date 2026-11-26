@@ -9,7 +9,7 @@ comments:
     - evidence: review sha f2f2ff00..6d8c4703; 13 files reviewed; findings 0, confirmed 0, refuted 1. ARCHITECTURE.md and Docs/decisions/focus-audit.md have no validator. The Swift tool rules did not read the 4 old paths in Examples/AgentViewKitDemo/AgentViewKitDemoFeature/ because the move removed those files.
     - next: review clean; waits for the CI Examples job. The card stays in review until the CI Examples job is green on the push.
   timestamp: 2026-11-26T11:07:37.276988+00:00
-position_column: review
+position_column: done
 position_ordinal: '8180'
 title: A headless test target for the views of the demo app
 ---
@@ -33,7 +33,7 @@ User rule (relayed by testudoapp-9a on 2026-11-26): add no new SwiftPM target or
 ## Tests
 - [x] The root `swift test` passes with 0 failures and 0 warnings.
   - Evidence (GREEN): the root `swift test` on main 6d8c4703 passed, 1839 + 59.
-- [ ] The demo app builds, and the CI Examples job is green.
+- [x] The demo app builds, and the CI Examples job is green. (CI run 45815164712 on 366d9120: Examples (AgentViewKitDemo), Build & test and Integration are green.)
   - Note: the demo `xcodebuild build` succeeded. Waits for CI on the push.
 
 ## Workflow
