@@ -20,6 +20,11 @@ nonisolated struct MountedTextMeasure: TranscriptTextMeasure {
   func height(of part: TranscriptTextPart, width: CGFloat) -> CGFloat {
     heights[part] ?? .zero
   }
+
+  /// Each height is the height of a mounted view, so each part is exact.
+  func isExact(_ part: TranscriptTextPart) -> Bool {
+    true
+  }
 }
 
 /// Mounts transcript rows in a window that is never ordered in, and reads

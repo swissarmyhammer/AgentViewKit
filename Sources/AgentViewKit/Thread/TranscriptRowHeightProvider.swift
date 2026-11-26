@@ -8,9 +8,10 @@ import SwiftUI
 /// when it changes from one form to the other. A provider gives that height.
 /// A row whose provider knows no height for it shows its real form.
 ///
-/// The provider of the kit is ``TranscriptMeasuredRowHeights``: the height
-/// that the real row had at its last layout. An exact height cache of the
-/// rows (card ^9h7bm9j) is a provider too.
+/// The provider of a thread is ``TranscriptStaticRowHeights``: the exact
+/// height of the cache of the rows (``TranscriptRowHeights``, card
+/// ^9h7bm9j), else the height that the real row had at its last layout
+/// (``TranscriptMeasuredRowHeights``).
 @MainActor protocol TranscriptRowHeightProvider: AnyObject {
   /// Tells if the provider knows a height of the row of `id`.
   ///
@@ -29,8 +30,8 @@ import SwiftUI
 }
 
 /// The size that the real row of each entry had at its last layout: the
-/// provider of the heights of the static rows until the exact height cache
-/// of card ^9h7bm9j replaces it.
+/// provider of the height of a static row whose height the cache of the
+/// rows does not give exactly (``TranscriptStaticRowHeights``).
 ///
 /// ``TranscriptStaticRow`` records the size of each real row each time that
 /// it changes. The record is not observable, so a new size does not make a
@@ -68,9 +69,9 @@ import SwiftUI
 }
 
 extension EnvironmentValues {
-  /// The record of the heights of the real rows of the thread, or `nil`
-  /// outside a thread, where no row shows its static form.
+  /// The heights of the static rows of the thread, or `nil` outside a
+  /// thread, where no row shows its static form.
   ///
   /// ``ConversationView`` sets it for its rows.
-  @Entry var measuredRowHeights: TranscriptMeasuredRowHeights? = nil
+  @Entry var staticRowHeights: TranscriptStaticRowHeights? = nil
 }

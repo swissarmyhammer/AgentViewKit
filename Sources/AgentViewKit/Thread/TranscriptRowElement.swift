@@ -67,7 +67,7 @@ struct TranscriptRowElement: View {
 
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.transcriptRowsMove) private var rowsMove
-  @Environment(\.measuredRowHeights) private var heights
+  @Environment(\.staticRowHeights) private var heights
   @Environment(\.sessionModel) private var session
   @Environment(\.textSelectionRegion) private var threadSelection
   @FocusedValue(\.commandPath) private var focusedPath

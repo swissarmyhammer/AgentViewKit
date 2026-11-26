@@ -88,9 +88,10 @@ struct TranscriptStaticRow: ViewModifier {
   /// Whether the row shows its static form (``TranscriptRowForm``).
   let isStatic: Bool
 
-  /// The record of the heights of the real rows, or `nil` outside a
-  /// thread. It is also the height provider of the static form.
-  let heights: TranscriptMeasuredRowHeights?
+  /// The heights of the static rows of the thread, or `nil` outside a
+  /// thread. They record the size of the real row, and they are the height
+  /// provider of the static form.
+  let heights: TranscriptStaticRowHeights?
 
   func body(content: Content) -> some View {
     TranscriptStaticRowFrame(staticHeight: staticHeight) {

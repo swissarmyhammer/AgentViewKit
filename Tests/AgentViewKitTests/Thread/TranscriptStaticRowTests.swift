@@ -194,6 +194,72 @@ import Testing
     #expect(heights.height(of: id, width: Self.widths[2]) == nil)
   }
 
+  // MARK: - The height cache of the static form
+
+  /// The row kinds whose text parts are each exact with the default text
+  /// measure: a row of these kinds is static from its first frame.
+  nonisolated static let exactRows: [TranscriptRowFixtures.Row] = [
+    .userMessage, .agentProse, .thought, .toolCall, .plan,
+  ]
+
+  /// The row kinds with a text part that the default text measure does not
+  /// give exactly: a row of these kinds is real in its first frame.
+  nonisolated static let inexactRows: [TranscriptRowFixtures.Row] = [
+    .agentFenced, .diff, .commandOutput, .terminal, .notice,
+  ]
+
+  /// A production change that fails this test: the rows do not take the
+  /// heights of the cache, so a row seen for the first time stays real
+  /// while the rows move.
+  @Test func anExactRowSeenForTheFirstTimeIsStaticWhileTheRowsMove() async {
+    let host = await StaticRowHost.cached(.agentProse, width: Self.widths[1])
+
+    #expect(host.textViewCount == 0)
+  }
+
+  /// A production change that fails this test: the cache gives no height
+  /// of a row kind whose text parts are each exact.
+  @Test(arguments: exactRows)
+  func theCacheKnowsTheHeightOfAnExactRowSeenForTheFirstTime(row: TranscriptRowFixtures.Row) async {
+    let host = await StaticRowHost.cached(row, width: Self.widths[1])
+
+    #expect(host.cacheKnowsHeight)
+  }
+
+  /// A production change that fails this test: the rows take the cache
+  /// height of a row with a code fence, which the text measure does not
+  /// give exactly, so the row jumps when it changes form.
+  @Test func aRowWithACodeFenceSeenForTheFirstTimeStaysReal() async {
+    let host = await StaticRowHost.cached(.agentFenced, width: Self.widths[1])
+
+    #expect(host.textViewCount > 0)
+  }
+
+  /// A production change that fails this test: the rows take the cache
+  /// height of a row kind with a text part that is not exact.
+  @Test(arguments: inexactRows)
+  func theCacheKnowsNoHeightOfAnInexactRowSeenForTheFirstTime(row: TranscriptRowFixtures.Row) async {
+    let host = await StaticRowHost.cached(row, width: Self.widths[1])
+
+    #expect(!host.cacheKnowsHeight)
+  }
+
+  /// A production change that fails this test: the cache height of an
+  /// exact row kind is not the height of the real row, so the row jumps
+  /// when it changes from static to real.
+  @Test(arguments: exactRows, widths)
+  func aCachedRowKeepsItsFrameHeightWhenItChangesFromStaticToReal(
+    row: TranscriptRowFixtures.Row, width: CGFloat
+  ) async throws {
+    let host = await StaticRowHost.cached(row, width: width)
+    try #require(host.cacheKnowsHeight)
+    let still = host.rowHeight
+
+    await host.showAtRestAndSettle()
+
+    #expect(abs(host.rowHeight - still) <= Self.heightTolerance, "static \(still), real \(host.rowHeight)")
+  }
+
   // MARK: - The pixels of the text
 
   /// The bands of the text lines of a row in its real form and in its

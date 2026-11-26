@@ -1,9 +1,12 @@
 import AgentViewKitTestSupport
 import CoreGraphics
 import EditorTestSupport
+import EditorTheme
+import Foundation
 import FoundationModelsACP
 import FoundationModelsACPClient
 import os
+import SwiftUI
 import Testing
 
 @testable import AgentViewKit
@@ -11,10 +14,22 @@ import Testing
 /// A text measure that records each part that it measures.
 ///
 /// The height of a part is its count of characters over the width, so that
-/// a new text or a new width gives a new height.
+/// a new text or a new width gives a new height. The measure reports each
+/// part as exact, or each part as not exact.
 nonisolated final class RecordingTextMeasure: TranscriptTextMeasure {
   /// The scale of the height of a part.
   static let scale: CGFloat = 1000
+
+  /// Whether the measure reports each part as exact.
+  let reportsExact: Bool
+
+  /// Makes a measure.
+  ///
+  /// - Parameter reportsExact: Whether the measure reports each part as
+  ///   exact. The default is `true`.
+  init(reportsExact: Bool = true) {
+    self.reportsExact = reportsExact
+  }
 
   /// The texts of the measured parts, in the order of the calls.
   private let texts = OSAllocatedUnfairLock<[String]>(initialState: [])
@@ -32,6 +47,10 @@ nonisolated final class RecordingTextMeasure: TranscriptTextMeasure {
   func height(of part: TranscriptTextPart, width: CGFloat) -> CGFloat {
     texts.withLock { $0.append(part.text) }
     return Self.height(of: part, width: width)
+  }
+
+  func isExact(_ part: TranscriptTextPart) -> Bool {
+    reportsExact
   }
 
   /// The texts of the measured parts, in the order of the calls.
@@ -275,4 +294,119 @@ nonisolated final class RecordingTextMeasure: TranscriptTextMeasure {
 
     #expect(!(heights as any TranscriptRowHeightProvider).knowsHeight(of: unknown.id))
   }
+
+  @Test func theProviderKnowsNoHeightOfARowWithAPartThatIsNotExact() async throws {
+    let session = try await Self.openSession()
+    defer { session.close() }
+    let metrics = TranscriptRowMetrics.probe()
+    let heights = TranscriptRowHeights(measure: RecordingTextMeasure(reportsExact: false), metrics: metrics)
+    let model = session.model
+    heights.update(entries: model.transcript, width: Self.width, rowsInView: 0..<2)
+    await Self.waitForEachHeight(in: heights, of: model.transcript, width: Self.width, metrics: metrics)
+    let entry = try #require(model.transcript.last)
+
+    #expect(!(heights as any TranscriptRowHeightProvider).knowsHeight(of: entry.id))
+  }
+
+  // MARK: - The heights of the static rows of a thread
+
+  /// The heights of the static rows of `session`, with a cache of the
+  /// recording measure, at ``width``.
+  ///
+  /// - Parameter session: The session.
+  /// - Returns: The heights and their cache.
+  static func staticRowHeights(of session: ScriptedSession) -> (TranscriptStaticRowHeights, TranscriptRowHeights) {
+    let cache = TranscriptRowHeights(measure: RecordingTextMeasure(), metrics: TranscriptRowMetrics.probe())
+    let heights = TranscriptStaticRowHeights()
+    heights.attach(cache: cache, session: session.model)
+    heights.noteRowWidth(width)
+    return (heights, cache)
+  }
+
+  /// Sends a new user message, and waits until the transcript holds it.
+  ///
+  /// - Parameter session: The session.
+  static func appendUserMessage(to session: ScriptedSession) async throws {
+    try await session.send(update: .userMessageChunk(chunk("A second question.", id: "user-2")))
+    let model = session.model
+    await ObservationWait.until { model.transcript.count == 3 }
+  }
+
+  @Test func theStaticRowsTakeTheCacheHeightOfAnEntryThatTheTranscriptAppends() async throws {
+    let session = try await Self.openSession()
+    defer { session.close() }
+    let (heights, cache) = Self.staticRowHeights(of: session)
+    let metrics = TranscriptRowMetrics.probe()
+
+    try await Self.appendUserMessage(to: session)
+    let model = session.model
+    await Self.waitForEachHeight(in: cache, of: model.transcript, width: Self.width, metrics: metrics)
+    let entry = try #require(model.transcript.last)
+
+    #expect(heights.knowsHeight(of: entry.id))
+  }
+
+  @Test func theStaticRowsGiveTheRecordedHeightOfARowThatTheCacheDoesNotKnow() {
+    let heights = TranscriptStaticRowHeights()
+    let id = TranscriptEntry.ID.local(UUID())
+    heights.record(CGSize(width: Self.width, height: Self.newWidth), for: id)
+
+    #expect(heights.height(of: id, width: Self.width) == Self.newWidth)
+  }
+
+  @Test func aThreadWithNoStoreOfTheExpandedBlocksHasNoCache() {
+    #expect(
+      TranscriptStaticRowHeights.makeCache(theme: SystemTheme(), expandedBlocks: nil, hasDefaultLook: true) == nil)
+  }
+
+  @Test func aThreadWhoseRowsDoNotHaveTheDefaultLookHasNoCache() {
+    let cache = TranscriptStaticRowHeights.makeCache(
+      theme: SystemTheme(), expandedBlocks: ExpandedBlocksStore(), hasDefaultLook: false)
+
+    #expect(cache == nil)
+  }
+
+  @Test func theRowsHaveTheDefaultLookInAnEnvironmentWithNoOverride() {
+    #expect(EnvironmentValues().transcriptRowsHaveDefaultLook)
+  }
+
+  @Test func anItemViewOverrideEndsTheDefaultLook() {
+    var environment = EnvironmentValues()
+    environment.planViewOverride = { _ in AnyView(EmptyView()) }
+
+    #expect(!environment.transcriptRowsHaveDefaultLook)
+  }
+
+  @Test func theTimeOfTheEntriesEndsTheDefaultLook() {
+    var environment = EnvironmentValues()
+    environment.showsTranscriptTiming = true
+
+    #expect(!environment.transcriptRowsHaveDefaultLook)
+  }
+
+  @Test func aRegisteredToolCallViewEndsTheDefaultLook() {
+    var environment = EnvironmentValues()
+    environment.toolCallRegistry.register("read") { _ in AnyView(EmptyView()) }
+
+    #expect(!environment.transcriptRowsHaveDefaultLook)
+  }
+
+  #if DEBUG
+    @Test func anAppendedEntryCopiesNoUnchangedRowOnTheMainThread() async throws {
+      let session = try await Self.openSession()
+      defer { session.close() }
+      let (heights, cache) = Self.staticRowHeights(of: session)
+      defer { withExtendedLifetime(heights) {} }
+      let model = session.model
+      let metrics = TranscriptRowMetrics.probe()
+      await Self.waitForEachHeight(in: cache, of: model.transcript, width: Self.width, metrics: metrics)
+      let counterKey = TranscriptRowHeights.copyCounterKey(for: try #require(model.transcript.first?.rowKey))
+      let copies = BodyEvaluationCounter.count(counterKey)
+
+      try await Self.appendUserMessage(to: session)
+      await Self.waitForEachHeight(in: cache, of: model.transcript, width: Self.width, metrics: metrics)
+
+      #expect(BodyEvaluationCounter.count(counterKey) == copies)
+    }
+  #endif
 }
