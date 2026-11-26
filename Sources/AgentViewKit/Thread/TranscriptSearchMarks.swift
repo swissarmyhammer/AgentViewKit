@@ -295,7 +295,7 @@ struct TranscriptSearchRowMark: ViewModifier {
       .environment(\.transcriptSearchMark, mark)
       .background {
         if let mark, mark.marksWholeEntry {
-          ScrolledSurface.shape(radius: SurfaceCorners.card.radius(in: editorStyle))
+          EditorSurface.shape(radius: SurfaceCorners.card.radius(in: editorStyle))
             .fill(mark.highlight(in: editorTheme))
             .accessibilityHidden(true)
         }

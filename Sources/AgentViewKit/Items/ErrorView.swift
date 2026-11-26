@@ -16,7 +16,7 @@ import SwiftUI
 ///
 /// The card is a row of the transcript, or of the activity timeline. Both are
 /// content, so the card has no fill and no glass. A separator stroke marks
-/// its edge (`.scrolledInlineEdge(radius:)`, D113, card ^9ync5h3).
+/// its edge (`.inlineEdge(radius:)`, D113).
 public struct ErrorView: View {
   /// The accessibility identifier of the text of each card.
   public static let identifier = "error-acp"
@@ -86,7 +86,7 @@ public struct ErrorView: View {
       }
     }
     .contentTile()
-    .scrolledInlineEdge(radius: editorStyle.radii.l)
+    .inlineEdge(radius: editorStyle.radii.l)
   }
 }
 
