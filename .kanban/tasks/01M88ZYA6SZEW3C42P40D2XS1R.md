@@ -16,9 +16,15 @@ comments:
     - evidence: review sha 19fbb15e..0f3778df: 0 findings, 0 confirmed, 1 refuted, 14 attempted, 0 failed. 20 files reviewed. 3 files had no validator (focus-audit.md, AgentViewKitStyle.md, plan.md). Tests: RED: 6 focus tests failed against an empty key. GREEN: 9 of 9 pass. The root swift test on main 0f3778df: 1829 + 59 passed.
     - next: review clean; waits for the gallery images. The gallery item stays open until the gallery runs after the Testudo hold. Do not move the card to done before that item is checked.
   timestamp: 2026-11-26T06:31:51.137240+00:00
+- actor: claude-code
+  id: 01m8bagny2wq8yyw6rhp05ajwk
+  text: |-
+    ### done — the gallery item is checked
+    - evidence: the review of 19fbb15e..0f3778df was clean (0 findings), and only the gallery item was open. The gallery ran on main a7dd9878 with EK 474081e5: ScreenshotTests 46 tests passed. The images states-permission, states-elicitation-tab, elicitation-form and states-tool-call (light and dark) show the one EK focus fill and no square ring. All IntegrationTests pass on ed44e6e0: 1090 tests, 5 known issues.
+  timestamp: 2026-11-26T07:01:00.994070+00:00
 depends_on:
 - 01M88ZXW64E4BT7ZQMKB0A65BH
-position_column: review
+position_column: done
 position_ordinal: '8180'
 title: Adopt the one EditorKit focus ring and focus background
 ---
@@ -38,7 +44,7 @@ Request from TestudoApp (relayed by testudoapp-9a, 2026-11-25): one focus ring s
 ## Tests
 
 - [x] A unit test that mounts a focused card (for example `PermissionView`) and a focused chip, and reads that both use the EditorKit focus API (an environment or an accessibility value that EditorKit exposes, or the modifier type). (`FocusLookTests`: RED: 6 focus tests failed against an empty key. GREEN: 9 of 9 pass.)
-- [ ] `HOME=$(mktemp -d) swift test` passes with 0 failures and 0 warnings. Gallery images for review (light and dark) after the change. (The root swift test on main 0f3778df: 1829 + 59 passed. The gallery images are not made yet. The gallery runs after the Testudo hold.)
+- [x] `HOME=$(mktemp -d) swift test` passes with 0 failures and 0 warnings. Gallery images for review (light and dark) after the change. (The root swift test on main 0f3778df: 1829 + 59 passed. The gallery images are not made yet. The gallery runs after the Testudo hold.) Gallery (2026-11-26, main a7dd9878, EK 474081e5): ScreenshotTests 46 tests passed. Images in /Users/wballard/Library/Caches/AgentViewKit/screenshot-check/generated/HostedSnapshotTests/ (states-permission, states-elicitation-tab, elicitation-form, states-tool-call, light and dark). They show the one EK focus fill and no square ring. A temp HOME is not possible, because the harness refuses the HOME override.
 
 ## EditorKit plan (2026-11-25, names can change in review; wait for the final names and shas)
 
