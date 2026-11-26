@@ -5,9 +5,18 @@ import SwiftUI
 ///
 /// In the real form of the row, the slot shows the editor, and records its
 /// height at each layout. In the static form of the row
-/// (``SwiftUI/EnvironmentValues/transcriptRowIsStatic``), the slot shows the
+/// (``SwiftUI/EnvironmentValues/transcriptSlotForm``), the slot shows the
 /// still view in place of the editor: the same text in SwiftUI `Text`, at
 /// the height of the last layout of the editor, so no view of the row moves.
+///
+/// In a thread row, the slot adds its turn (``TranscriptSlotMount``) to the
+/// turn of its row (``SwiftUI/EnvironmentValues/transcriptRowMount``). When
+/// the row waits at rest in the ``TranscriptRowMountQueue``
+/// (``TranscriptSlotForm/inTurn``), the slot shows its still view until its
+/// own turn, and its editor after, while the row keeps the frame of its
+/// static form (card ^7625j1b). While it shows its still view, the slot
+/// gives the queue its top in the row, so the slots of a row become real
+/// from top to bottom.
 /// A slot whose editor was never laid out, such as the slot of a row that
 /// shows its static form from its first frame, shows the still view at the
 /// height of its text. The row then has the exact height of the height
@@ -25,10 +34,14 @@ struct StaticEditorSlot<Editor: View, Still: View>: View {
   /// static form.
   @ViewBuilder let still: () -> Still
 
-  @Environment(\.transcriptRowIsStatic) private var isStatic
+  @Environment(\.transcriptSlotForm) private var form
+  @Environment(\.transcriptRowMount) private var rowMount
 
   /// The height of the editor at its last layout.
   @State private var laidOutHeight = LaidOutHeight()
+
+  /// The turn of the slot in the queue of the thread.
+  @State private var mount = TranscriptSlotMount()
 
   /// Makes the slot of an editor.
   ///
@@ -41,11 +54,29 @@ struct StaticEditorSlot<Editor: View, Still: View>: View {
   }
 
   var body: some View {
-    if isStatic {
+    let mount = mount
+    let rowMount = rowMount
+    slotForm
+      .onAppear { rowMount?.add(mount) }
+      .onDisappear { rowMount?.remove(mount) }
+  }
+
+  /// The still view or the editor, as the form of the row and the turn of
+  /// the slot tell.
+  @ViewBuilder private var slotForm: some View {
+    if form.showsStill(slotWaits: mount.waits) {
       still()
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .frame(height: laidOutHeight.points, alignment: .top)
         .clipped()
+        .background {
+          if rowMount != nil {
+            let mount = mount
+            Color.clear.onGeometryChange(for: CGFloat.self, of: TranscriptSlotMount.top(of:)) { top in
+              mount.top = top
+            }
+          }
+        }
     } else {
       let laidOutHeight = laidOutHeight
       editor

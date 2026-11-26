@@ -55,10 +55,13 @@ struct TranscriptRowSlot: Identifiable {
 ///
 /// A row that comes into the list while the rows move puts its mount in
 /// the ``TranscriptRowMountQueue`` of the thread (card ^7625j1b). At rest,
-/// the row stays static until its turn, so the rows in view do not mount
+/// each EditorKit text area of the row shows its editor after its own turn
+/// (``TranscriptSlotMount``), and the row keeps the frame of its static
+/// form until each text area is real, so the rows in view do not mount
 /// their editors in one frame. While the row waits, it gives the queue its
 /// distance from the vertical center of the view. A row that is real at
-/// rest for a different cause, such as a hold, leaves the queue at once.
+/// rest for a different cause, such as a hold, leaves the queue at once,
+/// and each of its text areas shows its editor.
 struct TranscriptRowElement: View {
   /// The entry of the row, and its position.
   let slot: TranscriptRowSlot
@@ -98,9 +101,10 @@ struct TranscriptRowElement: View {
   var body: some View {
     let row = ItemRow(entry: slot.entry)
     let rowsMove = rowsMove
-    let isStatic = TranscriptRowForm.isStatic(
+    let slotForm = TranscriptRowForm.slotForm(
       rowsMove: rowsMove, waitsToMount: mount.waits, holds: holds,
       knowsHeight: heights?.knowsHeight(of: slot.id) ?? false)
+    let isStatic = slotForm != .real
     VStack(alignment: .leading, spacing: editorStyle.tile.margin) {
       row
         .equatable()
@@ -110,7 +114,8 @@ struct TranscriptRowElement: View {
         .modifier(TranscriptRowLiveness(position: slot.position))
         .coordinateSpace(.named(TranscriptFileOrder.rowSpace))
         .textSelectionRegion(selection.forwarding(to: threadSelection))
-        .modifier(TranscriptStaticRow(id: slot.id, isStatic: isStatic, heights: heights))
+        .environment(\.transcriptRowMount, mount)
+        .modifier(TranscriptStaticRow(id: slot.id, slotForm: slotForm, heights: heights))
         .onHover { hovering in
           // A row that comes under the mouse while the rows move takes no
           // hold, so it does not mount its editors during the move.
