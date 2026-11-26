@@ -441,8 +441,9 @@ public struct ConversationView<EmptyState: View>: View {
   /// The queue that mounts the EditorKit editors of the rows over several
   /// frames when the rows come to rest
   /// (``TranscriptRowMountQueue/editorSlotsPerFrame``, card ^7625j1b). The
-  /// display link of the view drives it.
-  @State private var rowMounts = TranscriptRowMountQueue(frames: TranscriptDisplayLinkFrames())
+  /// display link of the view drives it, unless the view gets a different
+  /// source of frames (``init(session:anchors:frames:emptyState:)``).
+  @State private var rowMounts: TranscriptRowMountQueue
 
   /// The command system of the thread, whose jump session keeps each row
   /// real.
@@ -492,9 +493,31 @@ public struct ConversationView<EmptyState: View>: View {
     anchors: ScrollAnchorManager? = nil,
     @ViewBuilder emptyState: () -> EmptyState
   ) {
+    self.init(session: session, anchors: anchors, frames: TranscriptDisplayLinkFrames(), emptyState: emptyState)
+  }
+
+  /// Makes the list of the transcript of a session model whose
+  /// ``TranscriptRowMountQueue`` takes its frames from `frames`.
+  ///
+  /// A test gives a source that it steps by hand, so the test needs no
+  /// clock (card ^7625j1b).
+  ///
+  /// - Parameters:
+  ///   - session: The session model whose transcript the view shows.
+  ///   - anchors: The manager that keeps the scroll position. With `nil`,
+  ///     the view makes its own manager.
+  ///   - frames: The frames that drive the queue of the rows.
+  ///   - emptyState: The view that shows when the transcript has no entry.
+  init(
+    session: SessionModel,
+    anchors: ScrollAnchorManager?,
+    frames: any TranscriptFrameSource,
+    @ViewBuilder emptyState: () -> EmptyState
+  ) {
     self.session = session
     self.hostAnchors = anchors
     self.emptyState = emptyState()
+    _rowMounts = State(initialValue: TranscriptRowMountQueue(frames: frames))
   }
 
   /// The manager that the view uses.
@@ -653,11 +676,14 @@ public struct ConversationView<EmptyState: View>: View {
     commandSystem?.accessibility.activeLayer?.kind == .jump
   }
 
-  /// Mounts each row that waits in the queue, when a jump session opens,
-  /// so the jump targets are the targets of the real views.
+  /// Mounts each row that waits in the queue, while a jump session is
+  /// open, so the jump targets are the targets of the real views.
   private func noteJump() {
-    guard isJumping else { return }
-    rowMounts.mountAll()
+    if isJumping {
+      rowMounts.mountAll()
+    } else {
+      rowMounts.endMountAll()
+    }
   }
 
   /// Records a new scroll phase of the list.
@@ -733,10 +759,11 @@ public struct ConversationView<EmptyState: View>: View {
     let slots = (transcript.count - shownCount..<transcript.count).lazy.map { position in
       TranscriptRowSlot(position: position, entry: transcript[position])
     }
+    let rowsMove = rowsMove
     return ForEach(slots) { slot in
       TranscriptRowElement(
         slot: slot, isLast: slot.position == transcript.count - 1,
-        lines: placements.lines(at: .after(slot.id)))
+        lines: placements.lines(at: .after(slot.id)), entersWhileMoving: rowsMove)
         .id(slot.entry.rowKey)
     }
   }
@@ -967,7 +994,20 @@ extension ConversationView where EmptyState == DefaultConversationEmptyState {
   ///   - anchors: The manager that keeps the scroll position. With `nil`,
   ///     the view makes its own manager.
   public init(session: SessionModel, anchors: ScrollAnchorManager? = nil) {
-    self.init(session: session, anchors: anchors) {
+    self.init(session: session, anchors: anchors, frames: TranscriptDisplayLinkFrames())
+  }
+
+  /// Makes the list of the transcript of a session model with the default
+  /// empty state, whose ``TranscriptRowMountQueue`` takes its frames from
+  /// `frames` (card ^7625j1b).
+  ///
+  /// - Parameters:
+  ///   - session: The session model whose transcript the view shows.
+  ///   - anchors: The manager that keeps the scroll position. With `nil`,
+  ///     the view makes its own manager.
+  ///   - frames: The frames that drive the queue of the rows.
+  init(session: SessionModel, anchors: ScrollAnchorManager? = nil, frames: any TranscriptFrameSource) {
+    self.init(session: session, anchors: anchors, frames: frames) {
       ConversationEmptyState().modifier(ConversationEmptyStateMargin())
     }
   }

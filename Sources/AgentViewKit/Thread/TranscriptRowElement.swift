@@ -54,7 +54,12 @@ struct TranscriptRowSlot: Identifiable {
 /// at rest: a row that moves under the mouse does not mount its editors.
 ///
 /// A row that comes into the list while the rows move puts its mount in
-/// the ``TranscriptRowMountQueue`` of the thread (card ^7625j1b). At rest,
+/// the ``TranscriptRowMountQueue`` of the thread (card ^7625j1b). The mount
+/// of a row that the list makes while the rows move waits from the start
+/// of the row, so the row stays static at rest also when it did not appear
+/// before the rest, and it puts its mount in the queue when it appears. A
+/// row that leaves the view leaves the queue and keeps its wait, so a row
+/// that the list keeps out of view does not mount its editors. At rest,
 /// each EditorKit text area of the row shows its editor after its own turn
 /// (``TranscriptSlotMount``), and the row keeps the frame of its static
 /// form until each text area is real, so the rows in view do not mount
@@ -96,13 +101,28 @@ struct TranscriptRowElement: View {
   @State private var wasShownAtRest = false
 
   /// The turn of the row in the queue of the thread.
-  @State private var mount = TranscriptRowMount()
+  @State private var mount: TranscriptRowMount
+
+  /// Makes the element of an entry.
+  ///
+  /// - Parameters:
+  ///   - slot: The entry of the row, and its position.
+  ///   - isLast: Whether the entry is the last entry of the transcript.
+  ///   - lines: The status lines after the entry, in arrival order.
+  ///   - entersWhileMoving: Whether the rows of the thread move when the
+  ///     list makes the row. The mount of such a row waits from its start.
+  init(slot: TranscriptRowSlot, isLast: Bool, lines: [ModelChangeLine], entersWhileMoving: Bool = false) {
+    self.slot = slot
+    self.isLast = isLast
+    self.lines = lines
+    _mount = State(initialValue: TranscriptRowMount(waits: entersWhileMoving))
+  }
 
   var body: some View {
     let row = ItemRow(entry: slot.entry)
     let rowsMove = rowsMove
     let slotForm = TranscriptRowForm.slotForm(
-      rowsMove: rowsMove, waitsToMount: mount.waits, holds: holds,
+      rowsMove: rowsMove, waitsToMount: mounts != nil && mount.waits, holds: holds,
       knowsHeight: heights?.knowsHeight(of: slot.id) ?? false)
     let isStatic = slotForm != .real
     VStack(alignment: .leading, spacing: editorStyle.tile.margin) {
@@ -134,18 +154,18 @@ struct TranscriptRowElement: View {
       }
     }
     .onAppear { noteAppear(rowsMove: rowsMove) }
-    .onDisappear { mounts?.release(mount) }
+    .onDisappear { mounts?.withdraw(mount) }
     .onChange(of: !rowsMove && !isStatic, initial: true) { _, isRealAtRest in
       noteForm(isRealAtRest: isRealAtRest)
     }
   }
 
   /// Puts the mount of the row in the queue of the thread, when the row
-  /// comes into the list while the rows move.
+  /// comes into view while the rows move, or while its mount waits.
   ///
   /// - Parameter rowsMove: Whether the rows of the thread move.
   private func noteAppear(rowsMove: Bool) {
-    guard rowsMove else { return }
+    guard rowsMove || mount.waits else { return }
     mounts?.enqueue(mount)
   }
 
