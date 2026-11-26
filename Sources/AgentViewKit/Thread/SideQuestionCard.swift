@@ -135,9 +135,8 @@ public struct SideQuestionCard: View {
       PlacedLabel(verbatim: question)
         .frame(maxWidth: .infinity, alignment: .leading)
       if Self.isRunning(session) {
-        ProgressView()
+        EditorProgressView(label: Self.runningText)
           .controlSize(.small)
-          .accessibilityLabel(Self.runningText)
       }
     }
   }

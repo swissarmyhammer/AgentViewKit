@@ -40,8 +40,7 @@ struct BlobResourceView: View {
   @ViewBuilder private func content(of write: PreviewLoadState<URL>) -> some View {
     switch write {
     case .loading:
-      ProgressView()
-        .controlSize(.small)
+      PreviewLoadingSpinner()
     case .loaded:
       AttachmentView(file)
     case .failed:

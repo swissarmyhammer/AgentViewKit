@@ -59,8 +59,7 @@ public struct AudioPlayerView: View {
   @ViewBuilder private func content(of file: PreviewLoadState<URL>) -> some View {
     switch file {
     case .loading:
-      ProgressView()
-        .controlSize(.small)
+      PreviewLoadingSpinner()
     case .loaded(let url):
       MediaPlayerPreview(url: url, height: PreviewLayout.audioPlayerHeight)
         .accessibilityLabel(String(localized: "Audio", bundle: .module))

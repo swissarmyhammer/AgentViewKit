@@ -34,6 +34,82 @@ import Testing
     ElicitationFieldContext(schema: ElicitationTestFields.field(kind, name: name), value: box.binding)
   }
 
+  /// The maximum of the number fields of the stepper tests.
+  static let maximum = 9.0
+
+  /// The steps above ``maximum`` of the typed number of
+  /// ``aStepDownFromANumberAboveTheMaximumGoesToTheMaximum()``.
+  static let stepsAboveTheMaximum = 5.0
+
+  /// A number field with a maximum and no minimum: the field shows a
+  /// stepper.
+  ///
+  /// - Parameter box: The answer of the field.
+  /// - Returns: The field.
+  static func stepperField(box: AnswerBox = AnswerBox()) -> ElicitationNumberField {
+    ElicitationNumberField(context: context(.number(integer: true, minimum: nil, maximum: maximum), box: box))
+  }
+
+  /// The identifier of the up button of the EditorKit `StepperField` of the
+  /// field.
+  static var increaseIdentifier: String { controlIdentifier + ".increase" }
+
+  /// The identifier of the down button of the EditorKit `StepperField` of
+  /// the field.
+  static var decreaseIdentifier: String { controlIdentifier + ".decrease" }
+
+  /// A production change that fails this test: the number field shows a
+  /// system `Stepper` in place of the EditorKit `StepperField`, which has an
+  /// up and a down button.
+  @Test func theNumberFieldWithNoRangeShowsTheUpButtonOfAStepperField() async {
+    let role = await ControlProbe.read(Self.increaseIdentifier, in: Self.stepperField(), accessibilityRole(of:))
+
+    #expect(role == NSAccessibility.Role.button.rawValue)
+  }
+
+  /// A production change that fails this test: the stepper of the number
+  /// field draws its chevrons in a font that is not the `ui` face of the
+  /// theme.
+  @Test func theStepperOfTheNumberFieldTakesTheUIFaceOfTheTheme() async throws {
+    let frames = try #require(
+      await ControlProbe.frames(of: Self.increaseIdentifier, in: Self.stepperField(), enlarging: .ui))
+
+    #expect(frames.themed.width > frames.plain.width)
+  }
+
+  /// A production change that fails this test: the stepper clamps a number
+  /// above the maximum before it steps (`typedValues: .clamp`), so a step
+  /// down goes one below the maximum. With `typedValues: .keep`, a typed
+  /// number above the maximum stays, the validator shows its error, and a
+  /// step down goes to the maximum.
+  @Test func aStepDownFromANumberAboveTheMaximumGoesToTheMaximum() async {
+    let box = AnswerBox(.number(Self.maximum + Self.stepsAboveTheMaximum))
+
+    _ = await ControlProbe.read(Self.decreaseIdentifier, in: Self.stepperField(box: box)) {
+      try? performAccessibilityPress(on: $0)
+    }
+
+    #expect(box.value == .number(Self.maximum))
+  }
+
+  /// The bounds of the number field of
+  /// ``theSliderOfAFieldWithARangeShowsNoSystemFocusEffect()``.
+  static let sliderRange = 0.0...10.0
+
+  /// A production change that fails this test: the slider of a number field
+  /// with a range is a system `Slider` in place of the EditorKit
+  /// `SliderField`, so AppKit draws the system focus ring of the slider and
+  /// not the one focus ring of EditorKit.
+  @Test func theSliderOfAFieldWithARangeShowsNoSystemFocusEffect() {
+    let field = ElicitationNumberField(
+      context: Self.context(
+        .number(integer: false, minimum: Self.sliderRange.lowerBound, maximum: Self.sliderRange.upperBound)))
+
+    let hosting = StyleViewHost.host(field, size: ControlProbe.hostSize)
+
+    #expect(SystemFocusEffects.census(under: hosting).isEmpty)
+  }
+
   /// A production change that fails this test: the switch of a boolean
   /// field has no accessibility label, or a label that is not the title of
   /// the field. The hidden label of the switch must not hide its
@@ -55,6 +131,21 @@ import Testing
       for: Self.name, value: ElicitationTestFields.defaultChoiceValues[0])
 
     let frames = try #require(await ControlProbe.frames(of: choice, in: field, enlarging: .ui))
+
+    #expect(frames.themed.width > frames.plain.width)
+  }
+
+  /// A production change that fails this test: the radio button of a
+  /// choice of a single-choice field is a plain system `Button` in place of
+  /// the EditorKit `EditorPlainButton`, so its title does not take the
+  /// caption style of the button tokens of the theme.
+  @Test func theRadioButtonOfAChoiceTakesTheCaptionStyleOfTheButtonTokens() async throws {
+    let field = ElicitationSingleChoiceField(
+      context: Self.context(.singleChoice(ElicitationTestFields.choices(ElicitationTestFields.defaultChoiceValues))))
+    let choice = ElicitationFieldView.choiceIdentifier(
+      for: Self.name, value: ElicitationTestFields.defaultChoiceValues[0])
+
+    let frames = try #require(await ControlProbe.framesWithLargeButtonCaptions(of: choice, in: field))
 
     #expect(frames.themed.width > frames.plain.width)
   }

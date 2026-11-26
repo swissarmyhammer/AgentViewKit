@@ -1,3 +1,4 @@
+import EditorCommandsUI
 import EditorStyle
 import FoundationModelsACPClient
 import SwiftUI
@@ -57,6 +58,11 @@ public struct ActivityIndicator: View {
     String(localized: "Thinking…", bundle: .module)
   }
 
+  /// The accessibility label of the spinner while a tool runs.
+  static var runningText: String {
+    String(localized: "Running", bundle: .module)
+  }
+
   /// The model that gives the state of the indicator.
   enum Source {
     /// A state that the host gives.
@@ -114,7 +120,7 @@ public struct ActivityIndicator: View {
       ShimmerView(text: Self.thinkingText)
     case .runningTool(let name):
       HStack(spacing: editorStyle.spacing.s) {
-        ProgressView()
+        EditorProgressView(label: Self.runningText)
           .controlSize(.small)
         Text(name)
           .foregroundStyle(themeSecondary)

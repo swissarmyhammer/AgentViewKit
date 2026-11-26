@@ -14,8 +14,8 @@ import SwiftUI
 /// The list reads the path entries that the model gives (``SessionModel``
 /// `ancestors` and `descendants`) and keeps no copy of the tree. The field
 /// filters as the user types. Return chooses the first entry that matches,
-/// and a click chooses a row. The list shows each entry at any level of the
-/// tree.
+/// and a click chooses a row (``SessionJumpRow``). The list shows each entry
+/// at any level of the tree.
 struct SessionJumpList: View {
   /// The accessibility identifier of the filter field.
   static let fieldIdentifier = "session-jump-field"
@@ -91,18 +91,7 @@ struct SessionJumpList: View {
         if let first = shown.first { choose(first.sessionId) }
       }
       List(shown) { entry in
-        Button {
-          choose(entry.sessionId)
-        } label: {
-          VStack(alignment: .leading) {
-            Text(Self.pathText(of: entry, agent: agent, locale: locale))
-            Text(SessionStateText.choiceLabel(for: entry, locale: locale))
-              .font(.caption)
-              .foregroundStyle(.secondary)
-          }
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier(Self.rowIdentifier(for: entry.sessionId))
+        SessionJumpRow(entry: entry, agent: agent, choose: choose)
       }
     }
     .withoutSystemFocusEffect()
@@ -114,5 +103,36 @@ struct SessionJumpList: View {
   /// empty model.
   private var queryModel: EditorModel {
     query.model(text: "")
+  }
+}
+
+/// The row of one session of a ``SessionJumpList``: the path of the session
+/// and its state, in EditorKit's `EditorPlainButton`. A press chooses the
+/// session.
+struct SessionJumpRow: View {
+  /// The path entry of the session.
+  let entry: SessionPathEntry
+
+  /// The name of the agent, the first name of the path, or `nil`.
+  let agent: String?
+
+  /// Called with the id of the session when a person chooses the row.
+  let choose: (SessionId) -> Void
+
+  @Environment(\.locale) private var locale
+
+  var body: some View {
+    let path = SessionJumpList.pathText(of: entry, agent: agent, locale: locale)
+    EditorPlainButton(path) {
+      choose(entry.sessionId)
+    } label: {
+      VStack(alignment: .leading) {
+        Text(path)
+        Text(SessionStateText.choiceLabel(for: entry, locale: locale))
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
+    }
+    .accessibilityIdentifier(SessionJumpList.rowIdentifier(for: entry.sessionId))
   }
 }

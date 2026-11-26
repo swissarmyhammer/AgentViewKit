@@ -69,8 +69,7 @@ struct BlockFileWriteView<ID: Equatable, Content: View>: View {
   ) { state in
     switch state {
     case .loading:
-      ProgressView()
-        .controlSize(.small)
+      PreviewLoadingSpinner()
     case .loaded(let url):
       Text(url.lastPathComponent)
     case .failed:

@@ -100,8 +100,8 @@ private struct CitationScope: ViewModifier {
 /// ``CitationMarker`` of the ``CitationPayload`` that it gets. A press on that
 /// chip selects its source in the same way.
 ///
-/// The pill is an accessibility button with the label "Source <index>" and
-/// the identifier `inline-citation-<index>`.
+/// The pill is EditorKit's `EditorPlainButton`, with the label
+/// "Source <index>" and the identifier `inline-citation-<index>`.
 public struct InlineCitation: View {
   /// The start of the accessibility identifier of each pill.
   public static let identifierPrefix = "inline-citation-"
@@ -113,6 +113,8 @@ public struct InlineCitation: View {
   let index: Int
 
   @Environment(\.citationSelection) private var selection
+  /// The font of the text around the pill.
+  @Environment(\.font) private var font
 
   /// Makes the pill of one source.
   ///
@@ -150,13 +152,14 @@ public struct InlineCitation: View {
   }
 
   public var body: some View {
-    Button {
+    EditorPlainButton(String(localized: "Source \(index)", bundle: .module)) {
       selection?.select(index)
     } label: {
+      // The button sets its caption font on its label. The pill takes its
+      // size from the text around it, so it gets the font of that text back.
       InlineCitationPill(index: index)
+        .font(font)
     }
-    .buttonStyle(.plain)
-    .withoutSystemFocusEffect()
     .inlineCitationAccessibility(index: index)
   }
 }

@@ -137,7 +137,10 @@ struct HostedTextField: View {
     defer { harness.close() }
 
     #expect(harness.inspectorDriver.value(of: ElicitationFieldView.controlIdentifier(for: "count")) == "3")
-    #expect(harness.accessibilityElements().contains { $0.role == NSAccessibility.Role.incrementor.rawValue })
+    // The stepper is EditorKit's `StepperField`: an up and a down button
+    // whose identifiers are the id of the field with `.increase` and
+    // `.decrease` after it.
+    #expect(harness.element(identifier: ElicitationFieldView.controlIdentifier(for: "count") + ".increase") != nil)
   }
 
   /// A change of the answer from outside the number input, as the stepper

@@ -69,3 +69,54 @@ import Testing
     #expect(range == -Double.greatestFiniteMagnitude...Self.high)
   }
 }
+
+/// The range of the stepper of an integer field: whole numbers, in a range
+/// whose width fits in `Int`, as EditorKit's `StepperField` needs.
+@MainActor @Suite struct ElicitationIntegerStepperRangeTests {
+  /// The largest whole number that a JSON number holds with no loss.
+  static let limit = ElicitationNumberField.largestExactWholeNumber
+
+  /// A lower bound that is not whole: one half.
+  static let halfLower = 0.5
+
+  /// An upper bound that is not whole: eight and one half.
+  static let halfUpper = 8.5
+
+  /// The whole numbers between ``halfLower`` and ``halfUpper``.
+  static let wholeNumbersBetweenTheHalves = 1...8
+
+  /// Two bounds with no whole number between them.
+  static let boundsWithNoWholeNumber = (minimum: 0.2, maximum: 0.8)
+
+  /// The integer range of ``boundsWithNoWholeNumber``: the whole numbers
+  /// next to the bounds.
+  static let wholeNumbersNextToTheBounds = 0...1
+
+  /// A production change that fails this test: an integer field with no
+  /// bounds has a stepper range wider than the exact whole numbers of a JSON
+  /// number, so a step overflows `Int`.
+  @Test func theIntegerRangeOfNoBoundsStaysInTheExactWholeNumbers() {
+    let range = ElicitationNumberField.integerStepperRange(minimum: nil, maximum: nil)
+
+    #expect(range == -Self.limit...Self.limit)
+  }
+
+  /// A production change that fails this test: the integer range rounds a
+  /// bound that is not whole away from the range of the schema, so a step
+  /// goes past a bound of the schema.
+  @Test func theIntegerRangeRoundsEachBoundIntoTheRangeOfTheSchema() {
+    let range = ElicitationNumberField.integerStepperRange(minimum: Self.halfLower, maximum: Self.halfUpper)
+
+    #expect(range == Self.wholeNumbersBetweenTheHalves)
+  }
+
+  /// A production change that fails this test: the integer range of bounds
+  /// with no whole number between them has its lower end above its upper
+  /// end, which traps.
+  @Test func theIntegerRangeOfBoundsWithNoWholeNumberBetweenThemDoesNotTrap() {
+    let range = ElicitationNumberField.integerStepperRange(
+      minimum: Self.boundsWithNoWholeNumber.minimum, maximum: Self.boundsWithNoWholeNumber.maximum)
+
+    #expect(range == Self.wholeNumbersNextToTheBounds)
+  }
+}

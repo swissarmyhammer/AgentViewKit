@@ -106,9 +106,8 @@ public struct DefaultPromptAccessory: View {
         if isSubmitting {
           // The submit hook of the host runs (`onComposerSubmit`): the send
           // is in progress.
-          ProgressView()
+          EditorProgressView(label: String(localized: "Sending", bundle: .module))
             .controlSize(.small)
-            .accessibilityLabel(String(localized: "Sending", bundle: .module))
             .accessibilityIdentifier(Self.submitProgressIdentifier)
         } else {
           submitButton

@@ -149,52 +149,81 @@ component is not on EditorKit main yet. The EditorKit card ^id adds it.
 | `Elicitation/ElicitationFieldViews.swift`, `ElicitationSingleChoiceField` menu | `Picker` (menu) | `ChoiceField` | Changed |
 | `Sessions/SessionJumpList.swift`, the filter field | `TextField` | `AgentOneLineField` (`SingleLineField` with a placeholder) | Changed |
 | `Code/BlockHeader.swift`, the preview | `Button` with a title and a symbol | `EditorToolbarButton` | Changed |
-| `Elicitation/ElicitationFieldViews.swift`, `ElicitationNumberField` with no range | `Stepper` beside a `NumberField` | `StepperField` | Waits for EK: `StepperField` keeps its `EditorModel` after the field leaves the view (undo stays on the window stack), and `StepperField` has no option to step inside a range but keep a typed value outside it |
-| `Elicitation/ElicitationFieldViews.swift`, `ElicitationNumberField` with a range | `Slider` | `SliderField` | Waits for ^gkfzwd0 |
-| `Elicitation/ElicitationFieldViews.swift`, `ElicitationSingleChoiceField` radio group | `Button` with a custom label for each choice | `EditorPlainButton` | Waits for ^02gvsec |
-| `Elicitation/ElicitationTabChip.swift` | `Button` with a custom label | `EditorPlainButton` with `.selectableCapsule(isSelected:)` | Waits for ^02gvsec |
-| `Citations/InlineCitation.swift` | `Button` with a custom label (the pill) | `EditorPlainButton` | Waits for ^02gvsec |
-| `Sessions/SessionJumpList.swift`, a row | `Button` with a custom label | `EditorPlainButton` | Waits for ^02gvsec |
-| `Content/Blocks/LinkView.swift` | `Button` with a custom label that opens a URL | `EditorLink` with a custom label | Waits for ^svgy5v4 |
-| `Activity/ActivityTimeline.swift`, the row header | `Button` that opens and closes the row | `EditorDisclosure` with a custom label | Waits for ^fqpw7a4 |
-| `Items/ToolCallView.swift`, the row toggle | `Button` that opens and closes the row | `EditorDisclosure` with a custom label | Waits for ^fqpw7a4 |
-| `Items/JSONDisclosure.swift` | `DisclosureGroup` | `EditorDisclosure` | Waits for ^fqpw7a4 |
-| `Citations/SourcesView.swift` | `DisclosureGroup` | `EditorDisclosure` | Waits for ^fqpw7a4 |
-| `Activity/ActivityIndicator.swift` | `ProgressView` | `EditorProgressView` | Waits for ^sf518d4 |
-| `Input/DefaultPromptAccessory.swift` | `ProgressView` | `EditorProgressView` | Waits for ^sf518d4 |
-| `Elicitation/ElicitationURLConsentView.swift` | `ProgressView` | `EditorProgressView` | Waits for ^sf518d4 |
-| `Terminal/TerminalView.swift` | `ProgressView` | `EditorProgressView` | Waits for ^sf518d4 |
-| `Content/Blocks/AudioPlayerView.swift` | `ProgressView` | `EditorProgressView` | Waits for ^sf518d4 |
-| `Content/Blocks/BlobResourceView.swift` | `ProgressView` | `EditorProgressView` | Waits for ^sf518d4 |
-| `Content/Blocks/BlockFileWriteView.swift` | `ProgressView` | `EditorProgressView` | Waits for ^sf518d4 |
-| `Attachments/AttachmentPreview.swift` | `ProgressView` | `EditorProgressView` | Waits for ^sf518d4 |
-| `Thread/SideQuestionCard.swift` | `ProgressView` | `EditorProgressView` | Waits for ^sf518d4 |
-| `Commands/HostPathContextMenu.swift` | `Button` in `.contextMenu` for each command at a host path | `EditorMenuItem` (`.commandContextMenu(system)` builds its menu only at the path of an ancestor scope) | Waits for ^ndeex7s |
-| `Sessions/SessionBreadcrumb.swift`, a choice of the children menu | `Button` in an `EditorMenuButton` | `EditorMenuItem` | Waits for ^ndeex7s |
-| `Lists/AgentRowList.swift`, the preview | `Button` in `.contextMenu` | `EditorMenuItem` | Waits for ^ndeex7s |
-| `Lists/AgentRowList.swift`, the list | `ScrollView` of a list scope that takes the focus | `EditorScrollView` | Waits for ^3q46xdt |
-| `Attachments/AttachmentView.swift` | `Button` in `.accessibilityActions` (a named accessibility action, not a drawn control) | None. EditorKit `ChoiceField` uses the same form for its actions | Not a control; a person decides |
+| `Elicitation/ElicitationFieldViews.swift`, `ElicitationNumberField` with no range | `Stepper` beside a `NumberField` | `StepperField` with `typedValues: .keep` | Changed |
+| `Elicitation/ElicitationFieldViews.swift`, `ElicitationNumberField` with a range | `Slider` | `SliderField` | Changed |
+| `Elicitation/ElicitationFieldViews.swift`, `ElicitationSingleChoiceField` radio group | `Button` with a custom label for each choice | `EditorPlainButton` | Changed |
+| `Elicitation/ElicitationTabChip.swift` | `Button` with a custom label | `EditorPlainButton`, with the selection of the kit (`.selectionSurface`, the wrapper of EditorKit's selection) outside the button | Changed |
+| `Citations/InlineCitation.swift` | `Button` with a custom label (the pill) | `EditorPlainButton` | Changed |
+| `Sessions/SessionJumpList.swift`, a row (`SessionJumpRow`) | `Button` with a custom label | `EditorPlainButton` | Changed |
+| `Content/Blocks/LinkView.swift` | `Button` with a custom label that opens a URL | `EditorLink` with a custom label | Changed |
+| `Activity/ActivityTimeline.swift`, the row header | `Button` that opens and closes the row | `EditorPlainButton`, with the row identifier (`ActivityTimeline.rowIdentifier(for:)`) and the hint "Shows the details" (decision of 2026-11-25: `EditorDisclosure` puts the identifier on its container and has no hint) | Changed |
+| `Items/ToolCallView.swift`, the row toggle | `Button` that opens and closes the row | `EditorPlainButton`, with the toggle identifier (`ToolCallView.toggleIdentifier(for:)`). The header and the body stay two views (decision of 2026-11-25) | Changed |
+| `Items/JSONDisclosure.swift` | `DisclosureGroup` | `EditorDisclosure` | Changed |
+| `Citations/SourcesView.swift` | `DisclosureGroup` | `EditorDisclosure` | Changed |
+| `Activity/ActivityIndicator.swift` | `ProgressView` | `EditorProgressView` | Changed |
+| `Input/DefaultPromptAccessory.swift` | `ProgressView` | `EditorProgressView` | Changed |
+| `Elicitation/ElicitationURLConsentView.swift` | `ProgressView` | `EditorProgressView` | Changed |
+| `Terminal/TerminalView.swift` | `ProgressView` | `EditorProgressView` | Changed |
+| `Content/Blocks/AudioPlayerView.swift` | `ProgressView` | `EditorProgressView` | Changed |
+| `Content/Blocks/BlobResourceView.swift` | `ProgressView` | `EditorProgressView` | Changed |
+| `Content/Blocks/BlockFileWriteView.swift` | `ProgressView` | `EditorProgressView` | Changed |
+| `Attachments/AttachmentPreview.swift` | `ProgressView` | `EditorProgressView` | Changed |
+| `Thread/SideQuestionCard.swift` | `ProgressView` | `EditorProgressView` | Changed |
+| `Commands/HostPathContextMenu.swift` | `Button` in `.contextMenu` for each command at a host path | `EditorMenuItem` (`.commandContextMenu(system)` builds its menu only at the path of an ancestor scope) | Changed |
+| `Sessions/SessionBreadcrumb.swift`, a choice of the children menu | `Button` in an `EditorMenuButton` | `EditorMenuItem` | Waits for EK: `EditorMenuItem` takes its icon as an `EditorSymbol` only, and `EditorSymbol` has no symbol for the marks of a choice: the check mark of the shown session (`checkmark`) and the empty circle of each other session (`circle`) |
+| `Lists/AgentRowList.swift`, the preview | `Button` in `.contextMenu` | `EditorMenuItem` | Changed |
+| `Lists/AgentRowList.swift`, the list | `ScrollView` of a list scope that takes the focus | `EditorScrollView` (in the form `EditorScrollStack`) | Changed |
+| `Attachments/AttachmentView.swift` | `Button` in `.accessibilityActions` (a named accessibility action, not a drawn control) | None. EditorKit `ChoiceField` uses the same form for its actions | Stays (decision of 2026-11-25): it is an accessibility action, not a drawn control |
 
 The other scroll views of the kit (the chip rows, the timeline, the form
 pages and the text blocks) are not in a focus scope, so the table does not
 list them.
 
-The changed controls keep their behavior, with this change:
+The changed controls keep their behavior, with these changes:
 
 - The menu of a single-choice field always has the item of no selection, so
   a person can remove the answer of an optional field, as before.
+- The stepper of a number field steps in the range of the schema bounds
+  (`stepperRange(minimum:maximum:)`, and the whole numbers of that range
+  for an integer field). A typed number outside the range stays as typed
+  (`typedValues: .keep`), so the validator shows the error of the bound. A
+  step from such a number toward the range goes to the nearest bound.
+- The label of an `EditorPlainButton` takes the caption font of the button
+  tokens. The pill of an `InlineCitation` gets the font of the text around
+  it back, so it keeps the size of that text.
+- Each spinner has an accessibility label. The spinner of a preview that
+  loads or writes its file is one view, `PreviewLoadingSpinner`, with the
+  label "Loading". The spinner of the activity indicator has the label
+  "Running".
+- VoiceOver reads the card of a resource link as a link, not as a button.
 
-`Tests/AgentViewKitTests/Elicitation/ElicitationFieldControlTests.swift` and
-`Tests/AgentViewKitTests/Sessions/SessionJumpListFieldTests.swift` check
-that each changed view mounts the EditorKit control, and that the control
-takes the face of a custom theme (`EnlargedRoleTheme`). Two theme values
-are not visible in a unit test:
+The unit tests next to the tests of each changed view check that the view
+mounts the EditorKit control, with the `ControlProbe` helper: the stepper
+buttons and the slider of a number field, the switch, the check boxes and
+the menu of a form (`ElicitationFieldControlTests`), the tab chip
+(`ElicitationTabChipTests`), the jump field and the jump row
+(`SessionJumpListFieldTests`), the pill of a citation
+(`InlineCitationTests`), the link card (`LinkViewTests`), the JSON block
+(`JSONDisclosureTests`), the sources footer (`SourcesViewDisclosureTests`),
+the spinners (`ActivityIndicatorProgressTests`,
+`PreviewLoadingSpinnerTests`) and the scroll view of a row list
+(`AgentRowListScrollTests`), the row header of the activity timeline
+(`ActivityTimelineRowTests`) and the row toggle of a tool call
+(`ToolCallHeaderTests`). A control with text takes the face of a custom
+theme (`EnlargedRoleTheme`), or the caption style of custom button tokens.
+These theme values are not visible in a unit test:
 
 - The accent of a check box or a switch. A window that is not key draws no
   accent, and a unit test never makes a key window.
 - The `ui` face of a `ChoiceField` in the menu style. The pop-up button
   keeps the same size with the enlarged `ui` face of a theme. EditorKit must
   look at this.
+- The fill of an `EditorProgressView` and the track of a `SliderField`: the
+  secondary color of the theme. A unit test reads no color of a drawn
+  control.
+- The link color of an `EditorLink`. The link card draws its own text.
+- An item of a menu (`EditorMenuItem`). AppKit draws the menu, and the
+  menu shows the same rows as before.
 
 ## Tests
 

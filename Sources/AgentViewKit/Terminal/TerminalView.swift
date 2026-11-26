@@ -1,3 +1,4 @@
+import EditorCommandsUI
 import EditorStyle
 import EditorSwiftUI
 import EditorTheme
@@ -251,9 +252,8 @@ public struct TerminalView: View {
         identifier: Self.footerIdentifier)
     } else {
       HStack(spacing: editorStyle.spacing.s) {
-        ProgressView()
+        EditorProgressView(label: String(localized: "Running", bundle: .module))
           .controlSize(.mini)
-          .accessibilityLabel(String(localized: "Running", bundle: .module))
           .accessibilityIdentifier(Self.progressIdentifier)
         Text(String(localized: "Running", bundle: .module))
           .font(editorTheme.font(for: .ui, style: .caption))
