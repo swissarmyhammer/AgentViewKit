@@ -577,7 +577,6 @@ private struct DeckHeader: View {
     }
     .disabled(layout[keyPath: neighbor] == nil)
     .accessibilityIdentifier(identifier)
-    .withoutSystemFocusEffect()
   }
 }
 

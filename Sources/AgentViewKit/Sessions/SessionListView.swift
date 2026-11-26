@@ -218,7 +218,6 @@ public struct SessionListView: View {
           start(Self.refreshIdentifier) { await refresh() }
         }
         .accessibilityIdentifier(Self.refreshIdentifier)
-        .withoutSystemFocusEffect()
       }
       if let onNewSession {
         EditorButton(
@@ -226,7 +225,6 @@ public struct SessionListView: View {
           action: onNewSession
         )
         .accessibilityIdentifier(Self.newSessionIdentifier)
-        .withoutSystemFocusEffect()
       }
     }
     // The buttons show their symbols alone. The list sits in the glass of a
@@ -296,7 +294,6 @@ public struct SessionListView: View {
       start(Self.loadMoreIdentifier) { await perform { try await connection.loadMoreSessions() } }
     }
     .accessibilityIdentifier(Self.loadMoreIdentifier)
-    .withoutSystemFocusEffect()
     .commandScope(segment: Self.loadMoreSegment)
     .targetable(true)
   }

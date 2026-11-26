@@ -157,7 +157,6 @@ public struct CodeBlockView: View {
       }
       .editorButtonCaptions(.hidden)
       .accessibilityIdentifier(Self.copyIdentifier)
-      .withoutSystemFocusEffect()
     }
   }
 

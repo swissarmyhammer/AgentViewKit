@@ -214,7 +214,6 @@ public struct ConfigOptionsView: View {
         sectionList(sections)
       }
       .accessibilityIdentifier(Self.menuIdentifier)
-      .withoutSystemFocusEffect()
     case .form:
       InspectorView(
         InspectedClientModel(session),

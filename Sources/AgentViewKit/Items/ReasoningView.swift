@@ -219,7 +219,6 @@ struct ReasoningBlock<Content: View>: View {
       .editorButtonCaptions(.hidden)
       .rotationEffect(expanded ? ReasoningView.expandedChevronAngle : .zero)
       .accessibilityIdentifier(ReasoningView.toggleIdentifier(for: id))
-      .withoutSystemFocusEffect()
     }
     .contentShape(Rectangle())
     .onTapGesture(perform: toggle)

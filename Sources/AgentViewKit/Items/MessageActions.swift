@@ -200,7 +200,6 @@ public struct MessageActions: View {
   private func button(for action: Action) -> some View {
     if let verb = action.verb, commandTarget != nil {
       EditorToolbarButton(command: verb.id)
-        .withoutSystemFocusEffect()
     } else {
       // The row hides the captions, so the tooltip of an enabled button is
       // its title, as the button itself gives it.
@@ -208,7 +207,6 @@ public struct MessageActions: View {
       EditorToolbarButton(action.title, systemImage: action.systemImage) { perform(action) }
         .disabled(reason != nil)
         .help(reason ?? action.title)
-        .withoutSystemFocusEffect()
     }
   }
 
