@@ -404,8 +404,9 @@ private struct ToolCallLabel: ViewModifier {
   }
 }
 
-/// The row of a ``ToolCallView``: the button that expands the call, and the
-/// status of the MCP server the call waits for.
+/// The row of a ``ToolCallView``: the button that expands the call (an
+/// EditorKit `EditorPlainButton`), and the status of the MCP server the call
+/// waits for.
 ///
 /// The row reads the status of the entry. The ``BodyEvaluationCounter`` key of
 /// the row is ``ToolCallView/rowCounterKey(for:)``.
@@ -434,18 +435,17 @@ private struct ToolCallHeader: View {
     // A stale live call shows the lost status (`ToolCallBackground`).
     let status = ToolCallBackground.shownStatus(of: entry)
     return HStack(spacing: editorStyle.spacing.s) {
-      Button {
+      // The toggle is EditorKit's `EditorPlainButton`: the theme, and the one
+      // focus ring of EditorKit.
+      EditorPlainButton(ToolCallView.accessibilityLabel(title: entry.shownTitle, status: status)) {
         store.toggle(entry: .toolCall(entry))
       } label: {
         rowContent(status: status)
       }
-      .buttonStyle(.plain)
-      .accessibilityLabel(ToolCallView.accessibilityLabel(title: entry.shownTitle, status: status))
       .accessibilityValue(
         expanded ? Text("Expanded", bundle: .module) : Text("Collapsed", bundle: .module)
       )
       .accessibilityIdentifier(ToolCallView.toggleIdentifier(for: id))
-      .withoutSystemFocusEffect()
       if let status = connectionState?(entry) {
         StatusCaption(status: EditorStatus(status), identifier: ConnectionRow.statusIdentifier(for: status))
       }

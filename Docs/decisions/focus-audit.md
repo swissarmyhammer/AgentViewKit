@@ -140,9 +140,7 @@ and `Sources/AgentViewKitDemoSupport`. `Sources/AgentViewKitStyle` and
 
 A state of "Changed" means that the place uses the EditorKit component of
 EditorKit main now. A state of "Waits for ^id" means that the EditorKit
-component is not on EditorKit main yet. The EditorKit card ^id adds it. A
-state of "Not changed; a person decides" means that the component of the
-table does not fit the place as it is, and the row tells why.
+component is not on EditorKit main yet. The EditorKit card ^id adds it.
 
 | Place | Raw control | EditorKit component or wrapper | State |
 |---|---|---|---|
@@ -158,8 +156,8 @@ table does not fit the place as it is, and the row tells why.
 | `Citations/InlineCitation.swift` | `Button` with a custom label (the pill) | `EditorPlainButton` | Changed |
 | `Sessions/SessionJumpList.swift`, a row (`SessionJumpRow`) | `Button` with a custom label | `EditorPlainButton` | Changed |
 | `Content/Blocks/LinkView.swift` | `Button` with a custom label that opens a URL | `EditorLink` with a custom label | Changed |
-| `Activity/ActivityTimeline.swift`, the row header | `Button` that opens and closes the row | `EditorDisclosure` with a custom label | Not changed; a person decides. `EditorDisclosure` puts the identifier of a host on its container, not on its header, and its header has no hint. So the row loses the identifier that a press finds (`ActivityTimeline.rowIdentifier(for:)`, which the hosted tests press) and the hint "Shows the details". `EditorPlainButton` keeps both |
-| `Items/ToolCallView.swift`, the row toggle | `Button` that opens and closes the row | `EditorDisclosure` with a custom label | Not changed; a person decides. The header (`ToolCallHeader`) and the body of a tool call are two views, and the header has the MCP status and the background caption beside its button. `EditorDisclosure` holds a header and its body in one view, and puts the identifier on its container, not on the header (`ToolCallView.toggleIdentifier(for:)`). `EditorPlainButton` fits the header as it is |
+| `Activity/ActivityTimeline.swift`, the row header | `Button` that opens and closes the row | `EditorPlainButton`, with the row identifier (`ActivityTimeline.rowIdentifier(for:)`) and the hint "Shows the details" (decision of 2026-11-25: `EditorDisclosure` puts the identifier on its container and has no hint) | Changed |
+| `Items/ToolCallView.swift`, the row toggle | `Button` that opens and closes the row | `EditorPlainButton`, with the toggle identifier (`ToolCallView.toggleIdentifier(for:)`). The header and the body stay two views (decision of 2026-11-25) | Changed |
 | `Items/JSONDisclosure.swift` | `DisclosureGroup` | `EditorDisclosure` | Changed |
 | `Citations/SourcesView.swift` | `DisclosureGroup` | `EditorDisclosure` | Changed |
 | `Activity/ActivityIndicator.swift` | `ProgressView` | `EditorProgressView` | Changed |
@@ -175,7 +173,7 @@ table does not fit the place as it is, and the row tells why.
 | `Sessions/SessionBreadcrumb.swift`, a choice of the children menu | `Button` in an `EditorMenuButton` | `EditorMenuItem` | Waits for EK: `EditorMenuItem` takes its icon as an `EditorSymbol` only, and `EditorSymbol` has no symbol for the marks of a choice: the check mark of the shown session (`checkmark`) and the empty circle of each other session (`circle`) |
 | `Lists/AgentRowList.swift`, the preview | `Button` in `.contextMenu` | `EditorMenuItem` | Changed |
 | `Lists/AgentRowList.swift`, the list | `ScrollView` of a list scope that takes the focus | `EditorScrollView` (in the form `EditorScrollStack`) | Changed |
-| `Attachments/AttachmentView.swift` | `Button` in `.accessibilityActions` (a named accessibility action, not a drawn control) | None. EditorKit `ChoiceField` uses the same form for its actions | Not a control; a person decides |
+| `Attachments/AttachmentView.swift` | `Button` in `.accessibilityActions` (a named accessibility action, not a drawn control) | None. EditorKit `ChoiceField` uses the same form for its actions | Stays (decision of 2026-11-25): it is an accessibility action, not a drawn control |
 
 The other scroll views of the kit (the chip rows, the timeline, the form
 pages and the text blocks) are not in a focus scope, so the table does not
@@ -209,7 +207,9 @@ the menu of a form (`ElicitationFieldControlTests`), the tab chip
 (`JSONDisclosureTests`), the sources footer (`SourcesViewDisclosureTests`),
 the spinners (`ActivityIndicatorProgressTests`,
 `PreviewLoadingSpinnerTests`) and the scroll view of a row list
-(`AgentRowListScrollTests`). A control with text takes the face of a custom
+(`AgentRowListScrollTests`), the row header of the activity timeline
+(`ActivityTimelineRowTests`) and the row toggle of a tool call
+(`ToolCallHeaderTests`). A control with text takes the face of a custom
 theme (`EnlargedRoleTheme`), or the caption style of custom button tokens.
 These theme values are not visible in a unit test:
 

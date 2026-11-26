@@ -48,6 +48,12 @@ public struct ActivityTimeline: View {
   /// The end of the accessibility identifier of an expanded view.
   static let detailSuffix = "-detail"
 
+  /// The accessibility hint of the header of a closed row.
+  static var showsDetailsHint: String { String(localized: "Shows the details", bundle: .module) }
+
+  /// The accessibility hint of the header of an open row.
+  static var hidesDetailsHint: String { String(localized: "Hides the details", bundle: .module) }
+
   /// The SF Symbol name of the empty state.
   static let emptySymbolName = AgentSymbol.activity
 
@@ -213,7 +219,9 @@ private struct ActivityEntryRow: View {
     let key = entry.id.rowKey
     let appearance = appearance
     VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
-      Button(action: onToggle) {
+      // The header is EditorKit's `EditorPlainButton`: the theme, and the
+      // one focus ring of EditorKit.
+      EditorPlainButton(appearance.label, action: onToggle) {
         HStack(spacing: editorStyle.spacing.s) {
           EditorSymbolImage(systemName: appearance.symbolName, tone: appearance.tone)
             .symbolColumn()
@@ -227,13 +235,7 @@ private struct ActivityEntryRow: View {
         }
         .contentShape(Rectangle())
       }
-      .buttonStyle(.plain)
-      .withoutSystemFocusEffect()
-      .accessibilityLabel(appearance.label)
-      .accessibilityHint(
-        isExpanded
-          ? Text("Hides the details", bundle: .module) : Text("Shows the details", bundle: .module)
-      )
+      .accessibilityHint(isExpanded ? ActivityTimeline.hidesDetailsHint : ActivityTimeline.showsDetailsHint)
       .accessibilityIdentifier(ActivityTimeline.rowIdentifier(for: key))
       if isExpanded {
         detail
