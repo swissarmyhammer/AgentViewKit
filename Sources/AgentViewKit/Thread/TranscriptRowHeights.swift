@@ -59,13 +59,13 @@ import Observation
   ///
   /// - Parameters:
   ///   - measure: The text measure. The default is
-  ///     ``InterimTranscriptTextMeasure``, until EditorKit's exact measure is
-  ///     on EditorKit main.
+  ///     ``EditorLayoutTranscriptTextMeasure`` in the default theme, which
+  ///     uses EditorKit's `EditorLayoutMeasure`.
   ///   - metrics: The theme metrics of the rows.
   ///   - expandedBlocks: The store that tells whether the blocks of a row are
   ///     expanded, or `nil` when each block is collapsed.
   public init(
-    measure: any TranscriptTextMeasure = InterimTranscriptTextMeasure(), metrics: TranscriptRowMetrics,
+    measure: any TranscriptTextMeasure = EditorLayoutTranscriptTextMeasure(), metrics: TranscriptRowMetrics,
     expandedBlocks: ExpandedBlocksStore? = nil
   ) {
     worker = TranscriptRowHeightWorker(measure: measure, metrics: metrics)
@@ -312,8 +312,9 @@ actor TranscriptRowHeightWorker {
     let measure = measure
     var isExact = true
     let height = TranscriptRowChrome.height(of: content, width: width, metrics: metrics) { part, partWidth in
-      isExact = isExact && measure.isExact(part)
-      return measure.height(of: part, width: partWidth)
+      let measurement = measure.measurement(of: part, width: partWidth)
+      isExact = isExact && measurement.isExact
+      return measurement.height
     }
     let measured = Measured(height: height, isExact: isExact)
     versions.removeAll { $0.width == width }

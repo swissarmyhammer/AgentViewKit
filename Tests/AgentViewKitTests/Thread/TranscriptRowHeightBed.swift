@@ -140,9 +140,13 @@ nonisolated struct MountedTextMeasure: TranscriptTextMeasure {
   ///   - entry: The entry of the row.
   ///   - width: The width of the row.
   ///   - expanded: Whether the blocks of the row are expanded.
+  ///   - measure: The text measure of the cache, or `nil` for the heights of
+  ///     the mounted text views (``MountedTextMeasure``), which check the
+  ///     chrome alone.
   ///   - sourceLocation: The location of the caller.
   static func expectCachedHeightMatchesTheMountedRow(
-    _ entry: TranscriptEntry, width: CGFloat, expanded: Bool = false, sourceLocation: SourceLocation = #_sourceLocation
+    _ entry: TranscriptEntry, width: CGFloat, expanded: Bool = false, measure: (any TranscriptTextMeasure)? = nil,
+    sourceLocation: SourceLocation = #_sourceLocation
   ) async throws {
     let store = ExpandedBlocksStore { _ in expanded }
     let mounted = await mount(entry, width: width, store: store)
@@ -152,7 +156,7 @@ nonisolated struct MountedTextMeasure: TranscriptTextMeasure {
     try #require(parts.count == mounted.textHeights.count, sourceLocation: sourceLocation)
     let mountedMeasure = MountedTextMeasure(
       heights: Dictionary(zip(parts, mounted.textHeights)) { first, _ in first })
-    let heights = TranscriptRowHeights(measure: mountedMeasure, metrics: metrics, expandedBlocks: store)
+    let heights = TranscriptRowHeights(measure: measure ?? mountedMeasure, metrics: metrics, expandedBlocks: store)
     heights.update(entries: [entry], width: width, rowsInView: 0..<1)
     await ObservationWait.until(sourceLocation: sourceLocation) { heights.height(of: entry.rowKey) != nil }
     let cached = try #require(heights.height(of: entry.rowKey), sourceLocation: sourceLocation)

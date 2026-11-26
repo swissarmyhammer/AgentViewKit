@@ -20,9 +20,10 @@ import SwiftUI
 /// The heights feed the cache with the transcript of the session. The
 /// cache copies only the entries that it does not know yet, and the copy of
 /// a known entry observes its own values, so a row that does not change
-/// costs no work on the main thread. When the text measure is exact for
-/// each part, as EditorKit's `EditorLayoutMeasure` will be, the cache gives
-/// the height of each row, with no other change.
+/// costs no work on the main thread. The text measure is EditorKit's
+/// `EditorLayoutMeasure` (``EditorLayoutTranscriptTextMeasure``), so the
+/// cache gives the height of each row whose text parts EditorKit measures
+/// exactly.
 @MainActor final class TranscriptStaticRowHeights: TranscriptRowHeightProvider {
   /// The record of the size of each real row.
   let measured = TranscriptMeasuredRowHeights()
@@ -146,14 +147,14 @@ import SwiftUI
   ///   - expandedBlocks: The store of the expanded blocks of the rows, or
   ///     `nil`.
   ///   - hasDefaultLook: Whether the rows have their default look.
-  /// - Returns: The cache, with the interim text measure and the metrics of
-  ///   the theme.
+  /// - Returns: The cache, with the EditorKit text measure
+  ///   (``EditorLayoutTranscriptTextMeasure``) and the metrics of the theme.
   static func makeCache(
     theme: any Theme, expandedBlocks: ExpandedBlocksStore?, hasDefaultLook: Bool
   ) -> TranscriptRowHeights? {
     guard let expandedBlocks, hasDefaultLook else { return nil }
     return TranscriptRowHeights(
-      measure: InterimTranscriptTextMeasure(theme: theme), metrics: TranscriptRowMetrics.probe(theme: theme),
+      measure: EditorLayoutTranscriptTextMeasure(theme: theme), metrics: TranscriptRowMetrics.probe(theme: theme),
       expandedBlocks: expandedBlocks)
   }
 }

@@ -209,15 +209,18 @@ import Testing
   // MARK: - The height cache of the static form
 
   /// The row kinds whose text parts are each exact with the default text
-  /// measure: a row of these kinds is static from its first frame.
+  /// measure (``EditorLayoutTranscriptTextMeasure``): a row of these kinds
+  /// is static from its first frame.
   nonisolated static let exactRows: [TranscriptRowFixtures.Row] = [
-    .userMessage, .agentProse, .thought, .toolCall, .plan,
+    .userMessage, .agentProse, .thought, .toolCall, .terminal, .plan, .notice, .compaction, .sessionMessage,
   ]
 
   /// The row kinds with a text part that the default text measure does not
-  /// give exactly: a row of these kinds is real in its first frame.
+  /// give exactly: a row of these kinds is real in its first frame. Each has
+  /// a code block with a line number gutter (EditorKit ^v8t0pka) or a diff,
+  /// whose gutters EditorKit does not measure.
   nonisolated static let inexactRows: [TranscriptRowFixtures.Row] = [
-    .agentFenced, .diff, .commandOutput, .terminal, .notice,
+    .agentFenced, .diff, .commandOutput,
   ]
 
   /// A production change that fails this test: the rows do not take the
