@@ -104,7 +104,21 @@ struct PreviewLoadingSpinner: View {
   static var label: String { String(localized: "Loading", bundle: .module) }
 
   var body: some View {
-    EditorProgressView(label: Self.label)
+    SmallSpinner(label: Self.label)
+  }
+}
+
+/// The one small spinner of the kit: an EditorKit `EditorProgressView` at the
+/// small control size, with an accessibility label.
+///
+/// The spinner of a preview that loads (``PreviewLoadingSpinner``) and the
+/// spinner of a running tool (``ActivityIndicator``) use it.
+struct SmallSpinner: View {
+  /// The accessibility label of the spinner, already localized.
+  let label: String
+
+  var body: some View {
+    EditorProgressView(label: label)
       .controlSize(.small)
   }
 }

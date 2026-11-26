@@ -120,8 +120,7 @@ public struct ActivityIndicator: View {
       ShimmerView(text: Self.thinkingText)
     case .runningTool(let name):
       HStack(spacing: editorStyle.spacing.s) {
-        EditorProgressView(label: Self.runningText)
-          .controlSize(.small)
+        SmallSpinner(label: Self.runningText)
         Text(name)
           .foregroundStyle(themeSecondary)
           .lineLimit(1)

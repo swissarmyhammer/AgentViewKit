@@ -151,8 +151,18 @@ public struct InlineCitation: View {
     return URLComponents(url: url, resolvingAgainstBaseURL: false).flatMap { Int($0.path) }
   }
 
+  /// The label of the pill of a source: "Source <index>".
+  ///
+  /// The title of the button and the accessibility label of the pill use it.
+  ///
+  /// - Parameter index: The one-based number of the source.
+  /// - Returns: The localized label.
+  static func label(index: Int) -> String {
+    String(localized: "Source \(index)", bundle: .module)
+  }
+
   public var body: some View {
-    EditorPlainButton(String(localized: "Source \(index)", bundle: .module)) {
+    EditorPlainButton(Self.label(index: index)) {
       selection?.select(index)
     } label: {
       // The button sets its caption font on its label. The pill takes its
@@ -174,7 +184,7 @@ extension View {
   /// - Parameter index: The one-based number of the source.
   /// - Returns: A view with the label "Source <index>".
   func inlineCitationAccessibility(index: Int) -> some View {
-    accessibilityLabel(Text("Source \(index)", bundle: .module))
+    accessibilityLabel(Text(verbatim: InlineCitation.label(index: index)))
       .accessibilityHint(Text("Shows the source in the list of sources.", bundle: .module))
       .accessibilityIdentifier(InlineCitation.identifier(index: index))
   }
