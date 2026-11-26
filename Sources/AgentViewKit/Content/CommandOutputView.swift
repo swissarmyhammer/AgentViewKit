@@ -152,9 +152,6 @@ public struct CommandOutputView: View {
   @Environment(\.themeSecondary) private var themeSecondary
   @Environment(\.pasteboard) private var pasteboard
 
-  /// The search mark of the row around the view, or `nil`.
-  @Environment(\.transcriptSearchMark) private var searchMark
-
   /// Makes the view.
   ///
   /// - Parameters:
@@ -193,18 +190,7 @@ public struct CommandOutputView: View {
       if rows.isCapped {
         capRow(rows)
       }
-      // A right click on the output gives the menu of the row, not the text
-      // menu of AppKit (D108, D193 (f)).
-      // In the static form of a thread row, the output shows in SwiftUI
-      // `Text`, with its colors (card ^9ync5h3).
-      StaticEditorSlot {
-        EditorView(model: model)
-          .editorTextMenu(.ancestor)
-          .sizedToContent()
-          .transcriptSearchMarks(searchMark)
-      } still: {
-        StaticCodeText(StaticCodeText.colored(rows.text, runs: shown.colorRuns))
-      }
+      OutputTextArea(model: model, output: shown)
       if let exitCode, let outcome = ExitOutcome(exitCode: exitCode) {
         footer(exitCode: exitCode, outcome: outcome)
       }

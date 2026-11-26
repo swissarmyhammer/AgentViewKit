@@ -157,7 +157,7 @@ import SwiftUI
   /// The number of EditorKit text views in the row: zero in the static
   /// form, and one for each text area in the real form.
   var textViewCount: Int {
-    Self.textViews(in: hosting).count
+    TextViewTree.textViews(in: hosting).count
   }
 
   /// The row drawn into a bitmap at the size of the host.
@@ -196,15 +196,6 @@ import SwiftUI
       .threadTextSelection()
       .transaction { $0.disablesAnimations = true }
   }
-
-  /// The text views in the view tree under `view`.
-  ///
-  /// - Parameter view: The root of the tree.
-  /// - Returns: Each text view of the tree.
-  private static func textViews(in view: NSView) -> [NSTextView] {
-    let own = (view as? NSTextView).map { [$0] } ?? []
-    return own + view.subviews.flatMap { textViews(in: $0) }
-  }
 }
 
 /// The failure of a ``StaticRowHost``.
@@ -230,6 +221,10 @@ enum InkBands {
   /// The smallest alpha of a dark pixel.
   static let opaqueAlpha: CGFloat = 0.5
 
+  /// The count of color components of a pixel: red, green and blue. The
+  /// luminance of a pixel is their mean.
+  static let colorComponentCount: CGFloat = 3
+
   /// The bands of dark pixel rows of `bitmap`, from the top.
   ///
   /// - Parameter bitmap: The bitmap.
@@ -252,7 +247,7 @@ enum InkBands {
   static func hasInk(_ bitmap: NSBitmapImageRep, row y: Int) -> Bool {
     (0..<bitmap.pixelsWide).contains { x in
       guard let color = bitmap.colorAt(x: x, y: y)?.usingColorSpace(.sRGB) else { return false }
-      let luminance = (color.redComponent + color.greenComponent + color.blueComponent) / 3
+      let luminance = (color.redComponent + color.greenComponent + color.blueComponent) / colorComponentCount
       return color.alphaComponent >= opaqueAlpha && luminance <= darkLuminance
     }
   }

@@ -133,9 +133,6 @@ public struct TerminalView: View {
   @Environment(\.editorTheme) private var editorTheme
   @Environment(\.themeSecondary) private var themeSecondary
 
-  /// The search mark of the row around the view, or `nil`.
-  @Environment(\.transcriptSearchMark) private var searchMark
-
   /// Makes the view of a terminal entry of a `SessionModel` (plan.md §3.8
   /// "Terminal view").
   ///
@@ -184,18 +181,7 @@ public struct TerminalView: View {
       if rows.isCapped {
         capRow(rows)
       }
-      // A right click on the output gives the menu of the row, not the text
-      // menu of AppKit (D108, D193 (f)).
-      // In the static form of a thread row, the output shows in SwiftUI
-      // `Text`, with its colors (card ^9ync5h3).
-      StaticEditorSlot {
-        EditorView(model: model)
-          .editorTextMenu(.ancestor)
-          .sizedToContent()
-          .transcriptSearchMarks(searchMark)
-      } still: {
-        StaticCodeText(StaticCodeText.colored(rows.text, runs: output.colorRuns))
-      }
+      OutputTextArea(model: model, output: output)
       footer
     }
     .contentTile()

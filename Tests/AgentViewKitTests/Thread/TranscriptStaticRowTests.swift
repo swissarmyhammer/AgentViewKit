@@ -38,14 +38,6 @@ import Testing
   static let plainAnswer = PreviewTranscriptItem.agent(plainText)
 
 
-  /// The item of an update that the agent sends as JSON.
-  ///
-  /// - Parameter json: The JSON text of the update.
-  /// - Returns: The item.
-  static func update(_ json: String) throws -> PreviewTranscriptItem {
-    .update(try JSONDecoder().decode(SessionUpdate.self, from: Data(json.utf8)))
-  }
-
   /// One item of each row kind.
   static func itemOfEachKind() throws -> [PreviewTranscriptItem] {
     [
@@ -56,17 +48,17 @@ import Testing
       .plan([PlanEntry(content: "Fix the lexer", priority: .high, status: .inProgress)]),
       .terminal(command: "swift build", output: "Building for debugging\nBuild complete.", exitCode: 0),
       .error(code: .internalError, message: "The agent stopped before it sent an answer."),
-      try update(
+      try PreviewTranscriptItem.decodedUpdate(
         #"""
         {"sessionUpdate": "compaction_update", "compactionId": "static-row-compaction", "status": "completed",
          "summary": [{"type": "text", "text": "The parser work so far."}]}
         """#),
-      try update(
+      try PreviewTranscriptItem.decodedUpdate(
         #"""
         {"sessionUpdate": "session_message", "messageId": "static-row-mail", "senderSessionId": "child-1",
          "content": [{"type": "text", "text": "The lexer change is ready."}]}
         """#),
-      try update(#"{"sessionUpdate": "x_static_row_update", "note": "first"}"#),
+      try PreviewTranscriptItem.decodedUpdate(#"{"sessionUpdate": "x_static_row_update", "note": "first"}"#),
     ]
   }
 

@@ -30,7 +30,7 @@ struct StaticMarkdownText: View {
   var body: some View {
     let base = editorTheme.displayFont.resolve(in: fontContext).ctFont
     let rowHeight = EditorTextFont(font: base).lineHeight
-    VStack(alignment: .leading, spacing: 0) {
+    VStack(alignment: .leading, spacing: .zero) {
       ForEach(Array(StaticMarkdownLine.lines(in: markdown).enumerated()), id: \.offset) { _, line in
         let font = line.font(base: base)
         Text(line.text)
@@ -52,10 +52,32 @@ struct StaticMarkdownLine: Equatable {
   /// The deepest heading level that takes ``headingRowScale`` rows.
   static let deepestScaledLevel = 2
 
-  /// The relative font size of each heading level, from level 1 to level 6,
-  /// before the row scale (`CaptureTypography.markupRelativeSizes` of
-  /// EditorKit).
-  static let headingSizes: [CGFloat] = [1, 0.75, 1, 0.9, 0.8, 0.7]
+  /// The relative font size of a level 1 heading, before the row scale.
+  static let levelOneSize: CGFloat = 1
+
+  /// The relative font size of a level 2 heading, before the row scale.
+  static let levelTwoSize: CGFloat = 0.75
+
+  /// The relative font size of a level 3 heading.
+  static let levelThreeSize: CGFloat = 1
+
+  /// The relative font size of a level 4 heading.
+  static let levelFourSize: CGFloat = 0.9
+
+  /// The relative font size of a level 5 heading.
+  static let levelFiveSize: CGFloat = 0.8
+
+  /// The relative font size of a level 6 heading.
+  static let levelSixSize: CGFloat = 0.7
+
+  /// The relative font size of each heading level, by level, before the row
+  /// scale (`CaptureTypography.markupRelativeSizes` of EditorKit).
+  static let headingSizes: [Int: CGFloat] = [
+    1: levelOneSize, 2: levelTwoSize, 3: levelThreeSize, 4: levelFourSize, 5: levelFiveSize, 6: levelSixSize,
+  ]
+
+  /// The relative font size of a line that is not a heading.
+  static let bodySize: CGFloat = 1
 
   /// The text that shows in place of the marker of a bullet item: the bullet
   /// of EditorKit, and a tab to the text of the item.
@@ -84,7 +106,7 @@ struct StaticMarkdownLine: Equatable {
   ///   font keeps the optical size of the relative size.
   func font(base: CTFont) -> CTFont {
     guard let headingLevel else { return base }
-    let size = CTFontGetSize(base) * Self.headingSizes[headingLevel - 1]
+    let size = CTFontGetSize(base) * (Self.headingSizes[headingLevel] ?? Self.bodySize)
     let heading =
       CTFontCreateCopyWithSymbolicTraits(base, size, nil, .traitBold, .traitBold)
       ?? CTFontCreateCopyWithAttributes(base, size, nil, nil)
@@ -146,6 +168,6 @@ extension View {
       self
       .lineHeight(.exact(points: rowHeight))
       .fixedSize(horizontal: false, vertical: true)
-      .offset(y: max(rowHeight - natural, 0))
+      .offset(y: max(rowHeight - natural, .zero))
   }
 }

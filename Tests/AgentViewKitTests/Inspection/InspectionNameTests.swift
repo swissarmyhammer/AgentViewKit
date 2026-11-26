@@ -46,14 +46,6 @@ import Testing
     }
   }
 
-  /// The item of an update that the agent sends as JSON.
-  ///
-  /// - Parameter json: The JSON text of the update.
-  /// - Returns: The item.
-  private func update(_ json: String) throws -> PreviewTranscriptItem {
-    .update(try JSONDecoder().decode(SessionUpdate.self, from: Data(json.utf8)))
-  }
-
   /// The item of a message between two sessions.
   ///
   /// - Parameters:
@@ -62,7 +54,7 @@ import Testing
   ///   - text: The text of the message.
   /// - Returns: The item.
   private func sessionMessage(id: String, from sender: String, text: String) throws -> PreviewTranscriptItem {
-    try update(
+    try PreviewTranscriptItem.decodedUpdate(
       #"""
       {"sessionUpdate": "session_message", "messageId": "\#(id)", "senderSessionId": "\#(sender)",
        "content": [{"type": "text", "text": "\#(text)"}]}
@@ -177,8 +169,8 @@ import Testing
 
   @Test func twoCompactionsHaveTwoNames() throws {
     let names = try names(
-      update(#"{"sessionUpdate": "compaction_update", "compactionId": "compaction-1", "status": "completed"}"#),
-      update(#"{"sessionUpdate": "compaction_update", "compactionId": "compaction-2", "status": "in_progress"}"#),
+      PreviewTranscriptItem.decodedUpdate(#"{"sessionUpdate": "compaction_update", "compactionId": "compaction-1", "status": "completed"}"#),
+      PreviewTranscriptItem.decodedUpdate(#"{"sessionUpdate": "compaction_update", "compactionId": "compaction-2", "status": "in_progress"}"#),
       as: CompactionEntry.self)
 
     #expect(Set(names).count == names.count)
@@ -186,12 +178,12 @@ import Testing
 
   @Test func aCompactionWithASummaryIsNamedByItsFirstWords() throws {
     let names = try names(
-      update(
+      PreviewTranscriptItem.decodedUpdate(
         #"""
         {"sessionUpdate": "compaction_update", "compactionId": "compaction-1", "status": "completed",
          "summary": [{"type": "text", "text": "The parser work so far."}]}
         """#),
-      update(#"{"sessionUpdate": "compaction_update", "compactionId": "compaction-2", "status": "completed"}"#),
+      PreviewTranscriptItem.decodedUpdate(#"{"sessionUpdate": "compaction_update", "compactionId": "compaction-2", "status": "completed"}"#),
       as: CompactionEntry.self)
 
     #expect(names.first == "The parser work so far.")
@@ -207,8 +199,8 @@ import Testing
 
   @Test func twoUnknownUpdatesHaveTwoNames() throws {
     let names = try names(
-      update(#"{"sessionUpdate": "x_board_update", "note": "first"}"#),
-      update(#"{"sessionUpdate": "x_index_update", "note": "second"}"#), as: UnknownEntry.self)
+      PreviewTranscriptItem.decodedUpdate(#"{"sessionUpdate": "x_board_update", "note": "first"}"#),
+      PreviewTranscriptItem.decodedUpdate(#"{"sessionUpdate": "x_index_update", "note": "second"}"#), as: UnknownEntry.self)
 
     #expect(names == ["x_board_update", "x_index_update"])
   }

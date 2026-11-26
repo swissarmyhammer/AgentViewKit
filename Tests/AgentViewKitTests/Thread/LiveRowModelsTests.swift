@@ -62,7 +62,7 @@ import Testing
 
   /// The number of text views in the view tree of the host.
   var mountedTextViewCount: Int {
-    Self.textViews(in: hosting).count
+    TextViewTree.textViews(in: hosting).count
   }
 
   /// The height of the rows, in points.
@@ -85,20 +85,11 @@ import Testing
     autoreleasepool {
       hosting.frame = NSRect(origin: .zero, size: hosting.fittingSize)
       hosting.layoutSubtreeIfNeeded()
-      for scaffold in Self.textViews(in: hosting).compactMap({ $0.delegate as? EditorTextScaffold })
+      for scaffold in TextViewTree.textViews(in: hosting).compactMap({ $0.delegate as? EditorTextScaffold })
       {
         scaffolds[ObjectIdentifier(scaffold)] = WeakScaffold(scaffold)
       }
     }
-  }
-
-  /// The text views in the view tree under `view`.
-  ///
-  /// - Parameter view: The root of the tree.
-  /// - Returns: Each text view of the tree.
-  private static func textViews(in view: NSView) -> [NSTextView] {
-    let own = (view as? NSTextView).map { [$0] } ?? []
-    return own + view.subviews.flatMap { textViews(in: $0) }
   }
 }
 
