@@ -61,4 +61,66 @@ import Testing
 
     #expect(frames.themed.height > frames.plain.height)
   }
+
+  /// A jump list with the entry of one child session, and the id of each
+  /// session that a press of a row chooses.
+  struct ChildList {
+    /// The list.
+    let list: SessionJumpList
+
+    /// The entry of the child session.
+    let entry: SessionPathEntry
+
+    /// The ids that the list chose, in order.
+    let chosen: ChosenSessions
+  }
+
+  /// The ids of the sessions that a jump list chose.
+  @MainActor final class ChosenSessions {
+    /// The ids, in order.
+    var ids: [SessionId] = []
+  }
+
+  /// Opens a scripted session with one child, and makes the jump list of
+  /// its entries.
+  ///
+  /// - Parameter session: The scripted session.
+  /// - Returns: The list, the entry of the child, and the record of the
+  ///   chosen ids.
+  static func childList(in session: ScriptedSession) async throws -> ChildList {
+    try await session.announceChild(child, title: childTitle)
+    let entry = try #require(session.model.jumpEntries.first)
+    let chosen = ChosenSessions()
+    let list = SessionJumpList(agent: nil, entries: [entry]) { chosen.ids.append($0) }
+    return ChildList(list: list, entry: entry, chosen: chosen)
+  }
+
+  /// A production change that fails this test: the rows stand in a SwiftUI
+  /// `List`, whose native table draws its own focus ring and selection fill,
+  /// in place of EditorKit's `EditorSelectionList`.
+  @Test func theRowsStandInNoNativeTable() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let child = try await Self.childList(in: session)
+
+    let hasTable = await ControlProbe.laysOutATable(child.list)
+
+    #expect(!hasTable)
+  }
+
+  /// A production change that fails this test: the selection list of the
+  /// rows combines a row into an element that loses the identifier of the
+  /// row, or the press of the row, so a person or a test cannot choose the
+  /// session.
+  @Test func aPressOnTheRowOfTheListChoosesItsSession() async throws {
+    let session = try await ScriptedSession.open()
+    defer { session.close() }
+    let child = try await Self.childList(in: session)
+
+    _ = await ControlProbe.read(
+      SessionJumpList.rowIdentifier(for: child.entry.sessionId), in: child.list
+    ) { try? performAccessibilityPress(on: $0) }
+
+    #expect(child.chosen.ids == [child.entry.sessionId])
+  }
 }
