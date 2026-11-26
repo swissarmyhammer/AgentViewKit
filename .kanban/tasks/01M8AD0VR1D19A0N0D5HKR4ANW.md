@@ -1,6 +1,16 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m8b0jag2tbrpvg5t10q20tg6
+  text: |-
+    ### branches from editorkit-7a
+    - ^q41mdew: `spike/caption-layout` 0078a05f, against EK ccba113d (the same base; only the captions are different).
+    - ^8vgmyc7: `spike/mount-cache` 20db34ef (base 26d91296 = EK main 44b9f941 + ^kk9k7am), against EK 44b9f941. API: `.editorMountCache(cache)` above the transcript list keeps a realized editor for each model. The next EditorView over the same model uses it again. Use it in the trace run with the AVK live-range placeholder swap in use. Without the trace, the cache does not meet its budget (a remount from the cache costs 0.62–0.77 of a fresh remount, and the budget is < 0.25).
+    - send: the main-thread totals of each pair, and the mount hitch frames if the trace has them.
+    - next: run when the machine is quiet (no headless test runs in other AVK agents), with start and end lines.
+  timestamp: 2026-11-26T04:07:09.058349+00:00
 position_column: todo
 position_ordinal: '8980'
 title: Scroll traces for the EditorKit perf cards ^q41mdew, ^8vgmyc7 and ^59ykv6h

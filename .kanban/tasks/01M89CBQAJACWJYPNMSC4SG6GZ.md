@@ -53,6 +53,14 @@ comments:
     - evidence: 91dcb5f5 reverts 574ebdf9 (^pc1w14d). A ForEach data that is equal from one body to the next leaves the lazy stack with no row after the first layout from the bottom, when the first row is very tall (the recorded session django__django-14672). A per-body token fix made other shapes worse.
     - next: a new approach must pass RecordedSessionsGalleryHostedTests and ConversationRowElementTests. The probe and the shape matrix are in the scratchpad (ScratchShapeProbeTests.swift, matrix.sh). The tall first row also breaks the code before 574ebdf9 for some shapes, so look at that first.
   timestamp: 2026-11-26T00:37:18.118601+00:00
+- actor: claude-code
+  id: 01m8arjpjb4zetym0c3ftwcthj
+  text: |-
+    ### investigate — the rule of the empty list (it is also on main)
+    - evidence: a matrix with one shape in each process, a HostedViewHarness mount of ConversationView at 1475×587, on main ecb3a865 and on feadf6c1 (574ebdf9 applied again). Results: scratchpad matrix-results.txt. Main fails for shape i (a first row of 30000 characters, 2 tool calls, 2 thoughts): 0 rows. feadf6c1 fails for 7 of 10 shapes. The recorded session 14672 passes on both, after the scroll change of ^48x2jb7.
+    - rule: the first layout measures rows 0 and 1. A very tall row 0 makes the estimated height of each row that is not measured very large. The initial offset goes to the bottom of the estimate. When one estimated row is taller than the viewport, the viewport holds only the last row. The stack measures that row, and the estimate falls. The viewport moves to the new bottom, but the stack makes no row there in that pass. No visibility report comes, and the scroll to the bottom edge goes to where the list already is. So no layout pass follows, and the list stays empty. With 574ebdf9, the estimate is about 2 times larger (one child for each element, not two), so more shapes fail.
+    - next: try a scroll to the id of the last row (an element of the ForEach) for the scroll to the bottom, or a second scroll in the geometry action when the content height changes and no visibility report has come. The test uses shape a (it fails on feadf6c1) and shape i (it fails on main).
+  timestamp: 2026-11-26T01:47:32.811510+00:00
 position_column: todo
 position_ordinal: 8d80
 title: 'Scroll perf 5: one view for each ForEach element of the transcript'
