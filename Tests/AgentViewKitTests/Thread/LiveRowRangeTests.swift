@@ -97,4 +97,17 @@ import Testing
 
     #expect(!rows.isLive(Self.farPosition))
   }
+
+  /// A production change that fails this test: the span takes the first
+  /// and the last item of the report, so a report in any order gives a
+  /// wrong span.
+  @Test func theSpanOfPositionsInAnyOrderIsFromTheLeastToTheLargest() {
+    #expect([Self.scrollEnd, Self.scrollStart, Self.farPosition].positionSpan == Self.scrollStart...Self.farPosition)
+  }
+
+  /// A production change that fails this test: an empty report gives a
+  /// span, so the range or the heights move to a span that no row has.
+  @Test func anEmptyReportHasNoSpan() {
+    #expect([Int]().positionSpan == nil)
+  }
 }

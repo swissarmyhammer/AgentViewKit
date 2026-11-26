@@ -33,7 +33,7 @@ import SwiftUI
 ///
 /// The row is content of the transcript, so it has no fill and no glass. A
 /// separator stroke marks its edge
-/// (`.inlineEdge(radius:)`, D113).
+/// (`.scrolledInlineEdge(radius:)`, D113, card ^9ync5h3).
 public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
   /// The start of the accessibility identifier of the title and the status of
   /// each row. The rest is the row key of the entry.
@@ -80,7 +80,7 @@ public struct CompactionEntryView: View, PrefixedAccessibilityIdentifier {
       summary(key: key)
     }
     .contentTile()
-    .inlineEdge(radius: editorStyle.radii.l)
+    .scrolledInlineEdge(radius: editorStyle.radii.l)
   }
 
   /// The symbol, the title and the status of the row.

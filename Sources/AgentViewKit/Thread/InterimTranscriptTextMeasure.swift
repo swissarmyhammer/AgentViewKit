@@ -52,6 +52,15 @@ nonisolated public struct InterimTranscriptTextMeasure: TranscriptTextMeasure {
     hasThemeFonts = hasSystemFaces && fontSize == NSFont.systemFontSize
   }
 
+  /// Tells if the height of a part is the height of the mounted view of the
+  /// part.
+  ///
+  /// The measure is exact only in a theme with the system fonts at the
+  /// system font size, and only for Markdown that is plain prose
+  /// (``isPlainProse(_:)``) and for a label in the font of its row.
+  ///
+  /// - Parameter part: The text part.
+  /// - Returns: `true` when ``height(of:width:)`` is exact for the part.
   public func isExact(_ part: TranscriptTextPart) -> Bool {
     guard hasThemeFonts else { return false }
     switch part.style {

@@ -79,8 +79,8 @@ import SwiftUI
   /// - Parameter positions: The positions in the transcript of the rows in
   ///   view.
   func noteRowsInView(positions: [Int]) {
-    guard let first = positions.min(), let last = positions.max() else { return }
-    rowsInView = first ..< last + 1
+    guard let span = positions.positionSpan else { return }
+    rowsInView = Range(span)
   }
 
   /// Records the size of a real row.
@@ -161,7 +161,7 @@ import SwiftUI
 /// The values of the environment of the rows that set the cache of a thread
 /// (``TranscriptStaticRowHeights/makeCache(theme:expandedBlocks:hasDefaultLook:)``).
 /// A change of one of them makes a new cache.
-struct TranscriptRowCacheSetup: Equatable {
+nonisolated struct TranscriptRowCacheSetup: Equatable {
   /// The font faces of the theme: the UI, the display and the code face.
   let faces: [FontFace]
 
@@ -173,6 +173,19 @@ struct TranscriptRowCacheSetup: Equatable {
 
   /// Whether the rows have their default look.
   let hasDefaultLook: Bool
+
+  /// Tells if two setups make the same cache: each value of the one setup
+  /// is the value of the other setup.
+  ///
+  /// - Parameters:
+  ///   - lhs: A setup.
+  ///   - rhs: A setup.
+  /// - Returns: `true` when the faces, the store of the expanded blocks, the
+  ///   session and the look are the same.
+  static func == (lhs: TranscriptRowCacheSetup, rhs: TranscriptRowCacheSetup) -> Bool {
+    lhs.faces == rhs.faces && lhs.expandedBlocks == rhs.expandedBlocks && lhs.session == rhs.session
+      && lhs.hasDefaultLook == rhs.hasDefaultLook
+  }
 }
 
 /// Feeds the heights of the static rows of a thread with a cache for the

@@ -17,7 +17,7 @@ import UniformTypeIdentifiers
 /// type, and has no file actions, because it has no file.
 ///
 /// The panel is content, so it has no fill and no glass. A separator stroke
-/// marks its edge (`.inlineEdge(radius:)`, D113).
+/// marks its edge (`.scrolledInlineEdge(radius:)`, D113, card ^9ync5h3).
 public struct ArtifactView: View {
   /// The accessibility identifier of the panel.
   public static let identifier = "artifact"
@@ -90,7 +90,7 @@ public struct ArtifactView: View {
       }
     }
     .contentTile()
-    .inlineEdge(radius: Self.corners.radius(in: editorStyle))
+    .scrolledInlineEdge(radius: Self.corners.radius(in: editorStyle))
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier(Self.identifier)
     .agentAttachmentScope(attachment, focusLook: .contentSurface)
