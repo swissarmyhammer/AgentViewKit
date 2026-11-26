@@ -20,11 +20,6 @@ import Testing
     ScrollAnchorManager(tolerance: tolerance) { recorder.report($0) }
   }
 
-  /// Lets each main-actor task that is scheduled now run to its end.
-  private static func runScheduledTasks() async {
-    await Task {}.value
-  }
-
   // MARK: - Pin
 
   @Test func aNewManagerIsPinnedWithNoCount() {
@@ -169,14 +164,14 @@ import Testing
     let manager = Self.makeManager(recorder: recorder)
     manager.noteAppended(ids: ["a", "b"])
     manager.noteVisible(ids: ["a"])
-    await Self.runScheduledTasks()
+    await ScheduledMainActorTasks.runScheduled()
     manager.noteAppended(ids: ["c"])
     manager.saveAnchor()
     #expect(!manager.isPinnedToBottom)
     #expect(manager.newItemsSinceUnpinned == 1)
 
     manager.pinToBottom()
-    await Self.runScheduledTasks()
+    await ScheduledMainActorTasks.runScheduled()
 
     #expect(manager.isPinnedToBottom)
     #expect(manager.newItemsSinceUnpinned == 0)
@@ -214,10 +209,10 @@ import Testing
     let recorder = ReportRecorder<ScrollAnchorTarget>()
     let manager = Self.makePressedManager(recorder: recorder)
     manager.noteVisible(ids: ["a", "b"], distanceFromBottom: Self.distanceOutsideTolerance)
-    await Self.runScheduledTasks()
+    await ScheduledMainActorTasks.runScheduled()
 
     manager.noteAppended(ids: ["e"])
-    await Self.runScheduledTasks()
+    await ScheduledMainActorTasks.runScheduled()
 
     #expect(manager.newItemsSinceUnpinned == 0)
     // The scroll of the first append and of the press is one scroll, and the
@@ -268,10 +263,10 @@ import Testing
     let manager = Self.makeManager(recorder: recorder)
     manager.noteAppended(ids: ["a", "b", "c"])
     manager.noteVisible(ids: ["a"])
-    await Self.runScheduledTasks()
+    await ScheduledMainActorTasks.runScheduled()
 
     manager.noteLastItemChanged(to: "b")
-    await Self.runScheduledTasks()
+    await ScheduledMainActorTasks.runScheduled()
 
     #expect(!manager.isPinnedToBottom)
     #expect(manager.newItemsSinceUnpinned == 0)
@@ -286,7 +281,7 @@ import Testing
     let manager = Self.makeManager(recorder: recorder)
 
     manager.noteLastItemChanged(to: "a")
-    await Self.runScheduledTasks()
+    await ScheduledMainActorTasks.runScheduled()
 
     #expect(manager.isPinnedToBottom)
     #expect(recorder.values == [.bottom])
@@ -297,10 +292,10 @@ import Testing
     let manager = Self.makeManager(recorder: recorder)
     manager.noteAppended(ids: ["a", "b"])
     manager.noteVisible(ids: ["a"])
-    await Self.runScheduledTasks()
+    await ScheduledMainActorTasks.runScheduled()
 
     manager.noteLastItemChanged(to: nil)
-    await Self.runScheduledTasks()
+    await ScheduledMainActorTasks.runScheduled()
 
     #expect(manager.isPinnedToBottom)
     #expect(recorder.values == [.bottom])
@@ -311,7 +306,7 @@ import Testing
     let manager = Self.makeManager(recorder: recorder)
 
     manager.noteAppended(ids: ["a", "b"])
-    await Self.runScheduledTasks()
+    await ScheduledMainActorTasks.runScheduled()
 
     #expect(manager.newItemsSinceUnpinned == 0)
     #expect(recorder.values == [.bottom])
@@ -322,10 +317,10 @@ import Testing
     let manager = Self.makeManager(recorder: recorder)
     manager.noteAppended(ids: ["a"])
     manager.noteVisible(ids: ["a"], distanceFromBottom: Self.distanceOutsideTolerance)
-    await Self.runScheduledTasks()
+    await ScheduledMainActorTasks.runScheduled()
 
     manager.noteAppended(ids: [])
-    await Self.runScheduledTasks()
+    await ScheduledMainActorTasks.runScheduled()
 
     #expect(!manager.isPinnedToBottom)
     #expect(manager.newItemsSinceUnpinned == 0)
@@ -342,7 +337,7 @@ import Testing
       manager.requestScrollToBottom()
     }
     #expect(recorder.values.isEmpty)
-    await Self.runScheduledTasks()
+    await ScheduledMainActorTasks.runScheduled()
 
     #expect(recorder.values == [.bottom])
   }
@@ -352,9 +347,9 @@ import Testing
     let manager = Self.makeManager(recorder: recorder)
 
     manager.requestScrollToBottom()
-    await Self.runScheduledTasks()
+    await ScheduledMainActorTasks.runScheduled()
     manager.requestScrollToBottom()
-    await Self.runScheduledTasks()
+    await ScheduledMainActorTasks.runScheduled()
 
     #expect(recorder.values == [.bottom, .bottom])
   }
@@ -427,7 +422,7 @@ import Testing
     manager.noteLastItemChanged(to: "d")
 
     manager.noteJump(to: "a")
-    await Self.runScheduledTasks()
+    await ScheduledMainActorTasks.runScheduled()
 
     #expect(manager.anchorID == "a")
     #expect(recorder.values.isEmpty)

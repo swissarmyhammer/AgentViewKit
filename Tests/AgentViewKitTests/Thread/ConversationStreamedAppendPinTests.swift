@@ -32,11 +32,6 @@ import Testing
   /// The distance that the list gives when the list is not near the bottom.
   private static let awayFromBottom = CGFloat.greatestFiniteMagnitude
 
-  /// Lets each main-actor task that is scheduled now run to its end.
-  private static func runScheduledTasks() async {
-    await Task {}.value
-  }
-
   /// Makes a manager whose list shows its last rows "b" and "c" at the
   /// bottom, and then appends the row "d" of a streamed turn.
   ///
@@ -91,7 +86,7 @@ import Testing
   @Test func aReportOfTheOldEndAfterTheSentScrollKeepsThePin() async {
     let scrolls = ReportRecorder<ScrollAnchorTarget>()
     let manager = Self.makeAppendedManager(scrolls: scrolls)
-    await Self.runScheduledTasks()
+    await ScheduledMainActorTasks.runScheduled()
     #expect(scrolls.values == [.bottom])
 
     manager.noteVisible(ids: ["b", "c"], distanceFromBottom: Self.awayFromBottom)
