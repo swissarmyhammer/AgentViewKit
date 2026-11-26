@@ -27,10 +27,13 @@ import SwiftUI
 /// (card ^7625j1b).
 ///
 /// Each ``TranscriptRowElement`` keeps one mount. The mount of a row that
-/// the list makes while the rows move waits from its start
+/// the list makes in a live motion of the user waits from its start
 /// (``init(waits:)``), so the row is static at rest before its first appear
-/// too. A row that comes into view while the rows move, or that comes into
-/// view at rest while its mount waits, puts its mount in the queue. While
+/// too. A static row in view in a live motion, or a row that comes into
+/// view at rest while its mount waits, puts its mount in the queue. A
+/// row that shows its real form, also in a motion, takes its mount out of
+/// the queue at once (``TranscriptRowMountQueue/release(_:)``), so a real
+/// row never waits. While
 /// the mount waits, the row shows its static form, also at rest
 /// (``TranscriptRowForm``), unless a hold keeps it real. A row that leaves
 /// the view leaves the queue, and its mount still waits, so a row that the
@@ -55,6 +58,10 @@ import SwiftUI
   /// The row writes it while it waits. A change does not evaluate the row.
   @ObservationIgnored var centerDistance = CGFloat.infinity
 
+  /// Whether the row is in view: between its appear and its disappear. A
+  /// change does not evaluate the row.
+  @ObservationIgnored var isInView = false
+
   /// The mounts of the editor slots of the row, in the order of their
   /// arrival.
   @ObservationIgnored private var slots: [TranscriptSlotMount] = []
@@ -62,7 +69,7 @@ import SwiftUI
   /// Makes a mount.
   ///
   /// - Parameter waits: Whether the row waits from its start: `true` for a
-  ///   row that the list makes while the rows move.
+  ///   row that the list makes in a live motion of the user.
   init(waits: Bool = false) {
     self.waits = waits
   }
@@ -153,7 +160,8 @@ import SwiftUI
 /// when the rows come to rest (card ^7625j1b).
 ///
 /// A row that comes into the list while the rows move shows its static
-/// form (``TranscriptStaticRow``). When the rows come to rest, the queue
+/// form (``TranscriptStaticRow``). A static row of a live motion of the
+/// user waits in the queue. When the rows come to rest, the queue
 /// does not mount the editors of all these rows in one frame. Each editor
 /// slot of these rows (``TranscriptSlotMount``) waits for a turn of its
 /// own: in each frame of its ``frames``, the queue makes at most
@@ -196,9 +204,9 @@ import SwiftUI
     self.frames = frames
   }
 
-  /// Puts the mount of a row that comes into view while the rows move, or
-  /// that comes into view at rest while it waits, in the queue. The row and
-  /// each of its editor slots then wait for their turns. While a jump
+  /// Puts the mount of a static row in view in a live motion, or of a row
+  /// that comes into view at rest while it waits, in the queue. The row
+  /// and each of its editor slots then wait for their turns. While a jump
   /// session is open, the row does not wait.
   ///
   /// - Parameter mount: The mount of the row.
@@ -214,9 +222,9 @@ import SwiftUI
 
   /// Takes the mount of a row out of the queue at once: the row and each
   /// of its editor slots do not wait. The row of the mount gets a hold,
-  /// shows its real form at rest for a different cause, or has no editor
-  /// slot that waits. A mount out of the queue that still waits, such as
-  /// the mount of a row out of view, also stops to wait.
+  /// shows its real form for a different cause, at rest or in a motion, or
+  /// has no editor slot that waits. A mount out of the queue that still
+  /// waits, such as the mount of a row out of view, also stops to wait.
   ///
   /// - Parameter mount: The mount of the row.
   func release(_ mount: TranscriptRowMount) {
