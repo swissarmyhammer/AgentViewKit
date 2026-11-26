@@ -6,9 +6,11 @@ import SwiftUI
 /// The frame of a block that holds an EditorKit editor: ``CodeBlockView``,
 /// ``TerminalView`` and ``CommandOutputView``.
 ///
-/// The frame clips the block to the surface shape of EditorKit
-/// (`EditorSurface.shape(radius:)`) with the medium radius of `\.editorStyle`,
-/// and marks its edge with the separator stroke of `.inlineEdge(radius:)`. A
+/// The frame clips the block to the shape of a surface in a scrolled row
+/// (``AgentViewKitStyle/ScrolledSurface``) with the medium radius of
+/// `\.editorStyle`, and marks its edge with the separator stroke of
+/// ``AgentViewKitStyle/SwiftUI/View/scrolledInlineEdge(radius:)``. Thus a
+/// scroll of the thread does not draw the block again (card ^9ync5h3). A
 /// code block has no fill (D113): the content behind the block shows through
 /// it. Only the fill that a block gives, for example the terminal background,
 /// or the fill that a host opts into with `.inlineFill(_:)`, fills the block.
@@ -22,11 +24,11 @@ struct EditorBlockFrame: ViewModifier {
 
   func body(content: Content) -> some View {
     let radius = editorStyle.radii.m
-    let shape = EditorSurface.shape(radius: radius)
+    let shape = ScrolledSurface.shape(radius: radius)
     content
       .clipShape(shape)
       .background(fill ?? .clear, in: shape)
-      .inlineEdge(radius: radius)
+      .scrolledInlineEdge(radius: radius)
   }
 }
 
