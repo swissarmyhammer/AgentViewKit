@@ -58,6 +58,11 @@ public struct TerminalView: View {
   /// All, when the host gives no row limit.
   public static let defaultRowLimit = CommandOutputView.defaultRowLimit
 
+  /// The command label of a terminal that names no command.
+  static var untitledCommand: String {
+    String(localized: "Terminal", bundle: .module)
+  }
+
   /// The exit status of a terminal, as the footer shows it.
   public enum ExitSummary: Equatable, Sendable {
     /// The process exited with a code.
@@ -218,7 +223,7 @@ public struct TerminalView: View {
       EditorSymbolImage(.tool(.execute))
         .symbolColumn()
         .accessibilityHidden(true)
-      EditorLabel(verbatim: entry.command ?? String(localized: "Terminal", bundle: .module))
+      EditorLabel(verbatim: entry.command ?? Self.untitledCommand)
         .editorTextColor(entry.command == nil ? .secondary : .primary)
         .font(editorTheme.codeFont)
         .accessibilityIdentifier(Self.commandIdentifier)
