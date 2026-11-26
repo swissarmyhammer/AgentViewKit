@@ -87,6 +87,36 @@ import Testing
     #expect(position.viewID(type: String.self) == Self.rowKey)
   }
 
+  @Test func theFirstScrollOfATallListGoesToTheLastRow() {
+    var position = ScrollPosition(idType: String.self)
+    let kept = ConversationLayout.scrollFirstTimeToBottom(
+      &position, rowKey: Self.rowKey, contentFitsInView: false)
+    #expect(position.viewID(type: String.self) == Self.rowKey)
+    #expect(kept == Self.rowKey)
+  }
+
+  @Test func theFirstScrollOfAShortListGoesToTheBottomEdge() {
+    var position = ScrollPosition(idType: String.self)
+    let kept = ConversationLayout.scrollFirstTimeToBottom(
+      &position, rowKey: Self.rowKey, contentFitsInView: true)
+    #expect(position.edge == .bottom)
+    #expect(position.viewID == nil)
+    #expect(kept == nil)
+  }
+
+  @Test func aNewLastRowRemovesTheRowOfTheFirstScroll() {
+    var position = Self.positionAtTheLastRow()
+    ConversationLayout.releaseFirstScrollRow(&position, rowKey: Self.rowKey)
+    #expect(position.viewID(type: String.self) == nil)
+    #expect(position.isPositionedByUser)
+  }
+
+  @Test func aNewLastRowKeepsTheBottomEdge() {
+    var position = Self.positionAtTheBottomEdge()
+    ConversationLayout.releaseFirstScrollRow(&position, rowKey: Self.rowKey)
+    #expect(position.edge == .bottom)
+  }
+
   @Test func aScrollToAnItemHoldsTheRowKeyOfTheItem() {
     var position = ScrollPosition(idType: String.self)
     ConversationLayout.scroll(&position, to: .item(Self.rowKey))
