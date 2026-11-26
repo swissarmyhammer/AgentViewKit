@@ -8,8 +8,11 @@ import SwiftUI
 /// (plan.md §13.1).
 ///
 /// The chip shows the title, the required mark and the answered mark of its
-/// field. The selected chip sits on the shared selection surface of
-/// EditorKit. The chip has no command scope of its own, so it shows its
+/// field. The chip is EditorKit's `EditorPlainButton`, which draws the one
+/// focus ring of EditorKit. The selected chip sits on the shared selection
+/// surface of EditorKit, outside the button, so the button draws the focus
+/// and the chip draws the selection. The chip has no command scope of its
+/// own, so it shows its
 /// selection only, and the focus look of the scope around the form stays as
 /// it is (EditorKit style.md, "Selection and focus"). A chip is not a content
 /// tile, so it keeps the small padding of a chip.
@@ -30,7 +33,7 @@ struct ElicitationTabChip: View {
   var body: some View {
     let schema = field.schema
     let answered = ElicitationValidator.hasValidAnswer(value: field.value.wrappedValue, against: schema)
-    Button(action: select) {
+    EditorPlainButton(schema.title, action: select) {
       HStack(spacing: editorStyle.spacing.xs) {
         Image(systemName: answered ? ElicitationLayout.answeredSymbol : ElicitationLayout.notAnsweredSymbol)
           .foregroundStyle(answered ? AnyShapeStyle(editorTheme.statusSucceeded) : placedSecondary)
@@ -43,10 +46,9 @@ struct ElicitationTabChip: View {
       }
       .padding(.horizontal, editorStyle.spacing.s)
       .padding(.vertical, editorStyle.spacing.xs)
-      .selectionSurface(isSelected, corners: .rounded(ElicitationLayout.tabRadius))
-      .inlineEdge(radius: editorStyle.radii[ElicitationLayout.tabRadius])
     }
-    .buttonStyle(.plain)
+    .selectionSurface(isSelected, corners: .rounded(ElicitationLayout.tabRadius))
+    .inlineEdge(radius: editorStyle.radii[ElicitationLayout.tabRadius])
     .accessibilityElement(children: .ignore)
     .accessibilityAddTraits(.isButton)
     .accessibilityAddTraits(isSelected ? .isSelected : [])

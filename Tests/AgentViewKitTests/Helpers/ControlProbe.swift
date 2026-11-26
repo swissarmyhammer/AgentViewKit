@@ -1,5 +1,6 @@
 import AgentViewKitTestSupport
 import AppKit
+import EditorStyle
 import EditorTestSupport
 import EditorTheme
 import EditorSwiftUI
@@ -26,7 +27,8 @@ import SwiftUI
   static let hostSize = CGSize(width: hostWidth, height: hostHeight)
 
   /// Reads the one element of `view` whose accessibility identifier is
-  /// `identifier`.
+  /// `identifier`. The search also reads the rows of a scroll area, such as
+  /// the rows of a list.
   ///
   /// - Parameters:
   ///   - identifier: The accessibility identifier of the element.
@@ -38,7 +40,7 @@ import SwiftUI
     _ identifier: String, in view: some View, _ read: (NSObject) -> Value
   ) async -> Value? {
     await host(view) { hosting in
-      let elements = accessibilityElements(identifiedAs: identifier, under: hosting)
+      let elements = accessibilityElements(identifiedAs: identifier, under: hosting, includingScrollAreas: true)
       return elements.count == 1 ? elements.first.map(read) : nil
     }
   }
@@ -87,11 +89,57 @@ import SwiftUI
   static func frames(
     of identifier: String, in view: some View, enlarging role: FontRole
   ) async -> (plain: CGRect, themed: CGRect)? {
+    await frames(of: identifier, plain: view, themed: view.editorTheme(EnlargedRoleTheme(enlargedRole: role)))
+  }
+
+  /// The text style of the button captions of
+  /// ``framesWithLargeButtonCaptions(of:in:)``: the largest system text
+  /// style, much larger than the default `body` style of a caption.
+  static let largeButtonCaptionStyle = Font.TextStyle.largeTitle
+
+  /// The style tokens of ``framesWithLargeButtonCaptions(of:in:)``: the
+  /// default tokens, with the button captions at ``largeButtonCaptionStyle``.
+  static var largeButtonCaptionTokens: EditorStyle {
+    var style = EditorStyle.default
+    style.buttons.captionStyle = largeButtonCaptionStyle
+    return style
+  }
+
+  /// The frame of the element `identifier` of `view` with the default style
+  /// tokens, and with tokens that draw the caption of a button at
+  /// ``largeButtonCaptionStyle``.
+  ///
+  /// A button of EditorKit draws its caption at the caption style of the
+  /// button tokens of `\.editorStyle`, so it is larger with the second
+  /// tokens. A system button does not read the tokens.
+  ///
+  /// - Parameters:
+  ///   - identifier: The accessibility identifier of the element.
+  ///   - view: The view to lay out.
+  /// - Returns: The frame with the default tokens and the frame with the
+  ///   large captions, or `nil` when a layout has no single element with the
+  ///   identifier.
+  static func framesWithLargeButtonCaptions(
+    of identifier: String, in view: some View
+  ) async -> (plain: CGRect, themed: CGRect)? {
+    await frames(of: identifier, plain: view, themed: view.editorStyle(largeButtonCaptionTokens))
+  }
+
+  /// The frame of the element `identifier` in `plain` and in `themed`.
+  ///
+  /// - Parameters:
+  ///   - identifier: The accessibility identifier of the element.
+  ///   - plain: The view with no change of its look.
+  ///   - themed: The same view with a changed look.
+  /// - Returns: The two frames, or `nil` when a layout has no single element
+  ///   with the identifier.
+  private static func frames(
+    of identifier: String, plain: some View, themed: some View
+  ) async -> (plain: CGRect, themed: CGRect)? {
     guard
-      let plain = await read(identifier, in: view, accessibilityFrame(of:)) ?? nil,
-      let themed = await read(
-        identifier, in: view.editorTheme(EnlargedRoleTheme(enlargedRole: role)), accessibilityFrame(of:)) ?? nil
+      let plainFrame = await read(identifier, in: plain, accessibilityFrame(of:)) ?? nil,
+      let themedFrame = await read(identifier, in: themed, accessibilityFrame(of:)) ?? nil
     else { return nil }
-    return (plain, themed)
+    return (plainFrame, themedFrame)
   }
 }

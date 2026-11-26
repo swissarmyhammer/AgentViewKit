@@ -135,6 +135,21 @@ import Testing
     #expect(frames.themed.width > frames.plain.width)
   }
 
+  /// A production change that fails this test: the radio button of a
+  /// choice of a single-choice field is a plain system `Button` in place of
+  /// the EditorKit `EditorPlainButton`, so its title does not take the
+  /// caption style of the button tokens of the theme.
+  @Test func theRadioButtonOfAChoiceTakesTheCaptionStyleOfTheButtonTokens() async throws {
+    let field = ElicitationSingleChoiceField(
+      context: Self.context(.singleChoice(ElicitationTestFields.choices(ElicitationTestFields.defaultChoiceValues))))
+    let choice = ElicitationFieldView.choiceIdentifier(
+      for: Self.name, value: ElicitationTestFields.defaultChoiceValues[0])
+
+    let frames = try #require(await ControlProbe.framesWithLargeButtonCaptions(of: choice, in: field))
+
+    #expect(frames.themed.width > frames.plain.width)
+  }
+
   /// A menu field over ``menuChoiceValues`` that reads and writes `box`.
   ///
   /// - Parameter box: The answer of the field.

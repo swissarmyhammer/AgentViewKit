@@ -151,10 +151,10 @@ component is not on EditorKit main yet. The EditorKit card ^id adds it.
 | `Code/BlockHeader.swift`, the preview | `Button` with a title and a symbol | `EditorToolbarButton` | Changed |
 | `Elicitation/ElicitationFieldViews.swift`, `ElicitationNumberField` with no range | `Stepper` beside a `NumberField` | `StepperField` with `typedValues: .keep` | Changed |
 | `Elicitation/ElicitationFieldViews.swift`, `ElicitationNumberField` with a range | `Slider` | `SliderField` | Changed |
-| `Elicitation/ElicitationFieldViews.swift`, `ElicitationSingleChoiceField` radio group | `Button` with a custom label for each choice | `EditorPlainButton` | Waits for ^02gvsec |
-| `Elicitation/ElicitationTabChip.swift` | `Button` with a custom label | `EditorPlainButton` with `.selectableCapsule(isSelected:)` | Waits for ^02gvsec |
-| `Citations/InlineCitation.swift` | `Button` with a custom label (the pill) | `EditorPlainButton` | Waits for ^02gvsec |
-| `Sessions/SessionJumpList.swift`, a row | `Button` with a custom label | `EditorPlainButton` | Waits for ^02gvsec |
+| `Elicitation/ElicitationFieldViews.swift`, `ElicitationSingleChoiceField` radio group | `Button` with a custom label for each choice | `EditorPlainButton` | Changed |
+| `Elicitation/ElicitationTabChip.swift` | `Button` with a custom label | `EditorPlainButton`, with the selection of the kit (`.selectionSurface`, the wrapper of EditorKit's selection) outside the button | Changed |
+| `Citations/InlineCitation.swift` | `Button` with a custom label (the pill) | `EditorPlainButton` | Changed |
+| `Sessions/SessionJumpList.swift`, a row (`SessionJumpRow`) | `Button` with a custom label | `EditorPlainButton` | Changed |
 | `Content/Blocks/LinkView.swift` | `Button` with a custom label that opens a URL | `EditorLink` with a custom label | Waits for ^svgy5v4 |
 | `Activity/ActivityTimeline.swift`, the row header | `Button` that opens and closes the row | `EditorDisclosure` with a custom label | Waits for ^fqpw7a4 |
 | `Items/ToolCallView.swift`, the row toggle | `Button` that opens and closes the row | `EditorDisclosure` with a custom label | Waits for ^fqpw7a4 |
@@ -188,6 +188,9 @@ The changed controls keep their behavior, with this change:
   for an integer field). A typed number outside the range stays as typed
   (`typedValues: .keep`), so the validator shows the error of the bound. A
   step from such a number toward the range goes to the nearest bound.
+- The label of an `EditorPlainButton` takes the caption font of the button
+  tokens. The pill of an `InlineCitation` gets the font of the text around
+  it back, so it keeps the size of that text.
 
 `Tests/AgentViewKitTests/Elicitation/ElicitationFieldControlTests.swift` and
 `Tests/AgentViewKitTests/Sessions/SessionJumpListFieldTests.swift` check

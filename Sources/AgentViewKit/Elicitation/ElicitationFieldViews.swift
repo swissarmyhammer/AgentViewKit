@@ -779,7 +779,10 @@ public struct ElicitationSingleChoiceField: View {
     return VStack(alignment: .leading, spacing: editorStyle.spacing.xs) {
       ForEach(choices, id: \.const) { choice in
         let isSelected = selection == choice.const
-        Button {
+        // A choice is a row whose content is the button: EditorKit's
+        // `EditorPlainButton` (`style.md`, "Buttons"). It keeps its whole
+        // title and draws no bezel.
+        EditorPlainButton(choice.title) {
           context.value.wrappedValue = .string(choice.const)
         } label: {
           Label(
@@ -787,9 +790,6 @@ public struct ElicitationSingleChoiceField: View {
             columnSymbol: isSelected ? AgentSymbol.selected : AgentSymbol.notChosen
           )
         }
-        // A choice is a row whose content is the button (EditorKit
-        // `style.md`, "Buttons"): it keeps its whole title and draws no bezel.
-        .buttonStyle(.plain)
         .help(choice.description ?? choice.title)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
         .accessibilityValue(isSelected ? Self.selectedValue : "")
