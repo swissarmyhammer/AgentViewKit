@@ -35,7 +35,7 @@ struct ACPSettingsSheet: View {
 
   var body: some View {
     NavigationStack {
-      ScrollView {
+      EditorScrollView {
         VStack(alignment: .leading, spacing: editorStyle.spacing.xl) {
           GroupBox("MCP Servers") {
             // The kit views have no margin of their own: the sheet spaces

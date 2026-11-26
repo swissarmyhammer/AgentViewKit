@@ -1,4 +1,5 @@
 import AgentViewKit
+import EditorInspector
 import EditorStyle
 import EditorSwiftUI
 import EditorTheme
@@ -120,34 +121,23 @@ private struct GalleryLookModifier: ViewModifier {
   }
 }
 
-/// The controls of a Gallery look, in a form.
+/// The controls of a Gallery look: an EditorKit `ChoiceField` for each value,
+/// in the grouped form of EditorKit (`InspectorForm`).
+///
+/// Each control is an EditorKit component, so the theme reaches it
+/// (EditorKit style.md, "Controls").
 struct GalleryLookControls: View {
   /// The look that the controls change.
   @Binding var look: GalleryLook
 
   var body: some View {
-    Form {
-      Picker("Theme", selection: $look.theme) {
-        ForEach(GalleryLook.ThemeChoice.allCases) { choice in
-          Text(choice.title).tag(choice)
-        }
-      }
-      Picker("Appearance", selection: $look.appearance) {
-        ForEach(GalleryLook.Appearance.allCases) { appearance in
-          Text(appearance.title).tag(appearance)
-        }
-      }
-      Picker("Density", selection: $look.density) {
-        ForEach(EditorStyle.Density.allCases, id: \.self) { density in
-          Text(density.rawValue.capitalized).tag(density)
-        }
-      }
-      Picker("Text Size", selection: $look.textSize) {
-        ForEach(DynamicTypeSize.allCases, id: \.self) { size in
-          Text(String(describing: size)).tag(size)
-        }
+    InspectorForm {
+      Section {
+        ChoiceField("Theme", selection: $look.theme, label: { $0.title })
+        ChoiceField("Appearance", selection: $look.appearance, label: { $0.title })
+        ChoiceField("Density", selection: $look.density, label: { $0.rawValue.capitalized })
+        ChoiceField("Text Size", selection: $look.textSize, label: { String(describing: $0) })
       }
     }
-    .formStyle(.grouped)
   }
 }
