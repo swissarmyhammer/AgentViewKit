@@ -10,9 +10,10 @@ import SwiftUI
 ///
 /// The view shows an `LPLinkView` card with the name of the resource. When
 /// the link has icons, the view loads the first icon and shows it on the
-/// card. The card does not get other metadata from the network. A press on
-/// the card opens the link through the `openURL` action of the environment,
-/// so the link opens in the browser of the user. A link with a URI that is
+/// card. The card does not get other metadata from the network. The card is
+/// EditorKit's `EditorLink`: a press on the card opens the link through the
+/// `openURL` action of the environment, so the link opens in the browser of
+/// the user, and the URI is its help text. A link with a URI that is
 /// not a URL shows the name and the URI as text.
 ///
 /// The view shows an ACP `ResourceLink`, such as a link that a transcript
@@ -32,7 +33,6 @@ public struct LinkView: View {
   /// The loaded first icon of the link, or `nil`.
   @State private var icon: NSImage?
 
-  @Environment(\.openURL) private var openURL
   @Environment(\.editorStyle) private var editorStyle
   @Environment(\.editorTheme) private var editorTheme
   @Environment(\.themeSecondary) private var themeSecondary
@@ -50,16 +50,11 @@ public struct LinkView: View {
     let uri = link.uri
     let iconSource = link.icons?.first?.src
     if let url = URL(string: uri) {
-      Button {
-        openURL(url)
-      } label: {
+      EditorLink(name, destination: url) {
         LinkCard(name: name, url: url, icon: icon)
           .allowsHitTesting(false)
           .frame(maxWidth: Self.maximumCardWidth * fontScale, alignment: .leading)
       }
-      .buttonStyle(.plain)
-      .withoutSystemFocusEffect()
-      .help(uri)
       .accessibilityLabel(name)
       .accessibilityHint(uri)
       .accessibilityIdentifier(Self.cardIdentifier)

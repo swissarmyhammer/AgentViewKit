@@ -155,7 +155,7 @@ component is not on EditorKit main yet. The EditorKit card ^id adds it.
 | `Elicitation/ElicitationTabChip.swift` | `Button` with a custom label | `EditorPlainButton`, with the selection of the kit (`.selectionSurface`, the wrapper of EditorKit's selection) outside the button | Changed |
 | `Citations/InlineCitation.swift` | `Button` with a custom label (the pill) | `EditorPlainButton` | Changed |
 | `Sessions/SessionJumpList.swift`, a row (`SessionJumpRow`) | `Button` with a custom label | `EditorPlainButton` | Changed |
-| `Content/Blocks/LinkView.swift` | `Button` with a custom label that opens a URL | `EditorLink` with a custom label | Waits for ^svgy5v4 |
+| `Content/Blocks/LinkView.swift` | `Button` with a custom label that opens a URL | `EditorLink` with a custom label | Changed |
 | `Activity/ActivityTimeline.swift`, the row header | `Button` that opens and closes the row | `EditorDisclosure` with a custom label | Waits for ^fqpw7a4 |
 | `Items/ToolCallView.swift`, the row toggle | `Button` that opens and closes the row | `EditorDisclosure` with a custom label | Waits for ^fqpw7a4 |
 | `Items/JSONDisclosure.swift` | `DisclosureGroup` | `EditorDisclosure` | Waits for ^fqpw7a4 |
