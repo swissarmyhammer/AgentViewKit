@@ -181,18 +181,62 @@ public enum ConversationLayout {
   /// scroll to the bottom goes to the bottom edge
   /// (``scroll(_:to:)``).
   ///
-  /// The bottom of the last row is above the end of the content by the
-  /// bottom row padding of the style (about 8.5 points). After the first
-  /// scroll, that padding is out of view until the next scroll to the
-  /// bottom. A scroll to the bottom edge after the release would keep an
-  /// edge that no geometry action removes (task ^48x2jb7), so the list
-  /// accepts that gap.
+  /// The element of the last row holds the bottom row padding of the list
+  /// (``TranscriptRowElement/isLast``), so the bottom of that element is the
+  /// end of the content. The scroll then stops at the end of the content,
+  /// as a scroll to the bottom edge does, and the padding stays in view
+  /// between the last row and the bottom bar
+  /// (`ThreadBarBannerOverlapHostedTests`).
   ///
   /// - Parameters:
   ///   - position: The scroll position of the list.
   ///   - rowKey: The row key of the last row.
   static func scrollToLastRow(_ position: inout ScrollPosition, rowKey: String) {
     position.scrollTo(id: rowKey, anchor: .bottom)
+  }
+
+  /// Applies the first scroll to the bottom of the list (task ^pc1w14d).
+  ///
+  /// When the content is taller than the part of the list in view, the
+  /// scroll goes to the last row (``scrollToLastRow(_:rowKey:)``). When the
+  /// content fits in view, the scroll goes to the bottom edge, as each later
+  /// scroll to the bottom does (``scroll(_:to:)``): the lazy stack then lays
+  /// out each row, so the list cannot show an empty part. A scroll to the
+  /// bottom of the last row of a short list moves the content past its
+  /// start, and the accessibility frames of the rows are then not where the
+  /// list draws them (`AgentItemFocusHostedTests`).
+  ///
+  /// - Parameters:
+  ///   - position: The scroll position of the list.
+  ///   - rowKey: The row key of the last row.
+  ///   - contentFitsInView: Whether the content of the list fits in the part
+  ///     of the list in view (``ConversationBottomGeometry/contentFitsInView``).
+  /// - Returns: The row key that the position keeps, or `nil` for a scroll
+  ///   to the bottom edge.
+  static func scrollFirstTimeToBottom(
+    _ position: inout ScrollPosition, rowKey: String, contentFitsInView: Bool
+  ) -> String? {
+    guard !contentFitsInView else {
+      scroll(&position, to: .bottom)
+      return nil
+    }
+    scrollToLastRow(&position, rowKey: rowKey)
+    return rowKey
+  }
+
+  /// Removes the row of the first scroll to the bottom from the scroll
+  /// position, when the position still keeps it, after a new last row came.
+  ///
+  /// The position is set to positioned by the user, so SwiftUI applies the
+  /// row in no later pass. A position that keeps another target, such as
+  /// the bottom edge or an item, does not change.
+  ///
+  /// - Parameters:
+  ///   - position: The scroll position of the list.
+  ///   - rowKey: The row key of the row of the first scroll.
+  static func releaseFirstScrollRow(_ position: inout ScrollPosition, rowKey: String) {
+    guard position.viewID(type: String.self) == rowKey else { return }
+    position.isPositionedByUser = true
   }
 
   /// The accessibility value of the list.
@@ -354,6 +398,13 @@ public struct ConversationView<EmptyState: View>: View {
   /// (``ConversationLayout/releaseBottomEdge(_:isNearBottom:firstScrollRowKey:)``).
   @State private var firstScrollRowKey: String?
 
+  /// Whether the content of the list was not taller than the part of the
+  /// list in view at the last geometry action
+  /// (``ConversationBottomGeometry/contentFitsInView``). Before the first
+  /// action, the list takes that the content fits, so the first scroll goes
+  /// to the bottom edge.
+  @State private var contentFitsInView = true
+
   /// The rows that keep their EditorKit models: the rows in view and a
   /// margin on each side of them. A row far from them drops its models
   /// (task ^t9416x5).
@@ -454,6 +505,7 @@ public struct ConversationView<EmptyState: View>: View {
     // view, the conversation uses the selection of the thread view.
     .threadTextSelection()
     .onChange(of: lastRowKey) {
+      releaseFirstScrollRow()
       noteLastItem()
     }
     .onChange(of: pageCount) {
@@ -534,6 +586,9 @@ public struct ConversationView<EmptyState: View>: View {
       if new.isNearBottom != old.isNearBottom {
         noteVisible(ids: anchors.visibleIDs, isNearBottom: new.isNearBottom)
       }
+      if new.contentFitsInView != contentFitsInView {
+        contentFitsInView = new.contentFitsInView
+      }
     }
     .overlay(alignment: .bottom) {
       // In an `AgentThreadView`, the pill is in the floating controls of the
@@ -552,15 +607,21 @@ public struct ConversationView<EmptyState: View>: View {
 
   /// The inset of the content of the list from the edges of the scroll view.
   ///
-  /// The top and the bottom inset are the row padding of the style. The
-  /// leading and the trailing inset are the leading and the trailing value of
+  /// The top inset is the row padding of the style. The leading and the
+  /// trailing inset are the leading and the trailing value of
   /// ``barInsets``, so the leading edge of each row surface (a message row, a
   /// tool call card) stands under the leading edge of the bars (^0er2xf6).
   /// With no `.barInsets()`, the content has no horizontal inset.
+  ///
+  /// The content has no bottom inset. The element of the last row has the
+  /// row padding of the style below it (``TranscriptRowElement/isLast``), so
+  /// the bottom of that element is the end of the content. Thus the first
+  /// scroll to the bottom, which goes to the bottom of the last element,
+  /// stops at the end of the content, and the padding stays in view between
+  /// the last row and the bottom bar (``ConversationLayout/scrollToLastRow(_:rowKey:)``).
   private var listContentInsets: EdgeInsets {
-    let rowPadding = editorStyle.rowPadding
-    return EdgeInsets(
-      top: rowPadding, leading: barInsets.leading, bottom: rowPadding, trailing: barInsets.trailing)
+    EdgeInsets(
+      top: editorStyle.rowPadding, leading: barInsets.leading, bottom: 0, trailing: barInsets.trailing)
   }
 
   /// The rows of the last `shownCount` entries.
@@ -599,7 +660,9 @@ public struct ConversationView<EmptyState: View>: View {
       TranscriptRowSlot(position: position, entry: transcript[position])
     }
     return ForEach(slots) { slot in
-      TranscriptRowElement(slot: slot, lines: placements.lines(at: .after(slot.id)))
+      TranscriptRowElement(
+        slot: slot, isLast: slot.position == transcript.count - 1,
+        lines: placements.lines(at: .after(slot.id)))
         .id(slot.entry.rowKey)
     }
   }
@@ -688,8 +751,8 @@ public struct ConversationView<EmptyState: View>: View {
       guard let lastRowKey else { return }
       if !didFirstBottomScroll {
         didFirstBottomScroll = true
-        firstScrollRowKey = lastRowKey
-        ConversationLayout.scrollToLastRow(&position, rowKey: lastRowKey)
+        firstScrollRowKey = ConversationLayout.scrollFirstTimeToBottom(
+          &position, rowKey: lastRowKey, contentFitsInView: contentFitsInView)
         return
       }
     case .item(let id):
@@ -699,6 +762,25 @@ public struct ConversationView<EmptyState: View>: View {
       unsettledItemID = id
     }
     ConversationLayout.scroll(&position, to: target)
+  }
+
+  /// Removes the row of the first scroll to the bottom from the scroll
+  /// position when a new last row comes (task ^pc1w14d).
+  ///
+  /// The first scroll keeps its row until the list is near the bottom
+  /// (``ConversationLayout/releaseBottomEdge(_:isNearBottom:firstScrollRowKey:)``).
+  /// With a bottom inset that is taller than the part of the list in view,
+  /// a short list is never near the bottom, so the position keeps the row.
+  /// After an append, SwiftUI then applies that row again in a later pass:
+  /// the row is no longer the last row, so the list moves away from the
+  /// bottom, and its report unpins the manager during a streamed turn
+  /// (`ThreadFloatingControlsHostedTests`). So when the last row changes,
+  /// the position no longer keeps the row of the first scroll. The scroll
+  /// to the bottom for the append then goes to the bottom edge.
+  private func releaseFirstScrollRow() {
+    guard let key = firstScrollRowKey, key != lastRowKey else { return }
+    firstScrollRowKey = nil
+    ConversationLayout.releaseFirstScrollRow(&position, rowKey: key)
   }
 
   /// Scrolls to the item of the last scroll to an item again, when `ids`
@@ -946,6 +1028,11 @@ struct ConversationBottomGeometry: Equatable {
   /// Whether the end of the list is in the tolerance of the manager.
   let isNearBottom: Bool
 
+  /// Whether the content of the list is not taller than the part of the
+  /// list in view, inside the insets of the bars. The first scroll to the
+  /// bottom reads it (``ConversationLayout/scrollFirstTimeToBottom(_:rowKey:contentFitsInView:)``).
+  let contentFitsInView: Bool
+
   /// The height of the content of the list, in points.
   let contentHeight: CGFloat
 
@@ -957,19 +1044,22 @@ struct ConversationBottomGeometry: Equatable {
   ///     content that counts as near the end (``ScrollAnchorManager/tolerance``).
   init(_ geometry: ScrollGeometry, tolerance: CGFloat) {
     isNearBottom = geometry.contentSize.height - geometry.visibleRect.maxY <= tolerance
+    contentFitsInView = geometry.contentSize.height <= geometry.containerSize.height
     contentHeight = geometry.contentSize.height
   }
 
-  /// Two values are equal when the near state and the content height are
-  /// both equal. Thus a change of the height alone runs the geometry
-  /// action.
+  /// Two values are equal when the near state, the fit state and the
+  /// content height are all equal. Thus a change of the height alone runs
+  /// the geometry action, and so does a change of the part in view that
+  /// changes the fit state.
   ///
   /// - Parameters:
   ///   - lhs: A value.
   ///   - rhs: Another value.
   /// - Returns: Whether the two values are equal.
   static func == (lhs: Self, rhs: Self) -> Bool {
-    lhs.isNearBottom == rhs.isNearBottom && lhs.contentHeight == rhs.contentHeight
+    lhs.isNearBottom == rhs.isNearBottom && lhs.contentFitsInView == rhs.contentFitsInView
+      && lhs.contentHeight == rhs.contentHeight
   }
 }
 

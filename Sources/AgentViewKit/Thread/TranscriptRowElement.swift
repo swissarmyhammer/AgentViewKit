@@ -43,6 +43,14 @@ struct TranscriptRowElement: View {
   /// The entry of the row, and its position.
   let slot: TranscriptRowSlot
 
+  /// Whether the entry is the last entry of the transcript.
+  ///
+  /// The element of the last entry has the row padding of the style below
+  /// it, in place of a bottom inset of the content of the list. Thus the
+  /// bottom of the element is the end of the content, and a scroll to the
+  /// bottom of the element stops at the end of the content (task ^pc1w14d).
+  let isLast: Bool
+
   /// The status lines after the entry, in arrival order.
   let lines: [ModelChangeLine]
 
@@ -60,6 +68,7 @@ struct TranscriptRowElement: View {
         .coordinateSpace(.named(TranscriptFileOrder.rowSpace))
       TranscriptStatusLines(lines: lines)
     }
+    .padding(.bottom, isLast ? editorStyle.rowPadding : 0)
   }
 }
 
