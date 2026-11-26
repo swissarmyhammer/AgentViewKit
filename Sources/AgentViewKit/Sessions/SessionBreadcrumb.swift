@@ -173,7 +173,6 @@ struct SessionBreadcrumb: View {
         : String(localized: "Children, \(entries.count)", bundle: .module)
     )
     .accessibilityIdentifier(Self.childrenIdentifier)
-    .withoutSystemFocusEffect()
   }
 
   /// The symbol of a choice: a checkmark for the shown session, a warning for

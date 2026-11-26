@@ -236,7 +236,6 @@ public struct CommandOutputView: View {
       }
       .editorButtonCaptions(.hidden)
       .accessibilityIdentifier(Self.copyIdentifier)
-      .withoutSystemFocusEffect()
     }
     .editorBlockHeader()
   }

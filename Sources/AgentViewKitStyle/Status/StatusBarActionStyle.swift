@@ -35,7 +35,6 @@ public struct StatusBarActionButton: View {
       .disabled(!action.isEnabled)
       .accessibilityIdentifier(action.identifier)
       .modifier(AccessibilityHint(hint: action.hint))
-      .withoutSystemFocusEffect()
   }
 }
 

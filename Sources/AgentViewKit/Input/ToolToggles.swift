@@ -122,7 +122,6 @@ public struct ToolToggles: View {
           toolSection
         }
         .accessibilityIdentifier(Self.menuIdentifier)
-        .withoutSystemFocusEffect()
       case .list:
         InspectorView(list, Self.inspection(of: tools, onToggle: onToggle), id: Self.listIdentifier)
           .onChange(of: tools) { list.tools = tools }

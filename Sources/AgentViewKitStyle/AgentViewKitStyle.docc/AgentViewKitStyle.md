@@ -39,8 +39,9 @@ An item that a kit draws itself, such as a card, a chip, a row or a tile,
 shows its selection and its focus as a fill in its own shape, never as an
 outline (EditorKit style.md, "Selection and focus"):
 ``SwiftUI/View/selectableSurface(_:corners:)``, inside the `.commandScope` of
-the item, wraps EditorKit's `.selectableItem`, so the scope draws no focus
-ring around the item. An item that takes the keyboard focus itself, such as
+the item, wraps EditorKit's `.selectableItem`, so the item shows the one
+focus background of EditorKit (`EditorFocusIndicatorKind.background`) and
+the scope draws no focus ring around the item. An item that takes the keyboard focus itself, such as
 a focusable card, gives that focus to
 ``SwiftUI/View/selectableSurface(_:isFocused:corners:)``, and shows it as the
 same fill, with no ring. A part with no scope of its own inside another item,
@@ -50,10 +51,12 @@ such as a tab chip, shows its selection only with
 The library is the one place of the focus look of the view kits
 (Docs/decisions/focus-audit.md). An item with no surface of its own, such as
 a message or a list, asks for the focus ring of its scope with
-``SwiftUI/View/surfaceFocusRing(_:)``. A control of a kit, such as a button,
-a menu, a field or a list, shows no system focus effect:
-``SwiftUI/View/withoutSystemFocusEffect()`` stands on the control, inside
-each scope that draws a ring.
+``SwiftUI/View/surfaceFocusRing(_:)``, which gives the one focus ring of
+EditorKit (`EditorFocusIndicatorKind.ring`) through `.scopeFocusRing`. A
+control of a kit shows no system focus effect. An EditorKit button, toolbar
+button or menu button turns off its own effect. Each other control, such as
+a SwiftUI `List`, takes ``SwiftUI/View/withoutSystemFocusEffect()`` on the
+control, inside each scope that draws a ring.
 
 A text that the user can select is EditorKit's `EditorLabel`, which joins
 the text selection region of the environment. A view that shows on glass and
