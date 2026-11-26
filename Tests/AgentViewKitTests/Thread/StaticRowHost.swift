@@ -33,6 +33,11 @@ import SwiftUI
   /// The cache of the EditorKit models of the row, as a thread gives it.
   let cache = CodeBlockModelCache(limit: CodeBlockModelCache.threadLimit)
 
+  /// Whether a motion of the rows is a live motion of the user, as a flick
+  /// is (``TranscriptRowMotion/isLiveMotion(_:)``). With `false`, a motion
+  /// is a scroll of the kit, such as an animated scroll to a row.
+  var movesLive = true
+
   /// The queue that mounts the real row at rest, or `nil` for a row that
   /// shows its real form at once at rest (card ^7625j1b).
   var mounts: TranscriptRowMountQueue?
@@ -87,9 +92,22 @@ import SwiftUI
   /// - Parameters:
   ///   - row: The fixture of the row.
   ///   - width: The width of the row, in points.
+  ///   - frames: The frames of the queue of the row, or `nil` for a row
+  ///     with no queue (``mounts``). The queue knows that the rows move.
+  ///   - movesLive: Whether the motion is a live motion of the user
+  ///     (``movesLive``).
   /// - Returns: The host, with the row in its first frame.
-  static func cached(_ row: TranscriptRowFixtures.Row, width: CGFloat) async -> StaticRowHost {
+  static func cached(
+    _ row: TranscriptRowFixtures.Row, width: CGFloat, frames: (any TranscriptFrameSource)? = nil,
+    movesLive: Bool = true
+  ) async -> StaticRowHost {
     let host = StaticRowHost(row.item, width: width, isExpanded: row.isExpanded, showsAtRest: false)
+    host.movesLive = movesLive
+    if let frames {
+      let mounts = TranscriptRowMountQueue(frames: frames)
+      mounts.noteRowsMove(true)
+      host.mounts = mounts
+    }
     let cache = TranscriptRowHeights(metrics: TranscriptRowMetrics.probe(), expandedBlocks: host.store)
     host.heights.attach(cache: cache, session: host.session)
     host.heights.noteRowWidth(width)
@@ -193,17 +211,21 @@ import SwiftUI
     return rep
   }
 
-  /// The row of the entry, with the environment of a thread.
+  /// The row of the entry, with the environment of a thread. A new row
+  /// that the host makes in a live motion (``movesLive``) enters while the
+  /// rows move, as the list of a thread makes it in a flick.
   ///
   /// - Parameter rowsMove: Whether the rows of the thread move.
   /// - Returns: The row at ``width``.
   private func row(rowsMove: Bool) -> some View {
     TranscriptRowElement(
-      slot: TranscriptRowSlot(position: 0, entry: entry), isLast: false, lines: [])
+      slot: TranscriptRowSlot(position: 0, entry: entry), isLast: false, lines: [],
+      entersWhileMoving: rowsMove && movesLive)
       .id(rowIdentity)
       .frame(width: width)
       .fixedSize(horizontal: false, vertical: true)
       .environment(\.transcriptRowsMove, rowsMove)
+      .environment(\.transcriptRowsMoveLive, rowsMove && movesLive)
       .environment(\.staticRowHeights, heights)
       .environment(\.transcriptRowMounts, mounts)
       .environment(\.expandedBlocksStore, store)

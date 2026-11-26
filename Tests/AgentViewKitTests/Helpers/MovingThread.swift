@@ -115,9 +115,30 @@ import Testing
     hosting.layoutSubtreeIfNeeded()
   }
 
+  /// Scrolls the list at rest to the row of `key` on the path of a jump of
+  /// the host (``ScrollAnchorManager/noteJump(to:)`` and the scroll of the
+  /// manager to the item), waits until the manager reports the row in view,
+  /// and lays the host out after the blocks of the main run loop that the
+  /// layout added. No live scroll starts, so the rows do not move in a live
+  /// motion.
+  ///
+  /// - Parameter key: The row key of the entry to scroll to.
+  func jumpAtRest(to key: String) async {
+    anchors.noteJump(to: key)
+    anchors.onScroll(.item(key))
+    hosting.layoutSubtreeIfNeeded()
+    await ObservationWait.until { self.anchors.visibleIDs.contains(key) }
+    await settle()
+  }
+
   /// The number of EditorKit text views in the list.
   var textViewCount: Int {
     views(ofType: NSTextView.self, in: hosting).count
+  }
+
+  /// The EditorKit text views in the list.
+  var textViews: [NSTextView] {
+    views(ofType: NSTextView.self, in: hosting)
   }
 
   /// Lays the host out, waits for the blocks of the main run loop that the

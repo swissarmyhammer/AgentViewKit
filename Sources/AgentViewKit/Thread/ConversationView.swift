@@ -432,6 +432,12 @@ public struct ConversationView<EmptyState: View>: View {
   /// forms (card ^9ync5h3).
   @State private var isMoving = false
 
+  /// Whether the user moves the list: its scroll phase is a live motion
+  /// (``TranscriptRowMotion/isLiveMotion(_:)``). Only the rows that the
+  /// list makes or shows in a live motion wait in the queue of the rows
+  /// (card ^7625j1b).
+  @State private var isLiveMoving = false
+
   /// The heights of the static forms of the rows (``TranscriptStaticRow``):
   /// the exact height of the cache of the rows, else the size of the real
   /// row at its last layout. The stack of the rows feeds the cache
@@ -630,6 +636,7 @@ public struct ConversationView<EmptyState: View>: View {
       noteScrollPhase(phase)
     }
     .environment(\.transcriptRowsMove, rowsMove)
+    .environment(\.transcriptRowsMoveLive, rowsMoveLive)
     .environment(\.staticRowHeights, rowHeights)
     .environment(\.transcriptRowMounts, rowMounts)
     .background { TranscriptFrameAnchor(frames: rowMounts.frames) }
@@ -671,6 +678,13 @@ public struct ConversationView<EmptyState: View>: View {
     TranscriptRowMotion.rowsMove(isMoving: isMoving, isJumping: isJumping)
   }
 
+  /// Whether the rows move in a live motion of the user, and no jump
+  /// session of EditorKit is open. A row that the list makes in such a
+  /// motion waits in the queue of the rows from its start.
+  private var rowsMoveLive: Bool {
+    TranscriptRowMotion.rowsMove(isMoving: isLiveMoving, isJumping: isJumping)
+  }
+
   /// Whether a jump session of EditorKit is open.
   private var isJumping: Bool {
     commandSystem?.accessibility.activeLayer?.kind == .jump
@@ -691,13 +705,19 @@ public struct ConversationView<EmptyState: View>: View {
   /// A scroll of the user ends the wait for the row of an item scroll, and
   /// the wait of the manager for the new end after an append. A scroll of
   /// the kit has the animating phase or no phase. Each phase that is not
-  /// idle moves the rows (``TranscriptRowMotion``).
+  /// idle moves the rows (``TranscriptRowMotion``). Only a scroll of the
+  /// user is a live motion, in which the rows that come into the list wait
+  /// in the queue of the rows (card ^7625j1b).
   ///
   /// - Parameter phase: The new scroll phase.
   private func noteScrollPhase(_ phase: ScrollPhase) {
-    if phase.isScrolling, phase != .animating {
+    let isLive = TranscriptRowMotion.isLiveMotion(phase)
+    if isLive {
       unsettledItemID = nil
       anchors.noteScrollByUser()
+    }
+    if isLive != isLiveMoving {
+      isLiveMoving = isLive
     }
     let moving = TranscriptRowMotion.isMoving(phase)
     if moving != isMoving {
@@ -759,11 +779,11 @@ public struct ConversationView<EmptyState: View>: View {
     let slots = (transcript.count - shownCount..<transcript.count).lazy.map { position in
       TranscriptRowSlot(position: position, entry: transcript[position])
     }
-    let rowsMove = rowsMove
+    let rowsMoveLive = rowsMoveLive
     return ForEach(slots) { slot in
       TranscriptRowElement(
         slot: slot, isLast: slot.position == transcript.count - 1,
-        lines: placements.lines(at: .after(slot.id)), entersWhileMoving: rowsMove)
+        lines: placements.lines(at: .after(slot.id)), entersWhileMoving: rowsMoveLive)
         .id(slot.entry.rowKey)
     }
   }

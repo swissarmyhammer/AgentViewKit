@@ -170,6 +170,11 @@ struct TranscriptStaticRow: ViewModifier {
   /// provider of the static form.
   let heights: TranscriptStaticRowHeights?
 
+  /// The action when the modifier records the first size of the row: the
+  /// thread then knows the height of a row that it did not know before
+  /// (card ^7625j1b).
+  var onFirstHeight: @MainActor () -> Void = {}
+
   /// The ``BodyEvaluationCounter`` key of the row of `id`.
   ///
   /// - Parameter id: The row key of the entry.
@@ -204,12 +209,18 @@ struct TranscriptStaticRow: ViewModifier {
   }
 
   /// Records the size of the real row. The size of the static form is the
-  /// recorded size, so the modifier records nothing in that form.
+  /// recorded size, so the modifier records nothing in that form. The first
+  /// record of a row whose height the thread did not know calls
+  /// ``onFirstHeight``.
   ///
   /// - Parameter size: The new size of the row.
   private func recordRealSize(_ size: CGSize) {
-    guard !isStatic else { return }
-    heights?.record(size, for: id)
+    guard !isStatic, let heights else { return }
+    let isFirstHeight = !heights.knowsHeight(of: id)
+    heights.record(size, for: id)
+    if isFirstHeight {
+      onFirstHeight()
+    }
   }
 }
 
