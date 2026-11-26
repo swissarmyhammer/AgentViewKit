@@ -74,6 +74,64 @@ enum TranscriptRowForm {
   static func isStatic(rowsMove: Bool, waitsToMount: Bool, holds: TranscriptRowHolds, knowsHeight: Bool) -> Bool {
     (rowsMove || waitsToMount) && !holds.keepsRealRow && knowsHeight
   }
+
+  /// Tells the form of the EditorKit text areas of a row
+  /// (``StaticEditorSlot``).
+  ///
+  /// A row that is not static (``isStatic(rowsMove:waitsToMount:holds:knowsHeight:)``)
+  /// shows each editor. A static row shows each still view while the rows
+  /// move. A static row at rest waits in the ``TranscriptRowMountQueue``:
+  /// each of its slots shows its editor after its own turn.
+  ///
+  /// - Parameters:
+  ///   - rowsMove: Whether the rows of the thread move
+  ///     (``TranscriptRowMotion``).
+  ///   - waitsToMount: Whether the row waits for its turn in the queue
+  ///     (``TranscriptRowMount/waits``).
+  ///   - holds: The holds of the row.
+  ///   - knowsHeight: Whether the height provider knows the height of the
+  ///     row.
+  /// - Returns: The form of the slots of the row.
+  static func slotForm(
+    rowsMove: Bool, waitsToMount: Bool, holds: TranscriptRowHolds, knowsHeight: Bool
+  ) -> TranscriptSlotForm {
+    guard isStatic(rowsMove: rowsMove, waitsToMount: waitsToMount, holds: holds, knowsHeight: knowsHeight) else {
+      return .real
+    }
+    return rowsMove ? .still : .inTurn
+  }
+}
+
+/// The form of the EditorKit text areas of one row of a thread
+/// (``StaticEditorSlot``, card ^7625j1b).
+enum TranscriptSlotForm: Equatable {
+  /// The row shows its real form: each slot shows its editor.
+  case real
+
+  /// The rows move, and the row shows its static form: each slot shows its
+  /// still view.
+  case still
+
+  /// The row waits at rest in the ``TranscriptRowMountQueue``, and keeps
+  /// the frame of its static form: each slot shows its still view until
+  /// its own turn (``TranscriptSlotMount``), and its editor after.
+  case inTurn
+
+  /// Tells if a slot in this form shows its still view.
+  ///
+  /// The slot reads whether it waits only in ``inTurn``, so the turn of a
+  /// slot evaluates no slot in a different form.
+  ///
+  /// - Parameter slotWaits: Whether the slot waits for its turn
+  ///   (``TranscriptSlotMount/waits``).
+  /// - Returns: `true` when the slot shows its still view.
+  func showsStill(slotWaits: @autoclosure () -> Bool) -> Bool {
+    switch self {
+    case .real: false
+    case .still: true
+    case .inTurn: slotWaits()
+    }
+  }
 }
 
 /// Gives one row of a thread its static form or its real form (card
@@ -101,8 +159,11 @@ struct TranscriptStaticRow: ViewModifier {
   /// The id of the entry of the row.
   let id: TranscriptEntry.ID
 
-  /// Whether the row shows its static form (``TranscriptRowForm``).
-  let isStatic: Bool
+  /// The form of the editor slots of the row
+  /// (``TranscriptRowForm/slotForm(rowsMove:waitsToMount:holds:knowsHeight:)``).
+  /// Each form that is not ``TranscriptSlotForm/real`` is the static form
+  /// of the row, also while some slots of a row that takes turns are real.
+  let slotForm: TranscriptSlotForm
 
   /// The heights of the static rows of the thread, or `nil` outside a
   /// thread. They record the size of the real row, and they are the height
@@ -122,11 +183,17 @@ struct TranscriptStaticRow: ViewModifier {
       BodyEvaluationCounter.note(Self.counterKey(for: id.rowKey))
     #endif
     return TranscriptStaticRowFrame(id: id, staticHeight: staticHeight) {
-      content.environment(\.transcriptRowIsStatic, isStatic)
+      content.environment(\.transcriptSlotForm, slotForm)
     }
     .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
       recordRealSize(size)
     }
+  }
+
+  /// Whether the row shows its static form: the frame of the row has the
+  /// height of the provider.
+  private var isStatic: Bool {
+    slotForm != .real
   }
 
   /// The height of the static form at a width, or `nil` in the real form.
@@ -197,13 +264,21 @@ struct TranscriptStaticRowFrame: Layout {
 }
 
 extension EnvironmentValues {
-  /// Whether the row of the view shows its static form
+  /// The form of the EditorKit text areas of the row of the view
   /// (``TranscriptStaticRow``).
   ///
   /// An EditorKit text area of a row reads it (``StaticEditorSlot``), and
-  /// shows its text in SwiftUI `Text` while the value is `true`. Outside a
-  /// thread row, it is `false`.
-  @Entry var transcriptRowIsStatic = false
+  /// shows its text in SwiftUI `Text` in place of its editor while the form
+  /// tells it to (``TranscriptSlotForm/showsStill(slotWaits:)``). Outside a
+  /// thread row, it is ``TranscriptSlotForm/real``.
+  @Entry var transcriptSlotForm = TranscriptSlotForm.real
+
+  /// The turn of the row of the view in the ``TranscriptRowMountQueue``, or
+  /// `nil` outside a thread row.
+  ///
+  /// Each EditorKit text area of the row adds its own turn to it
+  /// (``StaticEditorSlot``). ``TranscriptRowElement`` sets it for its row.
+  @Entry var transcriptRowMount: TranscriptRowMount? = nil
 }
 
 extension TranscriptEntry {

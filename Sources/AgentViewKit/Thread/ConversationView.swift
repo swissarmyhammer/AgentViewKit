@@ -438,8 +438,10 @@ public struct ConversationView<EmptyState: View>: View {
   /// (``TranscriptRowHeightsFeed``).
   @State private var rowHeights = TranscriptStaticRowHeights()
 
-  /// The queue that mounts the real rows a few at a time when the rows
-  /// come to rest (card ^7625j1b). The display link of the view drives it.
+  /// The queue that mounts the EditorKit editors of the rows over several
+  /// frames when the rows come to rest
+  /// (``TranscriptRowMountQueue/editorSlotsPerFrame``, card ^7625j1b). The
+  /// display link of the view drives it.
   @State private var rowMounts = TranscriptRowMountQueue(frames: TranscriptDisplayLinkFrames())
 
   /// The command system of the thread, whose jump session keeps each row
