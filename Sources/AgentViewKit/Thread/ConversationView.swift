@@ -33,6 +33,20 @@ public enum ConversationLayout {
   /// the ``ScrollAnchorManager`` that the row is visible.
   static let visibilityThreshold = 0.01
 
+  /// The prefix of the ``BodyEvaluationCounter`` key of the list of the
+  /// rows of a ``ConversationView``.
+  static let listCounterKeyPrefix = "conversation-list-"
+
+  /// The ``BodyEvaluationCounter`` key of the list of the rows of the
+  /// conversation of a manager: one evaluation of the list makes its scroll
+  /// modifiers and the `ForEach` of its rows again.
+  ///
+  /// - Parameter anchors: The manager of the conversation.
+  /// - Returns: The key.
+  static func listCounterKey(for anchors: ScrollAnchorManager) -> String {
+    BodyEvaluationKey.make(prefix: listCounterKeyPrefix, object: anchors)
+  }
+
   /// The SF Symbol name of the load-earlier row.
   static let loadEarlierSymbolName = AgentSymbol.loadEarlier
 
@@ -373,8 +387,10 @@ public struct ConversationView<EmptyState: View>: View {
   /// The number of pages that the list shows.
   @State private var pageCount = 1
 
-  /// The scroll position of the list.
-  @State private var position = ScrollPosition(idType: String.self)
+  /// The scroll position of the list, in a model of its own, so a write of
+  /// SwiftUI to the position does not evaluate the list
+  /// (``ConversationScrollPosition``).
+  @State private var scrollPosition = ConversationScrollPosition()
 
   /// Whether the end of the list was in the tolerance of the manager at the
   /// last scroll geometry change.
@@ -588,6 +604,9 @@ public struct ConversationView<EmptyState: View>: View {
   /// The scrolled list of the last pages of the rows. The transcript has at
   /// least one entry.
   private var list: some View {
+    #if DEBUG
+      let _ = BodyEvaluationCounter.note(ConversationLayout.listCounterKey(for: anchors))
+    #endif
     let count = session.transcript.count
     let shownCount = ConversationLayout.shownCount(
       count: count, pageSize: pageSize, pageCount: pageCount)
@@ -630,7 +649,7 @@ public struct ConversationView<EmptyState: View>: View {
     .defaultScrollAnchor(.bottom, for: .initialOffset)
     .defaultScrollAnchor(.bottom, for: .alignment)
     .modifier(ConversationFollowAnchor(anchors: anchors))
-    .scrollPosition($position)
+    .modifier(ConversationScrollPositionBinding(position: scrollPosition))
     .onScrollTargetVisibilityChange(
       idType: String.self, threshold: ConversationLayout.visibilityThreshold
     ) { ids in
@@ -753,7 +772,7 @@ public struct ConversationView<EmptyState: View>: View {
   ///   - new: The geometry after the change.
   private func geometryDidChange(_ old: ConversationBottomGeometry, _ new: ConversationBottomGeometry) {
     ConversationLayout.releaseBottomEdge(
-      &position, isNearBottom: new.isNearBottom, firstScrollRowKey: firstScrollRowKey)
+      &scrollPosition.value, isNearBottom: new.isNearBottom, firstScrollRowKey: firstScrollRowKey)
     if new.isNearBottom {
       firstScrollRowKey = nil
     }
@@ -921,7 +940,7 @@ public struct ConversationView<EmptyState: View>: View {
       if !didFirstBottomScroll {
         didFirstBottomScroll = true
         firstScrollRowKey = ConversationLayout.scrollFirstTimeToBottom(
-          &position, rowKey: lastRowKey, contentFitsInView: contentFitsInView)
+          &scrollPosition.value, rowKey: lastRowKey, contentFitsInView: contentFitsInView)
         return
       }
     case .item(let id):
@@ -930,7 +949,7 @@ public struct ConversationView<EmptyState: View>: View {
         pageSize: pageSize, shownPages: pageCount)
       unsettledItemID = id
     }
-    ConversationLayout.scroll(&position, to: target)
+    ConversationLayout.scroll(&scrollPosition.value, to: target)
   }
 
   /// Removes the row of the first scroll to the bottom from the scroll
@@ -949,7 +968,7 @@ public struct ConversationView<EmptyState: View>: View {
   private func releaseFirstScrollRow() {
     guard let key = firstScrollRowKey, key != lastRowKey else { return }
     firstScrollRowKey = nil
-    ConversationLayout.releaseFirstScrollRow(&position, rowKey: key)
+    ConversationLayout.releaseFirstScrollRow(&scrollPosition.value, rowKey: key)
   }
 
   /// Scrolls to the item of the last scroll to an item again, when `ids`
@@ -963,7 +982,7 @@ public struct ConversationView<EmptyState: View>: View {
   private func settleItemScroll(visible ids: [String]) {
     guard let id = unsettledItemID, ids.contains(id) else { return }
     unsettledItemID = nil
-    ConversationLayout.scroll(&position, to: .item(id))
+    ConversationLayout.scroll(&scrollPosition.value, to: .item(id))
   }
 
   /// Tells the manager and the live rows (``LiveRowRange``) which rows are
@@ -1245,6 +1264,35 @@ struct ConversationBottomGeometry: Equatable {
     contentHeight = geometry.contentSize.height
   }
 
+}
+
+/// The scroll position of the list of a ``ConversationView`` (card
+/// ^9ync5h3).
+///
+/// SwiftUI writes the scroll position while the user scrolls: the id of
+/// the row at the top edge of the list changes each time a row passes that
+/// edge. A `Binding` holds the value that it binds, so a view that makes the
+/// binding of a state in its body reads that state. With the position as a
+/// state of the list, each such write in a flick evaluated the body of the
+/// list, and made its scroll modifiers and the `ForEach` of its rows again.
+/// The model holds the position out of the list, and only
+/// ``ConversationScrollPositionBinding`` reads it in a body.
+@MainActor @Observable final class ConversationScrollPosition {
+  /// The scroll position.
+  var value = ScrollPosition(idType: String.self)
+}
+
+/// Binds the scroll position of a ``ConversationView`` to its scroll view,
+/// and is the only view that reads the position in its body
+/// (``ConversationScrollPosition``). A write of the position evaluates
+/// only this modifier, and not the list in its content.
+private struct ConversationScrollPositionBinding: ViewModifier {
+  /// The scroll position of the list.
+  @Bindable var position: ConversationScrollPosition
+
+  func body(content: Content) -> some View {
+    content.scrollPosition($position.value)
+  }
 }
 
 /// Keeps the end of the list in view when the size of the content changes,
