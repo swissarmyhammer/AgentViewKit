@@ -10,7 +10,7 @@ import Testing
 ///
 /// The test shows a ``MovingThread`` of ``answerCount`` agent answers with
 /// the height cache of an ``AgentThreadView``
-/// (``MovingThread/cached(session:frames:)``), and with frames that the
+/// (``MovingThread/makeCached(session:frames:)``), and with frames that the
 /// test steps by hand (``ManualFrames``). The cache knows the height of
 /// each row before the motion, so the test does not show the rows at rest.
 /// Then the rows move: the list moves up by ``jumpDistance``, and then by
@@ -39,13 +39,9 @@ import Testing
   /// height of one row, so new rows come into the list in that step.
   static let lastStepDistance: CGFloat = 300
 
-  /// The text of the answer at `index`.
-  ///
-  /// - Parameter index: The index of the answer.
-  /// - Returns: The text.
-  static func answer(_ index: Int) -> String {
-    "Rest mount answer \(index): the parser reads each line of the file."
-  }
+  /// The name of the answer texts of the suite
+  /// (``AnswerText/answer(_:in:withCodeFence:)``).
+  static let textName = "restMount"
 
   /// The frames of the queue of the list.
   let frames = ManualFrames()
@@ -56,8 +52,8 @@ import Testing
   ///
   /// - Returns: The list at rest with no frame of the queue.
   func restAfterAMotion() async throws -> MovingThread {
-    let thread = try await MovingThread.cached(
-      session: .preview(transcript: (0..<Self.answerCount).map { .agent(Self.answer($0)) }), frames: frames)
+    let thread = try await MovingThread.makeCached(
+      session: .preview(transcript: (0..<Self.answerCount).map { .agent(AnswerText.answer($0, in: Self.textName)) }), frames: frames)
     await thread.startMoving()
     thread.step(by: Self.jumpDistance, isLive: true)
     await thread.settle()

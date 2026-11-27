@@ -1,6 +1,7 @@
 import EditorCommands
 import FoundationModelsACPClient
 import SwiftUI
+import os
 
 /// The things that keep a row of a thread in its real form while the rows
 /// move (``TranscriptStaticRow``).
@@ -234,6 +235,9 @@ struct TranscriptStaticRowFrame: Layout {
   /// row.
   static let counterKeyPrefix = "static-row-frame-"
 
+  /// The log of a frame that has no content.
+  private static let logger = Logger(subsystem: "AgentViewKit", category: "TranscriptStaticRowFrame")
+
   /// The id of the entry of the row.
   let id: TranscriptEntry.ID
 
@@ -257,7 +261,12 @@ struct TranscriptStaticRowFrame: Layout {
     #if DEBUG
       MainActor.assumeIsolated { BodyEvaluationCounter.note(Self.counterKey(for: id.rowKey)) }
     #endif
-    let content = subviews.first?.sizeThatFits(proposal) ?? .zero
+    guard let first = subviews.first else {
+      assertionFailure("static row frame has no content")
+      Self.logger.error("static row frame has no content; the zero size stands")
+      return .zero
+    }
+    let content = first.sizeThatFits(proposal)
     let width = proposal.width ?? content.width
     // SwiftUI lays out its views on the main actor.
     let height = MainActor.assumeIsolated { staticHeight?(width) }

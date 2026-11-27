@@ -11,7 +11,7 @@
   ///
   /// The test shows a ``MovingThread`` of ``answerCount`` agent answers with
   /// the height cache of an ``AgentThreadView``
-  /// (``MovingThread/cached(session:frames:)``), so the cache knows the
+  /// (``MovingThread/makeCached(session:frames:)``), so the cache knows the
   /// height of each row before the motion. Then the rows move, and the list
   /// moves up by ``jumpDistance``: each row in view comes into the list in
   /// the motion, and shows its static form. No row in view was real at
@@ -39,14 +39,10 @@
     /// view after it are rows that the list makes in the motion.
     static let jumpDistance: CGFloat = 1_200
 
-    /// The text of the answer at `index`. No other test uses it, so the
-    /// counter key of its static text is the key of this test.
-    ///
-    /// - Parameter index: The index of the answer.
-    /// - Returns: The text.
-    static func answer(_ index: Int) -> String {
-      "Static scroll answer \(index): the parser reads each line of the file."
-    }
+    /// The name of the answer texts of the suite
+    /// (``AnswerText/answer(_:in:withCodeFence:)``). No other test uses it,
+    /// so the counter key of each static text is the key of this test.
+    static let textName = "staticScroll"
 
     /// The work counts of one row.
     struct RowCounts: Equatable, CustomStringConvertible {
@@ -75,7 +71,7 @@
       let rowKey = session.transcript[index].rowKey
       return RowCounts(
         rowBodies: BodyEvaluationCounter.count(TranscriptStaticRow.counterKey(for: rowKey)),
-        textBodies: BodyEvaluationCounter.count(StaticMarkdownText.counterKey(for: answer(index))),
+        textBodies: BodyEvaluationCounter.count(StaticMarkdownText.counterKey(for: AnswerText.answer(index, in: textName))),
         frameLayouts: BodyEvaluationCounter.count(TranscriptStaticRowFrame.counterKey(for: rowKey)))
     }
 
@@ -93,8 +89,8 @@
     /// takes a new layout on each step, so SwiftUI lays out and draws the
     /// static text of each row in view again on each frame of a flick.
     @Test func aStaticRowInViewDoesNoWorkOnAStepOfTheOffset() async throws {
-      let thread = try await MovingThread.cached(
-        session: .preview(transcript: (0..<Self.answerCount).map { .agent(Self.answer($0)) }), frames: ManualFrames())
+      let thread = try await MovingThread.makeCached(
+        session: .preview(transcript: (0..<Self.answerCount).map { .agent(AnswerText.answer($0, in: Self.textName)) }), frames: ManualFrames())
       await thread.startMoving()
       thread.step(by: Self.jumpDistance, isLive: true)
       await thread.settle()

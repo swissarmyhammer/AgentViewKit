@@ -61,6 +61,22 @@ import SwiftUI
     hosting.layoutSubtreeIfNeeded()
   }
 
+  /// Gives `hosting` its fitting size and lays it out, `passes` times.
+  ///
+  /// A view whose size changes in its first layout, such as a row with
+  /// EditorKit editors, uses more than one pass: the first pass lays out
+  /// the editors, and the next pass gives the host the size that the
+  /// editors then have.
+  ///
+  /// - Parameters:
+  ///   - hosting: The hosting view to lay out.
+  ///   - passes: The number of layout passes.
+  public static func layOut(_ hosting: NSHostingView<some View>, passes: Int) {
+    for _ in 0..<passes {
+      layOut(hosting)
+    }
+  }
+
   /// Puts `view` in a hosting view of `size`, and lays it out once.
   ///
   /// The thread tests use this one helper to mount a thread view with no
