@@ -137,6 +137,25 @@ comments:
     - Counts: thread suites 414 tests in 54 suites passed; root swift test one run 2043 tests in 248 suites + 59 tests in 12 suites passed, 0 issues, no own warnings. IntegrationTests and ScreenshotTests swift build --build-tests complete, not run.
     - next: /review of c4bd3a91.
   timestamp: 2026-11-27T18:48:59.359638+00:00
+- actor: claude-code
+  id: 01m8ffdqsf0hahc3nr3wetzva3
+  text: |-
+    Flick work counts (2026-11-27, worktree agent-a1bfece229f6470fe, on b4facea2). Headless probe: MovingThread, 50 turns of FlickTranscript, 150 live steps of 40 pt, after the start of the live scroll.
+    - With the height cache (AgentThreadView config): 12 new rows; 23 element bodies, 42 ForEach content calls, 1 content measure of a real row (a row real from rest), 0 content measures of a static row, 0 StaticTextColumns layouts, 16 picture bodies, 0 StaticMarkdownText bodies, 11 list bodies.
+    - With no store (trace harness config, no cache, no pictures): 10 content measures of real rows (rows with no known height mount their editors), 29 StaticTextColumns layouts, 12 StaticMarkdownText bodies. If the trace shows StaticTextColumns and StaticMarkdownText.body, the harness probably has no expandedBlocksStore, or the rows hold text that the picture does not draw.
+    - Cause of the 11 list bodies: SwiftUI writes the scroll position when a new row comes to the top edge, and the list made `$position` in its body (a Binding holds its value).
+    Fix done: the position is in ConversationScrollPosition, bound by ConversationScrollPositionBinding. List bodies 11 -> 0.
+    Not done, and why:
+    (a) ForEach(slots, id: \.entry.rowKey) without .id(): no count change in the probe (content calls 42 -> 44, element bodies 23 -> 23), and ConversationFirstLayoutTests.theListShowsTheLastRowAfterTheFirstLayout fails again (shape 1, no row after the first layout), as in the earlier attempt.
+    (b) The motion values change only at the start and the end of a motion, not in each frame, so init values in place of environment reads give no count change in the flick. A write of the same wait (TranscriptRowMount.waits) was guarded as a test: element bodies 23 -> 23, so it was reverted. One hit-test modifier on the stack failed TranscriptRowRedrawTests in the earlier attempt (de7bcece), so it was not tried again.
+    (c) A static row never measured its content in the flick (0). The content measures are of real rows with no known height. To give them the estimate, they must show the static form at a height that is not exact, and the row then changes its height when it becomes real, against the card.
+    (d) With a picture, StaticSlotStill already shows one Image (StaticPictureView) for each text slot, and builds no StaticTextColumns (0 with the cache). The cache has no picture of the row chrome, so one Image for a whole row is not possible.
+    Discovery: SwiftUI makes rows ahead of the view in groups of 3, and drops and makes again some of them before they come into view (rows 135-140 made two times each, with a new identity; 6 of 23 element bodies). The cause is in the lazy stack of SwiftUI, not in a row.
+
+    ### implement — changed
+    - evidence: 290de3dd. Files: Sources/AgentViewKit/Thread/ConversationView.swift, Tests/AgentViewKitTests/Thread/TranscriptFlickWorkTests.swift (new), ARCHITECTURE.md. RED: aFlickEvaluatesNoListOfTheRows failed (11 list bodies). GREEN: 1/1. Thread suites: 479 tests in 60 suites passed. Root swift test one run: 2030 tests in 249 suites + 59 tests in 12 suites passed. IntegrationTests and ScreenshotTests swift build --build-tests complete, not run.
+    - next: flick trace (parent); /review of 290de3dd.
+  timestamp: 2026-11-27T21:43:45.199975+00:00
 position_column: doing
 position_ordinal: '80'
 title: 'Scroll 3: static rows while the transcript moves, real rows at rest'
