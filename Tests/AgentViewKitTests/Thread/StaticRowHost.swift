@@ -1,3 +1,4 @@
+import AgentViewKitTestSupport
 import AppKit
 import EditorTestSupport
 import FoundationModelsACP
@@ -11,7 +12,7 @@ import SwiftUI
 ///
 /// The host shows the ``TranscriptRowElement`` of the one entry of a
 /// session, with the heights of the static rows and the motion signal of a
-/// thread. A host from ``cached(_:width:)`` gives the rows the height cache
+/// thread. A host from ``makeCached(_:width:frames:movesLive:)`` gives the rows the height cache
 /// of a thread too. ``show(rowsMove:)`` sets the motion signal and lays the row out
 /// again, so a test reads the row at rest and while the rows move. No
 /// window shows, and no window takes the focus. The window has the light
@@ -24,7 +25,7 @@ import SwiftUI
   let width: CGFloat
 
   /// The heights of the static row: the record of the real row, and the
-  /// height cache of a host from ``cached(_:width:)``.
+  /// height cache of a host from ``makeCached(_:width:frames:movesLive:)``.
   let heights = TranscriptStaticRowHeights()
 
   /// The store of the expanded blocks of the row.
@@ -97,7 +98,7 @@ import SwiftUI
   ///   - movesLive: Whether the motion is a live motion of the user
   ///     (``movesLive``).
   /// - Returns: The host, with the row in its first frame.
-  static func cached(
+  static func makeCached(
     _ row: TranscriptRowFixtures.Row, width: CGFloat, frames: (any TranscriptFrameSource)? = nil,
     movesLive: Bool = true
   ) async -> StaticRowHost {
@@ -159,10 +160,7 @@ import SwiftUI
   /// lays out the editors, and the second pass gives the host the size
   /// that the editors then have.
   func layOut() {
-    for _ in 0..<Self.layoutPasses {
-      hosting.frame = NSRect(origin: .zero, size: hosting.fittingSize)
-      hosting.layoutSubtreeIfNeeded()
-    }
+    StyleViewHost.layOut(hosting, passes: Self.layoutPasses)
   }
 
   /// The number of layout passes of ``layOut()``.

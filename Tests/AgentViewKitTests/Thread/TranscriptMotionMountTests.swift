@@ -16,7 +16,8 @@ import Testing
 ///
 /// EditorKit keeps the work of a text that it laid out before, so a row of
 /// a text that a test showed before gets its height in its first layout.
-/// Thus each test shows texts of its own (``answer(_:in:)``), and the suite
+/// Thus each test shows texts of its own, with a code fence
+/// (``AnswerText/answer(_:in:withCodeFence:)``), and the suite
 /// runs its tests one at a time.
 @MainActor @Suite(.serialized) struct TranscriptMotionMountTests {
   /// The number of answers in the transcript of a flick: more than the
@@ -44,17 +45,6 @@ import Testing
   /// start, gives the same count for the same steps.
   static let flickMounts = 0
 
-  /// The text of the answer at `index` of the transcript of a test: a line
-  /// of prose and a code fence.
-  ///
-  /// - Parameters:
-  ///   - index: The index of the answer.
-  ///   - test: The name of the test, which makes the text its own.
-  /// - Returns: The Markdown text.
-  static func answer(_ index: Int, in test: String) -> String {
-    "Motion mount \(test) answer \(index): the parser reads each line.\n\n```swift\nlet \(test)\(index) = \(index)\n```\n"
-  }
-
   /// The frames of the queue of the list.
   let frames = ManualFrames()
 
@@ -64,11 +54,11 @@ import Testing
   ///
   /// - Parameters:
   ///   - count: The number of answers.
-  ///   - test: The name of the test (``answer(_:in:)``).
+  ///   - test: The name of the test (``AnswerText/answer(_:in:withCodeFence:)``).
   /// - Returns: The list.
   func restingThread(count: Int = answerCount, test: String) async throws -> MovingThread {
-    let thread = try MovingThread(
-      session: .preview(transcript: (0..<count).map { .agent(Self.answer($0, in: test)) }), frames: frames)
+    let answers = (0..<count).map { PreviewTranscriptItem.agent(AnswerText.answer($0, in: test, withCodeFence: true)) }
+    let thread = try MovingThread(session: .preview(transcript: answers), frames: frames)
     let firstKey = try #require(thread.session.transcript.first?.rowKey)
     await thread.jumpAtRest(to: firstKey)
     return thread
@@ -109,10 +99,17 @@ import Testing
   /// A production change that fails this test: a row that is real in the
   /// motion waits in the queue, so at rest it takes its static form, and
   /// its editors leave the window before the queue mounts them again.
+  ///
+  /// The motion is one live step of ``stepDistance``, less than the height
+  /// of the list. The rows that were real at rest and that stay in view
+  /// keep their editors in the motion, so the test reads real rows.
   @Test func noEditorLeavesTheWindowInTheFirstLayoutAtRest() async throws {
     let thread = try await restingThread(test: "flickRest")
-    _ = await flick(thread)
-    let inMotion = thread.textViews
+    await thread.startMoving()
+    thread.step(by: -Self.stepDistance, isLive: true)
+    await thread.settle()
+    let inMotion = thread.textViewsInView
+    try #require(!inMotion.isEmpty, "no editor of the motion is in view")
 
     await thread.stopMoving()
 
@@ -126,7 +123,7 @@ import Testing
   /// it gets the height of its first layout, so its editors stay real for
   /// the whole motion.
   @Test func aRowWithNoKnownHeightTakesItsStaticFormWhenItGetsItsHeightInALiveMotion() async {
-    let host = await StaticRowHost.cached(.agentFenced, width: TranscriptStaticRowTests.widths[1], frames: frames)
+    let host = await StaticRowHost.makeCached(.agentFenced, width: TranscriptStaticRowTests.widths[1], frames: frames)
 
     host.layOut()
 
@@ -138,7 +135,7 @@ import Testing
   /// motion, so at rest it takes its static form and its editors leave the
   /// window.
   @Test func aRowThatAScrollOfTheKitMakesStaysRealAtRest() async {
-    let host = await StaticRowHost.cached(
+    let host = await StaticRowHost.makeCached(
       .agentFenced, width: TranscriptStaticRowTests.widths[1], frames: frames, movesLive: false)
 
     host.mounts?.noteRowsMove(false)
@@ -151,7 +148,7 @@ import Testing
   /// kit makes while the rows move waits in the queue, so the queue runs
   /// at rest for a row that is real.
   @Test func aRowThatAScrollOfTheKitMakesDoesNotWait() async {
-    let host = await StaticRowHost.cached(
+    let host = await StaticRowHost.makeCached(
       .agentFenced, width: TranscriptStaticRowTests.widths[1], frames: frames, movesLive: false)
 
     host.mounts?.noteRowsMove(false)

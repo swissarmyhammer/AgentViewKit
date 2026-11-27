@@ -80,7 +80,7 @@ import Testing
   ///   - session: The session of the list.
   ///   - frames: The frames of the queue, such as ``ManualFrames``.
   /// - Returns: The list, at rest.
-  static func cached(session: SessionModel, frames: any TranscriptFrameSource) async throws -> MovingThread {
+  static func makeCached(session: SessionModel, frames: any TranscriptFrameSource) async throws -> MovingThread {
     let thread = try MovingThread(session: session, frames: frames, expandedBlocks: ExpandedBlocksStore())
     await thread.settle()
     let cache = try #require(thread.heights.cache, "the list has no height cache")
@@ -100,10 +100,18 @@ import Testing
   ///
   /// - Parameter y: The new offset of the clip view.
   func scrollAtRest(to y: CGFloat) async {
+    moveClip(to: y)
+    await settle()
+  }
+
+  /// Moves the clip view of the list to the offset `y`, and tells the
+  /// scroll view about the move. The host does not lay out.
+  ///
+  /// - Parameter y: The new offset of the clip view.
+  private func moveClip(to y: CGFloat) {
     let clip = scrollView.contentView
     clip.scroll(to: NSPoint(x: clip.bounds.origin.x, y: y))
     scrollView.reflectScrolledClipView(clip)
-    await settle()
   }
 
   /// Scrolls the list at rest from the bottom to the top and back, so each
@@ -121,15 +129,23 @@ import Testing
   /// Starts a live scroll of the list, so the rows move, and lays the host
   /// out after the blocks of the main run loop that the layout added.
   func startMoving() async {
-    NotificationCenter.default.post(name: NSScrollView.willStartLiveScrollNotification, object: scrollView)
-    await settle()
+    await postLiveScroll(NSScrollView.willStartLiveScrollNotification)
   }
 
   /// Ends the live scroll of the list, so the rows are at rest, and lays
   /// the host out after the blocks of the main run loop that the layout
   /// added.
   func stopMoving() async {
-    NotificationCenter.default.post(name: NSScrollView.didEndLiveScrollNotification, object: scrollView)
+    await postLiveScroll(NSScrollView.didEndLiveScrollNotification)
+  }
+
+  /// Posts a live scroll notice of the scroll view of the list, and lays
+  /// the host out after the blocks of the main run loop that the layout
+  /// added.
+  ///
+  /// - Parameter name: The name of the live scroll notice.
+  private func postLiveScroll(_ name: Notification.Name) async {
+    NotificationCenter.default.post(name: name, object: scrollView)
     await settle()
   }
 
@@ -141,10 +157,7 @@ import Testing
   ///   - distance: The distance of the step, in points.
   ///   - isLive: Whether the step is a step of a live scroll.
   func step(by distance: CGFloat, isLive: Bool) {
-    let clip = scrollView.contentView
-    let origin = clip.bounds.origin
-    clip.scroll(to: NSPoint(x: origin.x, y: origin.y - distance))
-    scrollView.reflectScrolledClipView(clip)
+    moveClip(to: scrollView.contentView.bounds.origin.y - distance)
     if isLive {
       NotificationCenter.default.post(name: NSScrollView.didLiveScrollNotification, object: scrollView)
     }
@@ -169,7 +182,7 @@ import Testing
 
   /// The number of EditorKit text views in the list.
   var textViewCount: Int {
-    views(ofType: NSTextView.self, in: hosting).count
+    textViews.count
   }
 
   /// The EditorKit text views in the list.

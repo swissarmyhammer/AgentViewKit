@@ -543,6 +543,8 @@ public struct ConversationView<EmptyState: View>: View {
     session.transcript.last?.rowKey
   }
 
+  /// The transcript list, or the empty state when the transcript has no
+  /// entry, with the banner of the agent state in the bottom bar.
   public var body: some View {
     // The bar gets the size of the proposal from the layout, and does not
     // measure the list on each frame of a scroll (^7q5zdsj).
@@ -652,17 +654,7 @@ public struct ConversationView<EmptyState: View>: View {
     .onScrollGeometryChange(for: ConversationBottomGeometry.self) { geometry in
       ConversationBottomGeometry(geometry, tolerance: anchors.tolerance)
     } action: { old, new in
-      ConversationLayout.releaseBottomEdge(
-        &position, isNearBottom: new.isNearBottom, firstScrollRowKey: firstScrollRowKey)
-      if new.isNearBottom {
-        firstScrollRowKey = nil
-      }
-      if new.isNearBottom != old.isNearBottom {
-        noteVisible(ids: anchors.visibleIDs, isNearBottom: new.isNearBottom)
-      }
-      if new.contentFitsInView != contentFitsInView {
-        contentFitsInView = new.contentFitsInView
-      }
+      geometryDidChange(old, new)
     }
     .overlay(alignment: .bottom) {
       // In an `AgentThreadView`, the pill is in the floating controls of the
@@ -729,6 +721,31 @@ public struct ConversationView<EmptyState: View>: View {
     let moving = TranscriptRowMotion.isMoving(phase)
     if moving != isMoving {
       isMoving = moving
+    }
+  }
+
+  /// Records a new scroll geometry of the list.
+  ///
+  /// The action removes a bottom edge that the scroll position keeps
+  /// (``ConversationLayout/releaseBottomEdge(_:isNearBottom:firstScrollRowKey:)``).
+  /// Near the end of the list, the first scroll to the bottom is done. A
+  /// change of the near state goes to the manager, and a change of the fit
+  /// state goes to ``contentFitsInView``.
+  ///
+  /// - Parameters:
+  ///   - old: The geometry before the change.
+  ///   - new: The geometry after the change.
+  private func geometryDidChange(_ old: ConversationBottomGeometry, _ new: ConversationBottomGeometry) {
+    ConversationLayout.releaseBottomEdge(
+      &position, isNearBottom: new.isNearBottom, firstScrollRowKey: firstScrollRowKey)
+    if new.isNearBottom {
+      firstScrollRowKey = nil
+    }
+    if new.isNearBottom != old.isNearBottom {
+      noteVisible(ids: anchors.visibleIDs, isNearBottom: new.isNearBottom)
+    }
+    if new.contentFitsInView != contentFitsInView {
+      contentFitsInView = new.contentFitsInView
     }
   }
 
@@ -820,9 +837,7 @@ public struct ConversationView<EmptyState: View>: View {
     .frame(maxWidth: .infinity)
     .accessibilityAddTraits(.causesPageTurn)
     .accessibilityScrollAction { edge in
-      if edge == .top {
-        showEarlierPage()
-      }
+      loadEarlierRowDidScroll(to: edge)
     }
     .accessibilityIdentifier(ConversationLayout.loadEarlierIdentifier)
   }
@@ -833,6 +848,15 @@ public struct ConversationView<EmptyState: View>: View {
   private func showEarlierPage() {
     anchors.saveAnchor()
     pageCount += 1
+  }
+
+  /// Records an accessibility scroll of the Load Earlier row. A scroll to
+  /// the top edge shows one more page.
+  ///
+  /// - Parameter edge: The edge of the scroll.
+  private func loadEarlierRowDidScroll(to edge: Edge) {
+    guard edge == .top else { return }
+    showEarlierPage()
   }
 
   /// Shows the page of the item with `id`, and scrolls the list to it.
@@ -1123,6 +1147,8 @@ struct ConversationPill: View {
     BodyEvaluationKey.make(prefix: buttonCounterKeyPrefix, object: anchors)
   }
 
+  /// The pill button in its glass container. The pill is hidden while the
+  /// manager is pinned to the bottom.
   var body: some View {
     #if DEBUG
       BodyEvaluationCounter.note(Self.counterKey(for: anchors))
@@ -1150,6 +1176,8 @@ struct ConversationPillButton: View {
   /// The manager of the conversation.
   let anchors: ScrollAnchorManager
 
+  /// The scroll-to-bottom pill with the number of new items. A click pins
+  /// the manager to the bottom.
   var body: some View {
     #if DEBUG
       BodyEvaluationCounter.note(ConversationPill.buttonCounterKey(for: anchors))
@@ -1171,6 +1199,10 @@ struct ConversationPillButton: View {
 /// in such a pass, and the action then removes the edge
 /// (``ConversationLayout/releaseBottomEdge(_:isNearBottom:)``). A scroll of
 /// the user that keeps the height and the near state does not run the action.
+///
+/// The synthesized equality compares all three properties. Thus a change of
+/// the height alone runs the geometry action, and so does a change of the
+/// part in view that changes the fit state.
 struct ConversationBottomGeometry: Equatable {
   /// Whether the end of the list is in the tolerance of the manager.
   let isNearBottom: Bool
@@ -1195,19 +1227,6 @@ struct ConversationBottomGeometry: Equatable {
     contentHeight = geometry.contentSize.height
   }
 
-  /// Two values are equal when the near state, the fit state and the
-  /// content height are all equal. Thus a change of the height alone runs
-  /// the geometry action, and so does a change of the part in view that
-  /// changes the fit state.
-  ///
-  /// - Parameters:
-  ///   - lhs: A value.
-  ///   - rhs: Another value.
-  /// - Returns: Whether the two values are equal.
-  static func == (lhs: Self, rhs: Self) -> Bool {
-    lhs.isNearBottom == rhs.isNearBottom && lhs.contentFitsInView == rhs.contentFitsInView
-      && lhs.contentHeight == rhs.contentHeight
-  }
 }
 
 /// Keeps the end of the list in view when the size of the content changes,
@@ -1222,6 +1241,11 @@ private struct ConversationFollowAnchor: ViewModifier {
   /// The manager of the conversation.
   let anchors: ScrollAnchorManager
 
+  /// The content with the bottom anchor for size changes while the list
+  /// follows the bottom, and with no anchor otherwise.
+  ///
+  /// - Parameter content: The list.
+  /// - Returns: The list with its size-change anchor.
   func body(content: Content) -> some View {
     let follows = anchors.isPinnedToBottom && anchors.anchorID == nil
     content.defaultScrollAnchor(follows ? .bottom : nil, for: .sizeChanges)

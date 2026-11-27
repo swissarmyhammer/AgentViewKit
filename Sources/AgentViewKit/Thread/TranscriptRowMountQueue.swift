@@ -105,7 +105,9 @@ import SwiftUI
   /// - Parameter waits: Whether the row waits.
   fileprivate func setWaits(_ waits: Bool) {
     self.waits = waits
-    slots.forEach { $0.waits = waits }
+    for slot in slots {
+      slot.waits = waits
+    }
   }
 
   /// The distance of the vertical center of the view of `proxy` from the
@@ -250,7 +252,9 @@ import SwiftUI
   /// views.
   func mountAll() {
     mountsAtOnce = true
-    waiting.values.forEach { $0.setWaits(false) }
+    for row in waiting.values {
+      row.setWaits(false)
+    }
     waiting.removeAll()
     frames.stop()
   }
