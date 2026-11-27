@@ -144,10 +144,14 @@ import SwiftUI
   ///   - movesLive: Whether the motion is a live motion of the user
   ///     (``movesLive``). The default is `true`.
   ///   - colorScheme: The appearance of the window. The default is light.
+  ///   - drawsPictures: Whether the cache knows the appearance of the
+  ///     window, and thus draws the pictures of the static text. With
+  ///     `false`, each slot shows its SwiftUI `Text`. The default is `true`.
   /// - Returns: The host, with the row in its first frame.
   static func makeCached(
     _ item: PreviewTranscriptItem, width: CGFloat, isExpanded: Bool = false,
-    frames: (any TranscriptFrameSource)? = nil, movesLive: Bool = true, colorScheme: ColorScheme = .light
+    frames: (any TranscriptFrameSource)? = nil, movesLive: Bool = true, colorScheme: ColorScheme = .light,
+    drawsPictures: Bool = true
   ) async -> StaticRowHost {
     let host = StaticRowHost(
       item, width: width, isExpanded: isExpanded, colorScheme: colorScheme, showsAtRest: false)
@@ -159,7 +163,9 @@ import SwiftUI
       host.mounts = mounts
     }
     let cache = TranscriptRowHeights(metrics: TranscriptRowMetrics.probe(), expandedBlocks: host.store)
-    host.heights.noteAppearance(host.appearance)
+    if drawsPictures {
+      host.heights.noteAppearance(host.appearance)
+    }
     host.heights.attach(cache: cache, session: host.session)
     host.heights.noteRowWidth(width)
     let rowKey = host.entry.rowKey
@@ -228,6 +234,32 @@ import SwiftUI
     let model = ResponseView.model(in: cache, id: id, markdown: markdown)
     guard let syntax = model.syntax else { throw StaticRowHostError.noSyntax }
     _ = await syntax.ensureParsed(upTo: model.state.version)
+    layOut()
+  }
+
+  /// Waits until the first parse of each segment of the text of the first
+  /// block of the entry lands, and lays the row out again, so the real row
+  /// shows the styles and the syntax colors of each parse.
+  ///
+  /// A text with a fence shows each segment in a model of its own
+  /// (`ResponseView.segmentModelID(for:index:isCode:)`), with contiguous
+  /// indices from zero. A model with no syntax, such as the model of code
+  /// with a TextMate grammar, which the style pass colors at once, has no
+  /// parse to wait for. A row with no response model waits for nothing.
+  func awaitSegmentParses() async {
+    let id = EntryContentView.blockID(entryID: entry.rowKey, index: 0)
+    var index = 0
+    while let modelID = [true, false].map({ ResponseView.segmentModelID(for: id, index: index, isCode: $0) })
+      .first(where: cache.contains)
+    {
+      // The cache holds the model of the view, so the text has no effect.
+      let model = cache.model(for: modelID, code: "")
+      if let syntax = model.syntax {
+        _ = await syntax.ensureParsed(upTo: model.state.version)
+      }
+      index += 1
+    }
+    PendingRunLoopBlocks.run()
     layOut()
   }
 

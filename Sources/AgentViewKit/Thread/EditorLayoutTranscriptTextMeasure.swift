@@ -29,10 +29,12 @@ import SwiftUI
 /// - Output (`CommandOutputView`, `TerminalView`): EditorKit's measure of
 ///   code in the code font role, as plain text with no gutter. The height is
 ///   exact.
-/// - A diff (`DiffView`): EditorKit's measure of code of the inline document
-///   of the patch, at the width that the gutters and the change bars of the
-///   EditorKit diff view leave (``TranscriptDiffLayout``). The height is exact when EditorKit
-///   reads the patch and the document has no context to fold.
+/// - A diff (`DiffView`): EditorKit's measure of a diff
+///   (`EditorLayoutMeasure.prepare(diff:style:language:contextLines:gutterGap:)`):
+///   the inline document of the patch, with each run of context folded as
+///   the EditorKit diff view folds it on mount, at the width that the lanes
+///   and the change bars of the view leave. The height is exact when
+///   EditorKit reads the patch.
 /// - A label (`EditorLabel`, `PlacedLabel`): TextKit lays out the text in
 ///   the font that the label resolves, with no line padding, and the height
 ///   is rounded up to a whole point, as the label does. The height is exact.
@@ -62,11 +64,6 @@ nonisolated public struct EditorLayoutTranscriptTextMeasure: TranscriptTextMeasu
   /// gap of the style of the environment.
   let gutterGap: CGFloat
 
-  /// The width of the two gutter columns of fixed width of the EditorKit
-  /// diff view: the expand column (`DiffExpandGutter`) and the marker
-  /// column (`DiffMarkerGutter`).
-  let diffFixedColumnsWidth: CGFloat
-
   /// The resolved font of each label font.
   let labelFonts: [TranscriptLabelFont: SendableFont]
 
@@ -93,7 +90,6 @@ nonisolated public struct EditorLayoutTranscriptTextMeasure: TranscriptTextMeasu
     codeStyle = EditorLayoutMeasure.Style(
       theme: theme, font: code, lineHeight: code.lineHeight, showsCodeBlockHeader: false)
     gutterGap = environment.editorStyle.gutterGap
-    diffFixedColumnsWidth = DiffExpandGutter.defaultWidth + DiffMarkerGutter.defaultWidth
     labelFonts = Dictionary(
       uniqueKeysWithValues: Self.labelFonts(of: theme).map { label, font in
         (label, SendableFont(font.resolve(in: context).ctFont))
@@ -130,8 +126,8 @@ nonisolated public struct EditorLayoutTranscriptTextMeasure: TranscriptTextMeasu
   ///
   /// Markdown is exact when EditorKit measures each of its elements. Code
   /// with a line number gutter, output and a label are exact. A diff is
-  /// exact when EditorKit reads the patch and the document has no context
-  /// to fold. A label font that the measure did not resolve is not exact.
+  /// exact when EditorKit reads the patch. A label font that the measure
+  /// did not resolve is not exact.
   ///
   /// - Parameter part: The text part.
   /// - Returns: `true` when ``height(of:width:)`` is exact for the part.
@@ -139,7 +135,7 @@ nonisolated public struct EditorLayoutTranscriptTextMeasure: TranscriptTextMeasu
     switch part.style {
     case .markdown: measurement(of: part, width: Self.elementsOnlyWidth).isExact
     case .code, .output: true
-    case .diff: TranscriptDiffLayout(patch: part.text) != nil
+    case .diff: (try? UnifiedDiff.parse(part.text)) != nil
     case .label(let font): labelFonts[font] != nil
     }
   }
@@ -156,29 +152,68 @@ nonisolated public struct EditorLayoutTranscriptTextMeasure: TranscriptTextMeasu
     return prepared.measurement(width: width)
   }
 
-  /// A picture of a Markdown part at a width, drawn by EditorKit with no
-  /// view (`EditorLayoutMeasure.render(markdown:width:style:imageSizes:)`),
-  /// in the Markdown style of the measure, for the static form of its row
-  /// (card ^9ync5h3).
+  /// A picture of a text part at a width, drawn by EditorKit with no view,
+  /// for the static form of its row (card ^9ync5h3).
   ///
-  /// The picture has the measured height of the part at the width. Only a
-  /// Markdown part whose parts EditorKit each draws has a picture
-  /// (``StaticMarkdownPicture/draws(_:)``). Such a part has no image, so
-  /// the picture needs no image size.
+  /// - Markdown: `EditorLayoutMeasure.render(markdown:width:style:imageSizes:citations:)`
+  ///   in the Markdown style of the measure. Only a Markdown part whose
+  ///   parts EditorKit each draws has a picture
+  ///   (``StaticMarkdownPicture/draws(_:)``). Such a part has no image, so
+  ///   the picture needs no image size.
+  /// - Code and output: `EditorLayoutMeasure.render(code:width:style:grammar:gutter:)`
+  ///   in the code style of the measure, with the grammar and the gutter of
+  ///   the measure of the part (``codeInputs(of:)``): the syntax colors and
+  ///   the line numbers of a `CodeBlockView`, or the plain text of an
+  ///   output.
+  ///
+  /// The picture has the measured height of the part at the width.
   ///
   /// - Parameters:
   ///   - part: The text part.
   ///   - width: The width of the view that shows the text.
   ///   - appearance: The color scheme and the scale of the picture.
-  /// - Returns: The picture, or `nil` for a part that is not Markdown, or
-  ///   that has a part that EditorKit does not draw.
+  /// - Returns: The picture, or `nil` for a diff, a label, or Markdown with
+  ///   a part that EditorKit does not draw.
   public func picture(
     of part: TranscriptTextPart, width: CGFloat, appearance: TranscriptTextAppearance
   ) -> EditorStaticRendering? {
+    if let code = codeInputs(of: part) {
+      let style = EditorLayoutMeasure.RenderStyle(
+        codeStyle, colorScheme: appearance.colorScheme, scale: appearance.scale)
+      return EditorLayoutMeasure.render(
+        code: part.text, width: width, style: style, grammar: code.grammar, gutter: code.gutter)
+    }
     guard part.style == .markdown, StaticMarkdownPicture.draws(part.text) else { return nil }
     let style = EditorLayoutMeasure.RenderStyle(
       markdownStyle, colorScheme: appearance.colorScheme, scale: appearance.scale)
     return EditorLayoutMeasure.render(markdown: part.text, width: width, style: style)
+  }
+
+  /// The grammar and the gutter of the read-only editor of a code part: the
+  /// grammar of a `CodeBlockView` (``CodeBlockView/grammar(of:)``) and the
+  /// line number gutter with the gutter gap of the style for code, plain
+  /// text with no gutter for an output.
+  ///
+  /// - Parameter part: The text part.
+  /// - Returns: The grammar and the gutter, or `nil` for a part that is not
+  ///   code or output.
+  func codeInputs(of part: TranscriptTextPart) -> CodeInputs? {
+    switch part.style {
+    case .code(let language): codeBlockInputs(language: language)
+    case .output: .output
+    case .markdown, .diff, .label: nil
+    }
+  }
+
+  /// The grammar and the gutter of the editor of a `CodeBlockView`: the
+  /// grammar of the language (``CodeBlockView/grammar(of:)``) and the line
+  /// number gutter with the gutter gap of the style.
+  ///
+  /// - Parameter language: The language of the code, or `nil`.
+  /// - Returns: The grammar and the gutter.
+  func codeBlockInputs(language: String?) -> CodeInputs {
+    CodeInputs(
+      grammar: CodeBlockView.grammar(of: CodeBlockView.normalized(language)), gutter: .lineNumbers(gap: gutterGap))
   }
 
   /// A text part, ready to measure at many widths with EditorKit's
@@ -198,11 +233,9 @@ nonisolated public struct EditorLayoutTranscriptTextMeasure: TranscriptTextMeasu
     case .diff:
       preparedDiff(part.text)
     case .code(let language):
-      preparedCode(
-        part.text, grammar: CodeBlockView.grammar(of: CodeBlockView.normalized(language)),
-        gutter: .lineNumbers(gap: gutterGap))
+      preparedCode(part.text, inputs: codeBlockInputs(language: language))
     case .output:
-      preparedCode(part.text, grammar: .plainText, gutter: .none)
+      preparedCode(part.text, inputs: .output)
     case .label(let font):
       PreparedTranscriptLabel(measure: self, text: part.text, font: font)
     }
@@ -218,48 +251,46 @@ nonisolated public struct EditorLayoutTranscriptTextMeasure: TranscriptTextMeasu
     let sizes = imageFolder.map { TranscriptImageSizes.sizes(in: markdown, folder: $0) } ?? [:]
     return EditorLayoutPreparedTextPart(
       prepared: EditorLayoutMeasure.prepare(markdown: markdown, style: markdownStyle, imageSizes: sizes),
-      exactness: .whenEachElementIsMeasured, chromeWidth: .zero)
+      exactness: .whenEachElementIsMeasured)
   }
 
   /// Code in a read-only editor in the code font, prepared with EditorKit's
   /// measure of code: the code of a `CodeBlockView` with its grammar and
-  /// the line number gutter, plain text with no gutter for an output, or
-  /// the inline document of a diff.
+  /// the line number gutter, or plain text with no gutter for an output.
   ///
   /// - Parameters:
   ///   - code: The code.
-  ///   - grammar: The grammar of the code.
-  ///   - gutter: The gutter of the editor.
+  ///   - inputs: The grammar and the gutter of the editor.
   ///   - exactness: When the height is exact. The default is exact.
-  ///   - chromeWidth: The width of the view that the code does not get.
-  ///     The default is none.
   /// - Returns: The prepared part.
   func preparedCode(
-    _ code: String, grammar: EditorLayoutMeasure.CodeGrammar, gutter: EditorLayoutMeasure.CodeGutter,
-    exactness: EditorLayoutPreparedTextPart.Exactness = .exact, chromeWidth: CGFloat = .zero
+    _ code: String, inputs: CodeInputs, exactness: EditorLayoutPreparedTextPart.Exactness = .exact
   ) -> EditorLayoutPreparedTextPart {
     EditorLayoutPreparedTextPart(
-      prepared: EditorLayoutMeasure.prepare(code: code, style: codeStyle, grammar: grammar, gutter: gutter),
-      exactness: exactness, chromeWidth: chromeWidth)
+      prepared: EditorLayoutMeasure.prepare(
+        code: code, style: codeStyle, grammar: inputs.grammar, gutter: inputs.gutter),
+      exactness: exactness)
   }
 
-  /// The EditorKit diff view of a patch, prepared with EditorKit's measure
-  /// of code of the inline document of the patch. The measure takes the
-  /// width that the gutters and the change bars of the diff view leave.
+  /// The EditorKit diff view of a patch (the `PreviewField` of a
+  /// `DiffView`), prepared with EditorKit's measure of a diff: the inline
+  /// document of the patch at the default context of the view, with each
+  /// run of context folded, in the width that the lanes and the strip of
+  /// the change bars of the view leave, with the gutter gap of the style.
+  /// The view names no language, so the grammar is the one of the files of
+  /// the patch.
   ///
-  /// A patch that EditorKit cannot read, or a document with context to
-  /// fold, takes the height of the rows of the patch text at the full
-  /// width, and is not exact.
+  /// A patch that EditorKit cannot read takes the height of the rows of the
+  /// patch text at the full width, and is not exact.
   ///
   /// - Parameter patch: The patch text.
   /// - Returns: The prepared part.
   func preparedDiff(_ patch: String) -> EditorLayoutPreparedTextPart {
-    guard let layout = TranscriptDiffLayout(patch: patch) else {
-      return preparedCode(patch, grammar: .plainText, gutter: .none, exactness: .notExact)
+    guard let diff = try? UnifiedDiff.parse(patch) else {
+      return preparedCode(patch, inputs: .output, exactness: .notExact)
     }
-    return preparedCode(
-      layout.document.text, grammar: layout.grammar, gutter: .none,
-      chromeWidth: layout.chromeWidth(style: codeStyle, fixedColumns: diffFixedColumnsWidth, gap: gutterGap))
+    return EditorLayoutPreparedTextPart(
+      prepared: EditorLayoutMeasure.prepare(diff: diff, style: codeStyle, gutterGap: gutterGap), exactness: .exact)
   }
 
   /// The height of a label at a width, and whether it is exact.
@@ -303,6 +334,21 @@ nonisolated public struct EditorLayoutTranscriptTextMeasure: TranscriptTextMeasu
   }
 }
 
+/// The grammar and the gutter of a read-only EditorKit editor of code, for
+/// the measure and the picture of a code part
+/// (``EditorLayoutTranscriptTextMeasure/codeInputs(of:)``).
+nonisolated struct CodeInputs: Sendable {
+  /// The grammar of the code.
+  let grammar: EditorLayoutMeasure.CodeGrammar
+
+  /// The gutter of the editor.
+  let gutter: EditorLayoutMeasure.CodeGutter
+
+  /// The editor of an output, and of a text that EditorKit cannot read as
+  /// a patch: plain text with no gutter.
+  static let output = CodeInputs(grammar: .plainText, gutter: .none)
+}
+
 /// A text part that EditorKit's `EditorLayoutMeasure` prepared
 /// (``EditorLayoutTranscriptTextMeasure/prepared(_:)``).
 nonisolated struct EditorLayoutPreparedTextPart: PreparedTranscriptTextPart {
@@ -326,12 +372,8 @@ nonisolated struct EditorLayoutPreparedTextPart: PreparedTranscriptTextPart {
   /// When the height is exact.
   let exactness: Exactness
 
-  /// The width of the view that the document does not get, such as the
-  /// gutters of a diff view.
-  let chromeWidth: CGFloat
-
   mutating func measurement(width: CGFloat) -> TranscriptTextMeasurement {
-    let measured = prepared.measure(width: width - chromeWidth)
+    let measured = prepared.measure(width: width)
     return TranscriptTextMeasurement(height: measured.height, isExact: isExact(measured))
   }
 

@@ -3,15 +3,13 @@ import SwiftUI
 
 /// The difference of two bitmaps of a row (card ^9ync5h3): the mean
 /// difference of a color component, and the part of the pixels with a large
-/// difference, at the vertical shift of the second bitmap that gives the
-/// smallest difference.
+/// difference.
 ///
 /// Each bitmap is drawn over one opaque background into a buffer of one
 /// layout, so a clear pixel and a pixel of the background color are equal.
 /// Two bitmaps of other pixel sizes are not compared: the compare throws.
-/// The compare tries each vertical shift up to a tolerance, as the line
-/// bands of ``InkBands`` match within a tolerance, and it reads the pixel
-/// rows that both bitmaps hold at that shift.
+/// The compare reads each pixel of the first bitmap against the pixel at
+/// the same place in the second bitmap, with no vertical shift.
 struct RowPixelDifference: CustomStringConvertible {
   /// The mean absolute difference of a color component, from 0 to 255.
   let mean: Double
@@ -19,11 +17,6 @@ struct RowPixelDifference: CustomStringConvertible {
   /// The part of the pixels with a component difference of more than
   /// ``largeStep``.
   let largePart: Double
-
-  /// The vertical shift of the second bitmap, in pixels, that gives the
-  /// difference: a positive shift reads the second bitmap that many rows
-  /// lower.
-  let rowShift: Int
 
   /// The component difference of a pixel that counts as large: a quarter of
   /// the range.
@@ -35,7 +28,7 @@ struct RowPixelDifference: CustomStringConvertible {
   /// The bits of one component of the compare buffer.
   private static let bitsPerComponent = 8
 
-  var description: String { "mean \(mean), large part \(largePart), row shift \(rowShift)" }
+  var description: String { "mean \(mean), large part \(largePart)" }
 
   /// Tells if the difference is in the limits.
   ///
@@ -57,56 +50,41 @@ struct RowPixelDifference: CustomStringConvertible {
     colorScheme == .dark ? CGColor(gray: .zero, alpha: 1) : CGColor(gray: 1, alpha: 1)
   }
 
-  /// The smallest difference of `first` and `second`, each drawn over
-  /// `background`, over each vertical shift of `second` up to
-  /// `rowTolerance` pixels.
+  /// The difference of `first` and `second`, each drawn over
+  /// `background`, pixel by pixel at the same places.
   ///
   /// - Parameters:
   ///   - first: One bitmap.
   ///   - second: The other bitmap.
   ///   - background: The opaque background.
-  ///   - rowTolerance: The largest vertical shift, in pixels.
-  /// - Returns: The difference with the fewest large pixels.
+  /// - Returns: The difference.
   static func between(
-    _ first: NSBitmapImageRep, and second: NSBitmapImageRep, over background: CGColor, rowTolerance: Int
+    _ first: NSBitmapImageRep, and second: NSBitmapImageRep, over background: CGColor
   ) throws -> RowPixelDifference {
     guard first.pixelsWide == second.pixelsWide, first.pixelsHigh == second.pixelsHigh else {
       throw RowPixelError.sizeMismatch(
         first: CGSize(width: first.pixelsWide, height: first.pixelsHigh),
         second: CGSize(width: second.pixelsWide, height: second.pixelsHigh))
     }
-    let one = try pixels(of: first, over: background)
-    let other = try pixels(of: second, over: background)
-    let rowBytes = first.pixelsWide * bytesPerPixel
-    let differences = (-rowTolerance...rowTolerance).map { shift in
-      difference(between: one, and: other, rowBytes: rowBytes, rowShift: shift)
-    }
-    return differences.min { $0.largePart < $1.largePart } ?? difference(
-      between: one, and: other, rowBytes: rowBytes, rowShift: .zero)
+    return difference(
+      between: try pixels(of: first, over: background), and: try pixels(of: second, over: background))
   }
 
-  /// The difference of two pixel buffers of one layout, with the second
-  /// buffer read `rowShift` rows lower, over the rows that both hold.
+  /// The difference of two pixel buffers of one layout.
   ///
   /// - Parameters:
   ///   - one: The components of the first bitmap, from the top row.
   ///   - other: The components of the second bitmap, from the top row.
-  ///   - rowBytes: The bytes of one pixel row.
-  ///   - rowShift: The vertical shift of the second bitmap, in pixels.
   /// - Returns: The difference.
-  private static func difference(
-    between one: [UInt8], and other: [UInt8], rowBytes: Int, rowShift: Int
-  ) -> RowPixelDifference {
-    let shiftBytes = rowShift * rowBytes
-    let range = max(.zero, -shiftBytes)..<min(one.count, one.count - shiftBytes)
-    let steps = range.map { abs(Int(one[$0]) - Int(other[$0 + shiftBytes])) }
+  private static func difference(between one: [UInt8], and other: [UInt8]) -> RowPixelDifference {
+    let steps = zip(one, other).map { abs(Int($0) - Int($1)) }
     let pixelCount = max(steps.count / bytesPerPixel, 1)
     let large = stride(from: 0, to: steps.count, by: bytesPerPixel).filter { pixel in
       steps[pixel..<(pixel + bytesPerPixel)].contains { $0 > largeStep }
     }.count
     return RowPixelDifference(
       mean: Double(steps.reduce(0, +)) / Double(max(steps.count, 1)),
-      largePart: Double(large) / Double(pixelCount), rowShift: rowShift)
+      largePart: Double(large) / Double(pixelCount))
   }
 
   /// The pixels of `bitmap` drawn over `background` into a buffer of its

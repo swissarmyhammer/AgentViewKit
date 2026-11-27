@@ -65,30 +65,30 @@ struct StaticPictureView: View {
   /// The picture.
   let picture: EditorStaticRendering
 
-  /// The Markdown text of the picture.
-  let markdown: String
+  /// The text of the picture: Markdown, code or an output.
+  let text: String
 
   /// Makes the view of a picture.
   ///
   /// - Parameters:
   ///   - picture: The picture.
-  ///   - markdown: The Markdown text of the picture.
-  init(_ picture: EditorStaticRendering, markdown: String) {
+  ///   - text: The text of the picture.
+  init(_ picture: EditorStaticRendering, text: String) {
     self.picture = picture
-    self.markdown = markdown
+    self.text = text
   }
 
-  /// The ``BodyEvaluationCounter`` key of the picture of `markdown`.
+  /// The ``BodyEvaluationCounter`` key of the picture of `text`.
   ///
-  /// - Parameter markdown: The Markdown text.
-  /// - Returns: `static-picture-<markdown>`.
-  static func counterKey(for markdown: String) -> String {
-    BodyEvaluationKey.make(prefix: counterKeyPrefix, id: markdown)
+  /// - Parameter text: The text of the picture.
+  /// - Returns: `static-picture-<text>`.
+  static func counterKey(for text: String) -> String {
+    BodyEvaluationKey.make(prefix: counterKeyPrefix, id: text)
   }
 
   var body: some View {
     #if DEBUG
-      let _ = BodyEvaluationCounter.note(Self.counterKey(for: markdown))
+      let _ = BodyEvaluationCounter.note(Self.counterKey(for: text))
     #endif
     ZStack(alignment: .topLeading) {
       if let image = picture.image {
@@ -103,8 +103,8 @@ struct StaticPictureView: View {
 /// the height cache of the thread has one in the appearance of the slot,
 /// else the still view of the slot (card ^9ync5h3).
 struct StaticSlotStill<Still: View>: View {
-  /// The Markdown text of the slot, or `nil` for a slot with no picture.
-  let pictureText: String?
+  /// The text part of the slot, or `nil` for a slot with no picture.
+  let picturePart: TranscriptTextPart?
 
   /// Makes the still view of the slot.
   @ViewBuilder let still: () -> Still
@@ -114,20 +114,20 @@ struct StaticSlotStill<Still: View>: View {
   @Environment(\.displayScale) private var displayScale
 
   var body: some View {
-    if let pictureText, let picture = picture(of: pictureText) {
-      StaticPictureView(picture, markdown: pictureText)
+    if let picturePart, let picture = picture(of: picturePart) {
+      StaticPictureView(picture, text: picturePart.text)
     } else {
       still()
     }
   }
 
-  /// The picture of the text in the appearance of the slot.
+  /// The picture of the text part in the appearance of the slot.
   ///
-  /// - Parameter text: The Markdown text of the slot.
+  /// - Parameter part: The text part of the slot.
   /// - Returns: The picture, or `nil` when the cache has none, or when the
   ///   picture has no bitmap.
-  private func picture(of text: String) -> EditorStaticRendering? {
+  private func picture(of part: TranscriptTextPart) -> EditorStaticRendering? {
     let appearance = TranscriptTextAppearance(colorScheme: colorScheme, scale: displayScale)
-    return pictures?.picture(of: text, appearance: appearance).flatMap { $0.image == nil ? nil : $0 }
+    return pictures?.picture(of: part, appearance: appearance).flatMap { $0.image == nil ? nil : $0 }
   }
 }

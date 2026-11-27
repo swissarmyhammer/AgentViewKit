@@ -98,19 +98,19 @@ import SwiftUI
     cache?.noteAppearance(appearance)
   }
 
-  /// The picture of a Markdown text of a row, from the cache
+  /// The picture of a text part of a row, from the cache
   /// (``TranscriptRowHeights/picture(of:inRow:appearance:)``).
   ///
   /// - Parameters:
-  ///   - markdown: The Markdown text of a text part of the row.
+  ///   - part: A text part of the row.
   ///   - rowKey: The row key of the entry.
   ///   - appearance: The appearance of the view that shows the picture.
   /// - Returns: The picture, or `nil` when the rows have no cache or the
-  ///   cache has no picture of the text.
+  ///   cache has no picture of the part.
   func picture(
-    of markdown: String, inRow rowKey: String, appearance: TranscriptTextAppearance
+    of part: TranscriptTextPart, inRow rowKey: String, appearance: TranscriptTextAppearance
   ) -> EditorStaticRendering? {
-    cache?.picture(of: markdown, inRow: rowKey, appearance: appearance)
+    cache?.picture(of: part, inRow: rowKey, appearance: appearance)
   }
 
   /// Records the positions of the rows in view, and gives them to the

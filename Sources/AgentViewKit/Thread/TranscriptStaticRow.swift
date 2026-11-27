@@ -386,15 +386,15 @@ nonisolated struct TranscriptRowPictures: Equatable, Sendable {
   /// The row key of the entry of the row.
   let rowKey: String
 
-  /// The picture of a Markdown text of the row.
+  /// The picture of a text part of the row.
   ///
   /// - Parameters:
-  ///   - markdown: The Markdown text of a text area of the row.
+  ///   - part: The text part of a text area of the row.
   ///   - appearance: The appearance of the text area.
   /// - Returns: The picture, or `nil` when the cache has no picture of the
-  ///   text in the appearance.
-  @MainActor func picture(of markdown: String, appearance: TranscriptTextAppearance) -> EditorStaticRendering? {
-    heights.picture(of: markdown, inRow: rowKey, appearance: appearance)
+  ///   part in the appearance.
+  @MainActor func picture(of part: TranscriptTextPart, appearance: TranscriptTextAppearance) -> EditorStaticRendering? {
+    heights.picture(of: part, inRow: rowKey, appearance: appearance)
   }
 
   /// Tells if two values give the pictures of the same row.
