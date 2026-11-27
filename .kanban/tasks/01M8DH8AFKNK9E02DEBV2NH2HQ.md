@@ -20,8 +20,25 @@ comments:
     - evidence: commit de460e25. 5 files — Sources/AgentViewKit/Thread/EditorLayoutTranscriptTextMeasure.swift (doc), Tests/AgentViewKitTests/Thread/EditorLayoutTranscriptTextMeasureTests.swift, Tests/AgentViewKitTests/Thread/TranscriptRowFixtures.swift, Tests/AgentViewKitTests/Thread/TranscriptRowHeightBed.swift, Tests/AgentViewKitTests/Thread/TranscriptRowMeasureTests.swift. Height suites: 27 tests in 3 suites passed; parity 9 of 9 cases at 0.0 pt (inline math, block math, wrapped inline code at 320/480/720). Root `swift test`: 1981 tests in 240 suites passed, and 59 tests in 12 suites passed; 0 failures, 0 project warnings. No fence-bound timeout.
     - next: /review. Follow-up card 01M8DJBNT8X5J6640D6HH39BP4 (static form of a math row shows TeX source).
   timestamp: 2026-11-27T03:56:55.592913+00:00
+- actor: claude-code
+  id: 01m8ej5j8me4p6nep9xs9kkbfy
+  text: |-
+    ### review — findings
+    - evidence: review sha de460e25^1..de460e25; 2 findings (2 confirmed, 2 refuted) — Tests/AgentViewKitTests/Thread/TranscriptRowMeasureTests.swift:55, Tests/AgentViewKitTests/Thread/TranscriptRowMeasureTests.swift:69. The two findings are `reuse/reuse`: merge each new measured-Markdown test into the existing code-row parameterized test.
+    - next: /implement the two findings, then /review again.
+  timestamp: 2026-11-27T13:12:28.692305+00:00
+- actor: claude-code
+  id: 01m8ejqxh03hrnytt5faqmdnrm
+  text: |-
+    Fix of the 2 reuse findings (worktree merged main 4f5502cd; EditorKit updated):
+    - Added `TranscriptRowFixtures.Row.exactlyMeasuredRows` = `codeRows + measuredMarkdownRows`.
+    - In TranscriptRowMeasureTests: the code-row exact test, the measured-Markdown exact test and the resize test are now ONE test, `theMeasureOfAnExactlyMeasuredRowIsTheMountedHeightExactly`, over `exactlyMeasuredRows` x `measureWidths` (each width of `TranscriptRowHeightBed.widths`, with no resize and after a resize from `widthBeforeResize`). The case count is the same (66).
+    - The two cache tests are now ONE test, `theCacheTakesTheHeightOfAnExactlyMeasuredRowForExact`, over `exactlyMeasuredRows` (11 cases).
+    - A private helper `expectTheMountedHeight(of:width:tolerance:)` holds the mount-and-compare body, and the default-measure test uses it too.
+    - `swift build --build-tests`: Build complete, 0 project warnings (warnings only in .build/checkouts). Tests wait for the free screen slot.
+  timestamp: 2026-11-27T13:22:30.048887+00:00
 position_column: doing
-position_ordinal: '8280'
+position_ordinal: '80'
 title: 'Test: markdownWithMathIsNotExact fails after EditorKit measures math'
 ---
 Found on 2026-11-26 during ^7625j1b. Root `swift test` in worktree-agent-a5f3ddbd4f5df14ea (main 45123917, plus test helper edits only) fails `EditorLayoutTranscriptTextMeasureTests.markdownWithMathIsNotExact`. The test also fails when it runs alone (2.6 s).
@@ -38,3 +55,10 @@ Found on 2026-11-26 during ^7625j1b. Root `swift test` in worktree-agent-a5f3ddb
 
 ## Tests
 - [x] Root `swift test` passes with 0 failures and 0 warnings. #test
+
+## Review Findings (2026-11-27 07:04)
+
+> Scope: `review sha de460e25^1..de460e25` — reviewed the diffs only — lines this change added or modified. 5 file(s) reviewed, 0 not reviewed.
+
+- [x] `Tests/AgentViewKitTests/Thread/TranscriptRowMeasureTests.swift:55` `reuse/reuse` — The new test theMeasureOfAMeasuredMarkdownRowIsTheMountedHeightExactly repeats the body of the existing code-row measure test. Both make the same call to expectCachedHeightMatchesTheMountedRow with the same measure and tolerance. Only the row list differs. The new rows should extend the existing parameterized test, not add a parallel one. Merge this test with the existing code-row measure test into one parameterized test over the union of TranscriptRowFixtures.Row.codeRows and TranscriptRowFixtures.Row.measuredMarkdownRows, crossed with TranscriptRowHeightBed.widths. Remove the duplicate function.
+- [x] `Tests/AgentViewKitTests/Thread/TranscriptRowMeasureTests.swift:69` `reuse/reuse` — The new test theCacheTakesTheHeightOfAMeasuredMarkdownRowForExact is a near-copy of the existing test theCacheTakesTheHeightOfACodeRowForExact. Both build the entry, make the cache with the same metrics and expanded store, await cachedHeight, and check knowsHeight. Only the argument list differs. The right move was to extend the existing parameterized test, not to write a parallel copy. Merge the two tests into one parameterized test that takes its rows from the union of TranscriptRowFixtures.Row.codeRows and TranscriptRowFixtures.Row.measuredMarkdownRows. Keep the row lists as the parameters, and remove the duplicate body.

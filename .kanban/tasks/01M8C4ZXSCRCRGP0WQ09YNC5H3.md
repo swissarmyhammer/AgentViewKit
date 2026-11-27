@@ -16,6 +16,17 @@ comments:
     - evidence: review sha 14047377^1..14047377 (the merge of bf47d40b and 25df5567) — 7 findings (11 confirmed, 5 refuted, 14 attempted, 0 failed): Sources/AgentViewKit/Content/StaticMarkdownText.swift:76, Sources/AgentViewKit/Thread/InterimTranscriptTextMeasure.swift:55, Sources/AgentViewKit/Thread/TranscriptStaticRowHeights.swift:82, Sources/AgentViewKit/Thread/TranscriptStaticRowHeights.swift:166, Sources/AgentViewKit/Thread/TranscriptStaticRowHeights.swift:169, Sources/AgentViewKit/Thread/TranscriptStaticRowHeights.swift:172, Sources/AgentViewKit/Thread/TranscriptStaticRowHeights.swift:175. The range b229006c~1..14047377 that the request gave is empty (b229006c~1 is 14047377), so the review used the first parent of the merge. Five Swift code-hygiene rules found no file at Tests/AgentViewKitTests/Helpers/TextViewTree.swift and did not read it.
     - next: Correct the 7 findings in "Review Findings (2026-11-26 10:47)". Then do the review again. The review is not clean, so the evidence items (unit tests, frame check, pixel check, root swift test, IntegrationTests, gallery) are not checked yet. The flick target waits for the trace with the cache heights.
   timestamp: 2026-11-26T16:58:02.364763+00:00
+- actor: claude-code
+  id: 01m8dv6pfmyacm8k82xmbesvxv
+  text: |-
+    Probe result (2026-11-27): SwiftUI hit-tests hover responders for synthetic mouse moves in a window that is never ordered in, but only after the hosting view gets mouseEntered(with:). window.sendEvent(.mouseMoved) and hosting.mouseMoved(with:) alone gave 0 hit tests. With mouseEntered then 5 moves at rest: 10 path(in:) calls of the contentShape, 10 NSView hitTest calls, 5 active onContinuousHover callbacks. In a live motion: 0 of each. A draw of the row does not call path(in:), so the path count is the hit-test count.
+
+    Also: after the full disk, .build/out/ModuleCache.noindex had a cut-short SwiftShims .pcm ("file too small to contain precompiled file magic"). Delete that cache to build again.
+
+    ### implement — changed
+    - evidence: 8c7940af. Files: Tests/AgentViewKitTests/Thread/HoverResponderProbe.swift (new), Tests/AgentViewKitTests/Thread/StaticRowHost.swift (messageFooter slot, moveMouse(over:moves:)), Tests/AgentViewKitTests/Thread/TranscriptRowHitTestTests.swift (aLiveMotionHitTestsNoHoverResponderOfARow). RED: with .allowsHitTesting(!rowsMoveLive) taken out, the #expect of a zero count in the live motion failed, and the #require of a count above zero at rest passed. GREEN: 1 test passed. Root swift test, one run: 2001 tests in 242 suites and 59 tests in 12 suites passed, 0 issues. The only warnings come from the mlx-swift C++ headers (third-party).
+    - next: /review of 8c7940af.
+  timestamp: 2026-11-27T06:31:08.532688+00:00
 position_column: review
 position_ordinal: '8180'
 title: 'Scroll 3: static rows while the transcript moves, real rows at rest'
@@ -29,7 +40,8 @@ From spike ^fa3j934 (2026-11-26). This card gives most of the gain: in the spike
 - [x] The static form looks the same as the real row: the same fonts, colors, padding and chrome. A look difference while the list moves is acceptable only for syntax colors of code, if EK ^8zv7set is not ready.
 
 ## Acceptance Criteria
-- [x] The flick trace of the spike harness on the real ConversationView shows main-thread time at or below 2000 ms for the 15 s flick (V2 of the spike: 1927 ms).
+- [ ] The flick trace of the spike harness on the real ConversationView shows main-thread time at or below 2000 ms for the 15 s flick (V2 of the spike: 1927 ms).
+  - Not met (2026-11-26): main d57ae798 with EK c3c46d6a measured 4218 ms (3 rounds: 4119, 4431, 4103); EK 034fbd4e measured 4178 ms. Old main 366d9120 measured 6653 ms. The check on this item was wrong, so it is removed.
 - [x] No row changes its height when it changes from static to real.
 - [x] VoiceOver, text selection, the search marks and the jump targets work on a list at rest as before.
 
