@@ -1,6 +1,28 @@
 ---
 assignees:
 - claude-code
+comments:
+- actor: claude-code
+  id: 01m8fp720mzk2neraz8mdtwhvr
+  text: |-
+    Research (virtual4 worktree, after the merge of main 7b76664a as 2d4f56d6). An A/B probe in the unit host (MovingThread, 50 flick turns, 399 live steps of 40 pt, debug, scratch test, deleted) compared the virtual stack with the LazyVStack of main in the same build. Virtual: 0.20-0.21 s, LazyVStack: 0.13-0.14 s. The ratio is near the ratio of the release traces (5.8 s against 3.4 s).
+
+    Counts of the virtual stack in that flick: 76 stack bodies, each body computed the whole geometry (11,400 height reads, 17 ms debug); 64 bodies came only from a change of the rows in view, 20 from a first record of a row at the height that the stack already used (geometry did not change). 616 ForEach element builds.
+
+    What did not help: an Equatable wrapper around each element (no change), and the removal of the per-row onGeometryChange (no change). What the probe showed as the main cost: the overscan. With overscanScreens 0 the virtual stack is equal to the LazyVStack (0.15-0.16 s both). With 0.5 it is 0.20-0.27 s. Each mounted row costs SwiftUI work on each scroll step, the real rows from rest stay mounted in the overscan at the start of a flick (132 NSViews and 8 text views at step 50, against 55 and 3), and the rows come in batches of about 3 per body (largest step 12-18 ms debug against 4-5 ms).
+
+    Side discovery: during the first layout the stack mounts the rows at the top of the transcript one time (preview-0..13 get records), before the bottom anchor applies. Also the real height of some rows differs from the exact static height (for example 1057 against 1153 at the start of a live motion), so the geometry changes at the start of a flick.
+  timestamp: 2026-11-27T23:42:26.324175+00:00
+- actor: claude-code
+  id: 01m8fpng33mt31vkk1j44qnsct
+  text: |-
+    ### implement — changed
+    - evidence: worktree virtual4, branch worktree-agent-a5cf34a37aa5709be. Merge of main 2d4f56d6, fix b722bf9f. Root `swift test`: 2065 tests in 253 suites and 59 tests in 12 suites pass, 0 warnings in the changed files. IntegrationTests and ScreenshotTests were not run and not built (they use no changed symbol).
+    - causes and counts (unit host, 50 flick turns): (1) overscan of one screen: probe flick 0.20-0.27 s against 0.13-0.16 s of the LazyVStack; with no overscan, equal (TranscriptRowGeometryTests/theMountedRowsAreTheRowsInView). (2) the whole geometry in each body: 11,400 height reads in 399 steps, now 0 (TranscriptFlickWorkTests/aFlickReadsNoRowHeightWhenNoHeightChanges). (3) a body for each change of the rows in view: 21 window bodies for 12 rows made in 150 steps, now at most one for each row made (aFlickEvaluatesTheWindowOnlyToMountARow; 76 stack bodies became 11-33 window bodies in 399 steps). (4) a first record at the height in use bumped the revision (20 of 76 bodies), now no change (TranscriptElementHeightsTests/aFirstRecordAtTheHeightInUseIsNoChange). (5) the stack body read the pin state of the scroll anchors, so the first move from the bottom computed the geometry again; the body reads no scroll state now.
+    - not helped: an Equatable wrapper around each element; removal of the per-row onGeometryChange.
+    - open: in the debug unit host the virtual stack only equals the LazyVStack. A release trace must show whether it is faster. Each row that comes into view costs a little more in the virtual stack (about 2.8 ms against 2.4 ms in debug: window body, ForEach diff, a new placement of each mounted row).
+    - next: the parent runs the release flick trace and the hosted suites.
+  timestamp: 2026-11-27T23:50:19.491443+00:00
 depends_on:
 - 01M8C4Z702KVEKGM5TY9H7BM9J
 position_column: todo
