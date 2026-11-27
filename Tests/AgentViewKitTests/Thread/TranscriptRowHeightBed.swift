@@ -81,6 +81,10 @@ nonisolated struct MountedTextMeasure: TranscriptTextMeasure {
   /// criteria of card ^9h7bm9j.
   nonisolated static let widths = [narrowWidth, regularWidth, wideWidth]
 
+  /// The width of a thread before a resize to each width of ``widths``, in
+  /// points. It is not one of ``widths``, so each resize changes the width.
+  nonisolated static let widthBeforeResize: CGFloat = 600
+
   /// The largest difference between the cached and the mounted height.
   static let tolerance: CGFloat = 0.5
 
@@ -214,10 +218,12 @@ nonisolated struct MountedTextMeasure: TranscriptTextMeasure {
   ///     the mounted text views (``MountedTextMeasure``), which check the
   ///     chrome alone.
   ///   - tolerance: The largest difference between the two heights.
+  ///   - widthBefore: The width that the cache computes the row at before
+  ///     `width`, as after a resize of the thread, or `nil` for no resize.
   ///   - sourceLocation: The location of the caller.
   static func expectCachedHeightMatchesTheMountedRow(
     _ entry: TranscriptEntry, width: CGFloat, expanded: Bool = false, measure: (any TranscriptTextMeasure)? = nil,
-    tolerance: CGFloat = tolerance, sourceLocation: SourceLocation = #_sourceLocation
+    tolerance: CGFloat = tolerance, widthBefore: CGFloat? = nil, sourceLocation: SourceLocation = #_sourceLocation
   ) async throws {
     let store = ExpandedBlocksStore { _ in expanded }
     let mounted = try await mount(entry, width: width, store: store)
@@ -228,6 +234,9 @@ nonisolated struct MountedTextMeasure: TranscriptTextMeasure {
     let mountedMeasure = MountedTextMeasure(
       heights: Dictionary(zip(parts, mounted.textHeights)) { first, _ in first })
     let heights = TranscriptRowHeights(measure: measure ?? mountedMeasure, metrics: metrics, expandedBlocks: store)
+    if let widthBefore {
+      _ = try await cachedHeight(of: entry, in: heights, width: widthBefore, sourceLocation: sourceLocation)
+    }
     let cached = try await cachedHeight(of: entry, in: heights, width: width, sourceLocation: sourceLocation)
     #expect(
       abs(cached - mounted.height) <= tolerance, "cached \(cached), mounted \(mounted.height)",

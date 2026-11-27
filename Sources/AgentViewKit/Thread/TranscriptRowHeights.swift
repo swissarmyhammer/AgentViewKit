@@ -17,7 +17,10 @@ import Observation
 ///   last row streams, only it is copied and computed again.
 /// - A worker actor computes the heights with the chrome rules
 ///   (``TranscriptRowChrome``) and the text measure, off the main thread. A
-///   version that the worker knows is not computed again.
+///   version that the worker knows is not computed again. The worker
+///   prepares each text part one time (``TranscriptTextMeasure/prepared(_:)``),
+///   so a new width measures the prepared parts again at a small part of the
+///   cost of a first measure.
 /// - The cache publishes the heights to the main actor, as observable
 ///   values. After a width change, it computes each row again, the rows in
 ///   view first, and publishes the rows in view before the other rows.
@@ -133,6 +136,14 @@ import Observation
   ///   rule covers the row.
   public func height(of rowKey: String) -> CGFloat? {
     heights[rowKey]
+  }
+
+  /// The count of text parts that the worker prepared for a measure: the
+  /// work of a text part that does not depend on the width.
+  ///
+  /// - Returns: The count of prepares since the cache was made.
+  func prepareCount() async -> Int {
+    await worker.prepareCount
   }
 
   /// Copies the data of an entry, and observes the values that the copy
@@ -317,14 +328,41 @@ actor TranscriptRowHeightWorker {
   /// The kept heights of each row, by row key, the newest last.
   private var kept: [String: [Kept]] = [:]
 
+  /// The prepared text parts of each row (``TranscriptTextMeasure/prepared(_:)``),
+  /// by row key: the parts of the last measure of the row. A measure of the
+  /// row at a new width measures them again, with no new prepare.
+  private var preparedParts: [String: [TranscriptTextPart: any PreparedTranscriptTextPart]] = [:]
+
+  /// The row keys of ``preparedParts``, the newest measure last. The worker
+  /// keeps the prepared parts of only the newest ``preparedRowLimit`` rows,
+  /// as it keeps only the newest ``widthLimit`` widths of a row.
+  private var preparedRows: [String] = []
+
+  /// The default of the most rows whose prepared parts the worker keeps.
+  /// The prepared parts of a row keep the shaped lines of its last width:
+  /// about 100 KiB for a message of 4 KB.
+  static let defaultPreparedRowLimit = 256
+
+  /// The most rows whose prepared parts the worker keeps.
+  private let preparedRowLimit: Int
+
+  /// The count of text parts that the worker prepared for a measure.
+  private(set) var prepareCount = 0
+
   /// Makes a worker.
   ///
   /// - Parameters:
   ///   - measure: The text measure.
   ///   - metrics: The theme metrics.
-  init(measure: any TranscriptTextMeasure, metrics: TranscriptRowMetrics) {
+  ///   - preparedRowLimit: The most rows whose prepared parts the worker
+  ///     keeps.
+  init(
+    measure: any TranscriptTextMeasure, metrics: TranscriptRowMetrics,
+    preparedRowLimit: Int = defaultPreparedRowLimit
+  ) {
     self.measure = measure
     self.metrics = metrics
+    self.preparedRowLimit = preparedRowLimit
   }
 
   /// The heights of rows at a width. A version that the worker keeps is not
@@ -359,17 +397,67 @@ actor TranscriptRowHeightWorker {
     if let hit = versions.first(where: { $0.width == width && $0.digest == digest }) {
       return hit.measured
     }
-    let measure = measure
     var isExact = true
-    let height = TranscriptRowChrome.height(of: content, width: width, metrics: metrics) { part, partWidth in
-      let measurement = measure.measurement(of: part, width: partWidth)
-      isExact = isExact && measurement.isExact
-      return measurement.height
+    let height = withPreparedParts(of: key) { measurement in
+      TranscriptRowChrome.height(of: content, width: width, metrics: metrics) { part, partWidth in
+        let measured = measurement(part, partWidth)
+        isExact = isExact && measured.isExact
+        return measured.height
+      }
     }
     let measured = Measured(height: height, isExact: isExact)
     versions.removeAll { $0.width == width }
     versions.append(Kept(width: width, digest: digest, measured: measured))
     kept[key] = Array(versions.suffix(Self.widthLimit))
     return measured
+  }
+
+  /// Runs a measure of one row with the prepared parts of the row.
+  ///
+  /// The measure of a part takes its prepared value from the last measure
+  /// of the row, or prepares the part. After the measure, the row keeps the
+  /// prepared parts that the measure used, and the worker drops the
+  /// prepared parts of the oldest row past ``preparedRowLimit``.
+  ///
+  /// - Parameters:
+  ///   - key: The row key.
+  ///   - body: The measure of the row. It gets the measurement of a part at
+  ///     a width.
+  /// - Returns: The result of `body`.
+  private func withPreparedParts<Value>(
+    of key: String, _ body: ((TranscriptTextPart, CGFloat) -> TranscriptTextMeasurement) -> Value
+  ) -> Value {
+    let measure = measure
+    var last = preparedParts.removeValue(forKey: key) ?? [:]
+    var used: [TranscriptTextPart: any PreparedTranscriptTextPart] = [:]
+    var prepares = 0
+    let result = body { part, width in
+      var prepared = used.removeValue(forKey: part) ?? last.removeValue(forKey: part) ?? {
+        prepares += 1
+        return measure.prepared(part)
+      }()
+      let measured = prepared.measurement(width: width)
+      used[part] = prepared
+      return measured
+    }
+    prepareCount += prepares
+    keep(used, for: key)
+    return result
+  }
+
+  /// Keeps the prepared parts of a row as the newest, and drops the
+  /// prepared parts of the oldest rows past ``preparedRowLimit``.
+  ///
+  /// - Parameters:
+  ///   - parts: The prepared parts of the row.
+  ///   - key: The row key.
+  private func keep(_ parts: [TranscriptTextPart: any PreparedTranscriptTextPart], for key: String) {
+    preparedRows.removeAll { $0 == key }
+    preparedRows.append(key)
+    preparedParts[key] = parts
+    for dropped in preparedRows.dropLast(preparedRowLimit) {
+      preparedParts[dropped] = nil
+    }
+    preparedRows = Array(preparedRows.suffix(preparedRowLimit))
   }
 }
