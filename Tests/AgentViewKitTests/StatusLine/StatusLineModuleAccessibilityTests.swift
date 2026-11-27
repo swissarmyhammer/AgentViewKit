@@ -2,8 +2,6 @@ import AgentViewKitTestSupport
 import AppKit
 import EditorStyle
 import EditorTestSupport
-import FoundationModelsACP
-import FoundationModelsACPClient
 import SwiftUI
 import Testing
 
@@ -60,11 +58,7 @@ import Testing
 
   /// The header of a root session with the working folder of the fixtures.
   static var header: some View {
-    ThreadStatusHeader(
-      session: .preview(cwd: AbsolutePath(rawValue: StatusLineModuleFixtures.cwd)), connection: .preview(),
-      sessionTitle: StatusLineModuleFixtures.sessionTitle, contextMenuPath: nil, select: { _ in }
-    )
-    .statusLineHomeFolder(StatusLineModuleFixtures.homeFolderURL)
+    StatusLineModuleFixtures.header()
   }
 
   /// A production change that fails this test: the line of a root session

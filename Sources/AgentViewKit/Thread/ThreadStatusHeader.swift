@@ -14,7 +14,11 @@ import SwiftUI
 /// frame of the glass, inset included (^y43c2hw), so that a UI test can find
 /// a point of the glass that is not on a module. The view
 /// stands in the `FloatingGlassContainer` of the thread view.
-struct ThreadStatusHeader: View {
+///
+/// The type has `package` access, so that the test support target builds
+/// the header of the tests (`StatusLineModuleFixtures.header`). A host of
+/// the kit does not see it.
+package struct ThreadStatusHeader: View {
   /// The accessibility identifier of the glass of the header.
   static let identifier = "agent-status-header"
 
@@ -38,7 +42,28 @@ struct ThreadStatusHeader: View {
 
   @Environment(\.editorStyle) private var editorStyle
 
-  var body: some View {
+  /// Makes the header of a thread.
+  ///
+  /// - Parameters:
+  ///   - session: The session of the thread.
+  ///   - connection: The connection of the thread.
+  ///   - sessionTitle: The title of the session that the host gives, or
+  ///     `nil` for the title of the session model.
+  ///   - contextMenuPath: The path of a host scope whose context menu the
+  ///     header shows, or `nil` for no context menu.
+  ///   - select: Shows a session of the crumbs.
+  package init(
+    session: SessionModel, connection: ConnectionModel, sessionTitle: String?, contextMenuPath: FocusPath?,
+    select: @escaping (SessionId) -> Void
+  ) {
+    self.session = session
+    self.connection = connection
+    self.sessionTitle = sessionTitle
+    self.contextMenuPath = contextMenuPath
+    self.select = select
+  }
+
+  package var body: some View {
     StatusLineView(
       session: session, connection: connection, sessionTitle: sessionTitle, select: select
     )
