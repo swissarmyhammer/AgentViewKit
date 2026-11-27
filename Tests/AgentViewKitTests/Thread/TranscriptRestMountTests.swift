@@ -16,9 +16,11 @@ import Testing
 /// Then the rows move: the list moves up by ``jumpDistance``, and then by
 /// ``lastStepDistance`` in the last step of the motion, so rows come into
 /// the list also in that last step. Each row in view comes into the list in
-/// the motion and shows its static form. Then the motion ends, and the list
-/// lays out with no frame of the queue. No editor of a row that was static
-/// in the motion becomes real before the first frame of the queue.
+/// the motion and shows its static form. Then the motion ends, the rows
+/// come to rest in the next frame (``TranscriptMotionState``), and the
+/// list lays out with no other frame of the queue. No editor of a row that
+/// was static in the motion becomes real before the first mount of the
+/// queue.
 ///
 /// The test counts only the editors in view
 /// (``MovingThread/textViewsInView``). The rows that the lazy stack keeps
@@ -47,10 +49,11 @@ import Testing
   let frames = ManualFrames()
 
   /// Shows the list with the height cache at the bottom, moves the rows,
-  /// brings new rows into the list in the last step of the motion, and
-  /// then ends the motion.
+  /// brings new rows into the list in the last step of the motion, ends
+  /// the motion, and gives the frame in which the rows come to rest.
   ///
-  /// - Returns: The list at rest with no frame of the queue.
+  /// - Returns: The list at rest with no frame of the rest count of the
+  ///   queue.
   func restAfterAMotion() async throws -> MovingThread {
     let thread = try await MovingThread.makeCached(
       session: .preview(transcript: AnswerText.transcript(count: Self.answerCount, in: Self.textName)), frames: frames)
@@ -60,6 +63,8 @@ import Testing
     thread.step(by: Self.lastStepDistance, isLive: true)
     try #require(thread.textViewsInView.isEmpty, "a row in view is real in the motion")
     thread.stopMoving()
+    frames.advance()
+    thread.settle()
     try #require(frames.isRunning, "no row waits in the queue at rest")
     return thread
   }

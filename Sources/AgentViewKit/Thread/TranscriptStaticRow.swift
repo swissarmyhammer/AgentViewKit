@@ -15,6 +15,15 @@ import os
 /// the work does not stop when the list moves: the row that holds the
 /// keyboard focus, the row under the mouse, the row that holds the text
 /// selection of the thread, and the row of the entry that streams.
+///
+/// The mouse keeps only a row that does not wait in the
+/// ``TranscriptRowMountQueue`` (``keepsRealRow(waitsToMount:)``). At the
+/// end of a live motion, the rows take the hit test again, and SwiftUI
+/// tells the row under a still mouse that the mouse is on it. That row
+/// then waits for its turns in the queue, as each other row of the motion
+/// does, so it does not make each of its editors real in that frame. A
+/// press of the mouse on the static text of a waiting row makes the row
+/// real at once (``StaticEditorSlot``).
 struct TranscriptRowHolds: Equatable {
   /// Whether the row was shown at rest, in its real form, before the rows
   /// started to move.
@@ -47,9 +56,14 @@ struct TranscriptRowHolds: Equatable {
     return focusedPath.segments.contains(segment)
   }
 
-  /// Whether one of the holds keeps the row real.
-  var keepsRealRow: Bool {
-    wasRealAtRest || hasFocus || isHovered || hasSelection || streams
+  /// Tells if one of the holds keeps the row real.
+  ///
+  /// - Parameter waitsToMount: Whether the row waits for its turn in the
+  ///   ``TranscriptRowMountQueue`` (``TranscriptRowMount/waits``). The
+  ///   mouse does not keep a waiting row real.
+  /// - Returns: `true` when a hold keeps the row real.
+  func keepsRealRow(waitsToMount: Bool) -> Bool {
+    wasRealAtRest || hasFocus || (isHovered && !waitsToMount) || hasSelection || streams
   }
 }
 
@@ -60,7 +74,9 @@ enum TranscriptRowForm {
   /// A row is static only while the rows move or while the row waits for
   /// its turn in the ``TranscriptRowMountQueue`` (card ^7625j1b), while
   /// nothing holds it real (a row that was real at rest before the motion
-  /// holds itself), and while the height provider knows its height. A row
+  /// holds itself, and the mouse does not hold a waiting row:
+  /// ``TranscriptRowHolds/keepsRealRow(waitsToMount:)``), and while the
+  /// height provider knows its height. A row
   /// with no known height shows its real form, so the change of form never
   /// moves it.
   ///
@@ -74,7 +90,7 @@ enum TranscriptRowForm {
   ///     row.
   /// - Returns: `true` when the row shows its static form.
   static func isStatic(rowsMove: Bool, waitsToMount: Bool, holds: TranscriptRowHolds, knowsHeight: Bool) -> Bool {
-    (rowsMove || waitsToMount) && !holds.keepsRealRow && knowsHeight
+    (rowsMove || waitsToMount) && !holds.keepsRealRow(waitsToMount: waitsToMount) && knowsHeight
   }
 
   /// Tells the form of the EditorKit text areas of a row

@@ -184,6 +184,10 @@ import SwiftUI
 /// row at once
 /// (``mountAll()``), and each row that comes into the queue while the
 /// session is open (``endMountAll()``).
+///
+/// The frames of the queue also give the one frame of the end of a live
+/// motion (``afterNextFrame(_:)``, ``TranscriptMotionState``), so a thread
+/// has one display link.
 @MainActor final class TranscriptRowMountQueue {
   /// The largest number of editor slots that the queue makes real in one
   /// frame. One EditorKit editor takes about one frame of the main thread
@@ -223,6 +227,9 @@ import SwiftUI
   /// so a row that waits after a motion of the kit, or in a thread that
   /// just opened, takes its turn in the next frame.
   private var restFramesLeft = 0
+
+  /// The work of the next frame (``afterNextFrame(_:)``), or `nil`.
+  private var nextFrameAction: (@MainActor () -> Void)?
 
   /// Makes an empty queue.
   ///
@@ -281,7 +288,7 @@ import SwiftUI
       row.setWaits(false)
     }
     waiting.removeAll()
-    frames.stop()
+    stopFrames()
   }
 
   /// Ends ``mountAll()``: a row that comes into the queue after it waits
@@ -300,7 +307,7 @@ import SwiftUI
   func noteRowsMove(_ rowsMove: Bool) {
     isResting = !rowsMove
     if rowsMove {
-      frames.stop()
+      stopFrames()
     } else {
       startFramesAtRest()
     }
@@ -319,23 +326,55 @@ import SwiftUI
     restFramesLeft = Self.restFramesBeforeMount
   }
 
+  /// Runs `action` in the next frame of ``frames``, before the other work of
+  /// that frame, also while the rows move. A second call before that frame
+  /// replaces the action.
+  ///
+  /// - Parameter action: The work of the next frame.
+  func afterNextFrame(_ action: @escaping @MainActor () -> Void) {
+    nextFrameAction = action
+    startFrames()
+  }
+
+  /// Starts the frames.
+  private func startFrames() {
+    frames.start { [weak self] in self?.stepFrame() }
+  }
+
   /// Starts the frames, when the rows are at rest, and a row waits or the
   /// rest count goes on.
   private func startFramesAtRest() {
     guard isResting, !waiting.isEmpty || restFramesLeft > 0 else { return }
-    frames.start { [weak self] in self?.stepFrame() }
+    startFrames()
   }
 
-  /// Stops the frames, when no row waits and the rest count is at its end.
+  /// Stops the frames, when no row waits and the rest count is at its end,
+  /// or when the rows move.
   private func stopFramesWhenEmpty() {
-    guard waiting.isEmpty, restFramesLeft == 0 else { return }
+    guard !isResting || (waiting.isEmpty && restFramesLeft == 0) else { return }
+    stopFrames()
+  }
+
+  /// Stops the frames, unless the work of the next frame waits
+  /// (``afterNextFrame(_:)``).
+  private func stopFrames() {
+    guard nextFrameAction == nil else { return }
     frames.stop()
   }
 
-  /// The step of one frame at rest: counts one frame of the rest count,
-  /// and makes the next slots real when the count is at its end
+  /// The step of one frame: runs the work of the frame
+  /// (``afterNextFrame(_:)``), then, at rest, counts one frame of the rest
+  /// count, and makes the next slots real when the count is at its end
   /// (``mountNextSlots()``). The frames stop when no work stays.
   private func stepFrame() {
+    if let action = nextFrameAction {
+      nextFrameAction = nil
+      action()
+    }
+    guard isResting else {
+      stopFramesWhenEmpty()
+      return
+    }
     if restFramesLeft > 0 {
       restFramesLeft -= 1
     }

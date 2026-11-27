@@ -16,7 +16,11 @@ import SwiftUI
 /// own turn, and its editor after, while the row keeps the frame of its
 /// static form (card ^7625j1b). While it shows its still view, the slot
 /// gives the queue its top in the row, so the slots of a row become real
-/// from top to bottom.
+/// from top to bottom. A press of the mouse on the still view of a slot in a
+/// row that waits at rest makes the row real at once: the turn of the row
+/// leaves the queue (``TranscriptRowMountQueue/release(_:)``), so a click
+/// does not stay on the static form until the turn of the row. In each other
+/// form, the still view has no such gesture.
 /// A slot whose editor was never laid out, such as the slot of a row that
 /// shows its static form from its first frame, shows the still view at the
 /// height of its text. The row then has the exact height of the height
@@ -58,6 +62,7 @@ struct StaticEditorSlot<Editor: View, Still: View>: View {
 
   @Environment(\.transcriptSlotForm) private var form
   @Environment(\.transcriptRowMount) private var rowMount
+  @Environment(\.transcriptRowMounts) private var mounts
 
   /// The height of the editor at its last layout.
   @State private var laidOutHeight = LaidOutHeight()
@@ -93,6 +98,14 @@ struct StaticEditorSlot<Editor: View, Still: View>: View {
       .onDisappear { rowMount?.remove(mount) }
   }
 
+  /// Records a press of the mouse on the still view of the slot in a row
+  /// that waits at rest: the turn of the row leaves the queue, so each slot
+  /// of the row shows its editor at once.
+  private func notePress() {
+    guard let rowMount, rowMount.waits else { return }
+    mounts?.release(rowMount)
+  }
+
   /// The still view or the editor, as the form of the row and the turn of
   /// the slot tell. A slot that keeps its editor shows the editor.
   @ViewBuilder private var slotForm: some View {
@@ -101,6 +114,8 @@ struct StaticEditorSlot<Editor: View, Still: View>: View {
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .frame(height: laidOutHeight.points, alignment: .top)
         .clipped()
+        .simultaneousGesture(
+          DragGesture(minimumDistance: 0).onChanged { _ in notePress() }, including: form == .inTurn ? .all : .none)
         .background {
           if rowMount != nil {
             let mount = mount
