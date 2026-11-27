@@ -17,8 +17,10 @@ import SwiftUI
 ///   text (`Measurement.unmeasured` is empty). The measure gives EditorKit
 ///   the natural size of each image file of the image folder that the text
 ///   shows (``TranscriptImageSizes``), so an image of the folder is
-///   measured. Math, and an image that is not a file of the folder, take
-///   their height from a view, so a text with one of them is not exact.
+///   measured. EditorKit typesets inline and block math off the main actor
+///   (EditorKit ^tg1hnz7), so math is measured when the iosMath typesetter
+///   is available. An image that is not a file of the folder takes its
+///   height from a view, so a text with one is not exact.
 /// - Code with a line number gutter (`CodeBlockView`): EditorKit's measure
 ///   of code (`EditorLayoutMeasure.measure(code:width:style:grammar:gutter:)`)
 ///   in the code font role, with the grammar of the block

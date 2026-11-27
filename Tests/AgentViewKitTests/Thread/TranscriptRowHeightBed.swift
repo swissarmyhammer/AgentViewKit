@@ -114,28 +114,57 @@ nonisolated struct MountedTextMeasure: TranscriptTextMeasure {
   /// Mounts the row of `entry` at `width`, and reads its layout.
   ///
   /// An EditorKit view reports its height on the next pass of the main run
-  /// loop, so the bed lays out the row, waits for the blocks of the run loop
-  /// that the layout added, and lays out the row again.
+  /// loop, so the bed lays out the row, waits for the first parse of the
+  /// Markdown of the row (``awaitParseOfTheResponse(of:in:)``), waits for
+  /// the blocks of the run loop that the layout added, and lays out the row
+  /// again.
   ///
   /// - Parameters:
   ///   - entry: The entry of the row.
   ///   - width: The width of the row.
   ///   - store: The store that tells whether a block is expanded.
   /// - Returns: The layout of the row.
-  static func mount(_ entry: TranscriptEntry, width: CGFloat, store: ExpandedBlocksStore) async -> MountedRow {
+  /// - Throws: An issue when the response model of the row has no syntax.
+  static func mount(_ entry: TranscriptEntry, width: CGFloat, store: ExpandedBlocksStore) async throws -> MountedRow {
+    let models = CodeBlockModelCache(limit: CodeBlockModelCache.threadLimit)
     let (hosting, window) = UnorderedWindow.mount(
       ItemRow(entry: entry)
         .frame(width: width)
-        .environment(\.expandedBlocksStore, store),
+        .environment(\.expandedBlocksStore, store)
+        .environment(\.codeBlockModelCache, models),
       size: CGSize(width: width, height: windowHeight))
     defer { UnorderedWindow.close(window) }
     StyleViewHost.layOut(hosting)
+    try await awaitParseOfTheResponse(of: entry, in: models)
     await RunLoopBlockFence.afterPendingBlocks()
     StyleViewHost.layOut(hosting)
     let frames = textViewFrames(in: hosting).sorted { lhs, rhs in
       lhs.minY == rhs.minY ? lhs.minX < rhs.minX : lhs.minY < rhs.minY
     }
     return MountedRow(height: hosting.frame.height, textHeights: frames.map(\.height))
+  }
+
+  /// Waits until the first parse of the Markdown of the first block of
+  /// `entry` lands, when the row shows that block in one response model.
+  ///
+  /// The parse runs off the main thread, and no block of the main run loop
+  /// waits for it. Before it lands, the view shows the text with no inline
+  /// styles, such as inline code and math.
+  ///
+  /// - Parameters:
+  ///   - entry: The entry of the row.
+  ///   - models: The cache of the EditorKit models of the row.
+  /// - Throws: An issue when the response model has no syntax.
+  private static func awaitParseOfTheResponse(
+    of entry: TranscriptEntry, in models: CodeBlockModelCache
+  ) async throws {
+    let id = EntryContentView.blockID(entryID: entry.rowKey, index: 0)
+    guard models.contains(ResponseView.modelID(for: id)) else { return }
+    // The cache holds the model of the view, so the text of a new model has
+    // no effect.
+    let model = ResponseView.model(in: models, id: id, markdown: "")
+    let syntax = try #require(model.syntax)
+    _ = await syntax.ensureParsed(upTo: model.state.version)
   }
 
   /// The frames of the outermost EditorKit text views under `root`.
@@ -191,7 +220,7 @@ nonisolated struct MountedTextMeasure: TranscriptTextMeasure {
     tolerance: CGFloat = tolerance, sourceLocation: SourceLocation = #_sourceLocation
   ) async throws {
     let store = ExpandedBlocksStore { _ in expanded }
-    let mounted = await mount(entry, width: width, store: store)
+    let mounted = try await mount(entry, width: width, store: store)
     let metrics = TranscriptRowMetrics.probe()
     let content = TranscriptRowContent(entry: entry, isExpanded: expanded)
     let parts = parts(of: content, width: width, metrics: metrics)
