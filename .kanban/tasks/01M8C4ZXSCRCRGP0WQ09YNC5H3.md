@@ -156,6 +156,20 @@ comments:
     - evidence: 290de3dd. Files: Sources/AgentViewKit/Thread/ConversationView.swift, Tests/AgentViewKitTests/Thread/TranscriptFlickWorkTests.swift (new), ARCHITECTURE.md. RED: aFlickEvaluatesNoListOfTheRows failed (11 list bodies). GREEN: 1/1. Thread suites: 479 tests in 60 suites passed. Root swift test one run: 2030 tests in 249 suites + 59 tests in 12 suites passed. IntegrationTests and ScreenshotTests swift build --build-tests complete, not run.
     - next: flick trace (parent); /review of 290de3dd.
   timestamp: 2026-11-27T21:43:45.199975+00:00
+- actor: claude-code
+  id: 01m8fjnbshyhv6ejwkafgvyvs8
+  text: |-
+    Livelock of 290de3dd (worktree agent-a1bfece229f6470fe).
+    - Hung tests (on 290de3dd, each alone, killed by the guard): TranscriptSearchStepHostedTests.findNextHitRunsInAMountedThreadWithHits and SessionTranscriptViewHostedTests.aUserMessageAThoughtAndAnAgentMessageShowThreeRowsInOrder. These suites passed on 290de3dd: ConversationViewHostedTests, ThreadModelCacheHostedTests, ThreadBarBannerOverlapHostedTests, ThreadFloatingControlsHostedTests, ThreadBarControlJumpHostedTests, ThreadMinimapViewHostedTests, ConversationPillMountHostedTests, JumpLabelOverlapHostedTests.
+    - Cause: the scroll view writes the position back through the @Bindable binding while it applies a request, inside the SwiftUI update. The write told an observation change, which evaluated ConversationScrollPositionBinding again in the same update, and that gave a new request. A @State (before 290de3dd) does not evaluate its readers in the update that writes it.
+    - What did not work: an equal-value guard alone. Swift 6.4 @Observable already skips a write of an equal Equatable value (a test of that passed on 290de3dd). Each request of ScrollPosition has a new `seed`, so the values are not equal.
+    - Headless probes (borderless window that is never ordered in, ConversationView and AgentThreadView, scrolls to items and to the bottom) showed no loop: SwiftUI does not run its scroll requests there. So the RED test is at the model level.
+    - Fix: manual storage in ConversationScrollPosition. A write of the list to `value` tells a change only for a different position. `binding` (the binding of the scroll view) reads `value` for the observation, and its setter keeps the position with no change.
+
+    ### implement — changed
+    - evidence: b93507db. Files: Sources/AgentViewKit/Thread/ConversationView.swift, Tests/AgentViewKitTests/Thread/ConversationScrollPositionModelTests.swift (new), ARCHITECTURE.md. RED: aWriteOfTheScrollViewTellsNoChange failed on the seam (`binding` = Bindable(self).value, the 290de3dd behavior). GREEN: 4/4. The two hung tests pass on the fix (their suites: 2/2 and 9/9). Root swift test one run: 2034 tests in 250 suites + 59 tests in 12 suites passed, no own warnings. IntegrationTests full run one time: 1100 tests in 164 suites passed, exit 0 (5 known issues, all in FontRoleExpectationsTests, which checks on purpose that its checks fail).
+    - next: /review of b93507db; merge by the parent.
+  timestamp: 2026-11-27T22:40:20.785028+00:00
 position_column: doing
 position_ordinal: '80'
 title: 'Scroll 3: static rows while the transcript moves, real rows at rest'
