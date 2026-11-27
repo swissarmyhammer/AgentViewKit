@@ -24,7 +24,12 @@ import SwiftUI
 /// `EditorLayoutMeasure` (``EditorLayoutTranscriptTextMeasure``), so the
 /// cache gives the height of each row whose text parts EditorKit measures
 /// exactly.
-@MainActor final class TranscriptStaticRowHeights: TranscriptRowHeightProvider {
+///
+/// The heights are also the source of the row heights of the virtual stack
+/// of the thread (``TranscriptRowHeightSource``). Only the cache is
+/// observable, so the stack computes its geometry again when the thread
+/// gets a cache.
+@MainActor @Observable final class TranscriptStaticRowHeights: TranscriptRowHeightProvider {
   /// The record of the size of each real row.
   let measured = TranscriptMeasuredRowHeights()
 
@@ -32,21 +37,21 @@ import SwiftUI
   private(set) var cache: TranscriptRowHeights?
 
   /// The session whose transcript feeds the cache.
-  private weak var session: SessionModel?
+  @ObservationIgnored private weak var session: SessionModel?
 
   /// The width of the rows, or zero before the first layout.
-  private var width: CGFloat = .zero
+  @ObservationIgnored private var width: CGFloat = .zero
 
   /// The positions of the rows in view. The cache computes them first after
   /// a width change.
-  private var rowsInView: Range<Int> = .zero ..< .zero
+  @ObservationIgnored private var rowsInView: Range<Int> = .zero ..< .zero
 
   /// Whether a change of the transcript of the session feeds the cache.
-  private var tracksTranscript = false
+  @ObservationIgnored private var tracksTranscript = false
 
   /// The count of calls to ``attach(cache:session:)``. A change callback of
   /// an older session or cache does nothing.
-  private var generation = 0
+  @ObservationIgnored private var generation = 0
 
   /// Makes the heights with no cache: each static row takes the height of
   /// the last layout of its real row.
@@ -237,5 +242,28 @@ extension EnvironmentValues {
   var transcriptRowsHaveDefaultLook: Bool {
     !hasItemViewOverride && contentBlockRegistry.keys.isEmpty && toolCallRegistry.keys.isEmpty
       && !showsTranscriptTiming
+  }
+}
+
+/// The heights of the static rows are the source of the row heights of the
+/// virtual stack of a thread (``TranscriptRowStack``, card ^kr7cx7b).
+extension TranscriptStaticRowHeights: TranscriptRowHeightSource {
+  /// The exact height of the cache.
+  ///
+  /// The read first reads the published height of the row, which is
+  /// observable, so a body that reads the exact height is evaluated again
+  /// when the cache publishes a height. The exact heights themselves are not
+  /// observable.
+  func exactHeight(of id: TranscriptEntry.ID, width: CGFloat) -> CGFloat? {
+    guard let cache, cache.height(of: id.rowKey) != nil else { return nil }
+    return cache.height(of: id, width: width)
+  }
+
+  func lastRowHeight(of id: TranscriptEntry.ID, width: CGFloat) -> CGFloat? {
+    measured.height(of: id, width: width)
+  }
+
+  func estimatedHeight(of id: TranscriptEntry.ID) -> CGFloat? {
+    cache?.height(of: id.rowKey)
   }
 }

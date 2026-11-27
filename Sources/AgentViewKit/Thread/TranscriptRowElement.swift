@@ -29,8 +29,8 @@ struct TranscriptRowSlot: Identifiable {
 /// row of an entry, and the modelChanged status lines after it
 /// (task ^c4sg6gz).
 ///
-/// The element is one view, so the lazy stack of the list measures one view
-/// for each element.
+/// The element is one view, so the virtual stack of the list
+/// (``TranscriptRowStack``) places and measures one view for each element.
 ///
 /// The row gives its position in the transcript and its coordinate space to
 /// the file views in it, which place their files in the
@@ -77,7 +77,7 @@ struct TranscriptRowSlot: Identifiable {
 /// rest or in a motion for a different cause, such as a hold, leaves the
 /// queue at once,
 /// and each of its text areas shows its editor.
-struct TranscriptRowElement: View {
+struct TranscriptRowElement: View, Equatable {
   /// The entry of the row, and its position.
   let slot: TranscriptRowSlot
 
@@ -183,6 +183,26 @@ struct TranscriptRowElement: View {
     .onChange(of: formChange, initial: true) { _, change in
       noteForm(change)
     }
+  }
+
+  /// Tells whether two elements show the same row: the same entry object at
+  /// the same position, the same last state, and the same status lines.
+  ///
+  /// The virtual stack of the list evaluates its body each time that the
+  /// rows in view change (``TranscriptRowStack``). With this equality, an
+  /// element that stays in the stack does not evaluate its body again then
+  /// (card ^kr7cx7b). The motion of the rows when the list makes the element
+  /// sets only the first turn of the element, so it is not part of the
+  /// equality.
+  ///
+  /// - Parameters:
+  ///   - lhs: An element.
+  ///   - rhs: An element.
+  /// - Returns: `true` when the two elements show the same row.
+  static func == (lhs: TranscriptRowElement, rhs: TranscriptRowElement) -> Bool {
+    lhs.slot.position == rhs.slot.position && lhs.slot.id == rhs.slot.id
+      && ObjectIdentifier(lhs.slot.entry.object) == ObjectIdentifier(rhs.slot.entry.object)
+      && lhs.isLast == rhs.isLast && lhs.lines == rhs.lines
   }
 
   /// Records that the row comes into view. A static row in a live motion,

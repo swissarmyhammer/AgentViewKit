@@ -9,8 +9,8 @@ import SwiftUI
 /// The view of the transcript of a `SessionModel` (plan.md §3.2, §3.6,
 /// §3.8, §8, §9 A).
 ///
-/// The view shows the transcript in a ``ConversationView``, in a lazy stack
-/// that follows the bottom. The conversation keys each row on
+/// The view shows the transcript in a ``ConversationView``, in a virtual
+/// stack that follows the bottom. The conversation keys each row on
 /// `TranscriptEntry.id`, and each item view reads its own entry object, so a
 /// streamed chunk draws only the row of its entry.
 ///

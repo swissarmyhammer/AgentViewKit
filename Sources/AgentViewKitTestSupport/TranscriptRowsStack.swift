@@ -5,7 +5,8 @@ import SwiftUI
 /// The rows of a transcript, as ``ConversationView`` shows them, in a stack
 /// that keeps each row.
 ///
-/// A lazy stack evaluates only the rows near the view, so a test that counts
+/// The virtual stack of ``ConversationView`` evaluates only the rows near
+/// the view, so a test that counts
 /// the rows or their editors uses a `VStack`. Each row gets the environment
 /// that ``ConversationView`` gives it: its position, its liveness, the live
 /// rows, the session and one text selection. The unit tests and the

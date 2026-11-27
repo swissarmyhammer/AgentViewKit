@@ -5,7 +5,7 @@ import SwiftUI
 ///
 /// The layout of `.safeAreaBar` asks its content for its minimum size on
 /// each layout. When the content is a scroll view, that query measures the
-/// lazy stack of the scroll view and the rows in it, on each frame of a
+/// stack of the scroll view and the rows in it, on each frame of a
 /// scroll. Put the content of a bar in this layout: the bar then gets the
 /// size of the proposal and does not measure the content. The content
 /// fills the space that the layout gets, so a flexible content, such as a

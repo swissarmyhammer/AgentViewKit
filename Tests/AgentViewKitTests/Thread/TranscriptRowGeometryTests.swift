@@ -127,6 +127,39 @@ import Testing
     #expect(Set([8, 9]).isSubset(of: rows))
   }
 
+  /// A production change that fails this test: a mounted row at the edge of
+  /// the screen above the view leaves the stack when a height correction
+  /// moves that edge, and it mounts again in the next pass.
+  @Test func aMountedRowInTheMarginStaysMounted() {
+    let geometry = Self.geometry([50, 50, 50, 50, 50, 50, 50, 50, 50, 50])
+
+    // Rows 6 and 7 are in view, from 360 to 470. The screen above them
+    // starts at 260, at row 4, so row 3 is one row above that screen.
+    let rows = geometry.mountedRows(visible: 6..<8, viewportHeight: Self.viewportHeight, kept: [3])
+
+    #expect(rows.contains(3))
+  }
+
+  /// A production change that fails this test: the stack mounts a row of the
+  /// margin that it did not mount before.
+  @Test func aRowInTheMarginThatWasNotMountedStaysOut() {
+    let geometry = Self.geometry([50, 50, 50, 50, 50, 50, 50, 50, 50, 50])
+
+    let rows = geometry.mountedRows(visible: 6..<8, viewportHeight: Self.viewportHeight, kept: [])
+
+    #expect(!rows.contains(3))
+  }
+
+  /// A production change that fails this test: the stack keeps each row that
+  /// it mounted, so a long scroll keeps the rows far from the view.
+  @Test func aMountedRowPastTheMarginLeaves() {
+    let geometry = Self.geometry([50, 50, 50, 50, 50, 50, 50, 50, 50, 50])
+
+    let rows = geometry.mountedRows(visible: 6..<8, viewportHeight: Self.viewportHeight, kept: [0])
+
+    #expect(!rows.contains(0))
+  }
+
   /// A production change that fails this test: the scroll to an item does
   /// not put the top of the row at the top of the view.
   @Test func theOffsetOfAnItemScrollIsTheTopOfItsRow() {

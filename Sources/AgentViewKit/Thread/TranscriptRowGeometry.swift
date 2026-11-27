@@ -10,6 +10,11 @@ import CoreGraphics
 /// exact offset. The offsets are in the coordinates of the stack: the top of
 /// the first row is zero.
 nonisolated struct TranscriptRowGeometry: Equatable, Sendable {
+  /// The number of rows above and below the screen of mounted rows in which
+  /// a mounted row stays mounted
+  /// (``mountedRows(visible:viewportHeight:itemRow:keepsBottom:kept:)``).
+  static let keptRowMargin = 2
+
   /// The row key of each row, in the order of the rows.
   let rowKeys: [String]
 
@@ -112,6 +117,12 @@ nonisolated struct TranscriptRowGeometry: Equatable, Sendable {
   /// above and below them, and the rows in view at the end of a scroll that
   /// the list makes now.
   ///
+  /// A row that the stack mounted before stays mounted while it is in
+  /// ``keptRowMargin`` rows above or below the screen of rows above and
+  /// below the rows in view. A height correction moves the edge of that
+  /// screen by a row or two, and without this margin, a row at that edge
+  /// leaves the stack and mounts again in the next pass.
+  ///
   /// - Parameters:
   ///   - visible: The rows in view at the last report, or `nil` before the
   ///     first report. With no report, the rows in view are the rows at the
@@ -120,18 +131,23 @@ nonisolated struct TranscriptRowGeometry: Equatable, Sendable {
   ///     the screen of rows above and below the rows in view.
   ///   - itemRow: The row of a scroll to an item that did not end, or `nil`.
   ///   - keepsBottom: Whether a scroll to the bottom did not end.
+  ///   - kept: The rows that the stack mounted before.
   /// - Returns: The indices of the rows, in order, each one time.
   func mountedRows(
-    visible: Range<Int>?, viewportHeight: CGFloat, itemRow: Int? = nil, keepsBottom: Bool = false
+    visible: Range<Int>?, viewportHeight: CGFloat, itemRow: Int? = nil, keepsBottom: Bool = false,
+    kept: [Int] = []
   ) -> [Int] {
     let bottom = visibleRows(offset: bottomOffset(viewportHeight: viewportHeight), viewportHeight: viewportHeight)
-    var bands = [overscan(visible.map { $0.clamped(to: 0..<count) } ?? bottom, viewportHeight: viewportHeight)]
+    let inView = visible.map { $0.clamped(to: 0..<count) } ?? bottom
+    let screen = overscan(inView, viewportHeight: viewportHeight)
+    let margin = (screen.lowerBound - Self.keptRowMargin)..<(screen.upperBound + Self.keptRowMargin)
+    var bands = [Array(screen), kept.filter(margin.contains)]
     if let itemRow, heights.indices.contains(itemRow) {
       let offset = scrollOffset(toShowRow: itemRow, viewportHeight: viewportHeight)
-      bands.append(overscan(visibleRows(offset: offset, viewportHeight: viewportHeight), viewportHeight: viewportHeight))
+      bands.append(Array(overscan(visibleRows(offset: offset, viewportHeight: viewportHeight), viewportHeight: viewportHeight)))
     }
     if keepsBottom {
-      bands.append(overscan(bottom, viewportHeight: viewportHeight))
+      bands.append(Array(overscan(bottom, viewportHeight: viewportHeight)))
     }
     return Set(bands.joined()).sorted()
   }

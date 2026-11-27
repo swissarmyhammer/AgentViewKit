@@ -305,8 +305,9 @@ extension View {
 /// §3.8, §8, §9 A).
 ///
 /// A `ForEach` keyed on `TranscriptEntry.id` makes one ``ItemRow`` for each
-/// entry in a lazy stack, so a row keeps its identity when a pending user
-/// message gets its `messageId`. The list starts at the bottom, and it
+/// entry near the part in view, in a virtual stack with the exact height of
+/// all the rows (``TranscriptRowStack``, card ^kr7cx7b), so a row keeps its
+/// identity when a pending user message gets its `messageId`. The list starts at the bottom, and it
 /// follows new entries while the user reads the end. The scroll anchors use
 /// the ``FoundationModelsACPClient/TranscriptEntry/ID/rowKey`` of each entry.
 /// The view reports the rows in view to a ``ScrollAnchorManager``:
@@ -416,6 +417,17 @@ public struct ConversationView<EmptyState: View>: View {
   /// action, the list takes that the content fits, so the first scroll goes
   /// to the bottom edge.
   @State private var contentFitsInView = true
+
+  /// Whether a scroll to the bottom did not end: the virtual stack mounts
+  /// the rows at the bottom (``TranscriptRowStack``), so the list shows them
+  /// in the pass of the scroll. The list starts at the bottom. A scroll of
+  /// the user, a scroll to an item, and a move of the list away from the
+  /// bottom end it.
+  @State private var keepsBottomRows = true
+
+  /// The latest scroll offset of the list, which the virtual stack reads
+  /// when it keeps the rows in view at their place after a height change.
+  @State private var scrollOffset = TranscriptScrollOffset()
 
   /// The rows that keep their EditorKit models: the rows in view and a
   /// margin on each side of them. A row far from them drops its models
@@ -593,15 +605,11 @@ public struct ConversationView<EmptyState: View>: View {
         if shownCount < count {
           loadEarlierRow
         }
-        LazyVStack(alignment: .leading, spacing: editorStyle.tile.margin) {
-          // A line before the first entry shows only with the first page.
-          if shownCount == count {
-            startLines(placements.lines(at: .start))
-          }
-          rows(shownCount: shownCount, placements: placements)
+        // A line before the first entry shows only with the first page.
+        if shownCount == count {
+          startLines(placements.lines(at: .start))
         }
-        .scrollTargetLayout()
-        .modifier(TranscriptRowHeightsFeed(heights: rowHeights, session: session))
+        rows(shownCount: shownCount, placements: placements)
       }
       // The list keeps the inset of its rows in its content, and gives no
       // content margin (^rgsq3k4): SwiftUI gives a content margin to the
@@ -635,6 +643,9 @@ public struct ConversationView<EmptyState: View>: View {
     .onScrollPhaseChange { _, phase in
       noteScrollPhase(phase)
     }
+    .onScrollGeometryChange(for: CGFloat.self) { $0.contentOffset.y } action: { _, offset in
+      scrollOffset.y = offset
+    }
     .environment(\.transcriptRowsMove, rowsMove)
     .environment(\.transcriptRowsMoveLive, rowsMoveLive)
     .environment(\.staticRowHeights, rowHeights)
@@ -652,6 +663,9 @@ public struct ConversationView<EmptyState: View>: View {
       }
       if new.isNearBottom != old.isNearBottom {
         noteVisible(ids: anchors.visibleIDs, isNearBottom: new.isNearBottom)
+      }
+      if old.isNearBottom, !new.isNearBottom {
+        keepsBottomRows = false
       }
       if new.contentFitsInView != contentFitsInView {
         contentFitsInView = new.contentFitsInView
@@ -714,6 +728,7 @@ public struct ConversationView<EmptyState: View>: View {
     let isLive = TranscriptRowMotion.isLiveMotion(phase)
     if isLive {
       unsettledItemID = nil
+      keepsBottomRows = false
       anchors.noteScrollByUser()
     }
     if isLive != isLiveMoving {
@@ -760,14 +775,17 @@ public struct ConversationView<EmptyState: View>: View {
   /// whose entry is on a page that is not loaded shows when that page loads.
   ///
   /// Each element of the `ForEach` is one view: the row and its status lines
-  /// in one ``TranscriptRowElement`` (task ^c4sg6gz). The lazy stack then
-  /// measures one view for each element. The element has the spacing of the
-  /// list, so the rows and the lines keep their places. The scroll target is
-  /// the element, because the scroll target layout reads the ids of its
-  /// direct children.
+  /// in one ``TranscriptRowElement`` (task ^c4sg6gz). The virtual stack of
+  /// the rows (``TranscriptRowStack``, card ^kr7cx7b) places one view for
+  /// each element, and it mounts only the elements near the part in view.
+  /// The element has the spacing of the list, so the rows and the lines keep
+  /// their places. The scroll target is the element, because the scroll
+  /// target layout reads the ids of its direct children.
   ///
-  /// The `ForEach` reads the positions of the shown entries, and builds no
-  /// array of the entries on each body (``TranscriptRowSlot``).
+  /// The stack mounts the row of a scroll to an item that did not end
+  /// (``unsettledItemID``), so the scroll finds the view of its id, and the
+  /// rows at the bottom while a scroll to the bottom did not end
+  /// (``keepsBottomRows``).
   ///
   /// - Parameters:
   ///   - shownCount: The number of rows that the list shows.
@@ -775,17 +793,11 @@ public struct ConversationView<EmptyState: View>: View {
   /// - Returns: One view for each shown entry: its row, followed by its
   ///   status lines.
   private func rows(shownCount: Int, placements: ModelChangePlacements) -> some View {
-    let transcript = session.transcript
-    let slots = (transcript.count - shownCount..<transcript.count).lazy.map { position in
-      TranscriptRowSlot(position: position, entry: transcript[position])
-    }
-    let rowsMoveLive = rowsMoveLive
-    return ForEach(slots) { slot in
-      TranscriptRowElement(
-        slot: slot, isLast: slot.position == transcript.count - 1,
-        lines: placements.lines(at: .after(slot.id)), entersWhileMoving: rowsMoveLive)
-        .id(slot.entry.rowKey)
-    }
+    TranscriptRowStack(
+      session: session, shownCount: shownCount, placements: placements, entersWhileMoving: rowsMoveLive,
+      itemPosition: unsettledItemID.flatMap { rowIndex.position(ofRowKey: $0, in: session) },
+      keepsBottom: keepsBottomRows, anchors: anchors, position: $position, scrollOffset: scrollOffset,
+      rowHeights: rowHeights)
   }
 
   /// The status lines of the modelChanged notices before the first entry,
@@ -868,6 +880,7 @@ public struct ConversationView<EmptyState: View>: View {
     switch target {
     case .bottom:
       unsettledItemID = nil
+      keepsBottomRows = true
       guard let lastRowKey else { return }
       if !didFirstBottomScroll {
         didFirstBottomScroll = true
@@ -880,6 +893,7 @@ public struct ConversationView<EmptyState: View>: View {
         forScrollTo: rowIndex.position(ofRowKey: id, in: session), count: session.transcript.count,
         pageSize: pageSize, shownPages: pageCount)
       unsettledItemID = id
+      keepsBottomRows = false
     }
     ConversationLayout.scroll(&position, to: target)
   }
