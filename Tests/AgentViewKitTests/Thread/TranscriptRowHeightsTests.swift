@@ -269,6 +269,43 @@ nonisolated final class RecordingTextMeasure: TranscriptTextMeasure {
     }
   }
 
+  /// A production change that fails this test: the worker prepares each
+  /// text part again at a new width, so a resize of the thread costs a cold
+  /// measure of each part (card ^9ync5h3).
+  @Test func aNewWidthMeasuresThePreparedTextPartsWithNoNewPrepare() async throws {
+    let row = TranscriptRowFixtures.Row.agentFenced
+    let entry = try TranscriptRowHeightBed.entry([row.item])
+    let heights = TranscriptRowHeights(
+      metrics: TranscriptRowMetrics.probe(), expandedBlocks: ExpandedBlocksStore { _ in row.isExpanded })
+    _ = try await TranscriptRowHeightBed.cachedHeight(of: entry, in: heights, width: Self.width)
+    let prepares = await heights.prepareCount()
+
+    _ = try await TranscriptRowHeightBed.cachedHeight(of: entry, in: heights, width: Self.newWidth)
+
+    #expect(await heights.prepareCount() == prepares)
+  }
+
+  /// A production change that fails this test: the worker keeps the
+  /// prepared parts of each row that it measured, so the memory of the
+  /// prepared parts grows with the transcript with no limit (card ^9ync5h3).
+  @Test func theWorkerPreparesAgainARowPastTheLimitOfThePreparedRows() async throws {
+    let entries = SessionModel.preview(transcript: [
+      TranscriptRowFixtures.Row.userMessage.item, TranscriptRowFixtures.Row.agentProse.item,
+    ]).transcript
+    let jobs = entries.map {
+      TranscriptRowHeightWorker.Job(content: TranscriptRowContent(entry: $0, isExpanded: false), revision: .zero)
+    }
+    let first = try #require(jobs.first)
+    let worker = TranscriptRowHeightWorker(
+      measure: RecordingTextMeasure(), metrics: TranscriptRowMetrics.probe(), preparedRowLimit: 1)
+    _ = await worker.heights(of: jobs, width: Self.width)
+    let prepares = await worker.prepareCount
+
+    _ = await worker.heights(of: [first], width: Self.newWidth)
+
+    #expect(await worker.prepareCount > prepares)
+  }
+
   // MARK: - Height provider of the static rows
 
   @Test func theProviderGivesTheCachedHeightAtTheWidthOfTheCache() async throws {

@@ -120,6 +120,48 @@ nonisolated public protocol TranscriptTextMeasure: Sendable {
   ///   - width: The width that the view of the part gets.
   /// - Returns: The height and the exact state.
   nonisolated func measurement(of part: TranscriptTextPart, width: CGFloat) -> TranscriptTextMeasurement
+
+  /// A text part, ready to measure at many widths.
+  ///
+  /// ``TranscriptRowHeights`` prepares each text part one time, and keeps
+  /// the prepared value. A new width then measures the prepared value
+  /// again, so a resize of the thread does not do the work again that does
+  /// not depend on the width. Each measurement of the prepared value at a
+  /// width is equal to ``measurement(of:width:)`` at that width. The
+  /// default measures the part with ``measurement(of:width:)`` at each
+  /// width.
+  ///
+  /// - Parameter part: The text part.
+  /// - Returns: The prepared part.
+  nonisolated func prepared(_ part: TranscriptTextPart) -> any PreparedTranscriptTextPart
+}
+
+/// A text part that a ``TranscriptTextMeasure`` prepared, to measure it at
+/// many widths (``TranscriptTextMeasure/prepared(_:)``).
+///
+/// A measure can keep the work of the last width in the value, so the
+/// measure is `mutating`.
+nonisolated public protocol PreparedTranscriptTextPart: Sendable {
+  /// The height of the part at a width, and whether it is exact.
+  ///
+  /// - Parameter width: The width that the view of the part gets.
+  /// - Returns: The height and the exact state, equal to
+  ///   ``TranscriptTextMeasure/measurement(of:width:)`` at the width.
+  nonisolated mutating func measurement(width: CGFloat) -> TranscriptTextMeasurement
+}
+
+/// A text part that a measure measures again in full at each width: the
+/// default prepared part of a ``TranscriptTextMeasure``.
+nonisolated struct UnpreparedTranscriptTextPart: PreparedTranscriptTextPart {
+  /// The measure of the part.
+  let measure: any TranscriptTextMeasure
+
+  /// The text part.
+  let part: TranscriptTextPart
+
+  func measurement(width: CGFloat) -> TranscriptTextMeasurement {
+    measure.measurement(of: part, width: width)
+  }
 }
 
 extension TranscriptTextMeasure {
@@ -132,5 +174,13 @@ extension TranscriptTextMeasure {
   /// - Returns: The height and the exact state.
   public nonisolated func measurement(of part: TranscriptTextPart, width: CGFloat) -> TranscriptTextMeasurement {
     TranscriptTextMeasurement(height: height(of: part, width: width), isExact: isExact(part))
+  }
+
+  /// The part, measured with ``measurement(of:width:)`` at each width.
+  ///
+  /// - Parameter part: The text part.
+  /// - Returns: The prepared part.
+  public nonisolated func prepared(_ part: TranscriptTextPart) -> any PreparedTranscriptTextPart {
+    UnpreparedTranscriptTextPart(measure: self, part: part)
   }
 }

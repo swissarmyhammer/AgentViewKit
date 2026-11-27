@@ -22,7 +22,7 @@ import SwiftUI
 ///   is available. An image that is not a file of the folder takes its
 ///   height from a view, so a text with one is not exact.
 /// - Code with a line number gutter (`CodeBlockView`): EditorKit's measure
-///   of code (`EditorLayoutMeasure.measure(code:width:style:grammar:gutter:)`)
+///   of code (`EditorLayoutMeasure.prepare(code:style:grammar:gutter:)`)
 ///   in the code font role, with the grammar of the block
 ///   (``CodeBlockView/grammar(of:)``) and the line number gutter with the
 ///   gutter gap of the style. The height is exact.
@@ -36,6 +36,10 @@ import SwiftUI
 /// - A label (`EditorLabel`, `PlacedLabel`): TextKit lays out the text in
 ///   the font that the label resolves, with no line padding, and the height
 ///   is rounded up to a whole point, as the label does. The height is exact.
+///
+/// The measure prepares each part one time (``prepared(_:)``): the
+/// prepared value keeps the work that does not depend on the width, so a
+/// measure at a new width costs only the line breaks at that width.
 ///
 /// Make the measure on the main actor: it resolves the fonts of the theme
 /// and the gutter gap of the style there. The measure is a value, so the
@@ -133,50 +137,116 @@ nonisolated public struct EditorLayoutTranscriptTextMeasure: TranscriptTextMeasu
   /// - Returns: `true` when ``height(of:width:)`` is exact for the part.
   public func isExact(_ part: TranscriptTextPart) -> Bool {
     switch part.style {
-    case .markdown: markdownMeasurement(of: part.text, width: Self.elementsOnlyWidth).isExact
+    case .markdown: measurement(of: part, width: Self.elementsOnlyWidth).isExact
     case .code, .output: true
     case .diff: TranscriptDiffLayout(patch: part.text) != nil
     case .label(let font): labelFonts[font] != nil
     }
   }
 
-  /// The height of a text part at a width, and whether it is exact.
-  ///
-  /// A Markdown part and a diff give the two from one measure.
+  /// The height of a text part at a width, and whether it is exact: one
+  /// measure of the prepared part (``prepared(_:)``).
   ///
   /// - Parameters:
   ///   - part: The text part.
   ///   - width: The width of the view that shows the text.
   /// - Returns: The height and the exact state.
   public func measurement(of part: TranscriptTextPart, width: CGFloat) -> TranscriptTextMeasurement {
+    var prepared = prepared(part)
+    return prepared.measurement(width: width)
+  }
+
+  /// A text part, ready to measure at many widths with EditorKit's
+  /// `EditorLayoutMeasure.Prepared`.
+  ///
+  /// The prepared value keeps the work that does not depend on the width:
+  /// the parse, the captures and the font runs, the image chips, the
+  /// typeset formulas and the measured tables. A label has no prepared
+  /// work: TextKit lays it out at each width.
+  ///
+  /// - Parameter part: The text part.
+  /// - Returns: The prepared part.
+  public func prepared(_ part: TranscriptTextPart) -> any PreparedTranscriptTextPart {
     switch part.style {
     case .markdown:
-      markdownMeasurement(of: part.text, width: width)
+      preparedMarkdown(part.text)
     case .diff:
-      diffMeasurement(of: part.text, width: width)
+      preparedDiff(part.text)
     case .code(let language):
-      TranscriptTextMeasurement(height: codeHeight(of: part.text, language: language, width: width), isExact: true)
+      preparedCode(
+        part.text, grammar: CodeBlockView.grammar(of: CodeBlockView.normalized(language)),
+        gutter: .lineNumbers(gap: gutterGap))
     case .output:
-      TranscriptTextMeasurement(height: outputHeight(of: part.text, width: width), isExact: true)
+      preparedCode(part.text, grammar: .plainText, gutter: .none)
     case .label(let font):
-      TranscriptTextMeasurement(
-        height: Self.labelHeight(of: part.text, font: labelFont(font), width: width), isExact: isExact(part))
+      PreparedTranscriptLabel(measure: self, text: part.text, font: font)
     }
   }
 
-  /// The height of a Markdown part, and whether it is exact: EditorKit's
-  /// `EditorLayoutMeasure`, with the natural size of each image file of the
-  /// image folder that the text shows.
+  /// A Markdown part, prepared with EditorKit's `EditorLayoutMeasure`, with
+  /// the natural size of each image file of the image folder that the text
+  /// shows. It is exact when EditorKit measures each element.
+  ///
+  /// - Parameter markdown: The Markdown text.
+  /// - Returns: The prepared part.
+  func preparedMarkdown(_ markdown: String) -> EditorLayoutPreparedTextPart {
+    let sizes = imageFolder.map { TranscriptImageSizes.sizes(in: markdown, folder: $0) } ?? [:]
+    return EditorLayoutPreparedTextPart(
+      prepared: EditorLayoutMeasure.prepare(markdown: markdown, style: markdownStyle, imageSizes: sizes),
+      exactness: .whenEachElementIsMeasured, chromeWidth: .zero)
+  }
+
+  /// Code in a read-only editor in the code font, prepared with EditorKit's
+  /// measure of code: the code of a `CodeBlockView` with its grammar and
+  /// the line number gutter, plain text with no gutter for an output, or
+  /// the inline document of a diff.
   ///
   /// - Parameters:
-  ///   - markdown: The Markdown text.
-  ///   - width: The width of the view.
-  /// - Returns: The height, exact when EditorKit measures each element.
-  func markdownMeasurement(of markdown: String, width: CGFloat) -> TranscriptTextMeasurement {
-    let sizes = imageFolder.map { TranscriptImageSizes.sizes(in: markdown, folder: $0) } ?? [:]
-    let measured = EditorLayoutMeasure.measure(
-      markdown: markdown, width: width, style: markdownStyle, imageSizes: sizes)
-    return TranscriptTextMeasurement(height: measured.height, isExact: measured.unmeasured.isEmpty)
+  ///   - code: The code.
+  ///   - grammar: The grammar of the code.
+  ///   - gutter: The gutter of the editor.
+  ///   - exactness: When the height is exact. The default is exact.
+  ///   - chromeWidth: The width of the view that the code does not get.
+  ///     The default is none.
+  /// - Returns: The prepared part.
+  func preparedCode(
+    _ code: String, grammar: EditorLayoutMeasure.CodeGrammar, gutter: EditorLayoutMeasure.CodeGutter,
+    exactness: EditorLayoutPreparedTextPart.Exactness = .exact, chromeWidth: CGFloat = .zero
+  ) -> EditorLayoutPreparedTextPart {
+    EditorLayoutPreparedTextPart(
+      prepared: EditorLayoutMeasure.prepare(code: code, style: codeStyle, grammar: grammar, gutter: gutter),
+      exactness: exactness, chromeWidth: chromeWidth)
+  }
+
+  /// The EditorKit diff view of a patch, prepared with EditorKit's measure
+  /// of code of the inline document of the patch. The measure takes the
+  /// width that the gutters and the change bars of the diff view leave.
+  ///
+  /// A patch that EditorKit cannot read, or a document with context to
+  /// fold, takes the height of the rows of the patch text at the full
+  /// width, and is not exact.
+  ///
+  /// - Parameter patch: The patch text.
+  /// - Returns: The prepared part.
+  func preparedDiff(_ patch: String) -> EditorLayoutPreparedTextPart {
+    guard let layout = TranscriptDiffLayout(patch: patch) else {
+      return preparedCode(patch, grammar: .plainText, gutter: .none, exactness: .notExact)
+    }
+    return preparedCode(
+      layout.document.text, grammar: layout.grammar, gutter: .none,
+      chromeWidth: layout.chromeWidth(style: codeStyle, fixedColumns: diffFixedColumnsWidth, gap: gutterGap))
+  }
+
+  /// The height of a label at a width, and whether it is exact.
+  ///
+  /// - Parameters:
+  ///   - text: The text of the label.
+  ///   - font: The font of the label.
+  ///   - width: The width of the label.
+  /// - Returns: The height and the exact state.
+  func labelMeasurement(of text: String, font: TranscriptLabelFont, width: CGFloat) -> TranscriptTextMeasurement {
+    TranscriptTextMeasurement(
+      height: Self.labelHeight(of: text, font: labelFont(font), width: width), isExact: labelFonts[font] != nil)
   }
 
   /// The resolved font of a label font, or the system font when the measure
@@ -186,55 +256,6 @@ nonisolated public struct EditorLayoutTranscriptTextMeasure: TranscriptTextMeasu
   /// - Returns: The font.
   func labelFont(_ font: TranscriptLabelFont) -> NSFont {
     labelFonts[font].map { $0.font as NSFont } ?? NSFont.systemFont(ofSize: NSFont.systemFontSize)
-  }
-
-  /// The height of the code of a `CodeBlockView`: EditorKit's measure of
-  /// code with the grammar of the block and the line number gutter.
-  ///
-  /// - Parameters:
-  ///   - code: The code.
-  ///   - language: The language of the code block, or `nil`.
-  ///   - width: The width of the editor.
-  /// - Returns: The height.
-  func codeHeight(of code: String, language: String?, width: CGFloat) -> CGFloat {
-    EditorLayoutMeasure.height(
-      ofCode: code, width: width, style: codeStyle,
-      grammar: CodeBlockView.grammar(of: CodeBlockView.normalized(language)),
-      gutter: .lineNumbers(gap: gutterGap))
-  }
-
-  /// The height of plain text in a read-only editor in the code font, with
-  /// no gutter: EditorKit's measure of code as plain text.
-  ///
-  /// - Parameters:
-  ///   - text: The text.
-  ///   - width: The width of the editor. A width of zero or less wraps no
-  ///     line.
-  /// - Returns: The height.
-  func outputHeight(of text: String, width: CGFloat) -> CGFloat {
-    EditorLayoutMeasure.height(ofCode: text, width: width, style: codeStyle, grammar: .plainText, gutter: .none)
-  }
-
-  /// The height of the EditorKit diff view of a patch, and whether it is
-  /// exact.
-  ///
-  /// A patch that EditorKit cannot read, or a document with context to
-  /// fold, takes the height of the rows of the patch text at the full
-  /// width, and is not exact.
-  ///
-  /// - Parameters:
-  ///   - patch: The patch text.
-  ///   - width: The width of the diff view.
-  /// - Returns: The height and the exact state.
-  func diffMeasurement(of patch: String, width: CGFloat) -> TranscriptTextMeasurement {
-    guard let layout = TranscriptDiffLayout(patch: patch) else {
-      return TranscriptTextMeasurement(height: outputHeight(of: patch, width: width), isExact: false)
-    }
-    let chrome = layout.chromeWidth(style: codeStyle, fixedColumns: diffFixedColumnsWidth, gap: gutterGap)
-    let height = EditorLayoutMeasure.height(
-      ofCode: layout.document.text, width: width - chrome, style: codeStyle, grammar: layout.grammar,
-      gutter: .none)
-    return TranscriptTextMeasurement(height: height, isExact: true)
   }
 
   /// The height of a label, as `EditorLabel` lays it out: TextKit with no
@@ -254,5 +275,68 @@ nonisolated public struct EditorLayoutTranscriptTextMeasure: TranscriptTextMeasu
     storage.addLayoutManager(layout)
     layout.ensureLayout(for: container)
     return layout.usedRect(for: container).height.rounded(.up)
+  }
+}
+
+/// A text part that EditorKit's `EditorLayoutMeasure` prepared
+/// (``EditorLayoutTranscriptTextMeasure/prepared(_:)``).
+nonisolated struct EditorLayoutPreparedTextPart: PreparedTranscriptTextPart {
+  /// When the height of a prepared part is the height of the mounted view.
+  enum Exactness: Sendable {
+    /// The height is exact at each width.
+    case exact
+
+    /// The height is not exact.
+    case notExact
+
+    /// The height is exact when EditorKit measures each element of the
+    /// text (`Measurement.unmeasured` is empty).
+    case whenEachElementIsMeasured
+  }
+
+  /// The prepared document of EditorKit. Each measure keeps the work of its
+  /// width for the next width.
+  var prepared: EditorLayoutMeasure.Prepared
+
+  /// When the height is exact.
+  let exactness: Exactness
+
+  /// The width of the view that the document does not get, such as the
+  /// gutters of a diff view.
+  let chromeWidth: CGFloat
+
+  mutating func measurement(width: CGFloat) -> TranscriptTextMeasurement {
+    let measured = prepared.measure(width: width - chromeWidth)
+    return TranscriptTextMeasurement(height: measured.height, isExact: isExact(measured))
+  }
+
+  /// Tells if a measurement of the document is exact.
+  ///
+  /// - Parameter measured: The measurement of EditorKit.
+  /// - Returns: `true` when the height is the height of the mounted view.
+  private func isExact(_ measured: EditorLayoutMeasure.Measurement) -> Bool {
+    switch exactness {
+    case .exact: true
+    case .notExact: false
+    case .whenEachElementIsMeasured: measured.unmeasured.isEmpty
+    }
+  }
+}
+
+/// A label text part (``EditorLayoutTranscriptTextMeasure/prepared(_:)``).
+/// A label has no work that does not depend on the width, so TextKit lays
+/// it out at each width.
+nonisolated struct PreparedTranscriptLabel: PreparedTranscriptTextPart {
+  /// The measure that resolved the fonts of the labels.
+  let measure: EditorLayoutTranscriptTextMeasure
+
+  /// The text of the label.
+  let text: String
+
+  /// The font of the label.
+  let font: TranscriptLabelFont
+
+  func measurement(width: CGFloat) -> TranscriptTextMeasurement {
+    measure.labelMeasurement(of: text, font: font, width: width)
   }
 }

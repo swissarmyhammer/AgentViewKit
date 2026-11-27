@@ -76,6 +76,21 @@ struct TranscriptRowMeasureTests {
     #expect(heights.knowsHeight(of: entry.id))
   }
 
+  /// A production change that fails this test: the measure of a text part
+  /// at a new width, from the value that the cache prepared at the width
+  /// before (card ^9ync5h3), gives another height than a measure at the new
+  /// width alone, so the height of the cache after a resize differs from
+  /// the height of the mounted row.
+  @Test(
+    arguments: TranscriptRowFixtures.Row.codeRows + TranscriptRowFixtures.Row.measuredMarkdownRows,
+    TranscriptRowHeightBed.widths)
+  func theMeasureAfterAResizeIsTheMountedHeightExactly(row: TranscriptRowFixtures.Row, width: CGFloat) async throws {
+    let entry = try TranscriptRowHeightBed.entry([row.item])
+    try await TranscriptRowHeightBed.expectCachedHeightMatchesTheMountedRow(
+      entry, width: width, expanded: row.isExpanded, measure: EditorLayoutTranscriptTextMeasure(),
+      tolerance: TranscriptRowHeightBed.exactTolerance, widthBefore: TranscriptRowHeightBed.widthBeforeResize)
+  }
+
   /// A production change that fails this test: the measure gives EditorKit
   /// no natural size of the image of an answer, or another size than the
   /// size of the loaded image, so the height of the cache differs from the
