@@ -1,6 +1,9 @@
 import CoreGraphics
+import EditorSwiftUI
+import Foundation
 import FoundationModelsACPClient
 import Observation
+import os
 
 /// The height of each transcript row, from data, off the main thread
 /// (card ^9h7bm9j).
@@ -24,6 +27,13 @@ import Observation
 /// - The cache publishes the heights to the main actor, as observable
 ///   values. After a width change, it computes each row again, the rows in
 ///   view first, and publishes the rows in view before the other rows.
+/// - With an appearance (``noteAppearance(_:)``), the worker also draws a
+///   picture of each Markdown text part that EditorKit draws
+///   (``TranscriptTextMeasure/picture(of:width:appearance:)``), at the
+///   width of its measure, and the cache publishes the pictures of a row
+///   with its height. A static row then shows the pictures in place of the
+///   SwiftUI `Text` of its text (card ^9ync5h3). A new width or a new
+///   appearance drops the pictures, and the worker draws them again.
 @MainActor @Observable public final class TranscriptRowHeights {
   /// The published height of each row at ``width``, by row key. A row that
   /// no chrome rule covers has no height.
@@ -57,6 +67,22 @@ import Observation
   /// The count of width changes. A result for an older width is not
   /// published.
   @ObservationIgnored private var generation = 0
+
+  /// The appearance of the pictures, or `nil` before the first
+  /// ``noteAppearance(_:)``. With no appearance, the worker draws no
+  /// picture.
+  @ObservationIgnored private var appearance: TranscriptTextAppearance?
+
+  /// The count of appearance changes. A picture of an older appearance is
+  /// not published.
+  @ObservationIgnored private var appearanceGeneration = 0
+
+  /// The published pictures of each row at ``width`` in ``appearance``, by
+  /// row key, and in a row by Markdown text. They are not observable: the
+  /// cache publishes them with the height of the row, so a row that shows
+  /// its static form from the cache height finds its pictures.
+  @ObservationIgnored private var pictures = TranscriptPictureCache<String, [String: EditorStaticRendering]>(
+    byteLimit: TranscriptRowHeightWorker.defaultPictureByteLimit)
 
   /// Makes a cache.
   ///
@@ -121,6 +147,7 @@ import Observation
       generation += 1
       heights = [:]
       exactHeights = [:]
+      pictures.removeAll()
     }
     let changed = entries.filter { objects[$0.rowKey] != ObjectIdentifier($0.object) }
     for entry in changed {
@@ -136,6 +163,39 @@ import Observation
   ///   rule covers the row.
   public func height(of rowKey: String) -> CGFloat? {
     heights[rowKey]
+  }
+
+  /// Gives the appearance of the pictures of the static text: the color
+  /// scheme and the display scale of the rows.
+  ///
+  /// A new appearance drops each picture, and computes each known row
+  /// again, so the worker draws its pictures in the new appearance. The
+  /// heights do not change.
+  ///
+  /// - Parameter appearance: The color scheme and the scale of the rows.
+  public func noteAppearance(_ appearance: TranscriptTextAppearance) {
+    guard appearance != self.appearance else { return }
+    self.appearance = appearance
+    appearanceGeneration += 1
+    pictures.removeAll()
+    compute(Array(contents.keys), inView: [])
+  }
+
+  /// The published picture of a Markdown text of a row, at the width of the
+  /// last update.
+  ///
+  /// - Parameters:
+  ///   - markdown: The Markdown text of a text part of the row.
+  ///   - rowKey: The row key of the entry.
+  ///   - appearance: The appearance of the view that shows the picture.
+  /// - Returns: The picture, or `nil` when the worker did not draw it yet,
+  ///   when EditorKit does not draw the text, or when `appearance` is not
+  ///   the appearance of the pictures.
+  func picture(
+    of markdown: String, inRow rowKey: String, appearance: TranscriptTextAppearance
+  ) -> EditorStaticRendering? {
+    guard appearance == self.appearance else { return nil }
+    return pictures[rowKey]?[markdown]
   }
 
   /// The count of text parts that the worker prepared for a measure: the
@@ -184,9 +244,14 @@ import Observation
   private func compute(_ keys: [String], inView: Set<String>) {
     let batches = batches(of: keys, inView: inView)
     guard !batches.isEmpty else { return }
-    let width = width
-    let generation = generation
-    Task { await self.computeHeights(in: batches, width: width, generation: generation) }
+    let pass = currentPass
+    Task { await self.computeHeights(in: batches, pass: pass) }
+  }
+
+  /// The width, the appearance and their generations of a new computation.
+  private var currentPass: TranscriptRowHeightWorker.Pass {
+    TranscriptRowHeightWorker.Pass(
+      width: width, generation: generation, appearance: appearance, appearanceGeneration: appearanceGeneration)
   }
 
   /// Computes the heights of rows on the worker at the width of the last
@@ -201,7 +266,7 @@ import Observation
   ///
   /// - Parameter rowKeys: The row keys.
   func computeHeights(of rowKeys: [String]) async {
-    await computeHeights(in: batches(of: rowKeys, inView: []), width: width, generation: generation)
+    await computeHeights(in: batches(of: rowKeys, inView: []), pass: currentPass)
   }
 
   /// The jobs of the copied rows of `keys`, in batches: the rows in view,
@@ -225,28 +290,49 @@ import Observation
   ///
   /// - Parameters:
   ///   - batches: The batches of jobs, in the order of their computation.
-  ///   - width: The width of the rows.
-  ///   - generation: The width generation of the jobs.
+  ///   - pass: The width, the appearance and their generations of the
+  ///     jobs.
   private func computeHeights(
-    in batches: [[TranscriptRowHeightWorker.Job]], width: CGFloat, generation: Int
+    in batches: [[TranscriptRowHeightWorker.Job]], pass: TranscriptRowHeightWorker.Pass
   ) async {
     for batch in batches {
-      let results = await worker.heights(of: batch, width: width)
-      publish(results, generation: generation)
+      let results = await worker.heights(of: batch, width: pass.width, appearance: pass.appearance)
+      publish(results, pass: pass)
     }
   }
 
-  /// Publishes the results of the worker that are still current.
+  /// Publishes the results of the worker that are still current: the
+  /// heights of the current width, and the pictures of the current
+  /// appearance.
   ///
   /// - Parameters:
   ///   - results: The results.
-  ///   - generation: The width generation of the results.
-  private func publish(_ results: [TranscriptRowHeightWorker.Result], generation: Int) {
-    guard generation == self.generation else { return }
+  ///   - pass: The width, the appearance and their generations of the
+  ///     results.
+  private func publish(_ results: [TranscriptRowHeightWorker.Result], pass: TranscriptRowHeightWorker.Pass) {
+    guard pass.generation == generation else { return }
+    let picturesAreCurrent = pass.appearanceGeneration == appearanceGeneration
     for result in results where revisions[result.rowKey] == result.revision {
       heights[result.rowKey] = result.height
       exactHeights[result.rowKey] = result.isExact ? result.height : nil
+      if picturesAreCurrent {
+        publishPictures(result.pictures, of: result.rowKey)
+      }
     }
+  }
+
+  /// Publishes the pictures of a row, or drops the old pictures of a row
+  /// with no picture.
+  ///
+  /// - Parameters:
+  ///   - rowPictures: The pictures of the row, by Markdown text.
+  ///   - rowKey: The row key.
+  private func publishPictures(_ rowPictures: [String: EditorStaticRendering], of rowKey: String) {
+    guard !rowPictures.isEmpty else {
+      pictures.remove(rowKey)
+      return
+    }
+    pictures.insert(rowPictures, forKey: rowKey)
   }
 }
 
@@ -268,8 +354,26 @@ extension TranscriptRowHeights: TranscriptRowHeightProvider {
   }
 }
 
-/// Computes row heights off the main thread, and keeps them by version.
+/// Computes row heights off the main thread, and keeps them by version. With
+/// an appearance, it also draws the pictures of the Markdown text parts of
+/// the rows (card ^9ync5h3).
 actor TranscriptRowHeightWorker {
+  /// The width, the appearance and their generations of one computation of
+  /// the cache.
+  struct Pass: Sendable {
+    /// The width of the rows.
+    let width: CGFloat
+
+    /// The width generation of the cache.
+    let generation: Int
+
+    /// The appearance of the pictures, or `nil` for no picture.
+    let appearance: TranscriptTextAppearance?
+
+    /// The appearance generation of the cache.
+    let appearanceGeneration: Int
+  }
+
   /// One row to compute.
   struct Job: Sendable {
     /// The copy of the row.
@@ -292,6 +396,10 @@ actor TranscriptRowHeightWorker {
 
     /// Whether each text part of the row is exact with the text measure.
     let isExact: Bool
+
+    /// The pictures of the Markdown text parts of the row, by text. A part
+    /// that EditorKit does not draw has no picture.
+    let pictures: [String: EditorStaticRendering]
   }
 
   /// A computed height of a row at one width.
@@ -304,6 +412,36 @@ actor TranscriptRowHeightWorker {
 
     /// The height, and whether it is exact.
     let measured: Measured
+
+    /// The text parts that the chrome rule measured, in order.
+    let parts: [MeasuredPart]
+  }
+
+  /// One text part of a row, at the width and the height of its measure.
+  private struct MeasuredPart {
+    /// The text part.
+    let part: TranscriptTextPart
+
+    /// The width that the view of the part gets.
+    let width: CGFloat
+
+    /// The measured height of the part.
+    let height: CGFloat
+  }
+
+  /// The key of a drawn picture: the text part, the width of its measure,
+  /// and the appearance. The measure of the worker is fixed, so the key
+  /// also names the style of the picture: its theme, its font and its row
+  /// height.
+  private struct PictureKey: Hashable {
+    /// The text part.
+    let part: TranscriptTextPart
+
+    /// The width.
+    let width: CGFloat
+
+    /// The appearance.
+    let appearance: TranscriptTextAppearance
   }
 
   /// The height of a row from the rule, and whether each text part of the
@@ -349,6 +487,28 @@ actor TranscriptRowHeightWorker {
   /// The count of text parts that the worker prepared for a measure.
   private(set) var prepareCount = 0
 
+  /// The bytes in one mebibyte.
+  static let bytesPerMebibyte = 1 << 20
+
+  /// The default of the most mebibytes of the bitmaps of the pictures that
+  /// the worker keeps, and that the cache publishes. A picture of an
+  /// answer of 600 × 400 points at a scale of 2 takes about 4 MiB.
+  static let defaultPictureMebibytes = 128
+
+  /// The default of the most bytes of the bitmaps of the kept pictures.
+  static let defaultPictureByteLimit = defaultPictureMebibytes * bytesPerMebibyte
+
+  /// The largest difference between the height of a picture and the
+  /// measured height of its part, in points.
+  static let pictureHeightTolerance: CGFloat = 0.5
+
+  /// The log of a picture that the worker cannot use.
+  private static let logger = Logger(subsystem: "AgentViewKit", category: "TranscriptRowHeightWorker")
+
+  /// The drawn pictures, by part, width and appearance, the newest last.
+  private var drawnPictures = TranscriptPictureCache<PictureKey, EditorStaticRendering>(
+    byteLimit: defaultPictureByteLimit)
+
   /// Makes a worker.
   ///
   /// - Parameters:
@@ -365,22 +525,71 @@ actor TranscriptRowHeightWorker {
     self.preparedRowLimit = preparedRowLimit
   }
 
-  /// The heights of rows at a width. A version that the worker keeps is not
-  /// computed again.
+  /// The heights of rows at a width, and the pictures of their Markdown
+  /// text parts in an appearance. A version that the worker keeps is not
+  /// computed again, and a picture that the worker keeps is not drawn
+  /// again.
   ///
   /// - Parameters:
   ///   - jobs: The rows.
   ///   - width: The width.
-  /// - Returns: The height of each row, in the order of the jobs.
-  func heights(of jobs: [Job], width: CGFloat) -> [Result] {
+  ///   - appearance: The appearance of the pictures, or `nil` (the default) for no
+  ///     picture.
+  /// - Returns: The height and the pictures of each row, in the order of
+  ///   the jobs.
+  func heights(of jobs: [Job], width: CGFloat, appearance: TranscriptTextAppearance? = nil) -> [Result] {
     jobs.map { job in
-      let measured = measured(job.content, width: width)
+      let kept = kept(job.content, width: width)
       return Result(
-        rowKey: job.content.rowKey, revision: job.revision, height: measured.height, isExact: measured.isExact)
+        rowKey: job.content.rowKey, revision: job.revision, height: kept.measured.height,
+        isExact: kept.measured.isExact, pictures: appearance.map { pictures(of: kept.parts, appearance: $0) } ?? [:])
     }
   }
 
-  /// The height of one row at a width, from the kept heights or the rule.
+  /// The pictures of the parts of a row, by text: the kept pictures, and
+  /// the pictures that the measure draws. A part with no picture is not in
+  /// the result.
+  ///
+  /// - Parameters:
+  ///   - parts: The measured text parts of the row.
+  ///   - appearance: The appearance of the pictures.
+  /// - Returns: The pictures, by the text of their parts.
+  private func pictures(
+    of parts: [MeasuredPart], appearance: TranscriptTextAppearance
+  ) -> [String: EditorStaticRendering] {
+    assert(!Thread.isMainThread, "the worker draws a picture on the main thread")
+    let drawn = parts.compactMap { part in picture(of: part, appearance: appearance).map { (part.part.text, $0) } }
+    return Dictionary(drawn) { _, last in last }
+  }
+
+  /// The picture of one part: the kept picture, or a new picture from the
+  /// measure, which the worker then keeps as the newest.
+  ///
+  /// A picture whose height is not the measured height of its part is not
+  /// used: the static row would then have another height than the cache
+  /// gives it.
+  ///
+  /// - Parameters:
+  ///   - part: The measured text part.
+  ///   - appearance: The appearance of the picture.
+  /// - Returns: The picture, or `nil` when the measure draws no picture of
+  ///   the part.
+  private func picture(of part: MeasuredPart, appearance: TranscriptTextAppearance) -> EditorStaticRendering? {
+    let key = PictureKey(part: part.part, width: part.width, appearance: appearance)
+    guard
+      let picture = drawnPictures[key] ?? measure.picture(of: part.part, width: part.width, appearance: appearance)
+    else { return nil }
+    guard abs(picture.size.height - part.height) <= Self.pictureHeightTolerance else {
+      assertionFailure("the picture height \(picture.size.height) is not the measured height \(part.height)")
+      Self.logger.error("a picture has another height than its measure; the row keeps its text")
+      return nil
+    }
+    drawnPictures.insert(picture, forKey: key)
+    return picture
+  }
+
+  /// The height of one row at a width, and its measured text parts, from
+  /// the kept heights or the rule.
   ///
   /// The row is exact when the text measure is exact for each text part
   /// that the rule measures. A row with no text part, such as a collapsed
@@ -389,27 +598,30 @@ actor TranscriptRowHeightWorker {
   /// - Parameters:
   ///   - content: The copy of the row.
   ///   - width: The width.
-  /// - Returns: The height, and whether it is exact.
-  private func measured(_ content: TranscriptRowContent, width: CGFloat) -> Measured {
+  /// - Returns: The height, whether it is exact, and the measured parts.
+  private func kept(_ content: TranscriptRowContent, width: CGFloat) -> Kept {
     let key = content.rowKey
     let digest = content.hashValue
     var versions = kept[key, default: []]
     if let hit = versions.first(where: { $0.width == width && $0.digest == digest }) {
-      return hit.measured
+      return hit
     }
     var isExact = true
+    var parts: [MeasuredPart] = []
     let height = withPreparedParts(of: key) { measurement in
       TranscriptRowChrome.height(of: content, width: width, metrics: metrics) { part, partWidth in
         let measured = measurement(part, partWidth)
         isExact = isExact && measured.isExact
+        parts.append(MeasuredPart(part: part, width: partWidth, height: measured.height))
         return measured.height
       }
     }
-    let measured = Measured(height: height, isExact: isExact)
+    let computed = Kept(
+      width: width, digest: digest, measured: Measured(height: height, isExact: isExact), parts: parts)
     versions.removeAll { $0.width == width }
-    versions.append(Kept(width: width, digest: digest, measured: measured))
+    versions.append(computed)
     kept[key] = Array(versions.suffix(Self.widthLimit))
-    return measured
+    return computed
   }
 
   /// Runs a measure of one row with the prepared parts of the row.

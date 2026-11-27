@@ -27,6 +27,13 @@ import SwiftUI
 /// evaluate its body again. The slot reads it when the form of its row
 /// changes.
 ///
+/// A slot of Markdown text names its text (``pictureText``). While the
+/// height cache of the thread has a picture of that text, which EditorKit
+/// drew off the main thread, the still view of the slot is that picture
+/// (``StaticPictureView``), not its SwiftUI `Text`. Thus the list lays out
+/// no text on the main thread while it moves (card ^9ync5h3). The picture
+/// has the measured height of the text, so the row does not move.
+///
 /// A slot whose still view cannot show its text, such as a Markdown text
 /// with math (card ^hh39bp4), keeps its editor in each form
 /// (``keepsEditor``). The row keeps the frame of its static form, at the
@@ -45,6 +52,10 @@ struct StaticEditorSlot<Editor: View, Still: View>: View {
   /// cannot show its text.
   let keepsEditor: Bool
 
+  /// The Markdown text whose picture the slot shows in place of its still
+  /// view, or `nil` for a slot with no picture.
+  let pictureText: String?
+
   @Environment(\.transcriptSlotForm) private var form
   @Environment(\.transcriptRowMount) private var rowMount
 
@@ -60,12 +71,16 @@ struct StaticEditorSlot<Editor: View, Still: View>: View {
   ///   - keepsEditor: Whether the slot shows its editor in each form,
   ///     because the still view cannot show the text. The default is
   ///     `false`.
+  ///   - pictureText: The Markdown text whose picture the slot shows in its
+  ///     static form, or `nil` (the default) for no picture.
   ///   - editor: The EditorKit editor of the text area.
   ///   - still: Makes the static form of the text.
   init(
-    keepsEditor: Bool = false, @ViewBuilder editor: () -> Editor, @ViewBuilder still: @escaping () -> Still
+    keepsEditor: Bool = false, pictureText: String? = nil, @ViewBuilder editor: () -> Editor,
+    @ViewBuilder still: @escaping () -> Still
   ) {
     self.keepsEditor = keepsEditor
+    self.pictureText = pictureText
     self.editor = editor()
     self.still = still
   }
@@ -82,7 +97,7 @@ struct StaticEditorSlot<Editor: View, Still: View>: View {
   /// the slot tell. A slot that keeps its editor shows the editor.
   @ViewBuilder private var slotForm: some View {
     if !keepsEditor, form.showsStill(slotWaits: mount.waits) {
-      still()
+      StaticSlotStill(pictureText: pictureText, still: still)
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .frame(height: laidOutHeight.points, alignment: .top)
         .clipped()
