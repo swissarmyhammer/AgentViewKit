@@ -14,30 +14,54 @@ import Testing
 /// heights of the mounted text views. These tests also check the text.
 @MainActor @Suite
 struct TranscriptRowMeasureTests {
+  /// One width of a measure, and the width that the cache measures the row
+  /// at before it, as after a resize of the thread.
+  nonisolated struct MeasureWidth: Sendable, CustomTestStringConvertible {
+    /// The width of the row, in points.
+    let width: CGFloat
+    /// The width that the cache measures the row at before ``width``, in
+    /// points, or `nil` for no resize.
+    let widthBefore: CGFloat?
+
+    var testDescription: String {
+      widthBefore.map { "\($0) pt to \(width) pt" } ?? "\(width) pt"
+    }
+  }
+
+  /// Each width of the suite (``TranscriptRowHeightBed/widths``), first
+  /// with no resize, then after a resize from
+  /// ``TranscriptRowHeightBed/widthBeforeResize``.
+  nonisolated static let measureWidths = TranscriptRowHeightBed.widths.flatMap { width in
+    [nil, TranscriptRowHeightBed.widthBeforeResize].map { MeasureWidth(width: width, widthBefore: $0) }
+  }
+
   @Test(arguments: TranscriptRowFixtures.Row.allCases, TranscriptRowHeightBed.widths)
   func theDefaultMeasureGivesTheMountedHeight(row: TranscriptRowFixtures.Row, width: CGFloat) async throws {
-    let entry = try TranscriptRowHeightBed.entry([row.item])
-    try await TranscriptRowHeightBed.expectCachedHeightMatchesTheMountedRow(
-      entry, width: width, expanded: row.isExpanded, measure: EditorLayoutTranscriptTextMeasure())
+    try await expectTheMountedHeight(of: row, width: MeasureWidth(width: width, widthBefore: nil))
   }
 
   /// A production change that fails this test: the measure of a code block,
   /// a command output or a diff does not use the grammar, the gutter or the
-  /// font of the mounted EditorKit view, so the height of the cache differs
-  /// from the height of the mounted row (card ^9ync5h3).
-  @Test(arguments: TranscriptRowFixtures.Row.codeRows, TranscriptRowHeightBed.widths)
-  func theMeasureOfACodeRowIsTheMountedHeightExactly(row: TranscriptRowFixtures.Row, width: CGFloat) async throws {
-    let entry = try TranscriptRowHeightBed.entry([row.item])
-    try await TranscriptRowHeightBed.expectCachedHeightMatchesTheMountedRow(
-      entry, width: width, expanded: row.isExpanded, measure: EditorLayoutTranscriptTextMeasure(),
-      tolerance: TranscriptRowHeightBed.exactTolerance)
+  /// font of the mounted EditorKit view (card ^9ync5h3); or the measure of a
+  /// Markdown part does not give the height of the EditorKit layout of
+  /// inline math, block math or a wrapped line with inline code (card
+  /// ^v2nh2hq); or the measure of a text part at a new width, from the value
+  /// that the cache prepared at the width before, gives another height than
+  /// a measure at the new width alone. In each case the height of the cache
+  /// differs from the height of the mounted row.
+  @Test(arguments: TranscriptRowFixtures.Row.exactlyMeasuredRows, measureWidths)
+  func theMeasureOfAnExactlyMeasuredRowIsTheMountedHeightExactly(
+    row: TranscriptRowFixtures.Row, width: MeasureWidth
+  ) async throws {
+    try await expectTheMountedHeight(of: row, width: width, tolerance: TranscriptRowHeightBed.exactTolerance)
   }
 
   /// A production change that fails this test: the measure takes a code
-  /// block, a command output or a diff for not exact, so the cache gives no
-  /// height to the static form of the row (card ^9ync5h3).
-  @Test(arguments: TranscriptRowFixtures.Row.codeRows)
-  func theCacheTakesTheHeightOfACodeRowForExact(row: TranscriptRowFixtures.Row) async throws {
+  /// block, a command output or a diff (card ^9ync5h3), inline math, block
+  /// math or a wrapped line with inline code (card ^v2nh2hq) for not exact,
+  /// so the cache gives no height to the static form of the row.
+  @Test(arguments: TranscriptRowFixtures.Row.exactlyMeasuredRows)
+  func theCacheTakesTheHeightOfAnExactlyMeasuredRowForExact(row: TranscriptRowFixtures.Row) async throws {
     let entry = try TranscriptRowHeightBed.entry([row.item])
     let heights = TranscriptRowHeights(
       metrics: TranscriptRowMetrics.probe(), expandedBlocks: ExpandedBlocksStore { _ in row.isExpanded })
@@ -45,50 +69,6 @@ struct TranscriptRowMeasureTests {
       of: entry, in: heights, width: TranscriptRowHeightBed.regularWidth)
 
     #expect(heights.knowsHeight(of: entry.id))
-  }
-
-  /// A production change that fails this test: the measure of a Markdown
-  /// part does not give the height of the EditorKit layout of inline math,
-  /// block math or a wrapped line with inline code, so the height of the
-  /// cache differs from the height of the mounted row (card ^v2nh2hq).
-  @Test(arguments: TranscriptRowFixtures.Row.measuredMarkdownRows, TranscriptRowHeightBed.widths)
-  func theMeasureOfAMeasuredMarkdownRowIsTheMountedHeightExactly(
-    row: TranscriptRowFixtures.Row, width: CGFloat
-  ) async throws {
-    let entry = try TranscriptRowHeightBed.entry([row.item])
-    try await TranscriptRowHeightBed.expectCachedHeightMatchesTheMountedRow(
-      entry, width: width, expanded: row.isExpanded, measure: EditorLayoutTranscriptTextMeasure(),
-      tolerance: TranscriptRowHeightBed.exactTolerance)
-  }
-
-  /// A production change that fails this test: the measure takes inline
-  /// math, block math or a wrapped line with inline code for not exact, so
-  /// the cache gives no height to the static form of the row (card
-  /// ^v2nh2hq).
-  @Test(arguments: TranscriptRowFixtures.Row.measuredMarkdownRows)
-  func theCacheTakesTheHeightOfAMeasuredMarkdownRowForExact(row: TranscriptRowFixtures.Row) async throws {
-    let entry = try TranscriptRowHeightBed.entry([row.item])
-    let heights = TranscriptRowHeights(
-      metrics: TranscriptRowMetrics.probe(), expandedBlocks: ExpandedBlocksStore { _ in row.isExpanded })
-    _ = try await TranscriptRowHeightBed.cachedHeight(
-      of: entry, in: heights, width: TranscriptRowHeightBed.regularWidth)
-
-    #expect(heights.knowsHeight(of: entry.id))
-  }
-
-  /// A production change that fails this test: the measure of a text part
-  /// at a new width, from the value that the cache prepared at the width
-  /// before (card ^9ync5h3), gives another height than a measure at the new
-  /// width alone, so the height of the cache after a resize differs from
-  /// the height of the mounted row.
-  @Test(
-    arguments: TranscriptRowFixtures.Row.codeRows + TranscriptRowFixtures.Row.measuredMarkdownRows,
-    TranscriptRowHeightBed.widths)
-  func theMeasureAfterAResizeIsTheMountedHeightExactly(row: TranscriptRowFixtures.Row, width: CGFloat) async throws {
-    let entry = try TranscriptRowHeightBed.entry([row.item])
-    try await TranscriptRowHeightBed.expectCachedHeightMatchesTheMountedRow(
-      entry, width: width, expanded: row.isExpanded, measure: EditorLayoutTranscriptTextMeasure(),
-      tolerance: TranscriptRowHeightBed.exactTolerance, widthBefore: TranscriptRowHeightBed.widthBeforeResize)
   }
 
   /// A production change that fails this test: the measure gives EditorKit
@@ -130,5 +110,24 @@ struct TranscriptRowMeasureTests {
     _ = try await TranscriptRowHeightBed.cachedHeight(of: entry, in: cache, width: TranscriptRowHeightBed.regularWidth)
 
     #expect(cache.knowsHeight(of: entry.id))
+  }
+
+  /// Mounts one row of a kind, computes its height in a cache with the
+  /// default text measure (``EditorLayoutTranscriptTextMeasure``), and
+  /// checks that the two heights are the same.
+  ///
+  /// - Parameters:
+  ///   - row: The kind of the row.
+  ///   - width: The width of the row, and the width before a resize.
+  ///   - tolerance: The largest difference between the two heights.
+  ///   - sourceLocation: The location of the caller.
+  private func expectTheMountedHeight(
+    of row: TranscriptRowFixtures.Row, width: MeasureWidth, tolerance: CGFloat = TranscriptRowHeightBed.tolerance,
+    sourceLocation: SourceLocation = #_sourceLocation
+  ) async throws {
+    let entry = try TranscriptRowHeightBed.entry([row.item])
+    try await TranscriptRowHeightBed.expectCachedHeightMatchesTheMountedRow(
+      entry, width: width.width, expanded: row.isExpanded, measure: EditorLayoutTranscriptTextMeasure(),
+      tolerance: tolerance, widthBefore: width.widthBefore, sourceLocation: sourceLocation)
   }
 }
