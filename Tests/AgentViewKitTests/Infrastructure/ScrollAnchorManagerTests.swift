@@ -493,14 +493,56 @@ import Testing
     #expect(manager.visibleIDs == ["b", "c"])
   }
 
-  @Test func theReportAfterAReportWithoutTheItemReplacesTheVisibleIds() {
+  /// A production change that fails this test: only the first report
+  /// after a jump that does not include the item keeps the item. After a
+  /// long jump, the lazy list can report the rows of two layout passes
+  /// before it placed the item, and then send no report of the item. The
+  /// visible ids then never include the item (CI run 45924309592).
+  @Test func aSecondReportWithoutTheItemKeepsTheItemOfTheJump() {
     let manager = Self.makeJumpedManager(recorder: ReportRecorder())
     manager.noteVisible(ids: ["a", "b"], distanceFromBottom: Self.distanceOutsideTolerance)
 
-    // The user scrolls.
+    manager.noteVisible(ids: ["a"], distanceFromBottom: Self.distanceOutsideTolerance)
+
+    #expect(manager.visibleIDs == ["c"])
+  }
+
+  /// A production change that fails this test: a report at the bottom
+  /// replaces the item of the jump also when it does not include the item.
+  /// The list can report the rows at the bottom from a layout pass before
+  /// it moved to the item, and then send no report of the item.
+  @Test func aReportAtTheBottomWithoutTheItemKeepsTheItemOfTheJump() {
+    let manager = Self.makeJumpedManager(recorder: ReportRecorder())
+
+    manager.noteVisible(ids: ["d", "e"])
+
+    #expect(manager.visibleIDs == ["c"])
+  }
+
+  /// A production change that fails this test: a scroll of the user does
+  /// not end the wait for the item of the jump, so the visible ids keep the
+  /// item after the user moves the list away from it.
+  @Test func aScrollOfTheUserEndsTheWaitForTheItemOfTheJump() {
+    let manager = Self.makeJumpedManager(recorder: ReportRecorder())
+    manager.noteVisible(ids: ["a", "b"], distanceFromBottom: Self.distanceOutsideTolerance)
+
+    manager.noteScrollByUser()
     manager.noteVisible(ids: ["b"], distanceFromBottom: Self.distanceOutsideTolerance)
 
     #expect(manager.visibleIDs == ["b"])
+  }
+
+  /// A production change that fails this test: a scroll to the bottom that
+  /// the manager sends does not end the wait for the item of the jump, so
+  /// the visible ids keep the item after the list moves to the bottom.
+  @Test func aSentScrollToTheBottomEndsTheWaitForTheItemOfTheJump() async {
+    let manager = Self.makeJumpedManager(recorder: ReportRecorder())
+    manager.requestScrollToBottom()
+    await ScheduledMainActorTasks.runScheduled()
+
+    manager.noteVisible(ids: ["d", "e"])
+
+    #expect(manager.visibleIDs == ["d", "e"])
   }
 
   // MARK: - Equal report
