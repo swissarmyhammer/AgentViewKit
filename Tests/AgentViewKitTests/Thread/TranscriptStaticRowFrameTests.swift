@@ -72,6 +72,29 @@ import Testing
     #expect(size.height == Self.probeHeight)
   }
 
+  /// A production change that fails this test: the frame places the
+  /// content of a static row with a known height at a proposal with no
+  /// height, so the content measures itself at another proposal than the
+  /// size of the row, and lays out its text again.
+  @Test func aStaticRowWithAKnownHeightPlacesItsContentAtTheSizeOfTheRow() {
+    let record = SizeQueryRecord()
+    let knownHeight: TranscriptStaticRowFrame.Height = { _ in Self.staticHeight }
+    // The probe holds a view, so SwiftUI places it.
+    let root = TranscriptStaticRowFrame(id: .local(UUID()), staticHeight: knownHeight) {
+      SizeQueryProbe(record: record, height: Self.probeHeight) { Color.clear }
+    }
+    .frame(width: Self.proposal.width)
+      .fixedSize(horizontal: false, vertical: true)
+    let (hosting, window) = UnorderedWindow.mount(root, size: Self.proposal)
+    defer { UnorderedWindow.close(window) }
+
+    hosting.layoutSubtreeIfNeeded()
+
+    #expect(
+      record.placements == [ProposedViewSize(width: Self.proposal.width, height: Self.staticHeight)],
+      "\(record.placements)")
+  }
+
   /// A production change that fails this test: the frame takes the default
   /// guides of `Layout`, which place the content and ask it for its guides.
   /// The scroll view of a thread asks for the guides of the rows for its

@@ -47,12 +47,16 @@ struct StaticMarkdownText: View {
     #endif
     let base = editorTheme.displayFont.resolve(in: fontContext).ctFont
     let rowHeight = EditorTextFont(font: base).lineHeight
-    VStack(alignment: .leading, spacing: .zero) {
-      ForEach(Array(StaticMarkdownLine.blocks(in: markdown).enumerated()), id: \.offset) { _, block in
-        let font = block.font(base: base)
-        Text(block.text)
-          .font(Font(font))
-          .editorRows(font: font, rowHeight: rowHeight * CGFloat(block.rowScale))
+    // One proposal for the blocks, so SwiftUI lays each text out one time
+    // (card ^9ync5h3).
+    StaticTextColumns {
+      VStack(alignment: .leading, spacing: .zero) {
+        ForEach(Array(StaticMarkdownLine.blocks(in: markdown).enumerated()), id: \.offset) { _, block in
+          let font = block.font(base: base)
+          Text(block.text)
+            .font(Font(font))
+            .editorRows(font: font, rowHeight: rowHeight * CGFloat(block.rowScale))
+        }
       }
     }
   }

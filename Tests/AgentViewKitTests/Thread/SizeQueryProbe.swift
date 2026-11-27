@@ -20,11 +20,17 @@ import SwiftUI
   /// its content: the call stack of each of them has ``barMeasureSymbol``.
   private(set) var barQueryCount = 0
 
+  /// The proposal of each size query, in the order of the queries.
+  private(set) var proposals: [ProposedViewSize] = []
+
   /// Records one size query.
   ///
-  /// - Parameter symbols: The call stack of the query.
-  func noteQuery(symbols: [String]) {
+  /// - Parameters:
+  ///   - proposal: The proposal of the query.
+  ///   - symbols: The call stack of the query.
+  func noteQuery(_ proposal: ProposedViewSize, symbols: [String]) {
     queryCount += 1
+    proposals.append(proposal)
     if symbols.contains(where: { $0.contains(Self.barMeasureSymbol) }) {
       barQueryCount += 1
     }
@@ -32,6 +38,17 @@ import SwiftUI
 
   /// The number of the alignment guide queries.
   private(set) var alignmentQueryCount = 0
+
+  /// The proposal of each placement of the probe, in the order of the
+  /// placements.
+  private(set) var placements: [ProposedViewSize] = []
+
+  /// Records one placement.
+  ///
+  /// - Parameter proposal: The proposal of the placement.
+  func notePlacement(_ proposal: ProposedViewSize) {
+    placements.append(proposal)
+  }
 
   /// Records one alignment guide query.
   func noteAlignmentQuery() {
@@ -41,6 +58,8 @@ import SwiftUI
   /// Removes the queries of the record.
   func reset() {
     queryCount = 0
+    proposals = []
+    placements = []
     barQueryCount = 0
     alignmentQueryCount = 0
   }
@@ -61,11 +80,13 @@ struct SizeQueryProbe: Layout {
 
   func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) -> CGSize {
     let symbols = Thread.callStackSymbols
-    MainActor.assumeIsolated { record.noteQuery(symbols: symbols) }
+    MainActor.assumeIsolated { record.noteQuery(proposal, symbols: symbols) }
     return CGSize(width: proposal.width ?? 0, height: height)
   }
 
-  func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) {}
+  func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) {
+    MainActor.assumeIsolated { record.notePlacement(proposal) }
+  }
 
   func explicitAlignment(
     of guide: HorizontalAlignment, in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews,

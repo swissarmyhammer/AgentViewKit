@@ -297,11 +297,18 @@ struct TranscriptStaticRowFrame: Layout {
     MainActor.assumeIsolated { staticHeight?(width) }
   }
 
+  /// Places the content at the top leading corner of the row.
+  ///
+  /// A static row with a known height at the width of the row proposes
+  /// that exact size to its content: the size that ``sizeThatFits(proposal:subviews:cache:)``
+  /// gave. Thus the content gets one proposal on each frame, and SwiftUI
+  /// keeps the measure of each text of the content. Each other row
+  /// proposes the width of the row and the height of the proposal.
   func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+    let height = height(at: bounds.width) ?? proposal.height
     for subview in subviews {
       subview.place(
-        at: bounds.origin, anchor: .topLeading,
-        proposal: ProposedViewSize(width: bounds.width, height: proposal.height))
+        at: bounds.origin, anchor: .topLeading, proposal: ProposedViewSize(width: bounds.width, height: height))
     }
   }
 
