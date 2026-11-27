@@ -43,6 +43,10 @@ import SwiftUI
   /// shows its real form at once at rest (card ^7625j1b).
   var mounts: TranscriptRowMountQueue?
 
+  /// Whether the row is in a SwiftUI scroll view of the size of the window,
+  /// as the rows of a thread are. Set it before ``show(rowsMove:)``.
+  var isInScrollView = false
+
   /// The window of the host. It is never ordered in.
   private let window: NSWindow
 
@@ -154,7 +158,9 @@ import SwiftUI
   ///
   /// - Parameter rowsMove: Whether the rows of the thread move.
   func show(rowsMove: Bool) {
-    hosting.rootView = AnyView(row(rowsMove: rowsMove))
+    let row = row(rowsMove: rowsMove)
+    hosting.rootView =
+      isInScrollView ? AnyView(ScrollView { row }.frame(width: width, height: width)) : AnyView(row)
     layOut()
   }
 
@@ -190,6 +196,36 @@ import SwiftUI
   /// form, and one for each text area in the real form.
   var textViewCount: Int {
     views(ofType: NSTextView.self, in: hosting).count
+  }
+
+  /// The view that the window hit-tests at the center of the first
+  /// EditorKit text view of the row, as AppKit hit-tests a click or a
+  /// scroll-wheel event there, and that text view. Each is `nil` when the
+  /// row has no text view; the hit is `nil` when no view takes the point.
+  var hitAtText: (hit: NSView?, text: NSTextView?) {
+    guard let text = views(ofType: NSTextView.self, in: hosting).first, let frame = hosting.superview else {
+      return (nil, nil)
+    }
+    let center = text.convert(CGPoint(x: text.bounds.midX, y: text.bounds.midY), to: frame)
+    return (hosting.hitTest(center), text)
+  }
+
+  /// Whether the hit test at the text of the row (``hitAtText``) reaches a
+  /// view of the row: a view of the host that is not the host, and that
+  /// does not hold the text view, such as a scroll view does.
+  var hitReachesRow: Bool {
+    let (hit, text) = hitAtText
+    guard let hit, let text, hit !== hosting else { return false }
+    return hit === text || !text.isDescendant(of: hit)
+  }
+
+  /// Whether the hit test at the text of the row (``hitAtText``) reaches
+  /// the scroll view of a host with ``isInScrollView``: the AppKit scroll
+  /// view, or a view in it. A scroll-wheel event at that point then goes
+  /// up the responder chain to the scroll view.
+  var hitReachesScrollView: Bool {
+    guard let hit = hitAtText.hit else { return false }
+    return hit is NSScrollView || hit.enclosingScrollView != nil
   }
 
   /// The row drawn into a bitmap at the size of the host.
