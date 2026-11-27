@@ -45,6 +45,16 @@ import Testing
   /// start, gives the same count for the same steps.
   static let flickMounts = 0
 
+  /// The number of answers in the transcript of a far jump: one page of
+  /// the list at most (``ConversationLayout/defaultPageSize``), so each row
+  /// is in the list, and many more rows than the list shows.
+  static let farJumpAnswerCount = 120
+
+  /// The distance of the live jump from the bottom of the list, in
+  /// points: many times the height of the list, so the rows in view after
+  /// the jump were never in view at rest.
+  static let farJumpDistance: CGFloat = 6_000
+
   /// The frames of the queue of the list.
   let frames = ManualFrames()
 
@@ -94,6 +104,35 @@ import Testing
     let record = await flick(thread)
 
     #expect(record.mountCount == Self.flickMounts, "\(record.mountCount) editors mounted in the flick")
+  }
+
+  /// A production change that fails this test: the height cache of the
+  /// list computes only the rows near the view, or computes them after
+  /// they come into view, so a row that a live flick reaches for the first
+  /// time has no known height and mounts its editors in the motion.
+  ///
+  /// The list has the height cache of an ``AgentThreadView``, and the test
+  /// waits only for the computation that the cache starts itself
+  /// (``TranscriptRowHeights/finishPendingHeights()``). No row was real
+  /// before the jump, except the rows at the bottom.
+  @Test func aLiveJumpToRowsThatWereNeverShownMountsNoEditorInView() async throws {
+    let answers = AnswerText.transcript(count: Self.farJumpAnswerCount, in: "farJump", withCodeFence: true)
+    let thread = try MovingThread(
+      session: .preview(transcript: answers), frames: frames, expandedBlocks: ExpandedBlocksStore())
+    thread.settle()
+    let cache = try #require(thread.heights.cache, "the list has no height cache")
+    await cache.finishPendingHeights()
+    thread.settle()
+    let atRest = thread.rowKeysInView
+
+    thread.startMoving()
+    thread.step(by: Self.farJumpDistance, isLive: true)
+    thread.settle()
+
+    try #require(
+      !thread.rowKeysInView.isEmpty && thread.rowKeysInView.isDisjoint(with: atRest),
+      "rows in view \(thread.rowKeysInView.sorted()) at rest \(atRest.sorted())")
+    #expect(thread.textViewsInView.isEmpty, "\(thread.textViewsInView.count) editors in view")
   }
 
   /// A production change that fails this test: a row that is real in the

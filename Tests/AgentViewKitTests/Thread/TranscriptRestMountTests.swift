@@ -75,9 +75,12 @@ import Testing
 
   /// A production change that fails this test: the rows that wait at rest
   /// do not take their turns, or a turn makes more than one editor real.
-  @Test func theFirstFrameOfTheQueueMakesOneEditorReal() async throws {
+  /// The first turn comes in the first frame after the rest frames of the
+  /// queue (``TranscriptRowMountQueue/restFramesBeforeMount``).
+  @Test func theFirstMountOfTheQueueMakesOneEditorReal() async throws {
     let thread = try await restAfterAMotion()
 
+    frames.advanceToTheLastFrameBeforeTheMount()
     frames.advance()
     thread.hosting.layoutSubtreeIfNeeded()
 

@@ -43,6 +43,13 @@ import Testing
       advance()
     }
   }
+
+  /// Gives the frames of a rest that come before the frame of the first
+  /// mount of the queue: ``TranscriptRowMountQueue/restFramesBeforeMount``
+  /// minus 1. After them, the next frame mounts the first editor slot.
+  func advanceToTheLastFrameBeforeTheMount() {
+    advance(TranscriptRowMountQueue.restFramesBeforeMount - 1)
+  }
 }
 
 /// The queue that makes the editor slots of the rows of a thread real one
@@ -80,10 +87,10 @@ import Testing
 
   /// Makes a queue that holds one waiting mount for each of ``distances``,
   /// each with one editor slot for each of ``slotTops``, while the rows
-  /// move.
+  /// move in a live motion of the user.
   init() {
     queue = TranscriptRowMountQueue(frames: frames)
-    queue.noteRowsMove(true)
+    Self.startLiveMotion(of: queue)
     mounts = Self.distances.map { distance in
       let mount = TranscriptRowMount()
       mount.centerDistance = distance
@@ -116,10 +123,54 @@ import Testing
     slots[row].filter { !$0.waits }.map(\.top).sorted()
   }
 
+  /// Starts a live motion of the user in `queue`: the rows move.
+  ///
+  /// - Parameter queue: The queue that learns of the motion.
+  static func startLiveMotion(of queue: TranscriptRowMountQueue) {
+    queue.noteRowsMove(true)
+    queue.noteRowsMoveLive(true)
+  }
+
+  /// Ends a live motion of the user in `queue`: the rows come to rest.
+  ///
+  /// - Parameter queue: The queue that learns of the rest.
+  static func endLiveMotion(of queue: TranscriptRowMountQueue) {
+    queue.noteRowsMoveLive(false)
+    queue.noteRowsMove(false)
+  }
+
+  /// Makes a mount of a row that waits, with one editor slot.
+  ///
+  /// - Returns: The mount, and its slot.
+  static func makeWaitingMount() -> (mount: TranscriptRowMount, slot: TranscriptSlotMount) {
+    let mount = TranscriptRowMount(waits: true)
+    let slot = TranscriptSlotMount()
+    mount.add(slot)
+    return (mount, slot)
+  }
+
+  /// Starts a live motion of the user in the queue of the test.
+  func startLiveMotion() {
+    Self.startLiveMotion(of: queue)
+  }
+
+  /// Ends a live motion of the user in the queue of the test.
+  func endLiveMotion() {
+    Self.endLiveMotion(of: queue)
+  }
+
+  /// Ends the live motion of the rows, and gives the frames of the rest
+  /// that come before the frame of the first mount
+  /// (``ManualFrames/advanceToTheLastFrameBeforeTheMount()``).
+  func restUntilTheFirstMount() {
+    endLiveMotion()
+    frames.advanceToTheLastFrameBeforeTheMount()
+  }
+
   /// A production change that fails this test: the queue makes all editor
   /// slots of a row real in the same frame.
   @Test func afterOneFrameAtRestAtMostOneEditorSlotIsReal() {
-    queue.noteRowsMove(false)
+    restUntilTheFirstMount()
 
     frames.advance()
 
@@ -130,7 +181,7 @@ import Testing
   /// real in the order of the arrival of their rows, and not from the
   /// center out.
   @Test func theFirstSlotIsInTheRowNearestTheCenter() {
-    queue.noteRowsMove(false)
+    restUntilTheFirstMount()
 
     frames.advance()
 
@@ -140,7 +191,7 @@ import Testing
   /// A production change that fails this test: the slots of a row become
   /// real in the order of their arrival, and not from top to bottom.
   @Test func theSlotsOfARowBecomeRealFromTopToBottom() {
-    queue.noteRowsMove(false)
+    restUntilTheFirstMount()
 
     frames.advance(2)
 
@@ -151,7 +202,7 @@ import Testing
   /// its first slot becomes real, so its frame takes its content height
   /// while its other slots are still static.
   @Test func aRowWithThreeSlotsStillWaitsAfterTwoFrames() {
-    queue.noteRowsMove(false)
+    restUntilTheFirstMount()
 
     frames.advance(2)
 
@@ -162,7 +213,7 @@ import Testing
   /// wait when its last slot becomes real, so it keeps the frame of its
   /// static form.
   @Test func aRowWithThreeSlotsIsRealAfterThreeFrames() {
-    queue.noteRowsMove(false)
+    restUntilTheFirstMount()
 
     frames.advance(Self.slotTops.count)
 
@@ -172,7 +223,7 @@ import Testing
   /// A production change that fails this test: the queue goes to the next
   /// row before each slot of the row nearest the center is real.
   @Test func theNextSlotAfterAWholeRowIsInTheSecondRowFromTheCenter() {
-    queue.noteRowsMove(false)
+    restUntilTheFirstMount()
 
     frames.advance(Self.slotTops.count + 1)
 
@@ -190,10 +241,10 @@ import Testing
   /// A production change that fails this test: a new motion does not stop
   /// the queue, so the editors mount while the list moves.
   @Test func aNewMotionStopsTheQueue() {
-    queue.noteRowsMove(false)
+    restUntilTheFirstMount()
     frames.advance()
 
-    queue.noteRowsMove(true)
+    startLiveMotion()
     frames.advance()
 
     #expect(realSlotCount == 1)
@@ -202,11 +253,11 @@ import Testing
   /// A production change that fails this test: the slots that wait when a
   /// new motion starts never become real at the next rest.
   @Test func theNextRestMakesTheSlotsThatStillWaitReal() {
-    queue.noteRowsMove(false)
+    restUntilTheFirstMount()
     frames.advance()
-    queue.noteRowsMove(true)
+    startLiveMotion()
 
-    queue.noteRowsMove(false)
+    restUntilTheFirstMount()
     frames.advance()
 
     #expect(realSlotCount == 2)
@@ -216,7 +267,7 @@ import Testing
   /// source in run after the last slot becomes real, so the display link
   /// fires for no work.
   @Test func theQueueStopsTheFramesWhenNoSlotWaits() {
-    queue.noteRowsMove(false)
+    restUntilTheFirstMount()
 
     frames.advance(Self.slotCount)
 
@@ -236,7 +287,7 @@ import Testing
   /// at once still takes the turn of the next slot.
   @Test func aRowThatLeavesTheQueueTakesNoTurn() {
     queue.release(mounts[Self.centerRow])
-    queue.noteRowsMove(false)
+    restUntilTheFirstMount()
 
     frames.advance()
 
@@ -249,7 +300,7 @@ import Testing
     let empty = TranscriptRowMount()
     empty.centerDistance = 0
     queue.enqueue(empty)
-    queue.noteRowsMove(false)
+    restUntilTheFirstMount()
 
     frames.advance()
 
@@ -270,7 +321,7 @@ import Testing
   /// its row, such as when it changes from its still view to its editor,
   /// waits again for a turn.
   @Test func aSlotWhoseTurnCameDoesNotWaitWhenItShowsAgain() {
-    queue.noteRowsMove(false)
+    restUntilTheFirstMount()
     frames.advance()
     let slot = slots[Self.centerRow][1]
 
@@ -299,7 +350,7 @@ import Testing
   /// stays in the queue, so its turn mounts an editor out of view.
   @Test func aRowThatLeftTheViewTakesNoTurn() {
     queue.withdraw(mounts[Self.centerRow])
-    queue.noteRowsMove(false)
+    restUntilTheFirstMount()
 
     frames.advance()
 
@@ -346,6 +397,106 @@ import Testing
   /// editor at rest.
   @Test func aSlotThatIsNotInARowYetWaits() {
     #expect(TranscriptSlotMount().waits)
+  }
+
+  // MARK: - The rest before the first mount
+
+  /// A production change that fails this test: the queue mounts an editor
+  /// in a short rest between two flicks, so the frame of the rest hitches
+  /// and the row stays real in the next flick.
+  @Test func noEditorSlotIsRealInTheRestFramesBeforeTheMount() {
+    endLiveMotion()
+
+    frames.advanceToTheLastFrameBeforeTheMount()
+
+    #expect(realSlotCount == 0)
+  }
+
+  /// A production change that fails this test: the queue mounts more than
+  /// one slot, or no slot, in the first frame after the rest frames.
+  @Test func theFirstEditorSlotIsRealInTheFrameAfterTheRestFrames() {
+    endLiveMotion()
+    frames.advanceToTheLastFrameBeforeTheMount()
+
+    frames.advance()
+
+    #expect(realSlotCount == TranscriptRowMountQueue.editorSlotsPerFrame)
+  }
+
+  /// A production change that fails this test: a live motion that starts
+  /// before the first mount does not stop the count, so an editor mounts
+  /// while the rows move.
+  @Test func aMotionBeforeTheFirstMountMountsNothing() {
+    endLiveMotion()
+    frames.advanceToTheLastFrameBeforeTheMount()
+
+    startLiveMotion()
+    frames.advance(TranscriptRowMountQueue.restFramesBeforeMount)
+
+    #expect(realSlotCount == 0)
+  }
+
+  /// A production change that fails this test: a rest keeps the frames
+  /// that an earlier rest counted, so the queue mounts an editor in the
+  /// first frames of a short rest after a second flick.
+  @Test func eachRestCountsItsFramesFromItsStart() {
+    endLiveMotion()
+    frames.advanceToTheLastFrameBeforeTheMount()
+    startLiveMotion()
+
+    endLiveMotion()
+    frames.advanceToTheLastFrameBeforeTheMount()
+
+    #expect(realSlotCount == 0)
+  }
+
+  /// A production change that fails this test: a motion of the kit, such
+  /// as a programmatic jump, starts the rest count again, so a row that
+  /// waits after it does not mount at the first frame.
+  @Test func aMotionOfTheKitAfterTheRestCountMountsAtTheFirstFrame() {
+    restUntilTheFirstMount()
+    frames.advance()
+    queue.noteRowsMove(true)
+
+    queue.noteRowsMove(false)
+    frames.advance()
+
+    #expect(realSlotCount == 2)
+  }
+
+  /// A production change that fails this test: the rest count stops while
+  /// no row waits, so a row that a programmatic jump shows after a long
+  /// rest waits for the whole count before its first slot mounts.
+  @Test func aRowThatAJumpShowsAfterALongRestMountsAtTheFirstFrame() {
+    let restFrames = ManualFrames()
+    let restQueue = TranscriptRowMountQueue(frames: restFrames)
+    Self.startLiveMotion(of: restQueue)
+    Self.endLiveMotion(of: restQueue)
+    restFrames.advance(TranscriptRowMountQueue.restFramesBeforeMount)
+    let (mount, slot) = Self.makeWaitingMount()
+    restQueue.noteRowsMove(true)
+    restQueue.enqueue(mount)
+
+    restQueue.noteRowsMove(false)
+    restFrames.advance()
+
+    #expect(!slot.waits)
+  }
+
+  /// A production change that fails this test: a motion of the kit with
+  /// no live motion before it waits for the rest count, so the rows of a
+  /// thread that just opened mount late.
+  @Test func aMotionOfTheKitWithNoLiveMotionMountsAtTheFirstFrame() {
+    let kitFrames = ManualFrames()
+    let kitQueue = TranscriptRowMountQueue(frames: kitFrames)
+    let (mount, slot) = Self.makeWaitingMount()
+    kitQueue.noteRowsMove(true)
+    kitQueue.enqueue(mount)
+
+    kitQueue.noteRowsMove(false)
+    kitFrames.advance()
+
+    #expect(!slot.waits)
   }
 
   // MARK: - The form of a waiting row
@@ -428,22 +579,25 @@ import Testing
 
   /// Shows the row of `item` at rest, then as a row that enters while the
   /// rows move, in a host with the queue of the test, and then shows it at
-  /// rest.
+  /// rest. Then it gives the frames of the rest that come before the frame
+  /// of the first mount (``TranscriptRowMountQueue/restFramesBeforeMount``).
   ///
   /// - Parameter item: The transcript item of the row.
-  /// - Returns: The host, with the row at rest, and the number of
-  ///   EditorKit text views of the real row.
+  /// - Returns: The host, with the row at rest in the last frame before
+  ///   the first mount, and the number of EditorKit text views of the real
+  ///   row.
   func restingRowThatEnteredWhileMoving(
     _ item: PreviewTranscriptItem = TranscriptStaticRowTests.plainAnswer
   ) -> (host: StaticRowHost, realTextViews: Int) {
     let host = StaticRowHost(item, width: TranscriptStaticRowTests.widths[1])
     let realTextViews = host.textViewCount
     host.mounts = queue
-    queue.noteRowsMove(true)
+    TranscriptRowMountQueueTests.startLiveMotion(of: queue)
     host.enterWhileMoving()
     PendingRunLoopBlocks.run()
-    queue.noteRowsMove(false)
+    TranscriptRowMountQueueTests.endLiveMotion(of: queue)
     host.show(rowsMove: false)
+    advance(TranscriptRowMountQueue.restFramesBeforeMount - 1, in: host)
     return (host, realTextViews)
   }
 

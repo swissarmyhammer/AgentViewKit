@@ -650,6 +650,7 @@ public struct ConversationView<EmptyState: View>: View {
     .environment(\.transcriptRowMounts, rowMounts)
     .background { TranscriptFrameAnchor(frames: rowMounts.frames) }
     .onChange(of: rowsMove) { rowMounts.noteRowsMove(rowsMove) }
+    .onChange(of: rowsMoveLive) { rowMounts.noteRowsMoveLive(rowsMoveLive) }
     .onChange(of: isJumping) { noteJump() }
     .onScrollGeometryChange(for: ConversationBottomGeometry.self) { geometry in
       ConversationBottomGeometry(geometry, tolerance: anchors.tolerance)

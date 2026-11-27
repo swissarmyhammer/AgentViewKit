@@ -174,10 +174,14 @@ import SwiftUI
 /// and when the last slot is real, the row leaves the queue.
 ///
 /// A new motion stops the queue, and the slots that wait stay static. The
-/// next rest starts the queue again. A row that leaves the view leaves the
-/// queue and keeps its wait (``withdraw(_:)``). A row that gets a hold
-/// (``TranscriptRowHolds``) shows its real form at once and leaves the
-/// queue (``release(_:)``). A jump session mounts each row at once
+/// next rest starts the queue again. After a live motion of the user, the
+/// queue first counts ``restFramesBeforeMount`` frames of the rest, so a
+/// user who flicks again and again does not pay a mount in each short
+/// pause. A motion of the kit does not start such a count. A row that
+/// leaves the view leaves the queue and keeps its wait (``withdraw(_:)``).
+/// A row that gets a hold (``TranscriptRowHolds``) shows its real form at
+/// once and leaves the queue (``release(_:)``). A jump session mounts each
+/// row at once
 /// (``mountAll()``), and each row that comes into the queue while the
 /// session is open (``endMountAll()``).
 @MainActor final class TranscriptRowMountQueue {
@@ -185,6 +189,20 @@ import SwiftUI
   /// frame. One EditorKit editor takes about one frame of the main thread
   /// when it mounts.
   static let editorSlotsPerFrame = 1
+
+  /// The number of frames of a rest after a live motion until the queue
+  /// makes the first editor slot real: the first slot becomes real in the
+  /// last of these frames.
+  ///
+  /// A user who flicks again and again stops for about 250 ms between two
+  /// flicks: about 30 frames at 120 Hz (the hitch traces of quiet release
+  /// flicks, card ^9ync5h3). When the queue mounts in such a short rest,
+  /// that frame hitches, and the real row then adds the TextKit layout of
+  /// its viewport to each frame of the next flick. 36 frames (300 ms at
+  /// 120 Hz, 600 ms at 60 Hz) are more than such a rest, so a short rest
+  /// mounts no editor. The queue counts frames of its frame source, not a
+  /// clock.
+  static let restFramesBeforeMount = 36
 
   /// The frames that drive the queue.
   let frames: any TranscriptFrameSource
@@ -198,6 +216,13 @@ import SwiftUI
   /// Whether a jump session is open: each row that comes into the queue
   /// shows its real form at once.
   private var mountsAtOnce = false
+
+  /// The frames of the rest that are left before the queue makes a slot
+  /// real (``restFramesBeforeMount``). A live motion of the user sets it
+  /// (``noteRowsMoveLive(_:)``). It is 0 when no live motion came before,
+  /// so a row that waits after a motion of the kit, or in a thread that
+  /// just opened, takes its turn in the next frame.
+  private var restFramesLeft = 0
 
   /// Makes an empty queue.
   ///
@@ -267,7 +292,8 @@ import SwiftUI
   }
 
   /// Records whether the rows of the thread move: a motion stops the
-  /// queue, and a rest starts it.
+  /// queue, and a rest starts it. After a live motion, the rest first
+  /// counts its frames (``noteRowsMoveLive(_:)``).
   ///
   /// - Parameter rowsMove: Whether the rows of the thread move
   ///   (``TranscriptRowMotion``).
@@ -280,16 +306,43 @@ import SwiftUI
     }
   }
 
-  /// Starts the frames, when the rows are at rest and a row waits.
-  private func startFramesAtRest() {
-    guard isResting, !waiting.isEmpty else { return }
-    frames.start { [weak self] in self?.mountNextSlots() }
+  /// Records whether the rows of the thread move in a live motion of the
+  /// user. A live motion sets the rest count again
+  /// (``restFramesBeforeMount``), so the queue makes no slot real in the
+  /// short rest that comes after it. A motion of the kit, such as a
+  /// programmatic scroll or a jump, does not set the count.
+  ///
+  /// - Parameter rowsMoveLive: Whether the rows move in a live motion
+  ///   (``TranscriptRowMotion/isLiveMotion(_:)``).
+  func noteRowsMoveLive(_ rowsMoveLive: Bool) {
+    guard rowsMoveLive else { return }
+    restFramesLeft = Self.restFramesBeforeMount
   }
 
-  /// Stops the frames, when no row waits.
+  /// Starts the frames, when the rows are at rest, and a row waits or the
+  /// rest count goes on.
+  private func startFramesAtRest() {
+    guard isResting, !waiting.isEmpty || restFramesLeft > 0 else { return }
+    frames.start { [weak self] in self?.stepFrame() }
+  }
+
+  /// Stops the frames, when no row waits and the rest count is at its end.
   private func stopFramesWhenEmpty() {
-    guard waiting.isEmpty else { return }
+    guard waiting.isEmpty, restFramesLeft == 0 else { return }
     frames.stop()
+  }
+
+  /// The step of one frame at rest: counts one frame of the rest count,
+  /// and makes the next slots real when the count is at its end
+  /// (``mountNextSlots()``). The frames stop when no work stays.
+  private func stepFrame() {
+    if restFramesLeft > 0 {
+      restFramesLeft -= 1
+    }
+    if restFramesLeft == 0 {
+      mountNextSlots()
+    }
+    stopFramesWhenEmpty()
   }
 
   /// The waiting row nearest the vertical center of the view, or `nil`
@@ -298,7 +351,7 @@ import SwiftUI
     waiting.values.min { $0.centerDistance < $1.centerDistance }
   }
 
-  /// The step of one frame: makes at most ``editorSlotsPerFrame`` waiting
+  /// The mount of one frame: makes at most ``editorSlotsPerFrame`` waiting
   /// slots real, from the row nearest the vertical center of the view. A
   /// row with no waiting slot leaves the queue, and uses none of the
   /// slots of the frame.
@@ -330,8 +383,9 @@ import SwiftUI
 ///
 /// The source makes a display link of its view
 /// (`NSView.displayLink(target:selector:)`) only while the queue runs it,
-/// so the display link fires only while a row waits at rest. Before the
-/// source has a view, a start waits for ``attach(to:)``.
+/// so the display link fires only at rest while a row waits or the rest
+/// count goes on. Before the source has a view, a start waits for
+/// ``attach(to:)``.
 @MainActor final class TranscriptDisplayLinkFrames: NSObject, TranscriptFrameSource {
   /// The view whose display gives the frames, or `nil` before the view of
   /// the thread shows.
