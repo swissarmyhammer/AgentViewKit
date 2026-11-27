@@ -170,6 +170,22 @@ comments:
     - evidence: b93507db. Files: Sources/AgentViewKit/Thread/ConversationView.swift, Tests/AgentViewKitTests/Thread/ConversationScrollPositionModelTests.swift (new), ARCHITECTURE.md. RED: aWriteOfTheScrollViewTellsNoChange failed on the seam (`binding` = Bindable(self).value, the 290de3dd behavior). GREEN: 4/4. The two hung tests pass on the fix (their suites: 2/2 and 9/9). Root swift test one run: 2034 tests in 250 suites + 59 tests in 12 suites passed, no own warnings. IntegrationTests full run one time: 1100 tests in 164 suites passed, exit 0 (5 known issues, all in FontRoleExpectationsTests, which checks on purpose that its checks fail).
     - next: /review of b93507db; merge by the parent.
   timestamp: 2026-11-27T22:40:20.785028+00:00
+- actor: claude-code
+  id: 01m8fnwn9x0pvebrkyszz1y0bs
+  text: |-
+    Defect TranscriptMotionEndTests.aRowThatTheListMakesBeforeTheRowsComeToRestWaits ("11 editors in view at rest"), research:
+    - Bisect with the single test alone (filter on the test name): b4facea2 pass 4/4, 290de3dd pass 4/4, b93507db fail 3/3, main fail 6/6. With the whole suite filter the test passes on some runs (the other suite changes the order of work), so each agent saw a green suite by chance.
+    - Cause (b93507db): the binding of ConversationScrollPosition is Binding(get:set:), and a Binding keeps the value that it had when the body made it. A write of the scroll view told no change, so no new binding was made. After a live scroll the binding still held the first scroll to the bottom (viewID of the last row, anchor bottom, seed 1). The list body evaluation at the end of the live motion (motion state change) updated the scroll modifier with that old value, and the scroll view went back to the bottom (y 1036 -> 2236). The rows in view at the end were then the real rows of rest at the bottom (39-49), not the waiting rows.
+    - 290de3dd did not have it because the Observable write evaluated the modifier at once and made a new binding (but that gave the hosted loop that b93507db removed).
+  timestamp: 2026-11-27T23:36:45.629126+00:00
+- actor: claude-code
+  id: 01m8fpkh5mnpcb39w80rjek3yp
+  text: |-
+    ### implement — changed
+    - evidence: commit 6967642a on worktree-agent-a4d4f4bd2695361f5 (not pushed). 4 files: Sources/AgentViewKit/Thread/ConversationView.swift (ConversationScrollPosition.binding(noting:); ConversationScrollPositionBinding keeps each write of the scroll view in a @State, so the write evaluates only the modifier in a later update and the scroll view gets a new binding), Tests/AgentViewKitTests/Thread/TranscriptMotionEndTests.swift (new theEndOfALiveMotionKeepsTheOffsetOfTheList, RED before the fix), Tests/AgentViewKitTests/Thread/ConversationScrollPositionModelTests.swift (new theNoteGetsAWriteOfTheScrollView), ARCHITECTURE.md.
+    - tests: root `swift test` 2036 tests / 250 suites + 59 / 12, 0 issues. Hosted, each under a 5 min guard: TranscriptSearchStepHostedTests 2 pass, SessionTranscriptViewHostedTests 9 pass, ThreadModelCacheHostedTests 2 pass. Full IntegrationTests (15 min guard): 1100 tests / 164 suites pass, 5 known issues (FontRoleExpectationsTests, by design). No guard kill.
+    - next: /review.
+  timestamp: 2026-11-27T23:49:15.060325+00:00
 position_column: doing
 position_ordinal: '80'
 title: 'Scroll 3: static rows while the transcript moves, real rows at rest'

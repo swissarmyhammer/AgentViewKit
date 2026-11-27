@@ -24,7 +24,7 @@ import Testing
   /// `@Observable` property does.
   @Test func aWriteOfTheScrollViewTellsNoChange() {
     let model = ConversationScrollPosition()
-    let binding = model.binding
+    let binding = model.binding { _ in }
 
     let changes = Self.changes(of: model) { _ in binding.wrappedValue.scrollTo(id: Self.rowID) }
 
@@ -37,9 +37,22 @@ import Testing
   @Test func theListReadsAWriteOfTheScrollView() {
     let model = ConversationScrollPosition()
 
-    model.binding.wrappedValue.scrollTo(id: Self.rowID)
+    model.binding { _ in }.wrappedValue.scrollTo(id: Self.rowID)
 
     #expect(model.value.viewID(type: String.self) == Self.rowID)
+  }
+
+  /// A production change that fails this test: the binding of the model
+  /// does not give a write of the scroll view to its note, so the reader of
+  /// the binding is not evaluated again, and its next update gives the
+  /// scroll view the old position of the binding.
+  @Test func theNoteGetsAWriteOfTheScrollView() {
+    let model = ConversationScrollPosition()
+    var noted: ScrollPosition?
+
+    model.binding { noted = $0 }.wrappedValue.scrollTo(id: Self.rowID)
+
+    #expect(noted?.viewID(type: String.self) == Self.rowID)
   }
 
   /// A production change that fails this test: a write of the list does not
@@ -76,7 +89,7 @@ import Testing
   ) -> Int {
     let changes = Mutex(0)
     withObservationTracking {
-      _ = model.binding
+      _ = model.binding { _ in }
     } onChange: {
       changes.withLock { $0 += 1 }
     }
