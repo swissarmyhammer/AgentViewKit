@@ -104,7 +104,8 @@ import SwiftUI
   ///   - row: The fixture of the row.
   ///   - width: The width of the row, in points.
   ///   - frames: The frames of the queue of the row, or `nil` for a row
-  ///     with no queue (``mounts``). The queue knows that the rows move.
+  ///     with no queue (``mounts``). The queue knows that the rows move,
+  ///     and whether the motion is live (`movesLive`).
   ///   - movesLive: Whether the motion is a live motion of the user
   ///     (``movesLive``).
   /// - Returns: The host, with the row in its first frame.
@@ -117,6 +118,7 @@ import SwiftUI
     if let frames {
       let mounts = TranscriptRowMountQueue(frames: frames)
       mounts.noteRowsMove(true)
+      mounts.noteRowsMoveLive(movesLive)
       host.mounts = mounts
     }
     let cache = TranscriptRowHeights(metrics: TranscriptRowMetrics.probe(), expandedBlocks: host.store)
