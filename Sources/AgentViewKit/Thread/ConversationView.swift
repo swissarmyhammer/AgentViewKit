@@ -33,6 +33,20 @@ public enum ConversationLayout {
   /// the ``ScrollAnchorManager`` that the row is visible.
   static let visibilityThreshold = 0.01
 
+  /// The prefix of the ``BodyEvaluationCounter`` key of the list of the
+  /// rows of a ``ConversationView``.
+  static let listCounterKeyPrefix = "conversation-list-"
+
+  /// The ``BodyEvaluationCounter`` key of the list of the rows of the
+  /// conversation of a manager: one evaluation of the list makes its scroll
+  /// modifiers and the `ForEach` of its rows again.
+  ///
+  /// - Parameter anchors: The manager of the conversation.
+  /// - Returns: The key.
+  static func listCounterKey(for anchors: ScrollAnchorManager) -> String {
+    BodyEvaluationKey.make(prefix: listCounterKeyPrefix, object: anchors)
+  }
+
   /// The SF Symbol name of the load-earlier row.
   static let loadEarlierSymbolName = AgentSymbol.loadEarlier
 
@@ -374,8 +388,10 @@ public struct ConversationView<EmptyState: View>: View {
   /// The number of pages that the list shows.
   @State private var pageCount = 1
 
-  /// The scroll position of the list.
-  @State private var position = ScrollPosition(idType: String.self)
+  /// The scroll position of the list, in a model of its own, so a write of
+  /// SwiftUI to the position does not evaluate the list
+  /// (``ConversationScrollPosition``).
+  @State private var scrollPosition = ConversationScrollPosition()
 
   /// Whether the end of the list was in the tolerance of the manager at the
   /// last scroll geometry change.
@@ -439,16 +455,12 @@ public struct ConversationView<EmptyState: View>: View {
   /// change of the transcript (task ^q1fy0n2).
   @State private var rowIndex = TranscriptRowIndex()
 
-  /// Whether the list moves: its scroll phase is not idle
-  /// (``TranscriptRowMotion``). While it moves, the rows show their static
-  /// forms (card ^9ync5h3).
-  @State private var isMoving = false
-
-  /// Whether the user moves the list: its scroll phase is a live motion
-  /// (``TranscriptRowMotion/isLiveMotion(_:)``). Only the rows that the
-  /// list makes or shows in a live motion wait in the queue of the rows
-  /// (card ^7625j1b).
-  @State private var isLiveMoving = false
+  /// The motion of the rows, from the scroll phases of the list
+  /// (``TranscriptMotionState``). While the rows move, they show their
+  /// static forms (card ^9ync5h3). Only the rows that the list makes or
+  /// shows in a live motion of the user, or in the end of such a motion,
+  /// wait in the queue of the rows (card ^7625j1b).
+  @State private var motion = TranscriptMotionState()
 
   /// The heights of the static forms of the rows (``TranscriptStaticRow``):
   /// the exact height of the cache of the rows, else the size of the real
@@ -458,11 +470,11 @@ public struct ConversationView<EmptyState: View>: View {
   /// (``init(session:anchors:frames:heights:emptyState:)``).
   @State private var rowHeights: TranscriptStaticRowHeights
 
-  /// The queue that mounts the EditorKit editors of the rows over several
-  /// frames when the rows come to rest
-  /// (``TranscriptRowMountQueue/editorSlotsPerFrame``, card ^7625j1b). The
-  /// display link of the view drives it, unless the view gets a different
-  /// source of frames (``init(session:anchors:frames:emptyState:)``).
+  /// The queue of the rows that keep their static form at rest until the
+  /// user interacts with them (``TranscriptRowMountQueue``, card ^7625j1b),
+  /// and that gives the frame of the end of a live motion. The display link
+  /// of the view drives it, unless the view gets a different source of
+  /// frames (``init(session:anchors:frames:emptyState:)``).
   @State private var rowMounts: TranscriptRowMountQueue
 
   /// The command system of the thread, whose jump session keeps each row
@@ -604,6 +616,9 @@ public struct ConversationView<EmptyState: View>: View {
   /// The scrolled list of the last pages of the rows. The transcript has at
   /// least one entry.
   private var list: some View {
+    #if DEBUG
+      let _ = BodyEvaluationCounter.note(ConversationLayout.listCounterKey(for: anchors))
+    #endif
     let count = session.transcript.count
     let shownCount = ConversationLayout.shownCount(
       count: count, pageSize: pageSize, pageCount: pageCount)
@@ -642,7 +657,7 @@ public struct ConversationView<EmptyState: View>: View {
     .defaultScrollAnchor(.bottom, for: .initialOffset)
     .defaultScrollAnchor(.bottom, for: .alignment)
     .modifier(ConversationFollowAnchor(anchors: anchors))
-    .scrollPosition($position)
+    .modifier(ConversationScrollPositionBinding(position: scrollPosition))
     .onScrollTargetVisibilityChange(
       idType: String.self, threshold: ConversationLayout.visibilityThreshold
     ) { ids in
@@ -656,11 +671,10 @@ public struct ConversationView<EmptyState: View>: View {
       scrollOffset.y = offset
     }
     .environment(\.transcriptRowsMove, rowsMove)
-    .environment(\.transcriptRowsMoveLive, rowsMoveLive)
+    .environment(\.transcriptRowsMoveLive, rowsEnterLive)
     .environment(\.staticRowHeights, rowHeights)
     .environment(\.transcriptRowMounts, rowMounts)
     .background { TranscriptFrameAnchor(frames: rowMounts.frames) }
-    .onChange(of: rowsMove) { rowMounts.noteRowsMove(rowsMove) }
     .onChange(of: isJumping) { noteJump() }
     .onScrollGeometryChange(for: ConversationBottomGeometry.self) { geometry in
       ConversationBottomGeometry(geometry, tolerance: anchors.tolerance)
@@ -685,14 +699,24 @@ public struct ConversationView<EmptyState: View>: View {
   /// Whether the rows show their static forms: the list moves, and no jump
   /// session of EditorKit is open (``TranscriptRowMotion``).
   private var rowsMove: Bool {
-    TranscriptRowMotion.rowsMove(isMoving: isMoving, isJumping: isJumping)
+    TranscriptRowMotion.rowsMove(isMoving: motion.isMoving, isJumping: isJumping)
   }
 
   /// Whether the rows move in a live motion of the user, and no jump
-  /// session of EditorKit is open. A row that the list makes in such a
-  /// motion waits in the queue of the rows from its start.
+  /// session of EditorKit is open. While the value is `true`, the elements
+  /// of the rows take no hit test (``TranscriptRowsHitTest``).
   private var rowsMoveLive: Bool {
-    TranscriptRowMotion.rowsMove(isMoving: isLiveMoving, isJumping: isJumping)
+    TranscriptRowMotion.rowsMove(isMoving: motion.isLiveMoving, isJumping: isJumping)
+  }
+
+  /// Whether a row that the list makes now waits in the queue of the rows
+  /// from its start: the rows move in a live motion of the user, or in the
+  /// frame of the end of such a motion
+  /// (``TranscriptMotionState/endsLiveMotion``), and no jump session of
+  /// EditorKit is open. The rows read it as
+  /// ``SwiftUI/EnvironmentValues/transcriptRowsMoveLive``.
+  private var rowsEnterLive: Bool {
+    TranscriptRowMotion.rowsMove(isMoving: motion.isLiveMoving || motion.endsLiveMotion, isJumping: isJumping)
   }
 
   /// Whether a jump session of EditorKit is open.
@@ -717,23 +741,34 @@ public struct ConversationView<EmptyState: View>: View {
   /// the kit has the animating phase or no phase. Each phase that is not
   /// idle moves the rows (``TranscriptRowMotion``). Only a scroll of the
   /// user is a live motion, in which the rows that come into the list wait
-  /// in the queue of the rows (card ^7625j1b).
+  /// in the queue of the rows (card ^7625j1b). The rows come to rest one
+  /// frame after the end of a live motion (``TranscriptMotionState``): the
+  /// queue of the rows gives that frame.
   ///
   /// - Parameter phase: The new scroll phase.
   private func noteScrollPhase(_ phase: ScrollPhase) {
-    let isLive = TranscriptRowMotion.isLiveMotion(phase)
-    if isLive {
+    if TranscriptRowMotion.isLiveMotion(phase) {
       unsettledItemID = nil
       keepsBottomRows = false
       anchors.noteScrollByUser()
     }
-    if isLive != isLiveMoving {
-      isLiveMoving = isLive
+    if changeMotion({ $0.note(phase) }) {
+      rowMounts.afterNextFrame { changeMotion { $0.endMotion() } }
     }
-    let moving = TranscriptRowMotion.isMoving(phase)
-    if moving != isMoving {
-      isMoving = moving
+  }
+
+  /// Changes the motion of the rows, and writes ``motion`` only when the
+  /// value changes, so a change with no effect evaluates no view.
+  ///
+  /// - Parameter change: The change of the motion.
+  /// - Returns: The result of `change`.
+  @discardableResult private func changeMotion<Result>(_ change: (inout TranscriptMotionState) -> Result) -> Result {
+    var next = motion
+    let result = change(&next)
+    if next != motion {
+      motion = next
     }
+    return result
   }
 
   /// Records a new scroll geometry of the list.
@@ -749,7 +784,7 @@ public struct ConversationView<EmptyState: View>: View {
   ///   - new: The geometry after the change.
   private func geometryDidChange(_ old: ConversationBottomGeometry, _ new: ConversationBottomGeometry) {
     ConversationLayout.releaseBottomEdge(
-      &position, isNearBottom: new.isNearBottom, firstScrollRowKey: firstScrollRowKey)
+      &scrollPosition.value, isNearBottom: new.isNearBottom, firstScrollRowKey: firstScrollRowKey)
     if new.isNearBottom {
       firstScrollRowKey = nil
     }
@@ -818,9 +853,10 @@ public struct ConversationView<EmptyState: View>: View {
   ///   status lines.
   private func rows(shownCount: Int, placements: ModelChangePlacements) -> some View {
     TranscriptRowStack(
-      session: session, shownCount: shownCount, placements: placements, entersWhileMoving: rowsMoveLive,
+      session: session, shownCount: shownCount, placements: placements, entersWhileMoving: rowsEnterLive,
+      rowsMoveLive: rowsMoveLive,
       itemPosition: unsettledItemID.flatMap { rowIndex.position(ofRowKey: $0, in: session) },
-      keepsBottom: keepsBottomRows, anchors: anchors, position: $position, scrollOffset: scrollOffset,
+      keepsBottom: keepsBottomRows, anchors: anchors, position: scrollPosition, scrollOffset: scrollOffset,
       rowHeights: rowHeights)
   }
 
@@ -916,7 +952,7 @@ public struct ConversationView<EmptyState: View>: View {
       if !didFirstBottomScroll {
         didFirstBottomScroll = true
         firstScrollRowKey = ConversationLayout.scrollFirstTimeToBottom(
-          &position, rowKey: lastRowKey, contentFitsInView: contentFitsInView)
+          &scrollPosition.value, rowKey: lastRowKey, contentFitsInView: contentFitsInView)
         return
       }
     case .item(let id):
@@ -926,7 +962,7 @@ public struct ConversationView<EmptyState: View>: View {
       unsettledItemID = id
       keepsBottomRows = false
     }
-    ConversationLayout.scroll(&position, to: target)
+    ConversationLayout.scroll(&scrollPosition.value, to: target)
   }
 
   /// Removes the row of the first scroll to the bottom from the scroll
@@ -945,7 +981,7 @@ public struct ConversationView<EmptyState: View>: View {
   private func releaseFirstScrollRow() {
     guard let key = firstScrollRowKey, key != lastRowKey else { return }
     firstScrollRowKey = nil
-    ConversationLayout.releaseFirstScrollRow(&position, rowKey: key)
+    ConversationLayout.releaseFirstScrollRow(&scrollPosition.value, rowKey: key)
   }
 
   /// Scrolls to the item of the last scroll to an item again, when `ids`
@@ -959,7 +995,7 @@ public struct ConversationView<EmptyState: View>: View {
   private func settleItemScroll(visible ids: [String]) {
     guard let id = unsettledItemID, ids.contains(id) else { return }
     unsettledItemID = nil
-    ConversationLayout.scroll(&position, to: .item(id))
+    ConversationLayout.scroll(&scrollPosition.value, to: .item(id))
   }
 
   /// Tells the manager and the live rows (``LiveRowRange``) which rows are
@@ -1241,6 +1277,68 @@ struct ConversationBottomGeometry: Equatable {
     contentHeight = geometry.contentSize.height
   }
 
+}
+
+/// The scroll position of the list of a ``ConversationView`` (card
+/// ^9ync5h3).
+///
+/// SwiftUI writes the scroll position while the user scrolls: the id of
+/// the row at the top edge of the list changes each time a row passes that
+/// edge. A `Binding` holds the value that it binds, so a view that makes the
+/// binding of a state in its body reads that state. With the position as a
+/// state of the list, each such write in a flick evaluated the body of the
+/// list, and made its scroll modifiers and the `ForEach` of its rows again.
+/// The model holds the position out of the list, and only
+/// ``ConversationScrollPositionBinding`` reads it in a body.
+///
+/// Only a write of the list tells a change. The scroll view writes the
+/// position back through ``binding`` while it applies a scroll request,
+/// inside the update of SwiftUI. If that write told a change, the change
+/// evaluated ``ConversationScrollPositionBinding`` again at once, in the same
+/// update, and that evaluation gave the scroll view a new request: in a
+/// hosted window the two did not stop, and the main thread was in a loop.
+/// A state does not evaluate its readers in the update that writes it, so
+/// a state of the list did not have this loop.
+@MainActor @Observable final class ConversationScrollPosition {
+  /// The position that the list and the scroll view wrote last.
+  @ObservationIgnored private var stored = ScrollPosition(idType: String.self)
+
+  /// The scroll position, for the list. A write of a different position
+  /// tells a change, so ``ConversationScrollPositionBinding`` gives the new
+  /// position to the scroll view.
+  var value: ScrollPosition {
+    get {
+      access(keyPath: \.value)
+      return stored
+    }
+    set {
+      guard newValue != stored else { return }
+      withMutation(keyPath: \.value) { stored = newValue }
+    }
+  }
+
+  /// The binding of the position that the scroll view gets. A read of the
+  /// binding is a read of ``value``, so a write of the list evaluates the
+  /// reader again. A write through the binding keeps the position and tells
+  /// no change.
+  var binding: Binding<ScrollPosition> {
+    access(keyPath: \.value)
+    return Binding(get: { self.stored }, set: { self.stored = $0 })
+  }
+}
+
+/// Binds the scroll position of a ``ConversationView`` to its scroll view,
+/// and is the only view that reads the position in its body
+/// (``ConversationScrollPosition``). A write of the list to the position
+/// evaluates only this modifier, and not the list in its content. A write of
+/// the scroll view evaluates nothing.
+private struct ConversationScrollPositionBinding: ViewModifier {
+  /// The scroll position of the list.
+  let position: ConversationScrollPosition
+
+  func body(content: Content) -> some View {
+    content.scrollPosition(position.binding)
+  }
 }
 
 /// Keeps the end of the list in view when the size of the content changes,

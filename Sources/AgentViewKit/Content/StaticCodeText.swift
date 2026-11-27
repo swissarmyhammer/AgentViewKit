@@ -47,7 +47,9 @@ struct StaticCodeText: View {
 
   var body: some View {
     let font = EditorTextFont(font: editorTheme.codeFont.resolve(in: fontContext).ctFont)
-    HStack(alignment: .top, spacing: editorStyle.gutterGap) {
+    // One proposal for each `Text`, so SwiftUI lays each text out one time
+    // (card ^9ync5h3).
+    StaticTextColumns(spacing: editorStyle.gutterGap) {
       if showsLineNumbers {
         Text(verbatim: Self.lineNumbers(of: String(text.characters)))
           .multilineTextAlignment(.trailing)

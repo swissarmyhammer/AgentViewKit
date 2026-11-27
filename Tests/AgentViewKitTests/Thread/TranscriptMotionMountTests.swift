@@ -45,6 +45,16 @@ import Testing
   /// start, gives the same count for the same steps.
   static let flickMounts = 0
 
+  /// The number of answers in the transcript of a far jump: one page of
+  /// the list at most (``ConversationLayout/defaultPageSize``), so each row
+  /// is in the list, and many more rows than the list shows.
+  static let farJumpAnswerCount = 120
+
+  /// The distance of the live jump from the bottom of the list, in
+  /// points: many times the height of the list, so the rows in view after
+  /// the jump were never in view at rest.
+  static let farJumpDistance: CGFloat = 6_000
+
   /// The frames of the queue of the list.
   let frames = ManualFrames()
 
@@ -96,13 +106,44 @@ import Testing
     #expect(record.mountCount == Self.flickMounts, "\(record.mountCount) editors mounted in the flick")
   }
 
+  /// A production change that fails this test: the height cache of the
+  /// list computes only the rows near the view, or computes them after
+  /// they come into view, so a row that a live flick reaches for the first
+  /// time has no known height and mounts its editors in the motion.
+  ///
+  /// The list has the height cache of an ``AgentThreadView``, and the test
+  /// waits only for the computation that the cache starts itself
+  /// (``TranscriptRowHeights/finishPendingHeights()``). No row was real
+  /// before the jump, except the rows at the bottom.
+  @Test func aLiveJumpToRowsThatWereNeverShownMountsNoEditorInView() async throws {
+    let answers = AnswerText.transcript(count: Self.farJumpAnswerCount, in: "farJump", withCodeFence: true)
+    let thread = try MovingThread(
+      session: .preview(transcript: answers), frames: frames, expandedBlocks: ExpandedBlocksStore())
+    thread.settle()
+    let cache = try #require(thread.heights.cache, "the list has no height cache")
+    await cache.finishPendingHeights()
+    thread.settle()
+    let atRest = thread.rowKeysInView
+
+    thread.startMoving()
+    thread.step(by: Self.farJumpDistance, isLive: true)
+    thread.settle()
+
+    try #require(
+      !thread.rowKeysInView.isEmpty && thread.rowKeysInView.isDisjoint(with: atRest),
+      "rows in view \(thread.rowKeysInView.sorted()) at rest \(atRest.sorted())")
+    #expect(thread.textViewsInView.isEmpty, "\(thread.textViewsInView.count) editors in view")
+  }
+
   /// A production change that fails this test: a row that is real in the
   /// motion waits in the queue, so at rest it takes its static form, and
-  /// its editors leave the window before the queue mounts them again.
+  /// its editors leave the window until an interaction mounts them again.
   ///
   /// The motion is one live step of ``stepDistance``, less than the height
   /// of the list. The rows that were real at rest and that stay in view
-  /// keep their editors in the motion, so the test reads real rows.
+  /// keep their editors in the motion, so the test reads real rows. The
+  /// rows come to rest in the frame after the end of the motion
+  /// (``TranscriptMotionState``).
   @Test func noEditorLeavesTheWindowInTheFirstLayoutAtRest() async throws {
     let thread = try await restingThread(test: "flickRest")
     thread.startMoving()
@@ -112,6 +153,8 @@ import Testing
     try #require(!inMotion.isEmpty, "no editor of the motion is in view")
 
     thread.stopMoving()
+    frames.advance()
+    thread.settle()
 
     let atRest = thread.textViews
     let left = inMotion.filter { editor in !atRest.contains { $0 === editor } }
@@ -138,23 +181,9 @@ import Testing
     let host = await StaticRowHost.makeCached(
       .agentFenced, width: TranscriptStaticRowTests.widths[1], frames: frames, movesLive: false)
 
-    host.mounts?.noteRowsMove(false)
     host.show(rowsMove: false)
 
     #expect(host.textViewCount > 0)
-  }
-
-  /// A production change that fails this test: a row that a scroll of the
-  /// kit makes while the rows move waits in the queue, so the queue runs
-  /// at rest for a row that is real.
-  @Test func aRowThatAScrollOfTheKitMakesDoesNotWait() async {
-    let host = await StaticRowHost.makeCached(
-      .agentFenced, width: TranscriptStaticRowTests.widths[1], frames: frames, movesLive: false)
-
-    host.mounts?.noteRowsMove(false)
-    host.show(rowsMove: false)
-
-    #expect(!frames.isRunning)
   }
 
   /// A production change that fails this test: an animated scroll of the
@@ -189,19 +218,19 @@ import Testing
 
     #expect(
       shown == [true, true, true],
-      "rows in view \(thread.rowKeysInView.sorted()), \(thread.textViewCount) editors, queue runs: \(frames.isRunning)")
+      "rows in view \(thread.rowKeysInView.sorted()), \(thread.textViewCount) editors")
   }
 
   /// A production change that fails this test: the rows that a jump at
   /// rest makes wait in the queue as the rows of a live motion, so they
-  /// stay static until the queue turns.
+  /// stay static until an interaction.
   @Test func noRowOfAJumpAtRestWaitsInTheQueue() async throws {
     let thread = try await restingThread(count: Self.jumpAnswerCount, test: "jumpWaits")
     let key = try #require(thread.session.transcript.first?.rowKey)
 
     await thread.jumpAtRest(to: key)
 
-    #expect(!frames.isRunning)
+    #expect(!thread.textViewsInView.isEmpty, "no editor in view after the jump")
   }
 }
 

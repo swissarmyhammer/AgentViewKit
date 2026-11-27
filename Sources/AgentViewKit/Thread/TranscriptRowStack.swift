@@ -183,6 +183,10 @@ struct TranscriptRowStack: View {
   /// stack makes then waits in the queue of the rows from its start.
   let entersWhileMoving: Bool
 
+  /// Whether the user moves the rows: the elements take no hit test
+  /// (``TranscriptRowsHitTest``).
+  let rowsMoveLive: Bool
+
   /// The position in the transcript of the item of a scroll to an item
   /// that did not end, or `nil`.
   let itemPosition: Int?
@@ -194,8 +198,9 @@ struct TranscriptRowStack: View {
   /// The manager of the scroll position of the list.
   let anchors: ScrollAnchorManager
 
-  /// The scroll position of the list.
-  @Binding var position: ScrollPosition
+  /// The scroll position of the list. The stack writes it only to keep
+  /// the rows in view at their place after a height change.
+  let position: ConversationScrollPosition
 
   /// The latest scroll offset of the list.
   let scrollOffset: TranscriptScrollOffset
@@ -240,6 +245,7 @@ struct TranscriptRowStack: View {
           id: slot.id, lineCount: lines.count, isLast: slot.position == transcript.count - 1)
         TranscriptRowElement(slot: slot, isLast: shape.isLast, lines: lines, entersWhileMoving: entersWhileMoving)
           .equatable()
+          .modifier(TranscriptRowsHitTest(rowsMoveLive: rowsMoveLive))
           .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
             elements.record(height: size.height, width: size.width, for: shape, metrics: metrics)
           }
@@ -343,7 +349,7 @@ struct TranscriptRowStack: View {
     applied = new
     guard let old, let offset = movedOffset(from: old, to: new) else { return }
     scrollOffset.y = offset
-    position.scrollTo(y: offset)
+    position.value.scrollTo(y: offset)
   }
 
   /// The offset that keeps the first row in view at its place after a
@@ -372,7 +378,7 @@ struct TranscriptRowStack: View {
   /// new offset keeps the rows in view at their place in the same way.
   private var keepsRowsInView: Bool {
     let follows = anchors.isPinnedToBottom && anchors.anchorID == nil
-    return !follows && itemPosition == nil && !keepsBottom && position.edge == nil
+    return !follows && itemPosition == nil && !keepsBottom && position.value.edge == nil
   }
 }
 

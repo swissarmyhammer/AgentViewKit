@@ -12,11 +12,13 @@ import SwiftUI
 ///
 /// The host shows the ``TranscriptRowElement`` of the one entry of a
 /// session, with the heights of the static rows and the motion signal of a
-/// thread. A host from ``makeCached(_:width:frames:movesLive:)`` gives the rows the height cache
+/// thread. A host from ``makeCached(_:width:frames:movesLive:colorScheme:)`` gives the rows the height cache
 /// of a thread too. ``show(rowsMove:)`` sets the motion signal and lays the row out
 /// again, so a test reads the row at rest and while the rows move. No
 /// window shows, and no window takes the focus. The window has the light
-/// appearance, so the text is dark on a clear background.
+/// appearance, so the text is dark on a clear background, or the dark
+/// appearance of a host from ``makeCached(_:width:frames:movesLive:colorScheme:)``
+/// with the dark color scheme.
 @MainActor final class StaticRowHost {
   /// The session whose one entry the host shows.
   let session: SessionModel
@@ -25,7 +27,7 @@ import SwiftUI
   let width: CGFloat
 
   /// The heights of the static row: the record of the real row, and the
-  /// height cache of a host from ``makeCached(_:width:frames:movesLive:)``.
+  /// height cache of a host from ``makeCached(_:width:frames:movesLive:colorScheme:)``.
   let heights = TranscriptStaticRowHeights()
 
   /// The store of the expanded blocks of the row.
@@ -39,8 +41,9 @@ import SwiftUI
   /// is a scroll of the kit, such as an animated scroll to a row.
   var movesLive = true
 
-  /// The queue that mounts the real row at rest, or `nil` for a row that
-  /// shows its real form at once at rest (card ^7625j1b).
+  /// The queue that keeps the static form of the row at rest until an
+  /// interaction, or `nil` for a row that shows its real form at once at
+  /// rest (card ^7625j1b).
   var mounts: TranscriptRowMountQueue?
 
   /// Whether the row is in a SwiftUI scroll view of the size of the window,
@@ -50,6 +53,10 @@ import SwiftUI
   /// The footer of the message row, as the `messageFooter` slot gives it.
   /// Set it before ``show(rowsMove:)``.
   var messageFooter: ItemViewRenderer<MessageEntry>?
+
+  /// The find hits of the thread of the row, or `nil` for a thread with
+  /// no search. Set it before ``show(rowsMove:)``.
+  var search: TranscriptSearch?
 
   /// The window of the host. It is never ordered in.
   private let window: NSWindow
@@ -67,7 +74,7 @@ import SwiftUI
   ///   - item: The transcript item of the one entry.
   ///   - width: The width of the row, in points.
   convenience init(_ item: PreviewTranscriptItem, width: CGFloat) {
-    self.init(item, width: width, isExpanded: false, showsAtRest: true)
+    self.init(item, width: width, isExpanded: false, colorScheme: .light, showsAtRest: true)
   }
 
   /// Makes the host of the row of `item`, and shows the row at rest only
@@ -77,22 +84,31 @@ import SwiftUI
   ///   - item: The transcript item of the one entry.
   ///   - width: The width of the row, in points.
   ///   - isExpanded: Whether the blocks of the row are expanded.
+  ///   - colorScheme: The appearance of the window.
   ///   - showsAtRest: Whether the host shows the row at rest.
-  private init(_ item: PreviewTranscriptItem, width: CGFloat, isExpanded: Bool, showsAtRest: Bool) {
+  private init(
+    _ item: PreviewTranscriptItem, width: CGFloat, isExpanded: Bool, colorScheme: ColorScheme, showsAtRest: Bool
+  ) {
     store = ExpandedBlocksStore { _ in isExpanded }
     session = .preview(transcript: [item])
     self.width = width
     hosting = NSHostingView(rootView: AnyView(EmptyView()))
     window = UnorderedWindow.make(holding: hosting, size: CGSize(width: width, height: width))
-    window.appearance = NSAppearance(named: .aqua)
+    window.appearance = NSAppearance(named: colorScheme == .dark ? .darkAqua : .aqua)
+    appearance = TranscriptTextAppearance(colorScheme: colorScheme, scale: window.backingScaleFactor)
     if showsAtRest {
       show(rowsMove: false)
     }
   }
 
+  /// The appearance of the window: its color scheme and its backing scale.
+  /// The height cache of a host from ``makeCached(_:width:frames:movesLive:colorScheme:)``
+  /// draws the pictures of the static text in it.
+  let appearance: TranscriptTextAppearance
+
   /// Gives the row of a fixture the height cache of a thread, waits until the
-  /// cache publishes the height of the row, and then shows the row for the
-  /// first time, while the rows move.
+  /// cache publishes the height and the pictures of the row, and then shows
+  /// the row for the first time, while the rows move.
   ///
   /// The row has no record of a real layout, so the cache alone can give
   /// the height of its static form. The row of each fixture has a chrome
@@ -104,22 +120,53 @@ import SwiftUI
   ///   - row: The fixture of the row.
   ///   - width: The width of the row, in points.
   ///   - frames: The frames of the queue of the row, or `nil` for a row
-  ///     with no queue (``mounts``). The queue knows that the rows move.
+  ///     with no queue (``mounts``).
   ///   - movesLive: Whether the motion is a live motion of the user
   ///     (``movesLive``).
+  ///   - colorScheme: The appearance of the window. The default is light.
   /// - Returns: The host, with the row in its first frame.
   static func makeCached(
     _ row: TranscriptRowFixtures.Row, width: CGFloat, frames: (any TranscriptFrameSource)? = nil,
-    movesLive: Bool = true
+    movesLive: Bool = true, colorScheme: ColorScheme = .light
   ) async -> StaticRowHost {
-    let host = StaticRowHost(row.item, width: width, isExpanded: row.isExpanded, showsAtRest: false)
+    await makeCached(
+      row.item, width: width, isExpanded: row.isExpanded, frames: frames, movesLive: movesLive,
+      colorScheme: colorScheme)
+  }
+
+  /// Gives the row of `item` the height cache of a thread, as
+  /// ``makeCached(_:width:frames:movesLive:colorScheme:)`` gives the row of
+  /// a fixture.
+  ///
+  /// - Parameters:
+  ///   - item: The transcript item of the one entry.
+  ///   - width: The width of the row, in points.
+  ///   - isExpanded: Whether the blocks of the row are expanded. The default
+  ///     is `false`.
+  ///   - frames: The frames of the queue of the row, or `nil` for a row
+  ///     with no queue (``mounts``).
+  ///   - movesLive: Whether the motion is a live motion of the user
+  ///     (``movesLive``). The default is `true`.
+  ///   - colorScheme: The appearance of the window. The default is light.
+  ///   - drawsPictures: Whether the cache knows the appearance of the
+  ///     window, and thus draws the pictures of the static text. With
+  ///     `false`, each slot shows its SwiftUI `Text`. The default is `true`.
+  /// - Returns: The host, with the row in its first frame.
+  static func makeCached(
+    _ item: PreviewTranscriptItem, width: CGFloat, isExpanded: Bool = false,
+    frames: (any TranscriptFrameSource)? = nil, movesLive: Bool = true, colorScheme: ColorScheme = .light,
+    drawsPictures: Bool = true
+  ) async -> StaticRowHost {
+    let host = StaticRowHost(
+      item, width: width, isExpanded: isExpanded, colorScheme: colorScheme, showsAtRest: false)
     host.movesLive = movesLive
     if let frames {
-      let mounts = TranscriptRowMountQueue(frames: frames)
-      mounts.noteRowsMove(true)
-      host.mounts = mounts
+      host.mounts = TranscriptRowMountQueue(frames: frames)
     }
     let cache = TranscriptRowHeights(metrics: TranscriptRowMetrics.probe(), expandedBlocks: host.store)
+    if drawsPictures {
+      host.heights.noteAppearance(host.appearance)
+    }
     host.heights.attach(cache: cache, session: host.session)
     host.heights.noteRowWidth(width)
     let rowKey = host.entry.rowKey
@@ -191,6 +238,32 @@ import SwiftUI
     layOut()
   }
 
+  /// Waits until the first parse of each segment of the text of the first
+  /// block of the entry lands, and lays the row out again, so the real row
+  /// shows the styles and the syntax colors of each parse.
+  ///
+  /// A text with a fence shows each segment in a model of its own
+  /// (`ResponseView.segmentModelID(for:index:isCode:)`), with contiguous
+  /// indices from zero. A model with no syntax, such as the model of code
+  /// with a TextMate grammar, which the style pass colors at once, has no
+  /// parse to wait for. A row with no response model waits for nothing.
+  func awaitSegmentParses() async {
+    let id = EntryContentView.blockID(entryID: entry.rowKey, index: 0)
+    var index = 0
+    while let modelID = [true, false].map({ ResponseView.segmentModelID(for: id, index: index, isCode: $0) })
+      .first(where: cache.contains)
+    {
+      // The cache holds the model of the view, so the text has no effect.
+      let model = cache.model(for: modelID, code: "")
+      if let syntax = model.syntax {
+        _ = await syntax.ensureParsed(upTo: model.state.version)
+      }
+      index += 1
+    }
+    PendingRunLoopBlocks.run()
+    layOut()
+  }
+
   /// The height of the row, in points.
   var rowHeight: CGFloat {
     hosting.fittingSize.height
@@ -202,16 +275,22 @@ import SwiftUI
     views(ofType: NSTextView.self, in: hosting).count
   }
 
+  /// The accessibility elements of the row whose identifier is
+  /// `identifier`, in tree order.
+  ///
+  /// - Parameter identifier: The accessibility identifier.
+  /// - Returns: The elements.
+  func accessibilityElements(identifiedAs identifier: String) -> [NSObject] {
+    EditorTestSupport.accessibilityElements(identifiedAs: identifier, under: hosting)
+  }
+
   /// The view that the window hit-tests at the center of the first
   /// EditorKit text view of the row, as AppKit hit-tests a click or a
   /// scroll-wheel event there, and that text view. Each is `nil` when the
   /// row has no text view; the hit is `nil` when no view takes the point.
   var hitAtText: (hit: NSView?, text: NSTextView?) {
-    guard let text = views(ofType: NSTextView.self, in: hosting).first, let frame = hosting.superview else {
-      return (nil, nil)
-    }
-    let center = text.convert(CGPoint(x: text.bounds.midX, y: text.bounds.midY), to: frame)
-    return (hosting.hitTest(center), text)
+    guard let text = views(ofType: NSTextView.self, in: hosting).first else { return (nil, nil) }
+    return (TextHitTest.hit(in: hosting, atCenterOf: text), text)
   }
 
   /// Whether the hit test at the text of the row (``hitAtText``) reaches a
@@ -219,8 +298,8 @@ import SwiftUI
   /// does not hold the text view, such as a scroll view does.
   var hitReachesRow: Bool {
     let (hit, text) = hitAtText
-    guard let hit, let text, hit !== hosting else { return false }
-    return hit === text || !text.isDescendant(of: hit)
+    guard let text else { return false }
+    return TextHitTest.reaches(hit, text: text, in: hosting)
   }
 
   /// Whether the hit test at the text of the row (``hitAtText``) reaches
@@ -293,7 +372,9 @@ import SwiftUI
 
   /// The row of the entry, with the environment of a thread. A new row
   /// that the host makes in a live motion (``movesLive``) enters while the
-  /// rows move, as the list of a thread makes it in a flick.
+  /// rows move, as the list of a thread makes it in a flick. The row takes
+  /// the hit test of the stack of the rows of a thread
+  /// (``TranscriptRowsHitTest``).
   ///
   /// - Parameter rowsMove: Whether the rows of the thread move.
   /// - Returns: The row at ``width``.
@@ -302,6 +383,7 @@ import SwiftUI
       slot: TranscriptRowSlot(position: 0, entry: entry), isLast: false, lines: [],
       entersWhileMoving: rowsMove && movesLive)
       .id(rowIdentity)
+      .modifier(TranscriptRowsHitTest(rowsMoveLive: rowsMove && movesLive))
       .frame(width: width)
       .fixedSize(horizontal: false, vertical: true)
       .environment(\.transcriptRowsMove, rowsMove)
@@ -312,6 +394,7 @@ import SwiftUI
       .environment(\.sessionModel, session)
       .environment(\.codeBlockModelCache, cache)
       .environment(\.messageFooter, messageFooter)
+      .environment(\.transcriptSearch, search)
       .threadTextSelection()
       .transaction { $0.disablesAnimations = true }
   }

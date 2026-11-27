@@ -1,4 +1,5 @@
 import EditorCommands
+import EditorSwiftUI
 import FoundationModelsACPClient
 import SwiftUI
 import os
@@ -14,6 +15,19 @@ import os
 /// the work does not stop when the list moves: the row that holds the
 /// keyboard focus, the row under the mouse, the row that holds the text
 /// selection of the thread, and the row of the entry that streams.
+///
+/// The mouse keeps only a row that does not wait in the
+/// ``TranscriptRowMountQueue`` (``keepsRealRow(waitsToMount:)``). At the
+/// end of a live motion, the rows take the hit test again, and SwiftUI
+/// tells the row under a still mouse that the mouse is on it. That row
+/// then keeps its static form at rest, as each other row of the motion
+/// does, so a hover mounts no editor. A press of the mouse on the static
+/// text of a waiting row makes the row real at once (``StaticEditorSlot``).
+///
+/// A find hit that marks words in the text of a waiting row
+/// (``isSearchTarget``) ends the wait at rest only: the static form shows
+/// no find mark in its text, and the editor does. While the rows move,
+/// the row stays static.
 struct TranscriptRowHolds: Equatable {
   /// Whether the row was shown at rest, in its real form, before the rows
   /// started to move.
@@ -32,6 +46,21 @@ struct TranscriptRowHolds: Equatable {
   /// agent runs.
   var streams = false
 
+  /// Whether a find hit marks words in the text of the row
+  /// (``isSearchTarget(_:)``).
+  var isSearchTarget = false
+
+  /// Tells if a find hit marks words in the text of a row: the hit has
+  /// terms. A hit with no terms marks the whole entry with a background,
+  /// which the static form shows.
+  ///
+  /// - Parameter mark: The search mark of the row, or `nil` for a row with
+  ///   no hit.
+  /// - Returns: `true` when the row has a hit with terms.
+  static func isSearchTarget(_ mark: TranscriptSearchMark?) -> Bool {
+    mark.map { !$0.marksWholeEntry } ?? false
+  }
+
   /// Tells if the keyboard focus is in the item scope of a row.
   ///
   /// - Parameters:
@@ -46,9 +75,14 @@ struct TranscriptRowHolds: Equatable {
     return focusedPath.segments.contains(segment)
   }
 
-  /// Whether one of the holds keeps the row real.
-  var keepsRealRow: Bool {
-    wasRealAtRest || hasFocus || isHovered || hasSelection || streams
+  /// Tells if one of the holds keeps the row real.
+  ///
+  /// - Parameter waitsToMount: Whether the row waits for an interaction in the
+  ///   ``TranscriptRowMountQueue`` (``TranscriptRowMount/waits``). The
+  ///   mouse does not keep a waiting row real.
+  /// - Returns: `true` when a hold keeps the row real.
+  func keepsRealRow(waitsToMount: Bool) -> Bool {
+    wasRealAtRest || hasFocus || (isHovered && !waitsToMount) || hasSelection || streams
   }
 }
 
@@ -57,23 +91,27 @@ enum TranscriptRowForm {
   /// Tells if a row shows its static form.
   ///
   /// A row is static only while the rows move or while the row waits for
-  /// its turn in the ``TranscriptRowMountQueue`` (card ^7625j1b), while
-  /// nothing holds it real (a row that was real at rest before the motion
-  /// holds itself), and while the height provider knows its height. A row
-  /// with no known height shows its real form, so the change of form never
-  /// moves it.
+  /// an interaction in the ``TranscriptRowMountQueue`` (card ^7625j1b),
+  /// while nothing holds it real (a row that was real at rest before the
+  /// motion holds itself, and the mouse does not hold a waiting row:
+  /// ``TranscriptRowHolds/keepsRealRow(waitsToMount:)``), and while the
+  /// height provider knows its height. A row with no known height shows
+  /// its real form, so the change of form never moves it. At rest, a find
+  /// hit that marks words in the text of the row ends its wait
+  /// (``TranscriptRowHolds/isSearchTarget``).
   ///
   /// - Parameters:
   ///   - rowsMove: Whether the rows of the thread move
   ///     (``TranscriptRowMotion``).
-  ///   - waitsToMount: Whether the row waits for its turn in the queue
-  ///     (``TranscriptRowMount/waits``).
+  ///   - waitsToMount: Whether the row waits for an interaction in the
+  ///     queue (``TranscriptRowMount/waits``).
   ///   - holds: The holds of the row.
   ///   - knowsHeight: Whether the height provider knows the height of the
   ///     row.
   /// - Returns: `true` when the row shows its static form.
   static func isStatic(rowsMove: Bool, waitsToMount: Bool, holds: TranscriptRowHolds, knowsHeight: Bool) -> Bool {
-    (rowsMove || waitsToMount) && !holds.keepsRealRow && knowsHeight
+    let waitsAtRest = waitsToMount && !holds.isSearchTarget
+    return (rowsMove || waitsAtRest) && !holds.keepsRealRow(waitsToMount: waitsToMount) && knowsHeight
   }
 
   /// Tells the form of the EditorKit text areas of a row
@@ -82,13 +120,13 @@ enum TranscriptRowForm {
   /// A row that is not static (``isStatic(rowsMove:waitsToMount:holds:knowsHeight:)``)
   /// shows each editor. A static row shows each still view while the rows
   /// move. A static row at rest waits in the ``TranscriptRowMountQueue``:
-  /// each of its slots shows its editor after its own turn.
+  /// each of its slots shows its still view until an interaction.
   ///
   /// - Parameters:
   ///   - rowsMove: Whether the rows of the thread move
   ///     (``TranscriptRowMotion``).
-  ///   - waitsToMount: Whether the row waits for its turn in the queue
-  ///     (``TranscriptRowMount/waits``).
+  ///   - waitsToMount: Whether the row waits for an interaction in the
+  ///     queue (``TranscriptRowMount/waits``).
   ///   - holds: The holds of the row.
   ///   - knowsHeight: Whether the height provider knows the height of the
   ///     row.
@@ -99,7 +137,7 @@ enum TranscriptRowForm {
     guard isStatic(rowsMove: rowsMove, waitsToMount: waitsToMount, holds: holds, knowsHeight: knowsHeight) else {
       return .real
     }
-    return rowsMove ? .still : .inTurn
+    return rowsMove ? .still : .waiting
   }
 }
 
@@ -113,25 +151,14 @@ enum TranscriptSlotForm: Equatable {
   /// still view.
   case still
 
-  /// The row waits at rest in the ``TranscriptRowMountQueue``, and keeps
-  /// the frame of its static form: each slot shows its still view until
-  /// its own turn (``TranscriptSlotMount``), and its editor after.
-  case inTurn
+  /// The row waits at rest in the ``TranscriptRowMountQueue`` for an
+  /// interaction, and keeps its static form: each slot shows its still
+  /// view, and a press on it makes the row real.
+  case waiting
 
-  /// Tells if a slot in this form shows its still view.
-  ///
-  /// The slot reads whether it waits only in ``inTurn``, so the turn of a
-  /// slot evaluates no slot in a different form.
-  ///
-  /// - Parameter slotWaits: Whether the slot waits for its turn
-  ///   (``TranscriptSlotMount/waits``).
-  /// - Returns: `true` when the slot shows its still view.
-  func showsStill(slotWaits: @autoclosure () -> Bool) -> Bool {
-    switch self {
-    case .real: false
-    case .still: true
-    case .inTurn: slotWaits()
-    }
+  /// Whether a slot in this form shows its still view.
+  var showsStill: Bool {
+    self != .real
   }
 }
 
@@ -163,7 +190,7 @@ struct TranscriptStaticRow: ViewModifier {
   /// The form of the editor slots of the row
   /// (``TranscriptRowForm/slotForm(rowsMove:waitsToMount:holds:knowsHeight:)``).
   /// Each form that is not ``TranscriptSlotForm/real`` is the static form
-  /// of the row, also while some slots of a row that takes turns are real.
+  /// of the row.
   let slotForm: TranscriptSlotForm
 
   /// The heights of the static rows of the thread, or `nil` outside a
@@ -189,7 +216,9 @@ struct TranscriptStaticRow: ViewModifier {
       BodyEvaluationCounter.note(Self.counterKey(for: id.rowKey))
     #endif
     return TranscriptStaticRowFrame(id: id, staticHeight: staticHeight) {
-      content.environment(\.transcriptSlotForm, slotForm)
+      content
+        .environment(\.transcriptSlotForm, slotForm)
+        .environment(\.transcriptRowPictures, heights.map { TranscriptRowPictures(heights: $0, rowKey: id.rowKey) })
     }
     .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
       recordRealSize(size)
@@ -294,11 +323,18 @@ struct TranscriptStaticRowFrame: Layout {
     MainActor.assumeIsolated { staticHeight?(width) }
   }
 
+  /// Places the content at the top leading corner of the row.
+  ///
+  /// A static row with a known height at the width of the row proposes
+  /// that exact size to its content: the size that ``sizeThatFits(proposal:subviews:cache:)``
+  /// gave. Thus the content gets one proposal on each frame, and SwiftUI
+  /// keeps the measure of each text of the content. Each other row
+  /// proposes the width of the row and the height of the proposal.
   func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+    let height = height(at: bounds.width) ?? proposal.height
     for subview in subviews {
       subview.place(
-        at: bounds.origin, anchor: .topLeading,
-        proposal: ProposedViewSize(width: bounds.width, height: proposal.height))
+        at: bounds.origin, anchor: .topLeading, proposal: ProposedViewSize(width: bounds.width, height: height))
     }
   }
 
@@ -331,16 +367,56 @@ extension EnvironmentValues {
   ///
   /// An EditorKit text area of a row reads it (``StaticEditorSlot``), and
   /// shows its text in SwiftUI `Text` in place of its editor while the form
-  /// tells it to (``TranscriptSlotForm/showsStill(slotWaits:)``). Outside a
+  /// tells it to (``TranscriptSlotForm/showsStill``). Outside a
   /// thread row, it is ``TranscriptSlotForm/real``.
   @Entry var transcriptSlotForm = TranscriptSlotForm.real
 
-  /// The turn of the row of the view in the ``TranscriptRowMountQueue``, or
+  /// The wait of the row of the view in the ``TranscriptRowMountQueue``, or
   /// `nil` outside a thread row.
   ///
-  /// Each EditorKit text area of the row adds its own turn to it
-  /// (``StaticEditorSlot``). ``TranscriptRowElement`` sets it for its row.
+  /// Each EditorKit text area of the row ends the wait of the row when the
+  /// user interacts with its still view (``StaticEditorSlot``).
+  /// ``TranscriptRowElement`` sets it for its row.
   @Entry var transcriptRowMount: TranscriptRowMount? = nil
+
+  /// The pictures of the static text of the row of the view, or `nil`
+  /// outside a thread row (card ^9ync5h3).
+  ///
+  /// A Markdown text area of the row reads it (``StaticEditorSlot``), and
+  /// shows the picture of its text in its static form when the cache of the
+  /// thread has it. ``TranscriptStaticRow`` sets it for its row.
+  @Entry var transcriptRowPictures: TranscriptRowPictures? = nil
+}
+
+/// The pictures of the static text of one row of a thread, from the height
+/// cache of the thread (card ^9ync5h3).
+nonisolated struct TranscriptRowPictures: Equatable, Sendable {
+  /// The heights of the static rows of the thread.
+  let heights: TranscriptStaticRowHeights
+
+  /// The row key of the entry of the row.
+  let rowKey: String
+
+  /// The picture of a text part of the row.
+  ///
+  /// - Parameters:
+  ///   - part: The text part of a text area of the row.
+  ///   - appearance: The appearance of the text area.
+  /// - Returns: The picture, or `nil` when the cache has no picture of the
+  ///   part in the appearance.
+  @MainActor func picture(of part: TranscriptTextPart, appearance: TranscriptTextAppearance) -> EditorStaticRendering? {
+    heights.picture(of: part, inRow: rowKey, appearance: appearance)
+  }
+
+  /// Tells if two values give the pictures of the same row.
+  ///
+  /// - Parameters:
+  ///   - lhs: A value.
+  ///   - rhs: A value.
+  /// - Returns: `true` when both read the same heights for the same row.
+  static func == (lhs: TranscriptRowPictures, rhs: TranscriptRowPictures) -> Bool {
+    lhs.heights === rhs.heights && lhs.rowKey == rhs.rowKey
+  }
 }
 
 extension TranscriptEntry {

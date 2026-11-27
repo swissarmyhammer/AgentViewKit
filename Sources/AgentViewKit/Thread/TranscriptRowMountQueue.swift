@@ -1,4 +1,6 @@
 import AppKit
+import FoundationModelsACPClient
+import Observation
 import SwiftUI
 
 /// A source of the frames of the display, which drives the
@@ -23,48 +25,36 @@ import SwiftUI
   func attach(to view: NSView)
 }
 
-/// The turn of one row of a thread in the ``TranscriptRowMountQueue``
-/// (card ^7625j1b).
+/// The wait of one row of a thread for an interaction of the user, in the
+/// ``TranscriptRowMountQueue`` (card ^7625j1b).
 ///
 /// Each ``TranscriptRowElement`` keeps one mount. The mount of a row that
 /// the list makes in a live motion of the user waits from its start
 /// (``init(waits:)``), so the row is static at rest before its first appear
-/// too. A static row in view in a live motion, or a row that comes into
-/// view at rest while its mount waits, puts its mount in the queue. A
-/// row that shows its real form, also in a motion, takes its mount out of
-/// the queue at once (``TranscriptRowMountQueue/release(_:)``), so a real
-/// row never waits. While
-/// the mount waits, the row shows its static form, also at rest
-/// (``TranscriptRowForm``), unless a hold keeps it real. A row that leaves
-/// the view leaves the queue, and its mount still waits, so a row that the
-/// list keeps out of view does not mount its editors at rest. The row reads
-/// ``waits``, so the turn of the row evaluates that row and no other row.
+/// too. A static row in view in a live motion puts its mount in the queue.
+/// While the mount waits, the row shows its static form, at rest too
+/// (``TranscriptRowForm``), unless a hold keeps it real. The row reads
+/// ``waits``, so the end of the wait of a row evaluates that row and no
+/// other row.
 ///
-/// The mount holds the mount of each EditorKit text area of the row
-/// (``TranscriptSlotMount``). At rest, each slot of a waiting row takes a
-/// turn of its own, and the row waits until each of its slots is real.
-/// Thus the frame of the row keeps the height of its static form while
-/// some slots are real and some are still static.
+/// The wait ends only for a cause: an interaction of the user with the row
+/// (``TranscriptRowMountQueue/release(_:)``), an edit of the data of the row
+/// (``TranscriptRowMountQueue/releaseOnEdit(_:of:expandedBlocks:)``), or a
+/// jump session (``TranscriptRowMountQueue/mountAll()``). The frames of a
+/// rest do not end it. A row that leaves the view leaves the queue, and
+/// its mount still waits, so a row that the list keeps out of view does
+/// not mount its editors.
 @MainActor @Observable final class TranscriptRowMount {
-  /// Whether the row waits in the queue for its turn to show its real
-  /// form.
+  /// Whether the row waits for an interaction to show its real form.
   fileprivate(set) var waits = false
-
-  /// The distance of the vertical center of the row from the vertical
-  /// center of the view of the list, in points. The queue mounts the row
-  /// with the smallest distance first. A row that knows no distance has
-  /// an infinite distance.
-  ///
-  /// The row writes it while it waits. A change does not evaluate the row.
-  @ObservationIgnored var centerDistance = CGFloat.infinity
 
   /// Whether the row is in view: between its appear and its disappear. A
   /// change does not evaluate the row.
   @ObservationIgnored var isInView = false
 
-  /// The mounts of the editor slots of the row, in the order of their
-  /// arrival.
-  @ObservationIgnored private var slots: [TranscriptSlotMount] = []
+  /// Whether an edit of the data of the row ends the wait
+  /// (``TranscriptRowMountQueue/releaseOnEdit(_:of:expandedBlocks:)``).
+  @ObservationIgnored fileprivate var watchesEdits = false
 
   /// Makes a mount.
   ///
@@ -73,131 +63,51 @@ import SwiftUI
   init(waits: Bool = false) {
     self.waits = waits
   }
-
-  /// Adds the mount of an editor slot that shows in the row. A new slot
-  /// waits when the row waits. A slot that the row has already keeps its
-  /// state, so a slot that shows again does not wait again for a turn.
-  ///
-  /// - Parameter slot: The mount of the slot.
-  func add(_ slot: TranscriptSlotMount) {
-    guard !slots.contains(where: { $0 === slot }) else { return }
-    slots.append(slot)
-    slot.waits = waits
-  }
-
-  /// Removes the mount of an editor slot that leaves the row. The slot
-  /// keeps its state: the list can keep the view of the slot out of view,
-  /// and a slot that still waits does not show its editor there.
-  ///
-  /// - Parameter slot: The mount of the slot.
-  func remove(_ slot: TranscriptSlotMount) {
-    slots.removeAll { $0 === slot }
-  }
-
-  /// The waiting slot with the smallest top in the row, or `nil` when no
-  /// slot of the row waits.
-  fileprivate var nextWaitingSlot: TranscriptSlotMount? {
-    slots.filter(\.waits).min { $0.top < $1.top }
-  }
-
-  /// Sets whether the row and each of its slots wait.
-  ///
-  /// - Parameter waits: Whether the row waits.
-  fileprivate func setWaits(_ waits: Bool) {
-    self.waits = waits
-    for slot in slots {
-      slot.waits = waits
-    }
-  }
-
-  /// The distance of the vertical center of the view of `proxy` from the
-  /// vertical center of its scroll view.
-  ///
-  /// - Parameter proxy: The geometry of the row.
-  /// - Returns: The distance in points, or infinity outside a scroll view.
-  nonisolated static func centerDistance(of proxy: GeometryProxy) -> CGFloat {
-    guard let scrollBounds = proxy.bounds(of: .scrollView) else { return .infinity }
-    return abs(proxy.frame(in: .local).midY - scrollBounds.midY)
-  }
 }
 
-/// The turn of one EditorKit text area of a thread row in the
-/// ``TranscriptRowMountQueue`` (card ^7625j1b).
-///
-/// Each ``StaticEditorSlot`` in a row keeps one mount, and adds it to the
-/// ``TranscriptRowMount`` of its row. While the mount waits in a row that
-/// takes turns at rest (``TranscriptSlotForm/inTurn``), the slot shows its
-/// still view. The slot reads ``waits``, so the turn of the slot evaluates
-/// that slot and no other view.
-///
-/// A new mount waits. Thus a slot that is not in its row yet, such as the
-/// slot of a row that the list made while the rows moved and that did not
-/// appear yet, shows its still view in a row that takes turns. In a row
-/// that does not take turns, the slot does not read ``waits``.
-@MainActor @Observable final class TranscriptSlotMount {
-  /// Whether the slot waits for its turn to show its editor.
-  fileprivate(set) var waits = true
-
-  /// The top of the slot in the coordinate space of its row, in points.
-  /// The queue makes the slot with the smallest top of a row real first. A
-  /// slot that knows no top has an infinite top.
-  ///
-  /// The slot writes it while it waits. A change does not evaluate the
-  /// slot.
-  @ObservationIgnored var top = CGFloat.infinity
-
-  /// Makes a mount that waits.
-  init() {}
-
-  /// The top of the view of `proxy` in the coordinate space of its row.
-  ///
-  /// - Parameter proxy: The geometry of the slot.
-  /// - Returns: The top in points.
-  nonisolated static func top(of proxy: GeometryProxy) -> CGFloat {
-    proxy.frame(in: .named(TranscriptFileOrder.rowSpace)).minY
-  }
-}
-
-/// Makes the EditorKit editors of the rows of a thread real one at a time
-/// when the rows come to rest (card ^7625j1b).
+/// Keeps the rows of a thread that show their static form at rest, and
+/// ends the wait of a row when the user interacts with it (card ^7625j1b).
 ///
 /// A row that comes into the list while the rows move shows its static
-/// form (``TranscriptStaticRow``). A static row of a live motion of the
-/// user waits in the queue. When the rows come to rest, the queue
-/// does not mount the editors of all these rows in one frame. Each editor
-/// slot of these rows (``TranscriptSlotMount``) waits for a turn of its
-/// own: in each frame of its ``frames``, the queue makes at most
-/// ``editorSlotsPerFrame`` slots real. The slots of the row nearest the
-/// vertical center of the view go first, and the slots of one row go from
-/// top to bottom. Thus a row becomes real over a few frames. Until each of
-/// its slots is real, the row keeps the exact height of its static form,
-/// and when the last slot is real, the row leaves the queue.
+/// form (``TranscriptStaticRow``), and EditorKit mounts no editor in it. A
+/// static row of a live motion of the user waits in the queue, and keeps
+/// its static form at rest too: the frames of a rest mount no editor, so a
+/// rest after a flick does not hitch. The wait of a row ends, and the row
+/// shows its real form, only for an interaction or an edit:
 ///
-/// A new motion stops the queue, and the slots that wait stay static. The
-/// next rest starts the queue again. A row that leaves the view leaves the
-/// queue and keeps its wait (``withdraw(_:)``). A row that gets a hold
-/// (``TranscriptRowHolds``) shows its real form at once and leaves the
-/// queue (``release(_:)``). A jump session mounts each row at once
-/// (``mountAll()``), and each row that comes into the queue while the
-/// session is open (``endMountAll()``).
+/// - a press of the mouse on the static text of the row, or an
+///   accessibility press or focus on it (``StaticEditorSlot``);
+/// - a hold of the row (``TranscriptRowHolds``): the keyboard focus in its
+///   item scope, the text selection of the thread, or the stream of its
+///   entry;
+/// - a find hit that marks words in the text of the row
+///   (``TranscriptRowHolds/isSearchTarget``);
+/// - an edit of the data of the row, such as new text or an expanded block
+///   (``releaseOnEdit(_:of:expandedBlocks:)``), because the height and the
+///   pictures of its static form are of the old data;
+/// - a jump session, which mounts each row in view (``mountAll()``).
+///
+/// The mouse that only hovers a waiting row does not end its wait. A row
+/// whose wait ended stays real while it stays in view
+/// (``TranscriptRowHolds/wasRealAtRest``). A row that leaves the view
+/// leaves the queue and keeps its wait (``withdraw(_:)``).
+///
+/// The frames of the queue give the one frame of the end of a live motion
+/// (``afterNextFrame(_:)``, ``TranscriptMotionState``), so a thread has one
+/// display link, and the link fires only in that frame.
 @MainActor final class TranscriptRowMountQueue {
-  /// The largest number of editor slots that the queue makes real in one
-  /// frame. One EditorKit editor takes about one frame of the main thread
-  /// when it mounts.
-  static let editorSlotsPerFrame = 1
-
   /// The frames that drive the queue.
   let frames: any TranscriptFrameSource
 
-  /// The mounts that wait for their turn.
+  /// The mounts of the rows in view that wait.
   private var waiting: [ObjectIdentifier: TranscriptRowMount] = [:]
-
-  /// Whether the rows of the thread are at rest. A new thread is at rest.
-  private var isResting = true
 
   /// Whether a jump session is open: each row that comes into the queue
   /// shows its real form at once.
   private var mountsAtOnce = false
+
+  /// The work of the next frame (``afterNextFrame(_:)``), or `nil`.
+  private var nextFrameAction: (@MainActor () -> Void)?
 
   /// Makes an empty queue.
   ///
@@ -207,121 +117,114 @@ import SwiftUI
   }
 
   /// Puts the mount of a static row in view in a live motion, or of a row
-  /// that comes into view at rest while it waits, in the queue. The row
-  /// and each of its editor slots then wait for their turns. While a jump
-  /// session is open, the row does not wait.
+  /// that comes into view while it waits, in the queue. The row then waits
+  /// for an interaction. While a jump session is open, the row does not
+  /// wait.
   ///
   /// - Parameter mount: The mount of the row.
   func enqueue(_ mount: TranscriptRowMount) {
     guard !mountsAtOnce else {
-      mount.setWaits(false)
+      mount.waits = false
       return
     }
-    mount.setWaits(true)
+    mount.waits = true
     waiting[ObjectIdentifier(mount)] = mount
-    startFramesAtRest()
   }
 
-  /// Takes the mount of a row out of the queue at once: the row and each
-  /// of its editor slots do not wait. The row of the mount gets a hold,
-  /// shows its real form for a different cause, at rest or in a motion, or
-  /// has no editor slot that waits. A mount out of the queue that still
-  /// waits, such as the mount of a row out of view, also stops to wait.
+  /// Takes the mount of a row out of the queue at once: the row does not
+  /// wait, and shows its real form at rest. The user interacts with the
+  /// row, the row gets a hold, or it shows its real form for a different
+  /// cause. A mount out of the queue that still waits, such as the mount
+  /// of a row out of view, also stops to wait.
   ///
   /// - Parameter mount: The mount of the row.
   func release(_ mount: TranscriptRowMount) {
     withdraw(mount)
-    mount.setWaits(false)
+    mount.waits = false
+  }
+
+  /// Ends the wait of a row at the first edit of its data: the data of its
+  /// height (``TranscriptRowContent``) and the expanded state of its
+  /// blocks. The static form of the row has the height and the pictures of
+  /// the old data, so the row then shows its real form.
+  ///
+  /// A row that already watches its edits does not watch again. The models
+  /// of a transcript are main-actor models, so an edit comes on the main
+  /// actor.
+  ///
+  /// - Parameters:
+  ///   - mount: The mount of a row that waits.
+  ///   - entry: The entry of the row.
+  ///   - expandedBlocks: The store of the expanded blocks of the thread, or
+  ///     `nil`.
+  func releaseOnEdit(_ mount: TranscriptRowMount, of entry: TranscriptEntry, expandedBlocks: ExpandedBlocksStore?) {
+    guard mount.waits, !mount.watchesEdits else { return }
+    mount.watchesEdits = true
+    withObservationTracking {
+      _ = TranscriptRowContent(entry: entry, isExpanded: expandedBlocks?.isExpanded(entry: entry) ?? false)
+    } onChange: { [weak self, weak mount] in
+      MainActor.assumeIsolated {
+        guard let mount else { return }
+        self?.noteEdit(of: mount)
+      }
+    }
+  }
+
+  /// Records an edit of the data of a row that watches its edits: the row
+  /// stops to wait.
+  ///
+  /// - Parameter mount: The mount of the row.
+  private func noteEdit(of mount: TranscriptRowMount) {
+    mount.watchesEdits = false
+    release(mount)
   }
 
   /// Takes the mount of a row that leaves the view out of the queue. The
-  /// row and its editor slots keep their waits, so the row does not mount
-  /// its editors out of view. When the row comes into view again, it puts
+  /// row keeps its wait, so the row does not mount its editors out of
+  /// view. When the row comes into view again in a live motion, it puts
   /// its mount in the queue again (``enqueue(_:)``).
   ///
   /// - Parameter mount: The mount of the row.
   func withdraw(_ mount: TranscriptRowMount) {
-    guard waiting.removeValue(forKey: ObjectIdentifier(mount)) != nil else { return }
-    stopFramesWhenEmpty()
+    waiting.removeValue(forKey: ObjectIdentifier(mount))
   }
 
-  /// Takes each mount out of the queue at once, so each row shows its real
-  /// form, and makes each row that comes into the queue after it real at
-  /// once, until ``endMountAll()``. A jump session of EditorKit calls it
-  /// when it opens, so that the jump targets are the targets of the real
-  /// views.
+  /// Takes each mount out of the queue at once, so each row in view shows
+  /// its real form, and makes each row that comes into the queue after it
+  /// real at once, until ``endMountAll()``. A jump session of EditorKit
+  /// calls it when it opens, so that the jump targets are the targets of
+  /// the real views.
   func mountAll() {
     mountsAtOnce = true
     for row in waiting.values {
-      row.setWaits(false)
+      row.waits = false
     }
     waiting.removeAll()
-    frames.stop()
   }
 
   /// Ends ``mountAll()``: a row that comes into the queue after it waits
-  /// for its turn again. A jump session of EditorKit calls it when it
-  /// closes.
+  /// for an interaction again. A jump session of EditorKit calls it when
+  /// it closes.
   func endMountAll() {
     mountsAtOnce = false
   }
 
-  /// Records whether the rows of the thread move: a motion stops the
-  /// queue, and a rest starts it.
+  /// Runs `action` in the next frame of ``frames``, also while the rows
+  /// move. A second call before that frame replaces the action.
   ///
-  /// - Parameter rowsMove: Whether the rows of the thread move
-  ///   (``TranscriptRowMotion``).
-  func noteRowsMove(_ rowsMove: Bool) {
-    isResting = !rowsMove
-    if rowsMove {
-      frames.stop()
-    } else {
-      startFramesAtRest()
-    }
+  /// - Parameter action: The work of the next frame.
+  func afterNextFrame(_ action: @escaping @MainActor () -> Void) {
+    nextFrameAction = action
+    frames.start { [weak self] in self?.stepFrame() }
   }
 
-  /// Starts the frames, when the rows are at rest and a row waits.
-  private func startFramesAtRest() {
-    guard isResting, !waiting.isEmpty else { return }
-    frames.start { [weak self] in self?.mountNextSlots() }
-  }
-
-  /// Stops the frames, when no row waits.
-  private func stopFramesWhenEmpty() {
-    guard waiting.isEmpty else { return }
+  /// The step of one frame: stops the frames, and runs the work of the
+  /// frame (``afterNextFrame(_:)``). The work can start the frames again.
+  private func stepFrame() {
+    let action = nextFrameAction
+    nextFrameAction = nil
     frames.stop()
-  }
-
-  /// The waiting row nearest the vertical center of the view, or `nil`
-  /// when no row waits.
-  private var nearestWaitingRow: TranscriptRowMount? {
-    waiting.values.min { $0.centerDistance < $1.centerDistance }
-  }
-
-  /// The step of one frame: makes at most ``editorSlotsPerFrame`` waiting
-  /// slots real, from the row nearest the vertical center of the view. A
-  /// row with no waiting slot leaves the queue, and uses none of the
-  /// slots of the frame.
-  private func mountNextSlots() {
-    var slotsLeft = Self.editorSlotsPerFrame
-    while slotsLeft > 0, let row = nearestWaitingRow {
-      slotsLeft -= mountNextSlot(of: row)
-    }
-  }
-
-  /// Makes the top waiting slot of a row real, and takes the row out of the
-  /// queue when no slot of the row waits after that.
-  ///
-  /// - Parameter row: The mount of a waiting row.
-  /// - Returns: The number of slots that became real: 1, or 0 for a row
-  ///   with no waiting slot.
-  private func mountNextSlot(of row: TranscriptRowMount) -> Int {
-    let slot = row.nextWaitingSlot
-    slot?.waits = false
-    if row.nextWaitingSlot == nil {
-      release(row)
-    }
-    return slot == nil ? 0 : 1
+    action?()
   }
 }
 
@@ -330,8 +233,9 @@ import SwiftUI
 ///
 /// The source makes a display link of its view
 /// (`NSView.displayLink(target:selector:)`) only while the queue runs it,
-/// so the display link fires only while a row waits at rest. Before the
-/// source has a view, a start waits for ``attach(to:)``.
+/// so the display link fires only for the work of the next frame of the
+/// queue. Before the source has a view, a start waits for
+/// ``attach(to:)``.
 @MainActor final class TranscriptDisplayLinkFrames: NSObject, TranscriptFrameSource {
   /// The view whose display gives the frames, or `nil` before the view of
   /// the thread shows.
@@ -409,9 +313,10 @@ private final class TranscriptFrameAnchorView: NSView {
 }
 
 extension EnvironmentValues {
-  /// The queue that mounts the real rows of the thread at rest
-  /// (``TranscriptRowMountQueue``), or `nil`. With no queue, a row shows
-  /// its real form at once when the rows come to rest.
+  /// The queue of the rows of the thread that keep their static form at
+  /// rest until an interaction (``TranscriptRowMountQueue``), or `nil`.
+  /// With no queue, a row shows its real form at once when the rows come
+  /// to rest.
   ///
   /// ``ConversationView`` sets it for its rows.
   @Entry var transcriptRowMounts: TranscriptRowMountQueue? = nil

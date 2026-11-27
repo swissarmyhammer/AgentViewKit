@@ -20,7 +20,9 @@
   ///
   /// For each row in view at the start and at the end of the steps, the test
   /// counts the bodies of the static row (``TranscriptStaticRow``), the
-  /// bodies of its static text (``StaticMarkdownText``) and the layouts of
+  /// bodies of its static text (the picture of the text,
+  /// ``StaticPictureView``, or its SwiftUI `Text`, ``StaticMarkdownText``)
+  /// and the layouts of
   /// its frame (``TranscriptStaticRowFrame``). Each count stays at its value
   /// before the steps.
   @MainActor @Suite struct StaticRowScrollTests {
@@ -54,8 +56,9 @@
       /// The bodies of the static row modifier (``TranscriptStaticRow``).
       let rowBodies: Int
 
-      /// The bodies of the static text (``StaticMarkdownText``). A row that
-      /// was never static has none.
+      /// The bodies of the static text: its picture (``StaticPictureView``)
+      /// and its SwiftUI `Text` (``StaticMarkdownText``). A row that was
+      /// never static has none.
       let textBodies: Int
 
       /// The layouts of the frame of the row (``TranscriptStaticRowFrame``).
@@ -74,9 +77,11 @@
     /// - Returns: The counts.
     static func counts(ofAnswer index: Int, in session: SessionModel) -> RowCounts {
       let rowKey = session.transcript[index].rowKey
+      let text = AnswerText.answer(index, in: textName)
       return RowCounts(
         rowBodies: BodyEvaluationCounter.count(TranscriptStaticRow.counterKey(for: rowKey)),
-        textBodies: BodyEvaluationCounter.count(StaticMarkdownText.counterKey(for: AnswerText.answer(index, in: textName))),
+        textBodies: BodyEvaluationCounter.count(StaticPictureView.counterKey(for: text))
+          + BodyEvaluationCounter.count(StaticMarkdownText.counterKey(for: text)),
         frameLayouts: BodyEvaluationCounter.count(TranscriptStaticRowFrame.counterKey(for: rowKey)))
     }
 

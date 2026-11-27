@@ -55,7 +55,12 @@ struct TranscriptRowSlot: Identifiable {
 /// first layout, it reads that height again and takes its static form, so
 /// it mounts its editors one time in the motion. The mouse holds a row only
 /// when it comes on the row at rest: a row that moves under the mouse does
-/// not mount its editors.
+/// not mount its editors. The mouse does not hold a row that waits in the
+/// queue: the row under the mouse at the end of a live motion keeps its
+/// static form as each other row of the motion does
+/// (``TranscriptRowHolds/keepsRealRow(waitsToMount:)``). A press of the
+/// mouse on the static text of a row that waits at rest makes the row real
+/// at once (``StaticEditorSlot``).
 ///
 /// Only a row that shows its static form in a live motion of the user
 /// (``SwiftUI/EnvironmentValues/transcriptRowsMoveLive``) waits in the
@@ -63,26 +68,23 @@ struct TranscriptRowSlot: Identifiable {
 /// a row that the list makes in a live motion waits from the start of the
 /// row, so the row stays static at rest also when it did not appear before
 /// the rest. A row in view puts its mount in the queue when it shows its
-/// static form in a live motion. A row that shows its real form never
-/// waits: its mount leaves the queue at once, so a row that is real at the
-/// end of a motion stays real at rest. A row that a scroll of the kit
-/// makes, such as the row of a jump, does not wait. A row that leaves the
-/// view leaves the queue and keeps its wait, so a row that the list keeps
-/// out of view does not mount its editors. At rest, each EditorKit text
-/// area of the row shows its editor after its own turn
-/// (``TranscriptSlotMount``), and the row keeps the frame of its static
-/// form until each text area is real, so the rows in view do not mount
-/// their editors in one frame. While the row waits, it gives the queue its
-/// distance from the vertical center of the view. A row that is real at
+/// static form in a live motion. A waiting row keeps its static form at
+/// rest, and mounts its editors only when the user interacts with it, or
+/// when its data changes
+/// (``TranscriptRowMountQueue/releaseOnEdit(_:of:expandedBlocks:)``), so a
+/// rest after a flick mounts no editor. A row that shows its real form
+/// never waits: its mount leaves the queue at once, so a row that is real
+/// at the end of a motion stays real at rest. A row that a scroll of the
+/// kit makes, such as the row of a jump, does not wait. A row that leaves
+/// the view leaves the queue and keeps its wait, so a row that the list
+/// keeps out of view does not mount its editors. A row that is real at
 /// rest or in a motion for a different cause, such as a hold, leaves the
-/// queue at once,
-/// and each of its text areas shows its editor.
+/// queue at once, and each of its text areas shows its editor.
 ///
 /// In a live motion of the user, the row and its status lines take no hit
-/// test, so SwiftUI does not hit-test their hover responders on each frame
-/// of a flick, and the live motion ends the hover of the row
-/// (``TranscriptRowHover``). A scroll-wheel event goes to the scroll view
-/// of the list. At rest, the row takes the hit test again.
+/// test (``TranscriptRowsHitTest``, which ``ConversationView`` gives to
+/// each element), and the live motion ends the hover of the row
+/// (``TranscriptRowHover``).
 struct TranscriptRowElement: View, Equatable {
   /// The entry of the row, and its position.
   let slot: TranscriptRowSlot
@@ -104,6 +106,8 @@ struct TranscriptRowElement: View, Equatable {
   @Environment(\.staticRowHeights) private var heights
   @Environment(\.transcriptRowMounts) private var mounts
   @Environment(\.sessionModel) private var session
+  @Environment(\.expandedBlocksStore) private var expandedBlocks
+  @Environment(\.transcriptSearch) private var search
   @Environment(\.textSelectionRegion) private var threadSelection
   @FocusedValue(\.commandPath) private var focusedPath
 
@@ -114,7 +118,7 @@ struct TranscriptRowElement: View, Equatable {
   @State private var hover = TranscriptRowHover()
 
   /// Whether the row showed its real form at rest. A row that the list
-  /// makes while the rows move did not, until its turn in the queue.
+  /// makes while the rows move did not, until the user interacts with it.
   @State private var wasShownAtRest = false
 
   /// The count of the reads of the height of the first layout of the row.
@@ -124,7 +128,7 @@ struct TranscriptRowElement: View, Equatable {
   /// record is not observable.
   @State private var heightReads = 0
 
-  /// The turn of the row in the queue of the thread.
+  /// The wait of the row in the queue of the thread.
   @State private var mount: TranscriptRowMount
 
   /// Makes the element of an entry.
@@ -175,18 +179,6 @@ struct TranscriptRowElement: View, Equatable {
       TranscriptStatusLines(lines: lines)
     }
     .padding(.bottom, isLast ? editorStyle.rowPadding : 0)
-    // In a live motion, the content moves under a still mouse, and SwiftUI
-    // hit-tests each hover responder of the rows again on each frame. The
-    // rows take no hit test then, so they have no hover responder to test.
-    // A scroll-wheel event goes to the scroll view of the list.
-    .allowsHitTesting(!rowsMoveLive)
-    .background {
-      if mount.waits {
-        Color.clear.onGeometryChange(for: CGFloat.self, of: TranscriptRowMount.centerDistance(of:)) { distance in
-          mount.centerDistance = distance
-        }
-      }
-    }
     .onAppear { noteAppear(isStatic: isStatic, rowsMoveLive: rowsMoveLive) }
     .onDisappear { noteDisappear() }
     .onChange(of: formChange, initial: true) { _, change in
@@ -222,12 +214,13 @@ struct TranscriptRowElement: View, Equatable {
   /// - Parameters:
   ///   - isStatic: Whether the row shows its static form.
   ///   - rowsMoveLive: Whether the rows of the thread move in a live
-  ///     motion of the user.
+  ///     motion of the user, or in the frame of its end
+  ///     (``SwiftUI/EnvironmentValues/transcriptRowsMoveLive``).
   private func noteAppear(isStatic: Bool, rowsMoveLive: Bool) {
     mount.isInView = true
     if isStatic {
       guard rowsMoveLive || mount.waits else { return }
-      mounts?.enqueue(mount)
+      waitForInteraction()
     } else if heights?.knowsHeight(of: slot.id) == true {
       readHeightIfNeeded(rowsMoveLive: rowsMoveLive)
     }
@@ -239,7 +232,8 @@ struct TranscriptRowElement: View, Equatable {
   /// when it comes into view, so it does not change form out of view.
   ///
   /// - Parameter rowsMoveLive: Whether the rows of the thread move in a
-  ///   live motion of the user.
+  ///   live motion of the user, or in the frame of its end
+  ///   (``SwiftUI/EnvironmentValues/transcriptRowsMoveLive``).
   private func noteFirstHeight(rowsMoveLive: Bool) {
     guard mount.isInView else { return }
     readHeightIfNeeded(rowsMoveLive: rowsMoveLive)
@@ -253,9 +247,10 @@ struct TranscriptRowElement: View, Equatable {
   /// motion.
   ///
   /// - Parameter rowsMoveLive: Whether the rows of the thread move in a
-  ///   live motion of the user.
+  ///   live motion of the user, or in the frame of its end
+  ///   (``SwiftUI/EnvironmentValues/transcriptRowsMoveLive``).
   private func readHeightIfNeeded(rowsMoveLive: Bool) {
-    guard mounts != nil, rowsMoveLive, !holds.keepsRealRow else { return }
+    guard mounts != nil, rowsMoveLive, !holds.keepsRealRow(waitsToMount: mount.waits) else { return }
     heightReads += 1
   }
 
@@ -287,21 +282,32 @@ struct TranscriptRowElement: View, Equatable {
       return
     }
     if change.rowsMoveLive, mount.isInView {
-      mounts?.enqueue(mount)
+      waitForInteraction()
     }
   }
 
-  /// The holds that keep the row real while the rows move.
+  /// Puts the mount of the row in the queue of the thread: the row keeps
+  /// its static form at rest until the user interacts with it, or until
+  /// its data changes (``TranscriptRowMountQueue/releaseOnEdit(_:of:expandedBlocks:)``).
+  private func waitForInteraction() {
+    mounts?.enqueue(mount)
+    mounts?.releaseOnEdit(mount, of: slot.entry, expandedBlocks: expandedBlocks)
+  }
+
+  /// The holds that keep the row real while the rows move, and the find
+  /// hit that ends the wait of the row at rest.
   ///
   /// Only the last row reads the state of the agent, so a change of the
-  /// state evaluates no other row.
+  /// state evaluates no other row. Only a row that waits reads the find
+  /// hits, so a new search evaluates no real row.
   private var holds: TranscriptRowHolds {
     TranscriptRowHolds(
       wasRealAtRest: wasShownAtRest,
       hasFocus: TranscriptRowHolds.hasFocus(itemScope: slot.entry.itemScopeSegment, focusedPath: focusedPath),
       isHovered: hover.isHovered,
       hasSelection: selection.holdsSelection,
-      streams: isLast && session?.isRunning == true)
+      streams: isLast && session?.isRunning == true,
+      isSearchTarget: mount.waits && TranscriptRowHolds.isSearchTarget(search?.mark(forRowKey: slot.entry.rowKey)))
   }
 }
 
@@ -314,7 +320,9 @@ struct TranscriptRowFormChange: Equatable {
   /// Whether the rows of the thread move (``TranscriptRowMotion``).
   let rowsMove: Bool
 
-  /// Whether the rows of the thread move in a live motion of the user.
+  /// Whether the rows of the thread move in a live motion of the user, or
+  /// in the frame of its end
+  /// (``SwiftUI/EnvironmentValues/transcriptRowsMoveLive``).
   let rowsMoveLive: Bool
 }
 

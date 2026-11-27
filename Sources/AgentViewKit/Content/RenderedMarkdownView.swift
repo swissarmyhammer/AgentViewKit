@@ -23,6 +23,11 @@ import SwiftUI
 /// element is the text, with each formula at its place as EditorKit speaks
 /// it: the label "Math" and the TeX source ("Math, x^2").
 ///
+/// In the static form of a thread row, the text shows the picture that the
+/// height cache of the thread drew of it (``StaticPictureView``), or else
+/// the text in SwiftUI `Text` (``StaticMarkdownText``). A text with
+/// citation chips shows no picture: the picture has no chip.
+///
 /// The static form of a thread row (``StaticMarkdownText``) has no math.
 /// Thus a text with math keeps its editor in each form of its row
 /// (``StaticEditorSlot/keepsEditor``), and never shows its TeX source in
@@ -104,7 +109,9 @@ struct RenderedMarkdownView: View {
     // In the static form of a thread row, the text shows in SwiftUI `Text`
     // (card ^9ync5h3).
     let hasMath = mathMemo.value(for: markdown, counterKey: Self.mathCounterKey(for: markdown), parse: Self.hasMath)
-    StaticEditorSlot(keepsEditor: hasMath) {
+    StaticEditorSlot(
+      keepsEditor: hasMath, picturePart: citations.isEmpty ? TranscriptTextPart(text: markdown, style: .markdown) : nil
+    ) {
       editor(model: model, selection: selection)
     } still: {
       StaticMarkdownText(markdown: markdown)
@@ -180,7 +187,7 @@ struct RenderedMarkdownView: View {
   ///
   /// - Parameter markdown: The Markdown text.
   /// - Returns: `true` when the text has inline math or block math.
-  static func hasMath(_ markdown: String) -> Bool {
+  nonisolated static func hasMath(_ markdown: String) -> Bool {
     !MathSpans.spans(in: TextBuffer(markdown)).isEmpty
   }
 

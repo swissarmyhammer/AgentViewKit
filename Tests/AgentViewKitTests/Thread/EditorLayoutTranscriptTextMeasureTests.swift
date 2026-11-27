@@ -141,14 +141,11 @@ import Testing
   }
 
   /// A production change that fails this test: the measure takes a diff
-  /// with a long run of context for exact, but the EditorKit diff view folds
-  /// that context and hides its rows, so the row jumps when it changes form.
-  @Test func aDiffWithContextToFoldIsNotExact() {
-    let context = TranscriptRowFixtures.longPatchRows.map { _ in "   \"row\": true,\n" }.joined()
-    let patch =
-      "--- a/rows.json\n+++ b/rows.json\n@@ -1,11 +1,11 @@\n-{\n+[\n" + context + " }\n"
-
-    #expect(!Self.isExact(patch, .diff))
+  /// with a long run of context for not exact, but the EditorKit measure of
+  /// a diff (`EditorLayoutMeasure.prepare(diff:style:language:contextLines:gutterGap:)`)
+  /// folds that context as the diff view folds it on mount.
+  @Test func aDiffWithContextToFoldIsExact() {
+    #expect(Self.isExact(TranscriptRowFixtures.foldedPatch, .diff))
   }
 
   /// A production change that fails this test: the measure takes a text

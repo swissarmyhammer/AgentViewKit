@@ -12,6 +12,10 @@ import Testing
 /// The source has no clock. A frame comes only when the test calls
 /// ``advance()``, and only while the queue runs the source.
 @MainActor final class ManualFrames: TranscriptFrameSource {
+  /// The number of frames of a long rest: 2 seconds at 120 Hz, more frames
+  /// than a user waits before an interaction with a row.
+  static let longRest = 240
+
   /// The step of each frame, while the source runs.
   private var step: (@MainActor () -> Void)?
 
@@ -45,25 +49,14 @@ import Testing
   }
 }
 
-/// The queue that makes the editor slots of the rows of a thread real one
-/// at a time when the rows come to rest (card ^7625j1b).
+/// The queue that keeps the rows of a thread that wait at rest for an
+/// interaction of the user (card ^7625j1b).
 @MainActor @Suite struct TranscriptRowMountQueueTests {
-  /// The distances of the rows of a test from the vertical center of the
-  /// view, in points. They are not in order.
-  static let distances: [CGFloat] = [300, 10, 150, 5, 80]
+  /// The number of rows of a test.
+  static let rowCount = 3
 
-  /// The tops of the editor slots of each row of a test, in the coordinate
-  /// space of the row, in points. They are not in order.
-  static let slotTops: [CGFloat] = [40, 0, 20]
-
-  /// The number of editor slots of all rows of a test.
-  static let slotCount = distances.count * slotTops.count
-
-  /// The position in ``distances`` of the row nearest the center.
-  static let centerRow = 3
-
-  /// The position in ``distances`` of the second row from the center.
-  static let secondRow = 1
+  /// The position in ``mounts`` of the row that a test acts on.
+  static let actedRow = 1
 
   /// The frames of the queue.
   let frames = ManualFrames()
@@ -71,255 +64,123 @@ import Testing
   /// The queue, with the frames of the test.
   let queue: TranscriptRowMountQueue
 
-  /// One waiting mount for each of ``distances``, in the same order.
+  /// One mount for each row of a test, each in the queue.
   let mounts: [TranscriptRowMount]
 
-  /// The editor slots of each of ``mounts``: one for each of ``slotTops``,
-  /// in the same order.
-  let slots: [[TranscriptSlotMount]]
-
-  /// Makes a queue that holds one waiting mount for each of ``distances``,
-  /// each with one editor slot for each of ``slotTops``, while the rows
-  /// move.
+  /// Makes a queue that holds one waiting mount for each of ``rowCount``
+  /// rows.
   init() {
     queue = TranscriptRowMountQueue(frames: frames)
-    queue.noteRowsMove(true)
-    mounts = Self.distances.map { distance in
-      let mount = TranscriptRowMount()
-      mount.centerDistance = distance
-      return mount
-    }
-    slots = mounts.map { mount in
-      Self.slotTops.map { top in
-        let slot = TranscriptSlotMount()
-        slot.top = top
-        mount.add(slot)
-        return slot
-      }
-    }
+    mounts = (0..<Self.rowCount).map { _ in TranscriptRowMount() }
     for mount in mounts {
       queue.enqueue(mount)
     }
   }
 
-  /// The number of editor slots of all rows that do not wait.
-  var realSlotCount: Int {
-    slots.joined().count { !$0.waits }
+  /// The mount of the row that a test acts on.
+  var actedMount: TranscriptRowMount {
+    mounts[Self.actedRow]
   }
 
-  /// The tops of the editor slots of the row at `row` that do not wait, in
-  /// order.
-  ///
-  /// - Parameter row: The position of the row in ``distances``.
-  /// - Returns: The tops, from the top of the row.
-  func realTops(ofRow row: Int) -> [CGFloat] {
-    slots[row].filter { !$0.waits }.map(\.top).sorted()
+  /// The mounts of the rows that a test does not act on.
+  var otherMounts: [TranscriptRowMount] {
+    mounts.enumerated().filter { $0.offset != Self.actedRow }.map(\.element)
   }
 
-  /// A production change that fails this test: the queue makes all editor
-  /// slots of a row real in the same frame.
-  @Test func afterOneFrameAtRestAtMostOneEditorSlotIsReal() {
-    queue.noteRowsMove(false)
+  /// A production change that fails this test: the queue makes the waiting
+  /// rows real in the frames of a rest, so the rest hitches with no
+  /// interaction of the user.
+  @Test func aRowThatWaitsStillWaitsAfterTheFramesOfALongRest() {
+    frames.advance(ManualFrames.longRest)
+
+    #expect(mounts.allSatisfy { $0.waits })
+  }
+
+  /// A production change that fails this test: the queue runs the display
+  /// link while a row waits, so the link fires at rest for no work.
+  @Test func aRowThatWaitsRunsNoFrame() {
+    #expect(!frames.isRunning)
+  }
+
+  /// A production change that fails this test: the queue does not run the
+  /// work of the next frame, so the rows never come to rest after a live
+  /// motion.
+  @Test func theWorkOfTheNextFrameRunsInTheNextFrame() {
+    var runs = 0
+    queue.afterNextFrame { runs += 1 }
 
     frames.advance()
 
-    #expect(realSlotCount == TranscriptRowMountQueue.editorSlotsPerFrame)
+    #expect(runs == 1)
   }
 
-  /// A production change that fails this test: the queue makes the slots
-  /// real in the order of the arrival of their rows, and not from the
-  /// center out.
-  @Test func theFirstSlotIsInTheRowNearestTheCenter() {
-    queue.noteRowsMove(false)
+  /// A production change that fails this test: the queue keeps the frames
+  /// in run after the work of the next frame, so the display link fires
+  /// for no work.
+  @Test func theFramesStopAfterTheWorkOfTheNextFrame() {
+    queue.afterNextFrame {}
 
     frames.advance()
-
-    #expect(realTops(ofRow: Self.centerRow) == [0])
-  }
-
-  /// A production change that fails this test: the slots of a row become
-  /// real in the order of their arrival, and not from top to bottom.
-  @Test func theSlotsOfARowBecomeRealFromTopToBottom() {
-    queue.noteRowsMove(false)
-
-    frames.advance(2)
-
-    #expect(realTops(ofRow: Self.centerRow) == [0, 20])
-  }
-
-  /// A production change that fails this test: a row stops to wait when
-  /// its first slot becomes real, so its frame takes its content height
-  /// while its other slots are still static.
-  @Test func aRowWithThreeSlotsStillWaitsAfterTwoFrames() {
-    queue.noteRowsMove(false)
-
-    frames.advance(2)
-
-    #expect(mounts[Self.centerRow].waits)
-  }
-
-  /// A production change that fails this test: the row does not stop to
-  /// wait when its last slot becomes real, so it keeps the frame of its
-  /// static form.
-  @Test func aRowWithThreeSlotsIsRealAfterThreeFrames() {
-    queue.noteRowsMove(false)
-
-    frames.advance(Self.slotTops.count)
-
-    #expect(!mounts[Self.centerRow].waits)
-  }
-
-  /// A production change that fails this test: the queue goes to the next
-  /// row before each slot of the row nearest the center is real.
-  @Test func theNextSlotAfterAWholeRowIsInTheSecondRowFromTheCenter() {
-    queue.noteRowsMove(false)
-
-    frames.advance(Self.slotTops.count + 1)
-
-    #expect(realTops(ofRow: Self.secondRow) == [0])
-  }
-
-  /// A production change that fails this test: the queue makes a slot real
-  /// while the rows still move.
-  @Test func noSlotBecomesRealWhileTheRowsMove() {
-    frames.advance()
-
-    #expect(realSlotCount == 0)
-  }
-
-  /// A production change that fails this test: a new motion does not stop
-  /// the queue, so the editors mount while the list moves.
-  @Test func aNewMotionStopsTheQueue() {
-    queue.noteRowsMove(false)
-    frames.advance()
-
-    queue.noteRowsMove(true)
-    frames.advance()
-
-    #expect(realSlotCount == 1)
-  }
-
-  /// A production change that fails this test: the slots that wait when a
-  /// new motion starts never become real at the next rest.
-  @Test func theNextRestMakesTheSlotsThatStillWaitReal() {
-    queue.noteRowsMove(false)
-    frames.advance()
-    queue.noteRowsMove(true)
-
-    queue.noteRowsMove(false)
-    frames.advance()
-
-    #expect(realSlotCount == 2)
-  }
-
-  /// A production change that fails this test: the queue keeps the frame
-  /// source in run after the last slot becomes real, so the display link
-  /// fires for no work.
-  @Test func theQueueStopsTheFramesWhenNoSlotWaits() {
-    queue.noteRowsMove(false)
-
-    frames.advance(Self.slotCount)
 
     #expect(!frames.isRunning)
   }
 
-  /// A production change that fails this test: a row that leaves the queue
-  /// at once, such as a row with a hold, keeps a slot that waits for its
-  /// turn.
-  @Test func aRowThatLeavesTheQueueMakesEachOfItsSlotsReal() {
-    queue.release(mounts[Self.centerRow])
+  /// A production change that fails this test: an interaction with a row
+  /// does not end its wait, so the row stays static.
+  @Test func aReleaseEndsTheWaitOfTheRow() {
+    queue.release(actedMount)
 
-    #expect(slots[Self.centerRow].allSatisfy { !$0.waits })
+    #expect(!actedMount.waits)
   }
 
-  /// A production change that fails this test: a row that leaves the queue
-  /// at once still takes the turn of the next slot.
-  @Test func aRowThatLeavesTheQueueTakesNoTurn() {
-    queue.release(mounts[Self.centerRow])
-    queue.noteRowsMove(false)
+  /// A production change that fails this test: an interaction with one row
+  /// ends the wait of each row, so each row in view mounts its editors.
+  @Test func aReleaseKeepsTheWaitOfEachOtherRow() {
+    queue.release(actedMount)
 
-    frames.advance()
-
-    #expect(realTops(ofRow: Self.secondRow) == [0])
-  }
-
-  /// A production change that fails this test: a row with no editor slot
-  /// waits for ever, or takes the turn of an editor slot.
-  @Test func aRowWithNoEditorSlotTakesNoTurn() {
-    let empty = TranscriptRowMount()
-    empty.centerDistance = 0
-    queue.enqueue(empty)
-    queue.noteRowsMove(false)
-
-    frames.advance()
-
-    #expect(realTops(ofRow: Self.centerRow) == [0])
-  }
-
-  /// A production change that fails this test: a slot that comes into a
-  /// row that waits shows its editor at once.
-  @Test func aSlotThatComesIntoAWaitingRowWaits() {
-    let slot = TranscriptSlotMount()
-
-    mounts[Self.centerRow].add(slot)
-
-    #expect(slot.waits)
-  }
-
-  /// A production change that fails this test: a slot that shows again in
-  /// its row, such as when it changes from its still view to its editor,
-  /// waits again for a turn.
-  @Test func aSlotWhoseTurnCameDoesNotWaitWhenItShowsAgain() {
-    queue.noteRowsMove(false)
-    frames.advance()
-    let slot = slots[Self.centerRow][1]
-
-    mounts[Self.centerRow].add(slot)
-
-    #expect(!slot.waits)
+    #expect(otherMounts.allSatisfy { $0.waits })
   }
 
   /// A production change that fails this test: a jump session does not
-  /// make each slot real, so the jump labels stand on static text.
-  @Test func mountAllMakesEachSlotRealAtOnce() {
+  /// make each row in view real, so the jump labels stand on static text.
+  @Test func mountAllEndsTheWaitOfEachRowInView() {
     queue.mountAll()
 
-    #expect(realSlotCount == Self.slotCount)
+    #expect(mounts.allSatisfy { !$0.waits })
   }
 
   /// A production change that fails this test: a row that leaves the view
-  /// stops to wait, so the list mounts its editors out of view at rest.
+  /// stops to wait, so the list mounts its editors out of view.
   @Test func aRowThatLeavesTheViewKeepsItsWait() {
-    queue.withdraw(mounts[Self.centerRow])
+    queue.withdraw(actedMount)
 
-    #expect(mounts[Self.centerRow].waits)
+    #expect(actedMount.waits)
   }
 
-  /// A production change that fails this test: a row that leaves the view
-  /// stays in the queue, so its turn mounts an editor out of view.
-  @Test func aRowThatLeftTheViewTakesNoTurn() {
-    queue.withdraw(mounts[Self.centerRow])
-    queue.noteRowsMove(false)
+  /// A production change that fails this test: a row that left the view
+  /// stays in the queue, so a jump session mounts its editors out of view.
+  @Test func aRowThatLeftTheViewKeepsItsWaitInAJumpSession() {
+    queue.withdraw(actedMount)
 
-    frames.advance()
+    queue.mountAll()
 
-    #expect(realTops(ofRow: Self.secondRow) == [0])
+    #expect(actedMount.waits)
   }
 
   /// A production change that fails this test: a hold on a row that left
   /// the queue with its wait does not make the row real, so the row stays
   /// static for ever when the hold ends.
   @Test func aReleaseOfARowOutOfTheQueueEndsItsWait() {
-    queue.withdraw(mounts[Self.centerRow])
+    queue.withdraw(actedMount)
 
-    queue.release(mounts[Self.centerRow])
+    queue.release(actedMount)
 
-    #expect(!mounts[Self.centerRow].waits)
+    #expect(!actedMount.waits)
   }
 
   /// A production change that fails this test: a row that comes into view
-  /// while a jump session is open waits for its turn, so a jump target
-  /// stands on static text.
+  /// while a jump session is open waits, so a jump target stands on
+  /// static text.
   @Test func aRowThatComesIntoTheQueueInAJumpSessionIsReal() {
     let mount = TranscriptRowMount(waits: true)
     queue.mountAll()
@@ -330,7 +191,8 @@ import Testing
   }
 
   /// A production change that fails this test: the end of a jump session
-  /// does not end the real mounts, so the rows mount in one frame again.
+  /// does not end the real mounts, so the rows that come into view after
+  /// it mount their editors with no interaction.
   @Test func aRowThatComesIntoTheQueueAfterAJumpSessionWaits() {
     let mount = TranscriptRowMount()
     queue.mountAll()
@@ -341,41 +203,65 @@ import Testing
     #expect(mount.waits)
   }
 
-  /// A production change that fails this test: the slot of a row that the
-  /// list made while the rows moved, and that did not appear yet, shows its
-  /// editor at rest.
-  @Test func aSlotThatIsNotInARowYetWaits() {
-    #expect(TranscriptSlotMount().waits)
-  }
-
   // MARK: - The form of a waiting row
 
-  /// A production change that fails this test: a row that waits for its
-  /// turn shows its real form at rest, so all rows mount in one frame.
+  /// A production change that fails this test: a row that waits shows its
+  /// real form at rest, so all rows mount in one frame.
   @Test func aRowThatWaitsIsStaticAtRest() {
     #expect(
       TranscriptRowForm.isStatic(
         rowsMove: false, waitsToMount: true, holds: TranscriptRowHolds(), knowsHeight: true))
   }
 
-  /// A production change that fails this test: the focus does not skip
-  /// the queue, so the focused row waits for its turn.
+  /// A production change that fails this test: the focus does not end the
+  /// wait, so the focused row stays static.
   @Test func aFocusedRowThatWaitsIsRealAtOnce() {
     #expect(
       !TranscriptRowForm.isStatic(
         rowsMove: false, waitsToMount: true, holds: TranscriptRowHolds(hasFocus: true), knowsHeight: true))
   }
 
+  /// A production change that fails this test: a find hit in the text of a
+  /// waiting row does not end the wait at rest, so the row shows no find
+  /// mark in its text.
+  @Test func aSearchTargetThatWaitsIsRealAtRest() {
+    #expect(
+      !TranscriptRowForm.isStatic(
+        rowsMove: false, waitsToMount: true, holds: TranscriptRowHolds(isSearchTarget: true), knowsHeight: true))
+  }
+
+  /// A production change that fails this test: a find hit keeps a row real
+  /// while the rows move, so a flick through the hits mounts the editors
+  /// of each hit.
+  @Test func aSearchTargetIsStaticWhileTheRowsMove() {
+    #expect(
+      TranscriptRowForm.isStatic(
+        rowsMove: true, waitsToMount: true, holds: TranscriptRowHolds(isSearchTarget: true), knowsHeight: true))
+  }
+
+  /// A production change that fails this test: a find hit that marks words
+  /// does not make its row a search target.
+  @Test func aHitWithTermsMakesTheRowASearchTarget() {
+    #expect(TranscriptRowHolds.isSearchTarget(TranscriptSearchMark(terms: ["parser"], isCurrent: false)))
+  }
+
+  /// A production change that fails this test: a find hit that marks the
+  /// whole entry, which the static form shows, mounts the editors of the
+  /// row.
+  @Test func aHitOnTheWholeEntryIsNoSearchTarget() {
+    #expect(!TranscriptRowHolds.isSearchTarget(TranscriptSearchMark(terms: [], isCurrent: true)))
+  }
+
   /// A production change that fails this test: the slots of a row that
-  /// waits at rest do not take their own turns.
-  @Test func theSlotsOfARowThatWaitsAtRestTakeTurns() {
+  /// waits at rest take no press, so a click stays on the static form.
+  @Test func theSlotsOfARowThatWaitsAtRestWait() {
     #expect(
       TranscriptRowForm.slotForm(
-        rowsMove: false, waitsToMount: true, holds: TranscriptRowHolds(), knowsHeight: true) == .inTurn)
+        rowsMove: false, waitsToMount: true, holds: TranscriptRowHolds(), knowsHeight: true) == .waiting)
   }
 
   /// A production change that fails this test: a slot of a moving row
-  /// whose turn came shows its editor while the rows move.
+  /// takes the press of a waiting row while the rows move.
   @Test func theSlotsOfAStaticRowThatMovesAreStill() {
     #expect(
       TranscriptRowForm.slotForm(
@@ -387,7 +273,7 @@ import Testing
   @Test func theSlotsOfAHeldRowAreReal() {
     #expect(
       TranscriptRowForm.slotForm(
-        rowsMove: false, waitsToMount: true, holds: TranscriptRowHolds(isHovered: true), knowsHeight: true)
+        rowsMove: false, waitsToMount: true, holds: TranscriptRowHolds(hasSelection: true), knowsHeight: true)
         == .real)
   }
 
@@ -399,21 +285,21 @@ import Testing
         rowsMove: false, waitsToMount: true, holds: TranscriptRowHolds(), knowsHeight: false) == .real)
   }
 
-  /// A production change that fails this test: a slot that waits in a row
-  /// that takes turns shows its editor.
-  @Test func aSlotThatWaitsForItsTurnIsStill() {
-    #expect(TranscriptSlotForm.inTurn.showsStill(slotWaits: true))
+  /// A production change that fails this test: a slot of a row that waits
+  /// at rest shows its editor.
+  @Test func aSlotOfARowThatWaitsShowsItsStillView() {
+    #expect(TranscriptSlotForm.waiting.showsStill)
   }
 
-  /// A production change that fails this test: a slot whose turn came
-  /// stays static until each slot of its row is real.
-  @Test func aSlotWhoseTurnCameIsReal() {
-    #expect(!TranscriptSlotForm.inTurn.showsStill(slotWaits: false))
+  /// A production change that fails this test: a slot of a real row shows
+  /// its still view.
+  @Test func aSlotOfARealRowShowsItsEditor() {
+    #expect(!TranscriptSlotForm.real.showsStill)
   }
 }
 
-/// One row in a host, with the queue that makes its editor slots real one
-/// at a time at rest (card ^7625j1b).
+/// One row in a host, with the queue that keeps its static form at rest
+/// until an interaction of the user (card ^7625j1b).
 @MainActor @Suite struct TranscriptRowMountQueueHostTests {
   /// The frames of the queue.
   let frames = ManualFrames()
@@ -430,95 +316,106 @@ import Testing
   /// rows move, in a host with the queue of the test, and then shows it at
   /// rest.
   ///
-  /// - Parameter item: The transcript item of the row.
-  /// - Returns: The host, with the row at rest, and the number of
-  ///   EditorKit text views of the real row.
+  /// - Parameters:
+  ///   - item: The transcript item of the row.
+  ///   - search: The find hits of the thread, or `nil` (the default) for no
+  ///     search.
+  /// - Returns: The host, with the row at rest, and the number of EditorKit
+  ///   text views of the real row.
   func restingRowThatEnteredWhileMoving(
-    _ item: PreviewTranscriptItem = TranscriptStaticRowTests.plainAnswer
+    _ item: PreviewTranscriptItem = TranscriptStaticRowTests.plainAnswer, search: TranscriptSearch? = nil
   ) -> (host: StaticRowHost, realTextViews: Int) {
     let host = StaticRowHost(item, width: TranscriptStaticRowTests.widths[1])
     let realTextViews = host.textViewCount
     host.mounts = queue
-    queue.noteRowsMove(true)
+    host.search = search
     host.enterWhileMoving()
     PendingRunLoopBlocks.run()
-    queue.noteRowsMove(false)
     host.show(rowsMove: false)
     return (host, realTextViews)
   }
 
-  /// Gives `count` frames, and lays the row out again.
+  /// Presses the first still view of the row with an assistive app, and
+  /// lays the row out again.
   ///
-  /// - Parameters:
-  ///   - count: The number of frames.
-  ///   - host: The host of the row.
-  func advance(_ count: Int, in host: StaticRowHost) {
-    frames.advance(count)
+  /// - Parameter host: The host of the row.
+  func pressTheStillText(in host: StaticRowHost) async throws {
+    try await withAccessibilityTree {
+      let still = try #require(host.accessibilityElements(identifiedAs: StaticSlotAccessibility.identifier).first)
+      _ = try performAccessibilityPress(on: still)
+    }
     host.layOut()
   }
 
-  /// A production change that fails this test: a row that entered while
-  /// the rows moved mounts its editors in the frame of the rest.
-  @Test func aRowThatEnteredWhileMovingStaysStaticAtRestUntilItsTurn() async {
+  /// A production change that fails this test: the frames of a rest mount
+  /// the editors of a row that entered while the rows moved, with no
+  /// interaction of the user.
+  @Test func aRowThatEnteredWhileMovingStaysStaticAfterALongRest() async {
     let (host, _) = restingRowThatEnteredWhileMoving()
+
+    frames.advance(ManualFrames.longRest)
+    host.layOut()
 
     #expect(host.textViewCount == 0)
   }
 
-  /// A production change that fails this test: the turn of a row in the
-  /// queue does not mount its editors.
-  @Test func aRowThatEnteredWhileMovingIsRealAfterItsTurn() async {
+  /// A production change that fails this test: the still text of a row
+  /// that waits at rest is no accessibility element, or a press of an
+  /// assistive app on it does not make the row real.
+  @Test func anAccessibilityPressOnTheStillTextOfARowThatWaitsMakesTheRowReal() async throws {
     let (host, _) = restingRowThatEnteredWhileMoving()
 
-    advance(1, in: host)
+    try await pressTheStillText(in: host)
 
     #expect(host.textViewCount > 0)
   }
 
-  /// A production change that fails this test: the turn of a row changes
-  /// its height, so the rows below it jump.
-  @Test func aRowKeepsItsHeightWhenItsTurnMountsIt() async {
+  /// A production change that fails this test: a row that waits at rest
+  /// keeps its static form when its block expands, so the row shows the
+  /// stale height and text of its static form.
+  @Test func anExpansionOfARowThatWaitsAtRestMakesTheRowReal() async {
+    let (host, _) = restingRowThatEnteredWhileMoving()
+
+    host.store.toggle(entry: host.entry)
+    host.layOut()
+
+    #expect(host.textViewCount > 0)
+  }
+
+  /// A production change that fails this test: a find hit in the text of a
+  /// row that waits at rest does not make the row real, so the row shows
+  /// no find mark in its text.
+  @Test func aFindHitInTheTextOfARowThatWaitsAtRestMakesTheRowReal() async throws {
+    let search = TranscriptSearch()
+    let (host, _) = restingRowThatEnteredWhileMoving(search: search)
+    let id = try #require(host.entry.wireID, "the entry has no wire id")
+
+    search.show(TranscriptSearchTests.hits([id]), in: host.session)
+    host.layOut()
+
+    #expect(host.textViewCount > 0)
+  }
+
+  /// A production change that fails this test: the press that mounts a
+  /// waiting row changes its height, so the rows below it jump.
+  @Test func aRowKeepsItsHeightWhenAPressMountsIt() async throws {
     let (host, _) = restingRowThatEnteredWhileMoving()
     let still = host.rowHeight
 
-    advance(1, in: host)
+    try await pressTheStillText(in: host)
     host.showAtRestAndSettle()
 
     #expect(abs(host.rowHeight - still) <= TranscriptStaticRowTests.heightTolerance)
   }
 
-  /// A production change that fails this test: the queue mounts more than
-  /// one editor of a row in one frame, or a slot whose turn came shows no
-  /// editor.
-  @Test(arguments: 1...2)
-  func afterEachFrameOneMoreEditorOfAFencedRowIsReal(frameCount: Int) async {
-    let (host, _) = restingRowThatEnteredWhileMoving(TranscriptRowFixtures.agentFenced)
-
-    advance(frameCount, in: host)
-
-    #expect(host.textViewCount == frameCount)
-  }
-
-  /// A production change that fails this test: a row with one slot for
-  /// each editor does not show each editor after the turns of its slots.
-  @Test func aFencedRowShowsEachEditorAfterTheTurnsOfItsSlots() async {
+  /// A production change that fails this test: a press on one slot of a
+  /// row mounts only that slot, so the other text areas of the row stay
+  /// static.
+  @Test func aPressOnAFencedRowShowsEachEditorOfTheRow() async throws {
     let (host, realTextViews) = restingRowThatEnteredWhileMoving(TranscriptRowFixtures.agentFenced)
 
-    advance(realTextViews, in: host)
+    try await pressTheStillText(in: host)
 
     #expect(host.textViewCount == realTextViews)
-  }
-
-  /// A production change that fails this test: a row that is half static
-  /// and half real takes the height of its content in place of the height
-  /// of the cache, so the rows below it jump.
-  @Test func aRowWithStaticAndRealSlotsHasTheCacheHeight() async throws {
-    let (host, _) = restingRowThatEnteredWhileMoving(TranscriptRowFixtures.agentFenced)
-    let cacheHeight = try #require(host.heights.height(of: host.entry.id, width: host.width))
-
-    advance(1, in: host)
-    try #require(host.textViewCount == 1)
-
-    #expect(abs(host.rowHeight - cacheHeight) <= TranscriptStaticRowTests.heightTolerance)
   }
 }
