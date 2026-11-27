@@ -46,6 +46,30 @@ enum TranscriptRowFixtures {
     "The config:\n\n```json\n{\n  \"name\": \"parser\",\n  \"rows\": [1, 2, 3],\n  \"detail\": \""
       + paragraph + "\"\n}\n```")
 
+  /// The sentences of the inline math paragraph: enough to wrap at each
+  /// test width.
+  static let inlineMathSentences = 3
+
+  /// An agent message with inline math that moves the breaks of its lines
+  /// (EditorKit ^tg1hnz7).
+  static let agentInlineMath = PreviewTranscriptItem.agent(
+    String(
+      repeating: "The sum $\\sum_{i=1}^{n} i^2$ and the fraction $\\frac{a}{b}$ move the "
+        + "breaks of the line, with $x^2 + y^2 = z^2$ near the end. ",
+      count: inlineMathSentences))
+
+  /// An agent message with block math of many rows between two paragraphs
+  /// (EditorKit ^tg1hnz7).
+  static let agentBlockMath = PreviewTranscriptItem.agent(
+    "Text above.\n\n$$\\frac{\\frac{a}{b}}{\\frac{c}{d}}$$\n\n" + paragraph)
+
+  /// An agent message with a line of inline code spans that wraps at each
+  /// test width (EditorKit ^5b9fdah).
+  static let agentInlineCodeWrapped = PreviewTranscriptItem.agent(
+    "The cache reads `rows.count` and `heights.first` on a background task, so that a scroll "
+      + "does not wait for `layout(of:)` of the rows that are far from view, and it keeps "
+      + "`TranscriptRowHeights` in step with the `transcript` of the thread.")
+
   /// A thought.
   static let thought = PreviewTranscriptItem.thought(paragraph)
 
@@ -202,6 +226,12 @@ enum TranscriptRowFixtures {
     case agentFencedPlain
     /// ``TranscriptRowFixtures/agentFencedJSON``.
     case agentFencedJSON
+    /// ``TranscriptRowFixtures/agentInlineMath``.
+    case agentInlineMath
+    /// ``TranscriptRowFixtures/agentBlockMath``.
+    case agentBlockMath
+    /// ``TranscriptRowFixtures/agentInlineCodeWrapped``.
+    case agentInlineCodeWrapped
     /// ``TranscriptRowFixtures/thought``.
     case thought
     /// ``TranscriptRowFixtures/toolCall``.
@@ -234,6 +264,9 @@ enum TranscriptRowFixtures {
       case .agentFencedLong: TranscriptRowFixtures.agentFencedLong
       case .agentFencedPlain: TranscriptRowFixtures.agentFencedPlain
       case .agentFencedJSON: TranscriptRowFixtures.agentFencedJSON
+      case .agentInlineMath: TranscriptRowFixtures.agentInlineMath
+      case .agentBlockMath: TranscriptRowFixtures.agentBlockMath
+      case .agentInlineCodeWrapped: TranscriptRowFixtures.agentInlineCodeWrapped
       case .thought: TranscriptRowFixtures.thought
       case .toolCall: TranscriptRowFixtures.toolCall
       case .diff: TranscriptRowFixtures.diff
@@ -254,6 +287,13 @@ enum TranscriptRowFixtures {
     nonisolated static let codeRows: [Row] = [
       .agentFenced, .agentFencedLong, .agentFencedPlain, .agentFencedJSON, .diff, .diffLong, .commandOutput,
       .commandOutputLong,
+    ]
+
+    /// The row kinds with Markdown whose layout EditorKit measures off the
+    /// main actor: inline math, block math (EditorKit ^tg1hnz7) and a
+    /// wrapped line with inline code (EditorKit ^5b9fdah).
+    nonisolated static let measuredMarkdownRows: [Row] = [
+      .agentInlineMath, .agentBlockMath, .agentInlineCodeWrapped,
     ]
 
     /// Whether the blocks of the row are expanded.

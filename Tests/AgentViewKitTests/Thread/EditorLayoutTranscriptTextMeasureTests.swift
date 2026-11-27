@@ -105,10 +105,18 @@ import Testing
     #expect(!measure.isExact(TranscriptTextPart(text: TranscriptImageFixtures.linkMarkdown, style: .markdown)))
   }
 
-  /// A production change that fails this test: the measure takes math for
-  /// exact, but the height of a formula comes from its view.
-  @Test func markdownWithMathIsNotExact() {
-    #expect(!Self.isExact("The cost is $n^2$ for each row.", .markdown))
+  /// A production change that fails this test: the measure takes inline
+  /// math for not exact, but EditorKit typesets and measures a formula off
+  /// the main actor (EditorKit ^tg1hnz7).
+  @Test func markdownWithInlineMathIsExact() {
+    #expect(Self.isExact("The cost is $n^2$ for each row.", .markdown))
+  }
+
+  /// A production change that fails this test: the measure takes block
+  /// math for not exact, but EditorKit typesets and measures a block
+  /// formula off the main actor (EditorKit ^tg1hnz7).
+  @Test func markdownWithBlockMathIsExact() {
+    #expect(Self.isExact("The cost:\n\n$$\\frac{n^2}{2}$$\n\nFor each row.", .markdown))
   }
 
   /// A production change that fails this test: the measure takes code with

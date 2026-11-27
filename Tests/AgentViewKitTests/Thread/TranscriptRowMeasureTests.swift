@@ -47,6 +47,35 @@ struct TranscriptRowMeasureTests {
     #expect(heights.knowsHeight(of: entry.id))
   }
 
+  /// A production change that fails this test: the measure of a Markdown
+  /// part does not give the height of the EditorKit layout of inline math,
+  /// block math or a wrapped line with inline code, so the height of the
+  /// cache differs from the height of the mounted row (card ^v2nh2hq).
+  @Test(arguments: TranscriptRowFixtures.Row.measuredMarkdownRows, TranscriptRowHeightBed.widths)
+  func theMeasureOfAMeasuredMarkdownRowIsTheMountedHeightExactly(
+    row: TranscriptRowFixtures.Row, width: CGFloat
+  ) async throws {
+    let entry = try TranscriptRowHeightBed.entry([row.item])
+    try await TranscriptRowHeightBed.expectCachedHeightMatchesTheMountedRow(
+      entry, width: width, expanded: row.isExpanded, measure: EditorLayoutTranscriptTextMeasure(),
+      tolerance: TranscriptRowHeightBed.exactTolerance)
+  }
+
+  /// A production change that fails this test: the measure takes inline
+  /// math, block math or a wrapped line with inline code for not exact, so
+  /// the cache gives no height to the static form of the row (card
+  /// ^v2nh2hq).
+  @Test(arguments: TranscriptRowFixtures.Row.measuredMarkdownRows)
+  func theCacheTakesTheHeightOfAMeasuredMarkdownRowForExact(row: TranscriptRowFixtures.Row) async throws {
+    let entry = try TranscriptRowHeightBed.entry([row.item])
+    let heights = TranscriptRowHeights(
+      metrics: TranscriptRowMetrics.probe(), expandedBlocks: ExpandedBlocksStore { _ in row.isExpanded })
+    _ = try await TranscriptRowHeightBed.cachedHeight(
+      of: entry, in: heights, width: TranscriptRowHeightBed.regularWidth)
+
+    #expect(heights.knowsHeight(of: entry.id))
+  }
+
   /// A production change that fails this test: the measure gives EditorKit
   /// no natural size of the image of an answer, or another size than the
   /// size of the loaded image, so the height of the cache differs from the
