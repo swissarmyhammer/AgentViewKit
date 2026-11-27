@@ -292,9 +292,11 @@ enum TranscriptRowFixtures {
     /// The row kinds with Markdown whose layout EditorKit measures off the
     /// main actor: inline math, block math (EditorKit ^tg1hnz7) and a
     /// wrapped line with inline code (EditorKit ^5b9fdah).
-    nonisolated static let measuredMarkdownRows: [Row] = [
-      .agentInlineMath, .agentBlockMath, .agentInlineCodeWrapped,
-    ]
+    nonisolated static let measuredMarkdownRows: [Row] = mathRows + [.agentInlineCodeWrapped]
+
+    /// The row kinds with Markdown math: inline math and block math
+    /// (EditorKit ^tg1hnz7).
+    nonisolated static let mathRows: [Row] = [.agentInlineMath, .agentBlockMath]
 
     /// Whether the blocks of the row are expanded.
     var isExpanded: Bool {
