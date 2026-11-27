@@ -26,6 +26,13 @@ import SwiftUI
 /// The height is not observable, so a new height does not make the slot
 /// evaluate its body again. The slot reads it when the form of its row
 /// changes.
+///
+/// A slot whose still view cannot show its text, such as a Markdown text
+/// with math (card ^hh39bp4), keeps its editor in each form
+/// (``keepsEditor``). The row keeps the frame of its static form, at the
+/// exact height of the height cache, so the row does not move. Such a
+/// slot still takes its turn in the queue of its row, and the turn changes
+/// nothing.
 struct StaticEditorSlot<Editor: View, Still: View>: View {
   /// The EditorKit editor of the text area.
   let editor: Editor
@@ -33,6 +40,10 @@ struct StaticEditorSlot<Editor: View, Still: View>: View {
   /// Makes the still view of the static form. The slot calls it only in the
   /// static form.
   @ViewBuilder let still: () -> Still
+
+  /// Whether the slot shows its editor in each form, because the still view
+  /// cannot show its text.
+  let keepsEditor: Bool
 
   @Environment(\.transcriptSlotForm) private var form
   @Environment(\.transcriptRowMount) private var rowMount
@@ -46,9 +57,15 @@ struct StaticEditorSlot<Editor: View, Still: View>: View {
   /// Makes the slot of an editor.
   ///
   /// - Parameters:
+  ///   - keepsEditor: Whether the slot shows its editor in each form,
+  ///     because the still view cannot show the text. The default is
+  ///     `false`.
   ///   - editor: The EditorKit editor of the text area.
   ///   - still: Makes the static form of the text.
-  init(@ViewBuilder editor: () -> Editor, @ViewBuilder still: @escaping () -> Still) {
+  init(
+    keepsEditor: Bool = false, @ViewBuilder editor: () -> Editor, @ViewBuilder still: @escaping () -> Still
+  ) {
+    self.keepsEditor = keepsEditor
     self.editor = editor()
     self.still = still
   }
@@ -62,9 +79,9 @@ struct StaticEditorSlot<Editor: View, Still: View>: View {
   }
 
   /// The still view or the editor, as the form of the row and the turn of
-  /// the slot tell.
+  /// the slot tell. A slot that keeps its editor shows the editor.
   @ViewBuilder private var slotForm: some View {
-    if form.showsStill(slotWaits: mount.waits) {
+    if !keepsEditor, form.showsStill(slotWaits: mount.waits) {
       still()
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .frame(height: laidOutHeight.points, alignment: .top)

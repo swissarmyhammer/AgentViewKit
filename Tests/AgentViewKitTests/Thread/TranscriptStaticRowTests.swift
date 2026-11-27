@@ -245,6 +245,17 @@ import Testing
     #expect(host.textViewCount == 0)
   }
 
+  /// A production change that fails this test: the text of a row with math
+  /// shows its still form (``StaticMarkdownText``) in a live motion. The
+  /// still form has no math, so it shows the TeX source, such as
+  /// `$\frac{a}{b}$`, in place of each formula (card ^hh39bp4).
+  @Test(arguments: TranscriptRowFixtures.Row.mathRows)
+  func theTextOfAMathRowSeenForTheFirstTimeKeepsItsEditorInALiveMotion(row: TranscriptRowFixtures.Row) async {
+    let host = await StaticRowHost.makeCached(row, width: Self.widths[1])
+
+    #expect(host.textViewCount == 1)
+  }
+
   /// A production change that fails this test: the cache height of an
   /// exact row kind is not the height of the real row, so the row jumps
   /// when it changes from static to real.
