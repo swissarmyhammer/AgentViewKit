@@ -1,4 +1,5 @@
 import CoreGraphics
+import EditorSwiftUI
 import SwiftUI
 
 /// One text that EditorKit lays out in a transcript row: the text and the
@@ -134,6 +135,48 @@ nonisolated public protocol TranscriptTextMeasure: Sendable {
   /// - Parameter part: The text part.
   /// - Returns: The prepared part.
   nonisolated func prepared(_ part: TranscriptTextPart) -> any PreparedTranscriptTextPart
+
+  /// A picture of a text part at a width, drawn with no view, for the
+  /// static form of its row (card ^9ync5h3).
+  ///
+  /// ``TranscriptRowHeights`` calls this function on its background worker
+  /// for each text part, at the width of its measure. A static row then
+  /// shows the picture in place of the SwiftUI `Text` of the part, so the
+  /// list lays out no text on the main thread while it moves. The height of
+  /// the picture is the height of the measure at the width. The default
+  /// draws no picture.
+  ///
+  /// - Parameters:
+  ///   - part: The text part.
+  ///   - width: The width that the view of the part gets.
+  ///   - appearance: The color scheme and the scale of the picture.
+  /// - Returns: The picture, or `nil` when the measure draws no picture of
+  ///   the part.
+  nonisolated func picture(
+    of part: TranscriptTextPart, width: CGFloat, appearance: TranscriptTextAppearance
+  ) -> EditorStaticRendering?
+}
+
+/// The appearance of the pictures of the static text of a thread
+/// (``TranscriptTextMeasure/picture(of:width:appearance:)``): the color
+/// scheme that the colors of the theme resolve in, and the pixels in one
+/// point.
+nonisolated public struct TranscriptTextAppearance: Hashable, Sendable {
+  /// The color scheme of the rows.
+  public let colorScheme: ColorScheme
+
+  /// The pixels in one point: the display scale of the window of the rows.
+  public let scale: CGFloat
+
+  /// Makes an appearance.
+  ///
+  /// - Parameters:
+  ///   - colorScheme: The color scheme of the rows.
+  ///   - scale: The pixels in one point.
+  public init(colorScheme: ColorScheme, scale: CGFloat) {
+    self.colorScheme = colorScheme
+    self.scale = scale
+  }
 }
 
 /// A text part that a ``TranscriptTextMeasure`` prepared, to measure it at
@@ -182,5 +225,19 @@ extension TranscriptTextMeasure {
   /// - Returns: The prepared part.
   public nonisolated func prepared(_ part: TranscriptTextPart) -> any PreparedTranscriptTextPart {
     UnpreparedTranscriptTextPart(measure: self, part: part)
+  }
+
+  /// No picture: a measure that draws no picture keeps the SwiftUI `Text`
+  /// of each static row.
+  ///
+  /// - Parameters:
+  ///   - part: The text part.
+  ///   - width: The width that the view of the part gets.
+  ///   - appearance: The color scheme and the scale of the picture.
+  /// - Returns: `nil`.
+  public nonisolated func picture(
+    of part: TranscriptTextPart, width: CGFloat, appearance: TranscriptTextAppearance
+  ) -> EditorStaticRendering? {
+    nil
   }
 }

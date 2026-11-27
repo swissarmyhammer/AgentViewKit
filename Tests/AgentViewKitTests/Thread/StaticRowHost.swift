@@ -12,11 +12,13 @@ import SwiftUI
 ///
 /// The host shows the ``TranscriptRowElement`` of the one entry of a
 /// session, with the heights of the static rows and the motion signal of a
-/// thread. A host from ``makeCached(_:width:frames:movesLive:)`` gives the rows the height cache
+/// thread. A host from ``makeCached(_:width:frames:movesLive:colorScheme:)`` gives the rows the height cache
 /// of a thread too. ``show(rowsMove:)`` sets the motion signal and lays the row out
 /// again, so a test reads the row at rest and while the rows move. No
 /// window shows, and no window takes the focus. The window has the light
-/// appearance, so the text is dark on a clear background.
+/// appearance, so the text is dark on a clear background, or the dark
+/// appearance of a host from ``makeCached(_:width:frames:movesLive:colorScheme:)``
+/// with the dark color scheme.
 @MainActor final class StaticRowHost {
   /// The session whose one entry the host shows.
   let session: SessionModel
@@ -25,7 +27,7 @@ import SwiftUI
   let width: CGFloat
 
   /// The heights of the static row: the record of the real row, and the
-  /// height cache of a host from ``makeCached(_:width:frames:movesLive:)``.
+  /// height cache of a host from ``makeCached(_:width:frames:movesLive:colorScheme:)``.
   let heights = TranscriptStaticRowHeights()
 
   /// The store of the expanded blocks of the row.
@@ -67,7 +69,7 @@ import SwiftUI
   ///   - item: The transcript item of the one entry.
   ///   - width: The width of the row, in points.
   convenience init(_ item: PreviewTranscriptItem, width: CGFloat) {
-    self.init(item, width: width, isExpanded: false, showsAtRest: true)
+    self.init(item, width: width, isExpanded: false, colorScheme: .light, showsAtRest: true)
   }
 
   /// Makes the host of the row of `item`, and shows the row at rest only
@@ -77,22 +79,31 @@ import SwiftUI
   ///   - item: The transcript item of the one entry.
   ///   - width: The width of the row, in points.
   ///   - isExpanded: Whether the blocks of the row are expanded.
+  ///   - colorScheme: The appearance of the window.
   ///   - showsAtRest: Whether the host shows the row at rest.
-  private init(_ item: PreviewTranscriptItem, width: CGFloat, isExpanded: Bool, showsAtRest: Bool) {
+  private init(
+    _ item: PreviewTranscriptItem, width: CGFloat, isExpanded: Bool, colorScheme: ColorScheme, showsAtRest: Bool
+  ) {
     store = ExpandedBlocksStore { _ in isExpanded }
     session = .preview(transcript: [item])
     self.width = width
     hosting = NSHostingView(rootView: AnyView(EmptyView()))
     window = UnorderedWindow.make(holding: hosting, size: CGSize(width: width, height: width))
-    window.appearance = NSAppearance(named: .aqua)
+    window.appearance = NSAppearance(named: colorScheme == .dark ? .darkAqua : .aqua)
+    appearance = TranscriptTextAppearance(colorScheme: colorScheme, scale: window.backingScaleFactor)
     if showsAtRest {
       show(rowsMove: false)
     }
   }
 
+  /// The appearance of the window: its color scheme and its backing scale.
+  /// The height cache of a host from ``makeCached(_:width:frames:movesLive:colorScheme:)``
+  /// draws the pictures of the static text in it.
+  let appearance: TranscriptTextAppearance
+
   /// Gives the row of a fixture the height cache of a thread, waits until the
-  /// cache publishes the height of the row, and then shows the row for the
-  /// first time, while the rows move.
+  /// cache publishes the height and the pictures of the row, and then shows
+  /// the row for the first time, while the rows move.
   ///
   /// The row has no record of a real layout, so the cache alone can give
   /// the height of its static form. The row of each fixture has a chrome
@@ -108,12 +119,38 @@ import SwiftUI
   ///     and whether the motion is live (`movesLive`).
   ///   - movesLive: Whether the motion is a live motion of the user
   ///     (``movesLive``).
+  ///   - colorScheme: The appearance of the window. The default is light.
   /// - Returns: The host, with the row in its first frame.
   static func makeCached(
     _ row: TranscriptRowFixtures.Row, width: CGFloat, frames: (any TranscriptFrameSource)? = nil,
-    movesLive: Bool = true
+    movesLive: Bool = true, colorScheme: ColorScheme = .light
   ) async -> StaticRowHost {
-    let host = StaticRowHost(row.item, width: width, isExpanded: row.isExpanded, showsAtRest: false)
+    await makeCached(
+      row.item, width: width, isExpanded: row.isExpanded, frames: frames, movesLive: movesLive,
+      colorScheme: colorScheme)
+  }
+
+  /// Gives the row of `item` the height cache of a thread, as
+  /// ``makeCached(_:width:frames:movesLive:colorScheme:)`` gives the row of
+  /// a fixture.
+  ///
+  /// - Parameters:
+  ///   - item: The transcript item of the one entry.
+  ///   - width: The width of the row, in points.
+  ///   - isExpanded: Whether the blocks of the row are expanded. The default
+  ///     is `false`.
+  ///   - frames: The frames of the queue of the row, or `nil` for a row
+  ///     with no queue (``mounts``).
+  ///   - movesLive: Whether the motion is a live motion of the user
+  ///     (``movesLive``). The default is `true`.
+  ///   - colorScheme: The appearance of the window. The default is light.
+  /// - Returns: The host, with the row in its first frame.
+  static func makeCached(
+    _ item: PreviewTranscriptItem, width: CGFloat, isExpanded: Bool = false,
+    frames: (any TranscriptFrameSource)? = nil, movesLive: Bool = true, colorScheme: ColorScheme = .light
+  ) async -> StaticRowHost {
+    let host = StaticRowHost(
+      item, width: width, isExpanded: isExpanded, colorScheme: colorScheme, showsAtRest: false)
     host.movesLive = movesLive
     if let frames {
       let mounts = TranscriptRowMountQueue(frames: frames)
@@ -122,6 +159,7 @@ import SwiftUI
       host.mounts = mounts
     }
     let cache = TranscriptRowHeights(metrics: TranscriptRowMetrics.probe(), expandedBlocks: host.store)
+    host.heights.noteAppearance(host.appearance)
     host.heights.attach(cache: cache, session: host.session)
     host.heights.noteRowWidth(width)
     let rowKey = host.entry.rowKey

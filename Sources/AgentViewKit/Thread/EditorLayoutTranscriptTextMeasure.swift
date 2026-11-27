@@ -156,6 +156,31 @@ nonisolated public struct EditorLayoutTranscriptTextMeasure: TranscriptTextMeasu
     return prepared.measurement(width: width)
   }
 
+  /// A picture of a Markdown part at a width, drawn by EditorKit with no
+  /// view (`EditorLayoutMeasure.render(markdown:width:style:imageSizes:)`),
+  /// in the Markdown style of the measure, for the static form of its row
+  /// (card ^9ync5h3).
+  ///
+  /// The picture has the measured height of the part at the width. Only a
+  /// Markdown part whose parts EditorKit each draws has a picture
+  /// (``StaticMarkdownPicture/draws(_:)``). Such a part has no image, so
+  /// the picture needs no image size.
+  ///
+  /// - Parameters:
+  ///   - part: The text part.
+  ///   - width: The width of the view that shows the text.
+  ///   - appearance: The color scheme and the scale of the picture.
+  /// - Returns: The picture, or `nil` for a part that is not Markdown, or
+  ///   that has a part that EditorKit does not draw.
+  public func picture(
+    of part: TranscriptTextPart, width: CGFloat, appearance: TranscriptTextAppearance
+  ) -> EditorStaticRendering? {
+    guard part.style == .markdown, StaticMarkdownPicture.draws(part.text) else { return nil }
+    let style = EditorLayoutMeasure.RenderStyle(
+      markdownStyle, colorScheme: appearance.colorScheme, scale: appearance.scale)
+    return EditorLayoutMeasure.render(markdown: part.text, width: width, style: style)
+  }
+
   /// A text part, ready to measure at many widths with EditorKit's
   /// `EditorLayoutMeasure.Prepared`.
   ///

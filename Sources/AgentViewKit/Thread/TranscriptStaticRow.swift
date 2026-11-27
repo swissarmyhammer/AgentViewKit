@@ -1,4 +1,5 @@
 import EditorCommands
+import EditorSwiftUI
 import FoundationModelsACPClient
 import SwiftUI
 import os
@@ -189,7 +190,9 @@ struct TranscriptStaticRow: ViewModifier {
       BodyEvaluationCounter.note(Self.counterKey(for: id.rowKey))
     #endif
     return TranscriptStaticRowFrame(id: id, staticHeight: staticHeight) {
-      content.environment(\.transcriptSlotForm, slotForm)
+      content
+        .environment(\.transcriptSlotForm, slotForm)
+        .environment(\.transcriptRowPictures, heights.map { TranscriptRowPictures(heights: $0, rowKey: id.rowKey) })
     }
     .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
       recordRealSize(size)
@@ -341,6 +344,45 @@ extension EnvironmentValues {
   /// Each EditorKit text area of the row adds its own turn to it
   /// (``StaticEditorSlot``). ``TranscriptRowElement`` sets it for its row.
   @Entry var transcriptRowMount: TranscriptRowMount? = nil
+
+  /// The pictures of the static text of the row of the view, or `nil`
+  /// outside a thread row (card ^9ync5h3).
+  ///
+  /// A Markdown text area of the row reads it (``StaticEditorSlot``), and
+  /// shows the picture of its text in its static form when the cache of the
+  /// thread has it. ``TranscriptStaticRow`` sets it for its row.
+  @Entry var transcriptRowPictures: TranscriptRowPictures? = nil
+}
+
+/// The pictures of the static text of one row of a thread, from the height
+/// cache of the thread (card ^9ync5h3).
+nonisolated struct TranscriptRowPictures: Equatable, Sendable {
+  /// The heights of the static rows of the thread.
+  let heights: TranscriptStaticRowHeights
+
+  /// The row key of the entry of the row.
+  let rowKey: String
+
+  /// The picture of a Markdown text of the row.
+  ///
+  /// - Parameters:
+  ///   - markdown: The Markdown text of a text area of the row.
+  ///   - appearance: The appearance of the text area.
+  /// - Returns: The picture, or `nil` when the cache has no picture of the
+  ///   text in the appearance.
+  @MainActor func picture(of markdown: String, appearance: TranscriptTextAppearance) -> EditorStaticRendering? {
+    heights.picture(of: markdown, inRow: rowKey, appearance: appearance)
+  }
+
+  /// Tells if two values give the pictures of the same row.
+  ///
+  /// - Parameters:
+  ///   - lhs: A value.
+  ///   - rhs: A value.
+  /// - Returns: `true` when both read the same heights for the same row.
+  static func == (lhs: TranscriptRowPictures, rhs: TranscriptRowPictures) -> Bool {
+    lhs.heights === rhs.heights && lhs.rowKey == rhs.rowKey
+  }
 }
 
 extension TranscriptEntry {

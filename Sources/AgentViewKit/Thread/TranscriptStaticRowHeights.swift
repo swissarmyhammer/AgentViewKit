@@ -40,6 +40,11 @@ import SwiftUI
   /// The width of the rows, or zero before the first layout.
   private var width: CGFloat = .zero
 
+  /// The appearance of the rows, or `nil` before the first
+  /// ``noteAppearance(_:)``. The cache draws the pictures of the static text
+  /// in it.
+  private var appearance: TranscriptTextAppearance?
+
   /// The positions of the rows in view, or an empty range before the list
   /// reports them. The cache computes them first, then the rows out from
   /// them.
@@ -66,6 +71,9 @@ import SwiftUI
     self.session = session
     generation += 1
     tracksTranscript = false
+    if let appearance {
+      cache?.noteAppearance(appearance)
+    }
     feed()
   }
 
@@ -77,6 +85,32 @@ import SwiftUI
     guard width != self.width else { return }
     self.width = width
     feed()
+  }
+
+  /// Records the appearance of the rows: their color scheme and their
+  /// display scale. A new appearance makes the cache draw the pictures of
+  /// the static text again.
+  ///
+  /// - Parameter appearance: The color scheme and the scale of the rows.
+  func noteAppearance(_ appearance: TranscriptTextAppearance) {
+    guard appearance != self.appearance else { return }
+    self.appearance = appearance
+    cache?.noteAppearance(appearance)
+  }
+
+  /// The picture of a Markdown text of a row, from the cache
+  /// (``TranscriptRowHeights/picture(of:inRow:appearance:)``).
+  ///
+  /// - Parameters:
+  ///   - markdown: The Markdown text of a text part of the row.
+  ///   - rowKey: The row key of the entry.
+  ///   - appearance: The appearance of the view that shows the picture.
+  /// - Returns: The picture, or `nil` when the rows have no cache or the
+  ///   cache has no picture of the text.
+  func picture(
+    of markdown: String, inRow rowKey: String, appearance: TranscriptTextAppearance
+  ) -> EditorStaticRendering? {
+    cache?.picture(of: markdown, inRow: rowKey, appearance: appearance)
   }
 
   /// Records the positions of the rows in view, and gives them to the
@@ -202,7 +236,9 @@ nonisolated struct TranscriptRowCacheSetup: Equatable {
 }
 
 /// Feeds the heights of the static rows of a thread with a cache for the
-/// environment of the rows, and with the width of the rows.
+/// environment of the rows, with the width of the rows, and with their
+/// appearance: the color scheme and the display scale of the pictures of
+/// the static text.
 ///
 /// ``ConversationView`` puts the modifier on the stack of its rows. The
 /// width of the stack is the width that the stack proposes to each row.
@@ -216,11 +252,17 @@ struct TranscriptRowHeightsFeed: ViewModifier {
   @Environment(\.editorTheme) private var theme
   @Environment(\.expandedBlocksStore) private var expandedBlocks
   @Environment(\.transcriptRowsHaveDefaultLook) private var hasDefaultLook
+  @Environment(\.colorScheme) private var colorScheme
+  @Environment(\.displayScale) private var displayScale
 
   func body(content: Content) -> some View {
     content
       .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width in
         heights.noteRowWidth(width)
+      }
+      .onChange(of: TranscriptTextAppearance(colorScheme: colorScheme, scale: displayScale), initial: true) {
+        _, appearance in
+        heights.noteAppearance(appearance)
       }
       .onChange(of: setup, initial: true) {
         let cache = TranscriptStaticRowHeights.makeCache(
