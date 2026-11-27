@@ -62,6 +62,30 @@ import Testing
     #expect(host.hitReachesScrollView, "\(host.hitAtText)")
   }
 
+  // MARK: - The hit tests of the hover responders
+
+  /// The number of mouse moves of each step of a hover count.
+  static let mouseMoves = 5
+
+  /// A production change that fails this test: the rows keep their hit
+  /// test in a live motion, so SwiftUI hit-tests the hover responders of a
+  /// row on each move of the mouse in a flick. At rest, the same moves
+  /// hit-test the responder, so the count can fail.
+  @Test func aLiveMotionHitTestsNoHoverResponderOfARow() throws {
+    let probe = HoverResponderProbe()
+    let host = StaticRowHost(TranscriptStaticRowTests.plainAnswer, width: Self.width)
+    host.messageFooter = probe.footer
+    host.showAtRestAndSettle()
+    try host.moveMouse(over: probe, moves: Self.mouseMoves)
+    try #require(probe.hitTests.value > 0, "at rest")
+
+    host.show(rowsMove: true)
+    probe.hitTests.reset()
+    try host.moveMouse(over: probe, moves: Self.mouseMoves)
+
+    #expect(probe.hitTests.value == 0)
+  }
+
   // MARK: - The hover of a row
 
   /// A production change that fails this test: the mouse that came on a

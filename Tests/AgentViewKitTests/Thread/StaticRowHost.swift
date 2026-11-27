@@ -47,6 +47,10 @@ import SwiftUI
   /// as the rows of a thread are. Set it before ``show(rowsMove:)``.
   var isInScrollView = false
 
+  /// The footer of the message row, as the `messageFooter` slot gives it.
+  /// Set it before ``show(rowsMove:)``.
+  var messageFooter: ItemViewRenderer<MessageEntry>?
+
   /// The window of the host. It is never ordered in.
   private let window: NSWindow
 
@@ -228,6 +232,46 @@ import SwiftUI
     return hit is NSScrollView || hit.enclosingScrollView != nil
   }
 
+  /// Moves the mouse into the host and over the hover responder of
+  /// `probe`, as AppKit sends the moves of a still mouse while the content
+  /// moves under it, and runs the blocks of the main run loop that each
+  /// move added (``PendingRunLoopBlocks``).
+  ///
+  /// The window is never ordered in, so AppKit sends it no mouse event of
+  /// its own. The host first takes `mouseEntered(with:)`, as its tracking
+  /// area gives it when the mouse comes in: with no enter, SwiftUI
+  /// hit-tests no hover responder for a move. Each move goes to a point one
+  /// point to the right of the last one, at the middle of the responder.
+  ///
+  /// - Parameters:
+  ///   - probe: The probe whose responder is in the footer of the row
+  ///     (``messageFooter``).
+  ///   - moves: The number of moves.
+  func moveMouse(over probe: HoverResponderProbe, moves: Int) throws {
+    guard let marker = probe.marker(in: hosting) else { throw StaticRowHostError.noProbe }
+    let start = marker.convert(CGPoint(x: marker.bounds.minX, y: marker.bounds.midY), to: nil)
+    let points = (0...moves).map { CGPoint(x: start.x + CGFloat($0), y: start.y) }
+    hosting.mouseEntered(with: try mouseMoved(at: points[0], number: 0))
+    for (number, point) in points.enumerated().dropFirst() {
+      hosting.mouseMoved(with: try mouseMoved(at: point, number: number))
+      PendingRunLoopBlocks.run()
+    }
+  }
+
+  /// A mouse move of the window of the host.
+  ///
+  /// - Parameters:
+  ///   - point: The place of the mouse, in the coordinates of the window.
+  ///   - number: The number of the event.
+  /// - Returns: The event.
+  private func mouseMoved(at point: CGPoint, number: Int) throws -> NSEvent {
+    let event = NSEvent.mouseEvent(
+      with: .mouseMoved, location: point, modifierFlags: [], timestamp: 0, windowNumber: window.windowNumber,
+      context: nil, eventNumber: number, clickCount: 0, pressure: 0)
+    guard let event else { throw StaticRowHostError.noMouseEvent }
+    return event
+  }
+
   /// The row drawn into a bitmap at the size of the host.
   ///
   /// - Returns: The bitmap.
@@ -267,6 +311,7 @@ import SwiftUI
       .environment(\.expandedBlocksStore, store)
       .environment(\.sessionModel, session)
       .environment(\.codeBlockModelCache, cache)
+      .environment(\.messageFooter, messageFooter)
       .threadTextSelection()
       .transaction { $0.disablesAnimations = true }
   }
@@ -279,6 +324,12 @@ enum StaticRowHostError: Error {
 
   /// The model of the text has no syntax coordinator.
   case noSyntax
+
+  /// The row shows no hover responder of a ``HoverResponderProbe``.
+  case noProbe
+
+  /// AppKit gave no mouse event.
+  case noMouseEvent
 }
 
 /// The vertical places of the lines of text in a bitmap: each band of pixel
