@@ -76,6 +76,13 @@ import Testing
   /// keeps a number of rows out of view that changes with the work on the
   /// main actor, such as the work of other tests.
   ///
+  /// The helper waits only for the computation of the cache
+  /// (``TranscriptRowHeights/computeHeights(of:)``), not for the main-actor
+  /// jobs of other tests. While the call waits for the
+  /// worker, the main-actor jobs of the list that are ready run, and they
+  /// can ask for a new layout of the list. Thus the host lays the list out
+  /// again after the call (``settle()``), so the list is at rest.
+  ///
   /// - Parameters:
   ///   - session: The session of the list.
   ///   - frames: The frames of the queue, such as ``ManualFrames``.
@@ -84,8 +91,8 @@ import Testing
     let thread = try MovingThread(session: session, frames: frames, expandedBlocks: ExpandedBlocksStore())
     thread.settle()
     let cache = try #require(thread.heights.cache, "the list has no height cache")
-    let rowKeys = session.transcript.map(\.rowKey)
-    await ObservationWait.until { rowKeys.allSatisfy { cache.height(of: $0) != nil } }
+    await cache.computeHeights(of: session.transcript.map(\.rowKey))
+    thread.settle()
     try #require(session.transcript.allSatisfy { cache.knowsHeight(of: $0.id) }, "a row has no exact height")
     return thread
   }
