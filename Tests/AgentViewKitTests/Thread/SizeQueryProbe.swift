@@ -30,17 +30,27 @@ import SwiftUI
     }
   }
 
+  /// The number of the alignment guide queries.
+  private(set) var alignmentQueryCount = 0
+
+  /// Records one alignment guide query.
+  func noteAlignmentQuery() {
+    alignmentQueryCount += 1
+  }
+
   /// Removes the queries of the record.
   func reset() {
     queryCount = 0
     barQueryCount = 0
+    alignmentQueryCount = 0
   }
 }
 
 /// A `Layout` that a test puts in a view, and that records each size query
-/// that it gets.
+/// and each alignment guide query that it gets.
 ///
-/// The probe has no subview. Its size is the proposed width (zero for an
+/// The probe has no subview, so it gives no guide of its own: each
+/// alignment guide query returns `nil`. Its size is the proposed width (zero for an
 /// unspecified width) and its ``height``.
 struct SizeQueryProbe: Layout {
   /// The record that gets the queries.
@@ -56,4 +66,37 @@ struct SizeQueryProbe: Layout {
   }
 
   func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) {}
+
+  func explicitAlignment(
+    of guide: HorizontalAlignment, in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews,
+    cache: inout Void
+  ) -> CGFloat? {
+    MainActor.assumeIsolated { record.noteAlignmentQuery() }
+    return nil
+  }
+
+  func explicitAlignment(
+    of guide: VerticalAlignment, in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews,
+    cache: inout Void
+  ) -> CGFloat? {
+    MainActor.assumeIsolated { record.noteAlignmentQuery() }
+    return nil
+  }
+}
+
+/// A stack that asks its content for a horizontal guide and for a vertical
+/// guide: the leading edge and the first text baseline, as a `ZStack` with
+/// that alignment asks each of its children.
+///
+/// A text beside the content gives the stack a baseline of its own.
+struct AlignmentQueryStack<Content: View>: View {
+  /// The content that the stack aligns.
+  @ViewBuilder let content: Content
+
+  var body: some View {
+    ZStack(alignment: .leadingFirstTextBaseline) {
+      Text(verbatim: "A")
+      content
+    }
+  }
 }

@@ -47,4 +47,16 @@ import Testing
 
     #expect(size == .zero)
   }
+
+  /// A production change that fails this test: the layout takes the
+  /// default guides of `Layout`, which place its child and ask it for its
+  /// guides. Around a scroll view, that query lays out the rows of the list
+  /// on each frame of a scroll (card ^9ync5h3).
+  @Test func anAlignmentQueryDoesNotAskTheChild() {
+    let record = SizeQueryRecord()
+
+    _ = NSHostingController(rootView: AlignmentQueryStack { Self.layout(record) }).sizeThatFits(in: Self.proposal)
+
+    #expect(record.alignmentQueryCount == 0)
+  }
 }

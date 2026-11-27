@@ -71,4 +71,16 @@ import Testing
 
     #expect(size.height == Self.probeHeight)
   }
+
+  /// A production change that fails this test: the frame takes the default
+  /// guides of `Layout`, which place the content and ask it for its guides.
+  /// The scroll view of a thread asks for the guides of the rows for its
+  /// bottom anchor, so each query lays out the rows again.
+  @Test func anAlignmentQueryDoesNotAskTheContent() {
+    let record = SizeQueryRecord()
+
+    _ = Self.size(of: AlignmentQueryStack { Self.frame(record, knowsHeight: false) })
+
+    #expect(record.alignmentQueryCount == 0)
+  }
 }

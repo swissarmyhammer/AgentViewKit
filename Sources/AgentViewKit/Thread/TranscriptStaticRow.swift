@@ -301,6 +301,28 @@ struct TranscriptStaticRowFrame: Layout {
         proposal: ProposedViewSize(width: bounds.width, height: proposal.height))
     }
   }
+
+  /// No horizontal guide of its own: the row has the default guides.
+  ///
+  /// The default guides of `Layout` place the content and ask it for its
+  /// guides. The scroll view of a thread asks for the guides of the rows
+  /// (`.defaultScrollAnchor(.bottom, for: .alignment)`), so that query
+  /// would lay out the content of each row again.
+  func explicitAlignment(
+    of guide: HorizontalAlignment, in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews,
+    cache: inout ()
+  ) -> CGFloat? {
+    nil
+  }
+
+  /// No vertical guide of its own: the row has the default guides, for
+  /// the reason of the horizontal guide.
+  func explicitAlignment(
+    of guide: VerticalAlignment, in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews,
+    cache: inout ()
+  ) -> CGFloat? {
+    nil
+  }
 }
 
 extension EnvironmentValues {

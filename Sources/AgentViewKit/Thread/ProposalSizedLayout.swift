@@ -24,4 +24,26 @@ struct ProposalSizedLayout: Layout {
       subview.place(at: bounds.origin, anchor: .topLeading, proposal: ProposedViewSize(bounds.size))
     }
   }
+
+  /// No horizontal guide of its own: the layout has the default guides.
+  ///
+  /// The default guides of `Layout` place the child and ask it for its
+  /// guides. The layout of `.safeAreaBar` asks for the guides of its
+  /// content on each layout, so around a scroll view that query would lay
+  /// out the lazy stack and its rows on each frame of a scroll.
+  func explicitAlignment(
+    of guide: HorizontalAlignment, in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews,
+    cache: inout Void
+  ) -> CGFloat? {
+    nil
+  }
+
+  /// No vertical guide of its own: the layout has the default guides, for
+  /// the reason of the horizontal guide.
+  func explicitAlignment(
+    of guide: VerticalAlignment, in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews,
+    cache: inout Void
+  ) -> CGFloat? {
+    nil
+  }
 }
