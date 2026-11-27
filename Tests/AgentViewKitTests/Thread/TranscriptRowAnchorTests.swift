@@ -55,14 +55,14 @@ import Testing
   @Test func aRowInViewMovesOnlyByTheScrollWhenTheRowsAboveGetTheirHeights() async throws {
     let thread = try MovingThread(
       session: .preview(transcript: (0..<Self.answerCount).map { .agent(Self.answer($0)) }))
-    await thread.settle()
-    await thread.scrollAtRest(to: thread.scrollView.contentView.bounds.origin.y / 2)
+    thread.settle()
+    thread.scrollAtRest(to: thread.scrollView.contentView.bounds.origin.y / 2)
     let lastKeyInView = try #require(thread.anchors.visibleIDs.last)
     let index = try #require(thread.session.transcript.firstIndex { $0.rowKey == lastKeyInView })
     let text = try #require(thread.textViews.first { $0.string == Self.answer(index) })
     let before = Self.windowY(of: text)
 
-    await thread.scrollAtRest(to: thread.scrollView.contentView.bounds.origin.y - Self.stepDistance)
+    thread.scrollAtRest(to: thread.scrollView.contentView.bounds.origin.y - Self.stepDistance)
 
     let moved = before - Self.windowY(of: text)
     #expect(abs(moved - Self.stepDistance) <= Self.tolerance, "the row moved by \(moved)")
