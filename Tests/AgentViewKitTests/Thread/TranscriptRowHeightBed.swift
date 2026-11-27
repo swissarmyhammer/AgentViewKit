@@ -136,7 +136,7 @@ nonisolated struct MountedTextMeasure: TranscriptTextMeasure {
     defer { UnorderedWindow.close(window) }
     StyleViewHost.layOut(hosting)
     try await awaitParseOfTheResponse(of: entry, in: models)
-    await RunLoopBlockFence.afterPendingBlocks()
+    PendingRunLoopBlocks.run()
     StyleViewHost.layOut(hosting)
     let frames = textViewFrames(in: hosting).sorted { lhs, rhs in
       lhs.minY == rhs.minY ? lhs.minX < rhs.minX : lhs.minY < rhs.minY
@@ -265,13 +265,13 @@ nonisolated struct MountedTextMeasure: TranscriptTextMeasure {
       UnorderedWindow.close(window)
     }
     StyleViewHost.layOut(hosting)
-    await RunLoopBlockFence.afterPendingBlocks()
+    PendingRunLoopBlocks.run()
     await ObservationWait.until {
       _ = frames.count
       return hosting.fittingSize.height > loadingHeight
     }
     StyleViewHost.layOut(hosting)
-    await RunLoopBlockFence.afterPendingBlocks()
+    PendingRunLoopBlocks.run()
     StyleViewHost.layOut(hosting)
     return hosting.frame.height
   }

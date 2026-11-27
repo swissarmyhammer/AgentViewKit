@@ -78,9 +78,11 @@
         size: Self.size)
       defer { harness.close() }
       harness.render()
+      PendingRunLoopBlocks.run()
+      harness.render()
 
       await ObservationWait.until { !anchors.visibleIDs.isEmpty }
-      await RunLoopBlockFence.afterPendingBlocks()
+      PendingRunLoopBlocks.run()
       harness.render()
       harness.render()
 

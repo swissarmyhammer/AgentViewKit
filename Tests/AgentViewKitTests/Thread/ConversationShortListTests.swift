@@ -46,7 +46,7 @@
         WireBlockJSON.makeChunk(
           "user_message_chunk", messageID: Self.messageID, block: WireBlockJSON.makeText("Hello")))
       await ObservationWait.until { !model.transcript.isEmpty }
-      await RunLoopBlockFence.afterPendingBlocks()
+      PendingRunLoopBlocks.run()
       harness.render()
 
       let key = try #require(model.transcript.first).rowKey

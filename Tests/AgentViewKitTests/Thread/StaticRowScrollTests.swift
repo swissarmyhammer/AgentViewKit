@@ -91,9 +91,9 @@
     @Test func aStaticRowInViewDoesNoWorkOnAStepOfTheOffset() async throws {
       let thread = try await MovingThread.makeCached(
         session: .preview(transcript: AnswerText.transcript(count: Self.answerCount, in: Self.textName)), frames: ManualFrames())
-      await thread.startMoving()
+      thread.startMoving()
       thread.step(by: Self.jumpDistance, isLive: true)
-      await thread.settle()
+      thread.settle()
       let atStart = Self.answersInView(of: thread)
       try #require(!atStart.isEmpty)
       let before = Dictionary(

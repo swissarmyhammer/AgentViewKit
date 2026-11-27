@@ -101,7 +101,7 @@ import Testing
   /// swaps the editors of each row in view.
   @Test func aRowThatIsRealWhenTheRowsStartToMoveStaysReal() async {
     let host = StaticRowHost(Self.plainAnswer, width: Self.widths[1])
-    await host.showAtRestAndSettle()
+    host.showAtRestAndSettle()
 
     host.show(rowsMove: true)
 
@@ -267,7 +267,7 @@ import Testing
     try #require(host.cacheKnowsHeight)
     let still = host.rowHeight
 
-    await host.showAtRestAndSettle()
+    host.showAtRestAndSettle()
 
     #expect(abs(host.rowHeight - still) <= Self.heightTolerance, "static \(still), real \(host.rowHeight)")
   }
