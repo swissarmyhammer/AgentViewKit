@@ -167,6 +167,24 @@ import Testing
     #expect(probe.rowsMove == true)
   }
 
+  /// A production change that fails this test: the binding of the scroll
+  /// position keeps the position of the first scroll to the bottom after a
+  /// write of the scroll view, so the evaluation of the list at the end of
+  /// a live motion gives the scroll view that old position again, and the
+  /// list goes back to the bottom.
+  @Test func theEndOfALiveMotionKeepsTheOffsetOfTheList() async throws {
+    let answers = AnswerText.transcript(count: Self.answerCount, in: "endOffset")
+    let thread = try await MovingThread.makeCached(session: .preview(transcript: answers), frames: frames)
+    thread.startMoving()
+    thread.step(by: Self.jumpDistance, isLive: true)
+    thread.settle()
+    let offsetInMotion = thread.scrollView.contentView.bounds.origin.y
+
+    thread.stopMoving()
+
+    #expect(thread.scrollView.contentView.bounds.origin.y == offsetInMotion)
+  }
+
   /// A production change that fails this test: a row that the list makes
   /// in the end of a live motion does not wait in the queue, so it makes
   /// each of its editors real at rest in one frame.

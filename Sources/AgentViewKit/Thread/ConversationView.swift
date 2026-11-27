@@ -1286,6 +1286,15 @@ struct ConversationBottomGeometry: Equatable {
 /// hosted window the two did not stop, and the main thread was in a loop.
 /// A state does not evaluate its readers in the update that writes it, so
 /// a state of the list did not have this loop.
+///
+/// A `Binding` also keeps the value that it had when the body made it. Thus
+/// the reader of the binding must make a new binding after a write of the
+/// scroll view, or the next update of the reader gives the scroll view the
+/// old position again, such as the row of the first scroll to the bottom:
+/// at the end of a live scroll, the list then went back to the bottom.
+/// ``ConversationScrollPositionBinding`` keeps each write of the scroll view
+/// in a state of its own (``binding(noting:)``), so the write evaluates the
+/// reader in a later update, as a state of the list did.
 @MainActor @Observable final class ConversationScrollPosition {
   /// The position that the list and the scroll view wrote last.
   @ObservationIgnored private var stored = ScrollPosition(idType: String.self)
@@ -1306,11 +1315,20 @@ struct ConversationBottomGeometry: Equatable {
 
   /// The binding of the position that the scroll view gets. A read of the
   /// binding is a read of ``value``, so a write of the list evaluates the
-  /// reader again. A write through the binding keeps the position and tells
-  /// no change.
-  var binding: Binding<ScrollPosition> {
+  /// reader again. A write through the binding keeps the position, tells
+  /// no change, and goes to `note`.
+  ///
+  /// - Parameter note: Gets each position that the scroll view writes
+  ///   through the binding, after the model keeps it.
+  /// - Returns: The binding.
+  func binding(noting note: @escaping (ScrollPosition) -> Void) -> Binding<ScrollPosition> {
     access(keyPath: \.value)
-    return Binding(get: { self.stored }, set: { self.stored = $0 })
+    return Binding(
+      get: { self.stored },
+      set: { written in
+        self.stored = written
+        note(written)
+      })
   }
 }
 
@@ -1318,13 +1336,21 @@ struct ConversationBottomGeometry: Equatable {
 /// and is the only view that reads the position in its body
 /// (``ConversationScrollPosition``). A write of the list to the position
 /// evaluates only this modifier, and not the list in its content. A write of
-/// the scroll view evaluates nothing.
+/// the scroll view evaluates only this modifier, in a later update, so the
+/// scroll view then gets a binding that holds the position that it wrote.
 private struct ConversationScrollPositionBinding: ViewModifier {
   /// The scroll position of the list.
   let position: ConversationScrollPosition
 
+  /// The position that the scroll view wrote last. A write changes the
+  /// state, and not the model, so it evaluates this modifier in a later
+  /// update of SwiftUI, and not in the update that writes it.
+  @State private var scrollViewWrite = ScrollPosition(idType: String.self)
+
   func body(content: Content) -> some View {
-    content.scrollPosition(position.binding)
+    // The body reads the state, so a write of the scroll view evaluates it.
+    let _ = scrollViewWrite
+    content.scrollPosition(position.binding { scrollViewWrite = $0 })
   }
 }
 
