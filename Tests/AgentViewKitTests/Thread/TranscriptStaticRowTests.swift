@@ -101,7 +101,7 @@ import Testing
   /// swaps the editors of each row in view.
   @Test func aRowThatIsRealWhenTheRowsStartToMoveStaysReal() async {
     let host = StaticRowHost(Self.plainAnswer, width: Self.widths[1])
-    await host.showAtRestAndSettle()
+    host.showAtRestAndSettle()
 
     host.show(rowsMove: true)
 
@@ -210,18 +210,12 @@ import Testing
 
   /// The row kinds whose text parts are each exact with the default text
   /// measure (``EditorLayoutTranscriptTextMeasure``): a row of these kinds
-  /// is static from its first frame.
-  nonisolated static let exactRows: [TranscriptRowFixtures.Row] = [
-    .userMessage, .agentProse, .thought, .toolCall, .terminal, .plan, .notice, .compaction, .sessionMessage,
-  ]
-
-  /// The row kinds with a text part that the default text measure does not
-  /// give exactly: a row of these kinds is real in its first frame. Each has
-  /// a code block with a line number gutter (EditorKit ^v8t0pka) or a diff,
-  /// whose gutters EditorKit does not measure.
-  nonisolated static let inexactRows: [TranscriptRowFixtures.Row] = [
-    .agentFenced, .diff, .commandOutput,
-  ]
+  /// is static from its first frame. The rows with a code block, a command
+  /// output or a diff (``TranscriptRowFixtures/Row/codeRows``) are exact
+  /// with the EditorKit measure of code.
+  nonisolated static let exactRows: [TranscriptRowFixtures.Row] =
+    [.userMessage, .agentProse, .thought, .toolCall, .terminal, .plan, .notice, .compaction, .sessionMessage]
+    + TranscriptRowFixtures.Row.codeRows
 
   /// A production change that fails this test: the rows do not take the
   /// heights of the cache, so a row seen for the first time stays real
@@ -241,22 +235,25 @@ import Testing
     #expect(host.cacheKnowsHeight)
   }
 
-  /// A production change that fails this test: the rows take the cache
-  /// height of a row with a code fence, which the text measure does not
-  /// give exactly, so the row jumps when it changes form.
-  @Test func aRowWithACodeFenceSeenForTheFirstTimeStaysReal() async {
-    let host = await StaticRowHost.makeCached(.agentFenced, width: Self.widths[1])
-
-    #expect(host.textViewCount > 0)
-  }
-
-  /// A production change that fails this test: the rows take the cache
-  /// height of a row kind with a text part that is not exact.
-  @Test(arguments: inexactRows)
-  func theCacheKnowsNoHeightOfAnInexactRowSeenForTheFirstTime(row: TranscriptRowFixtures.Row) async {
+  /// A production change that fails this test: the measure of a code block,
+  /// a command output or a diff is not exact, so a row with one of them
+  /// mounts its EditorKit views in its first frame of a live motion.
+  @Test(arguments: TranscriptRowFixtures.Row.codeRows)
+  func aCodeRowSeenForTheFirstTimeIsStaticInALiveMotion(row: TranscriptRowFixtures.Row) async {
     let host = await StaticRowHost.makeCached(row, width: Self.widths[1])
 
-    #expect(!host.cacheKnowsHeight)
+    #expect(host.textViewCount == 0)
+  }
+
+  /// A production change that fails this test: the text of a row with math
+  /// shows its still form (``StaticMarkdownText``) in a live motion. The
+  /// still form has no math, so it shows the TeX source, such as
+  /// `$\frac{a}{b}$`, in place of each formula (card ^hh39bp4).
+  @Test(arguments: TranscriptRowFixtures.Row.mathRows)
+  func theTextOfAMathRowSeenForTheFirstTimeKeepsItsEditorInALiveMotion(row: TranscriptRowFixtures.Row) async {
+    let host = await StaticRowHost.makeCached(row, width: Self.widths[1])
+
+    #expect(host.textViewCount == 1)
   }
 
   /// A production change that fails this test: the cache height of an
@@ -270,7 +267,7 @@ import Testing
     try #require(host.cacheKnowsHeight)
     let still = host.rowHeight
 
-    await host.showAtRestAndSettle()
+    host.showAtRestAndSettle()
 
     #expect(abs(host.rowHeight - still) <= Self.heightTolerance, "static \(still), real \(host.rowHeight)")
   }

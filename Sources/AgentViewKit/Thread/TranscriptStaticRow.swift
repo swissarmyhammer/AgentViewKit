@@ -257,6 +257,15 @@ struct TranscriptStaticRowFrame: Layout {
     BodyEvaluationKey.make(prefix: counterKeyPrefix, id: id)
   }
 
+  /// The size of the row.
+  ///
+  /// A static row with a proposed width and a known height at that width
+  /// has that size, and the frame does not measure the content: each size
+  /// query of the content lays out the text of the row again, and the lazy
+  /// stack of a thread asks each row for its size many times in each frame
+  /// of a flick. The frame measures the content only for a real row, for a
+  /// proposal with no width, or when the provider knows no height at the
+  /// width.
   func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
     #if DEBUG
       MainActor.assumeIsolated { BodyEvaluationCounter.note(Self.counterKey(for: id.rowKey)) }
@@ -266,12 +275,23 @@ struct TranscriptStaticRowFrame: Layout {
       Self.logger.error("static row frame has no content; the zero size stands")
       return .zero
     }
+    if let width = proposal.width, let height = height(at: width) {
+      return CGSize(width: width, height: height)
+    }
     let content = first.sizeThatFits(proposal)
     let width = proposal.width ?? content.width
-    // SwiftUI lays out its views on the main actor.
-    let height = MainActor.assumeIsolated { staticHeight?(width) }
-    guard let height else { return content }
+    guard let height = height(at: width) else { return content }
     return CGSize(width: width, height: height)
+  }
+
+  /// The height of the static form at `width`, or `nil` in the real form or
+  /// when the provider knows no height at that width.
+  ///
+  /// - Parameter width: The width of the row.
+  /// - Returns: The height, in points.
+  private func height(at width: CGFloat) -> CGFloat? {
+    // SwiftUI lays out its views on the main actor.
+    MainActor.assumeIsolated { staticHeight?(width) }
   }
 
   func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
@@ -280,6 +300,28 @@ struct TranscriptStaticRowFrame: Layout {
         at: bounds.origin, anchor: .topLeading,
         proposal: ProposedViewSize(width: bounds.width, height: proposal.height))
     }
+  }
+
+  /// No horizontal guide of its own: the row has the default guides.
+  ///
+  /// The default guides of `Layout` place the content and ask it for its
+  /// guides. The scroll view of a thread asks for the guides of the rows
+  /// (`.defaultScrollAnchor(.bottom, for: .alignment)`), so that query
+  /// would lay out the content of each row again.
+  func explicitAlignment(
+    of guide: HorizontalAlignment, in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews,
+    cache: inout ()
+  ) -> CGFloat? {
+    nil
+  }
+
+  /// No vertical guide of its own: the row has the default guides, for
+  /// the reason of the horizontal guide.
+  func explicitAlignment(
+    of guide: VerticalAlignment, in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews,
+    cache: inout ()
+  ) -> CGFloat? {
+    nil
   }
 }
 

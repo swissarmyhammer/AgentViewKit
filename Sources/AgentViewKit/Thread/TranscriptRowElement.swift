@@ -77,6 +77,12 @@ struct TranscriptRowSlot: Identifiable {
 /// rest or in a motion for a different cause, such as a hold, leaves the
 /// queue at once,
 /// and each of its text areas shows its editor.
+///
+/// In a live motion of the user, the row and its status lines take no hit
+/// test, so SwiftUI does not hit-test their hover responders on each frame
+/// of a flick, and the live motion ends the hover of the row
+/// (``TranscriptRowHover``). A scroll-wheel event goes to the scroll view
+/// of the list. At rest, the row takes the hit test again.
 struct TranscriptRowElement: View, Equatable {
   /// The entry of the row, and its position.
   let slot: TranscriptRowSlot
@@ -105,7 +111,7 @@ struct TranscriptRowElement: View, Equatable {
   @State private var selection = TranscriptRowSelection()
 
   /// Whether the mouse came on the row at rest, and is still on it.
-  @State private var isHovered = false
+  @State private var hover = TranscriptRowHover()
 
   /// Whether the row showed its real form at rest. A row that the list
   /// makes while the rows move did not, until its turn in the queue.
@@ -164,13 +170,16 @@ struct TranscriptRowElement: View, Equatable {
         .onHover { hovering in
           // A row that comes under the mouse while the rows move takes no
           // hold, so it does not mount its editors during the move.
-          if !hovering || !rowsMove {
-            isHovered = hovering
-          }
+          hover.note(hovering: hovering, rowsMove: rowsMove)
         }
       TranscriptStatusLines(lines: lines)
     }
     .padding(.bottom, isLast ? editorStyle.rowPadding : 0)
+    // In a live motion, the content moves under a still mouse, and SwiftUI
+    // hit-tests each hover responder of the rows again on each frame. The
+    // rows take no hit test then, so they have no hover responder to test.
+    // A scroll-wheel event goes to the scroll view of the list.
+    .allowsHitTesting(!rowsMoveLive)
     .background {
       if mount.waits {
         Color.clear.onGeometryChange(for: CGFloat.self, of: TranscriptRowMount.centerDistance(of:)) { distance in
@@ -262,10 +271,14 @@ struct TranscriptRowElement: View, Equatable {
   /// A real row leaves the queue and does not wait, at rest or in a
   /// motion. A real row at rest holds its real form in the next motion. A
   /// row in view that takes its static form in a live motion puts its
-  /// mount in the queue.
+  /// mount in the queue. A live motion ends the hover of the row
+  /// (``TranscriptRowHover/noteLiveMotion()``).
   ///
   /// - Parameter change: The form of the row and the motion of the rows.
   private func noteForm(_ change: TranscriptRowFormChange) {
+    if change.rowsMoveLive, hover.isHovered {
+      hover.noteLiveMotion()
+    }
     guard change.isStatic else {
       mounts?.release(mount)
       if !change.rowsMove, !wasShownAtRest {
@@ -286,7 +299,7 @@ struct TranscriptRowElement: View, Equatable {
     TranscriptRowHolds(
       wasRealAtRest: wasShownAtRest,
       hasFocus: TranscriptRowHolds.hasFocus(itemScope: slot.entry.itemScopeSegment, focusedPath: focusedPath),
-      isHovered: isHovered,
+      isHovered: hover.isHovered,
       hasSelection: selection.holdsSelection,
       streams: isLast && session?.isRunning == true)
   }
@@ -303,6 +316,36 @@ struct TranscriptRowFormChange: Equatable {
 
   /// Whether the rows of the thread move in a live motion of the user.
   let rowsMoveLive: Bool
+}
+
+/// Whether the mouse is on a row of a thread, as the row records it for its
+/// hover hold (``TranscriptRowHolds/isHovered``, card ^9ync5h3).
+///
+/// The mouse holds a row only when it comes on the row at rest: a row that
+/// moves under the mouse does not mount its editors. In a live motion, the
+/// rows take no hit test and get no hover callback
+/// (``TranscriptRowElement``), so a live motion clears the hover. When the
+/// rows come to rest, the next hover callback of SwiftUI sets it again.
+struct TranscriptRowHover: Equatable {
+  /// Whether the mouse came on the row at rest, and is still on it.
+  private(set) var isHovered = false
+
+  /// Records a hover callback of the row.
+  ///
+  /// - Parameters:
+  ///   - hovering: Whether the mouse is on the row.
+  ///   - rowsMove: Whether the rows of the thread move. A mouse that comes
+  ///     on the row while the rows move does not hover it.
+  mutating func note(hovering: Bool, rowsMove: Bool) {
+    guard !hovering || !rowsMove else { return }
+    isHovered = hovering
+  }
+
+  /// Records that the rows of the thread move in a live motion of the
+  /// user: the row takes no more hover callback, so its hover ends.
+  mutating func noteLiveMotion() {
+    isHovered = false
+  }
 }
 
 /// The status lines of the modelChanged notices at one place of a

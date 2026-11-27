@@ -57,7 +57,7 @@ import Testing
   ///   - test: The name of the test (``AnswerText/answer(_:in:withCodeFence:)``).
   /// - Returns: The list.
   func restingThread(count: Int = answerCount, test: String) async throws -> MovingThread {
-    let answers = (0..<count).map { PreviewTranscriptItem.agent(AnswerText.answer($0, in: test, withCodeFence: true)) }
+    let answers = AnswerText.transcript(count: count, in: test, withCodeFence: true)
     let thread = try MovingThread(session: .preview(transcript: answers), frames: frames)
     let firstKey = try #require(thread.session.transcript.first?.rowKey)
     await thread.jumpAtRest(to: firstKey)
@@ -74,11 +74,11 @@ import Testing
   /// - Returns: The record of the editors of the list.
   func flick(_ thread: MovingThread) async -> EditorMountRecord {
     let record = EditorMountRecord(thread.textViews)
-    await thread.startMoving()
+    thread.startMoving()
     record.note(thread.textViews)
     for _ in 0..<Self.stepCount {
       thread.step(by: -Self.stepDistance, isLive: true)
-      await thread.settle()
+      thread.settle()
       record.note(thread.textViews)
     }
     return record
@@ -105,13 +105,13 @@ import Testing
   /// keep their editors in the motion, so the test reads real rows.
   @Test func noEditorLeavesTheWindowInTheFirstLayoutAtRest() async throws {
     let thread = try await restingThread(test: "flickRest")
-    await thread.startMoving()
+    thread.startMoving()
     thread.step(by: -Self.stepDistance, isLive: true)
-    await thread.settle()
+    thread.settle()
     let inMotion = thread.textViewsInView
     try #require(!inMotion.isEmpty, "no editor of the motion is in view")
 
-    await thread.stopMoving()
+    thread.stopMoving()
 
     let atRest = thread.textViews
     let left = inMotion.filter { editor in !atRest.contains { $0 === editor } }

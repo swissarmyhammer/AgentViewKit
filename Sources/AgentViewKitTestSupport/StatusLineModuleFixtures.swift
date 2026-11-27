@@ -1,6 +1,8 @@
 import AgentViewKit
 import AppKit
 import EditorTheme
+import FoundationModelsACP
+import FoundationModelsACPClient
 import SwiftUI
 import Testing
 
@@ -51,6 +53,28 @@ public enum StatusLineModuleFixtures {
       definition.format = try StatusLineFormat(parsing: "$directory")
       return definition
     }
+  }
+
+  /// The header of a root session, with no crumbs, with ``sessionTitle``
+  /// and ``homeFolder``, whose status line action records each module in
+  /// `log`.
+  ///
+  /// - Parameters:
+  ///   - folder: The working folder of the session.
+  ///   - log: The log of the action.
+  ///   - definition: The status line definition.
+  /// - Returns: The header.
+  @MainActor public static func header(
+    folder: String = cwd, log: StatusLineActionLog = StatusLineActionLog(),
+    definition: StatusLineDefinition = StatusLines.defaultDefinition
+  ) -> some View {
+    ThreadStatusHeader(
+      session: .preview(cwd: AbsolutePath(rawValue: folder)), connection: .preview(), sessionTitle: sessionTitle,
+      contextMenuPath: nil, select: { _ in }
+    )
+    .statusLine(definition)
+    .statusLineHomeFolder(homeFolderURL)
+    .statusLineActions { module, _ in log.record(module) }
   }
 
   /// The width of the text of the `directory` module of a line that shows

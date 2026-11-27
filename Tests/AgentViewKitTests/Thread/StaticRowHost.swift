@@ -43,6 +43,14 @@ import SwiftUI
   /// shows its real form at once at rest (card ^7625j1b).
   var mounts: TranscriptRowMountQueue?
 
+  /// Whether the row is in a SwiftUI scroll view of the size of the window,
+  /// as the rows of a thread are. Set it before ``show(rowsMove:)``.
+  var isInScrollView = false
+
+  /// The footer of the message row, as the `messageFooter` slot gives it.
+  /// Set it before ``show(rowsMove:)``.
+  var messageFooter: ItemViewRenderer<MessageEntry>?
+
   /// The window of the host. It is never ordered in.
   private let window: NSWindow
 
@@ -88,7 +96,9 @@ import SwiftUI
   ///
   /// The row has no record of a real layout, so the cache alone can give
   /// the height of its static form. The row of each fixture has a chrome
-  /// rule, so the cache publishes a height.
+  /// rule, so the cache publishes a height. The host waits only for the
+  /// computation of the cache (``TranscriptRowHeights/computeHeights(of:)``),
+  /// not for the main-actor jobs of other tests.
   ///
   /// - Parameters:
   ///   - row: The fixture of the row.
@@ -113,17 +123,17 @@ import SwiftUI
     host.heights.attach(cache: cache, session: host.session)
     host.heights.noteRowWidth(width)
     let rowKey = host.entry.rowKey
-    await ObservationWait.until { cache.height(of: rowKey) != nil }
+    await cache.computeHeights(of: [rowKey])
     host.show(rowsMove: true)
     return host
   }
 
-  /// Shows the row at rest, and lays it out again after the blocks of the
-  /// main run loop that the layout added, so each EditorKit view of the row
-  /// has its height.
-  func showAtRestAndSettle() async {
+  /// Shows the row at rest, runs the blocks of the main run loop that the
+  /// layout added (``PendingRunLoopBlocks``), and lays the row out again, so
+  /// each EditorKit view of the row has its height.
+  func showAtRestAndSettle() {
     show(rowsMove: false)
-    await RunLoopBlockFence.afterPendingBlocks()
+    PendingRunLoopBlocks.run()
     layOut()
   }
 
@@ -152,7 +162,9 @@ import SwiftUI
   ///
   /// - Parameter rowsMove: Whether the rows of the thread move.
   func show(rowsMove: Bool) {
-    hosting.rootView = AnyView(row(rowsMove: rowsMove))
+    let row = row(rowsMove: rowsMove)
+    hosting.rootView =
+      isInScrollView ? AnyView(ScrollView { row }.frame(width: width, height: width)) : AnyView(row)
     layOut()
   }
 
@@ -188,6 +200,76 @@ import SwiftUI
   /// form, and one for each text area in the real form.
   var textViewCount: Int {
     views(ofType: NSTextView.self, in: hosting).count
+  }
+
+  /// The view that the window hit-tests at the center of the first
+  /// EditorKit text view of the row, as AppKit hit-tests a click or a
+  /// scroll-wheel event there, and that text view. Each is `nil` when the
+  /// row has no text view; the hit is `nil` when no view takes the point.
+  var hitAtText: (hit: NSView?, text: NSTextView?) {
+    guard let text = views(ofType: NSTextView.self, in: hosting).first, let frame = hosting.superview else {
+      return (nil, nil)
+    }
+    let center = text.convert(CGPoint(x: text.bounds.midX, y: text.bounds.midY), to: frame)
+    return (hosting.hitTest(center), text)
+  }
+
+  /// Whether the hit test at the text of the row (``hitAtText``) reaches a
+  /// view of the row: a view of the host that is not the host, and that
+  /// does not hold the text view, such as a scroll view does.
+  var hitReachesRow: Bool {
+    let (hit, text) = hitAtText
+    guard let hit, let text, hit !== hosting else { return false }
+    return hit === text || !text.isDescendant(of: hit)
+  }
+
+  /// Whether the hit test at the text of the row (``hitAtText``) reaches
+  /// the scroll view of a host with ``isInScrollView``: the AppKit scroll
+  /// view, or a view in it. A scroll-wheel event at that point then goes
+  /// up the responder chain to the scroll view.
+  var hitReachesScrollView: Bool {
+    guard let hit = hitAtText.hit else { return false }
+    return hit is NSScrollView || hit.enclosingScrollView != nil
+  }
+
+  /// Moves the mouse into the host and over the hover responder of
+  /// `probe`, as AppKit sends the moves of a still mouse while the content
+  /// moves under it, and runs the blocks of the main run loop that each
+  /// move added (``PendingRunLoopBlocks``).
+  ///
+  /// The window is never ordered in, so AppKit sends it no mouse event of
+  /// its own. The host first takes `mouseEntered(with:)`, as its tracking
+  /// area gives it when the mouse comes in: with no enter, SwiftUI
+  /// hit-tests no hover responder for a move. Each move goes to a point one
+  /// point to the right of the last one, at the middle of the responder.
+  ///
+  /// - Parameters:
+  ///   - probe: The probe whose responder is in the footer of the row
+  ///     (``messageFooter``).
+  ///   - moves: The number of moves.
+  func moveMouse(over probe: HoverResponderProbe, moves: Int) throws {
+    guard let marker = probe.marker(in: hosting) else { throw StaticRowHostError.noProbe }
+    let start = marker.convert(CGPoint(x: marker.bounds.minX, y: marker.bounds.midY), to: nil)
+    let points = (0...moves).map { CGPoint(x: start.x + CGFloat($0), y: start.y) }
+    hosting.mouseEntered(with: try mouseMoved(at: points[0], number: 0))
+    for (number, point) in points.enumerated().dropFirst() {
+      hosting.mouseMoved(with: try mouseMoved(at: point, number: number))
+      PendingRunLoopBlocks.run()
+    }
+  }
+
+  /// A mouse move of the window of the host.
+  ///
+  /// - Parameters:
+  ///   - point: The place of the mouse, in the coordinates of the window.
+  ///   - number: The number of the event.
+  /// - Returns: The event.
+  private func mouseMoved(at point: CGPoint, number: Int) throws -> NSEvent {
+    let event = NSEvent.mouseEvent(
+      with: .mouseMoved, location: point, modifierFlags: [], timestamp: 0, windowNumber: window.windowNumber,
+      context: nil, eventNumber: number, clickCount: 0, pressure: 0)
+    guard let event else { throw StaticRowHostError.noMouseEvent }
+    return event
   }
 
   /// The row drawn into a bitmap at the size of the host.
@@ -229,6 +311,7 @@ import SwiftUI
       .environment(\.expandedBlocksStore, store)
       .environment(\.sessionModel, session)
       .environment(\.codeBlockModelCache, cache)
+      .environment(\.messageFooter, messageFooter)
       .threadTextSelection()
       .transaction { $0.disablesAnimations = true }
   }
@@ -241,6 +324,12 @@ enum StaticRowHostError: Error {
 
   /// The model of the text has no syntax coordinator.
   case noSyntax
+
+  /// The row shows no hover responder of a ``HoverResponderProbe``.
+  case noProbe
+
+  /// AppKit gave no mouse event.
+  case noMouseEvent
 }
 
 /// The vertical places of the lines of text in a bitmap: each band of pixel

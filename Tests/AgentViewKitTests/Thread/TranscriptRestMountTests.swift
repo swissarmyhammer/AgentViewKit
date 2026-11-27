@@ -53,13 +53,13 @@ import Testing
   /// - Returns: The list at rest with no frame of the queue.
   func restAfterAMotion() async throws -> MovingThread {
     let thread = try await MovingThread.makeCached(
-      session: .preview(transcript: (0..<Self.answerCount).map { .agent(AnswerText.answer($0, in: Self.textName)) }), frames: frames)
-    await thread.startMoving()
+      session: .preview(transcript: AnswerText.transcript(count: Self.answerCount, in: Self.textName)), frames: frames)
+    thread.startMoving()
     thread.step(by: Self.jumpDistance, isLive: true)
-    await thread.settle()
+    thread.settle()
     thread.step(by: Self.lastStepDistance, isLive: true)
     try #require(thread.textViewsInView.isEmpty, "a row in view is real in the motion")
-    await thread.stopMoving()
+    thread.stopMoving()
     try #require(frames.isRunning, "no row waits in the queue at rest")
     return thread
   }

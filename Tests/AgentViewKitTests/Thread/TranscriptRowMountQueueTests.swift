@@ -435,13 +435,13 @@ import Testing
   ///   EditorKit text views of the real row.
   func restingRowThatEnteredWhileMoving(
     _ item: PreviewTranscriptItem = TranscriptStaticRowTests.plainAnswer
-  ) async -> (host: StaticRowHost, realTextViews: Int) {
+  ) -> (host: StaticRowHost, realTextViews: Int) {
     let host = StaticRowHost(item, width: TranscriptStaticRowTests.widths[1])
     let realTextViews = host.textViewCount
     host.mounts = queue
     queue.noteRowsMove(true)
     host.enterWhileMoving()
-    await RunLoopBlockFence.afterPendingBlocks()
+    PendingRunLoopBlocks.run()
     queue.noteRowsMove(false)
     host.show(rowsMove: false)
     return (host, realTextViews)
@@ -460,7 +460,7 @@ import Testing
   /// A production change that fails this test: a row that entered while
   /// the rows moved mounts its editors in the frame of the rest.
   @Test func aRowThatEnteredWhileMovingStaysStaticAtRestUntilItsTurn() async {
-    let (host, _) = await restingRowThatEnteredWhileMoving()
+    let (host, _) = restingRowThatEnteredWhileMoving()
 
     #expect(host.textViewCount == 0)
   }
@@ -468,7 +468,7 @@ import Testing
   /// A production change that fails this test: the turn of a row in the
   /// queue does not mount its editors.
   @Test func aRowThatEnteredWhileMovingIsRealAfterItsTurn() async {
-    let (host, _) = await restingRowThatEnteredWhileMoving()
+    let (host, _) = restingRowThatEnteredWhileMoving()
 
     advance(1, in: host)
 
@@ -478,11 +478,11 @@ import Testing
   /// A production change that fails this test: the turn of a row changes
   /// its height, so the rows below it jump.
   @Test func aRowKeepsItsHeightWhenItsTurnMountsIt() async {
-    let (host, _) = await restingRowThatEnteredWhileMoving()
+    let (host, _) = restingRowThatEnteredWhileMoving()
     let still = host.rowHeight
 
     advance(1, in: host)
-    await host.showAtRestAndSettle()
+    host.showAtRestAndSettle()
 
     #expect(abs(host.rowHeight - still) <= TranscriptStaticRowTests.heightTolerance)
   }
@@ -492,7 +492,7 @@ import Testing
   /// editor.
   @Test(arguments: 1...2)
   func afterEachFrameOneMoreEditorOfAFencedRowIsReal(frameCount: Int) async {
-    let (host, _) = await restingRowThatEnteredWhileMoving(TranscriptRowFixtures.agentFenced)
+    let (host, _) = restingRowThatEnteredWhileMoving(TranscriptRowFixtures.agentFenced)
 
     advance(frameCount, in: host)
 
@@ -502,7 +502,7 @@ import Testing
   /// A production change that fails this test: a row with one slot for
   /// each editor does not show each editor after the turns of its slots.
   @Test func aFencedRowShowsEachEditorAfterTheTurnsOfItsSlots() async {
-    let (host, realTextViews) = await restingRowThatEnteredWhileMoving(TranscriptRowFixtures.agentFenced)
+    let (host, realTextViews) = restingRowThatEnteredWhileMoving(TranscriptRowFixtures.agentFenced)
 
     advance(realTextViews, in: host)
 
@@ -513,7 +513,7 @@ import Testing
   /// and half real takes the height of its content in place of the height
   /// of the cache, so the rows below it jump.
   @Test func aRowWithStaticAndRealSlotsHasTheCacheHeight() async throws {
-    let (host, _) = await restingRowThatEnteredWhileMoving(TranscriptRowFixtures.agentFenced)
+    let (host, _) = restingRowThatEnteredWhileMoving(TranscriptRowFixtures.agentFenced)
     let cacheHeight = try #require(host.heights.height(of: host.entry.id, width: host.width))
 
     advance(1, in: host)

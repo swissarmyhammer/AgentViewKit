@@ -2,6 +2,7 @@ import AgentViewKitTestSupport
 import AppKit
 import EditorTestSupport
 import FoundationModelsACPClient
+import Observation
 import SwiftUI
 import Testing
 
@@ -27,6 +28,42 @@ nonisolated struct MountedTextMeasure: TranscriptTextMeasure {
   }
 }
 
+/// The count of the frame changes of the views under one root view.
+///
+/// A frame change of a view posts `NSView.frameDidChangeNotification` on
+/// the main thread. The count is observable, so a test waits for the next
+/// frame change with `ObservationWait`.
+@MainActor @Observable final class FrameChangeCount {
+  /// The count of the frame changes.
+  private(set) var count = 0
+
+  /// The token of the observer of the notification.
+  @ObservationIgnored private var token: (any NSObjectProtocol)?
+
+  /// Starts to count the frame changes of the views under `root`.
+  ///
+  /// - Parameter root: The root view.
+  init(under root: NSView) {
+    token = NotificationCenter.default.addObserver(
+      forName: NSView.frameDidChangeNotification, object: nil, queue: nil
+    ) { [weak self, weak root] notification in
+      // AppKit posts the notification on the main thread, so the view
+      // stays on the main thread.
+      nonisolated(unsafe) let object = notification.object
+      MainActor.assumeIsolated {
+        guard let root, let view = object as? NSView, view.isDescendant(of: root) else { return }
+        self?.count += 1
+      }
+    }
+  }
+
+  /// Stops the count.
+  func stop() {
+    token.map(NotificationCenter.default.removeObserver)
+    token = nil
+  }
+}
+
 /// Mounts transcript rows in a window that is never ordered in, and reads
 /// their heights.
 @MainActor enum TranscriptRowHeightBed {
@@ -44,8 +81,16 @@ nonisolated struct MountedTextMeasure: TranscriptTextMeasure {
   /// criteria of card ^9h7bm9j.
   nonisolated static let widths = [narrowWidth, regularWidth, wideWidth]
 
+  /// The width of a thread before a resize to each width of ``widths``, in
+  /// points. It is not one of ``widths``, so each resize changes the width.
+  nonisolated static let widthBeforeResize: CGFloat = 600
+
   /// The largest difference between the cached and the mounted height.
   static let tolerance: CGFloat = 0.5
+
+  /// The difference between the cached and the mounted height of a row
+  /// whose text parts are each exact: none.
+  static let exactTolerance: CGFloat = .zero
 
   /// The height of the window before the layout sets the height of the row.
   private static let windowHeight: CGFloat = 2000
@@ -73,28 +118,57 @@ nonisolated struct MountedTextMeasure: TranscriptTextMeasure {
   /// Mounts the row of `entry` at `width`, and reads its layout.
   ///
   /// An EditorKit view reports its height on the next pass of the main run
-  /// loop, so the bed lays out the row, waits for the blocks of the run loop
-  /// that the layout added, and lays out the row again.
+  /// loop, so the bed lays out the row, waits for the first parse of the
+  /// Markdown of the row (``awaitParseOfTheResponse(of:in:)``), waits for
+  /// the blocks of the run loop that the layout added, and lays out the row
+  /// again.
   ///
   /// - Parameters:
   ///   - entry: The entry of the row.
   ///   - width: The width of the row.
   ///   - store: The store that tells whether a block is expanded.
   /// - Returns: The layout of the row.
-  static func mount(_ entry: TranscriptEntry, width: CGFloat, store: ExpandedBlocksStore) async -> MountedRow {
+  /// - Throws: An issue when the response model of the row has no syntax.
+  static func mount(_ entry: TranscriptEntry, width: CGFloat, store: ExpandedBlocksStore) async throws -> MountedRow {
+    let models = CodeBlockModelCache(limit: CodeBlockModelCache.threadLimit)
     let (hosting, window) = UnorderedWindow.mount(
       ItemRow(entry: entry)
         .frame(width: width)
-        .environment(\.expandedBlocksStore, store),
+        .environment(\.expandedBlocksStore, store)
+        .environment(\.codeBlockModelCache, models),
       size: CGSize(width: width, height: windowHeight))
     defer { UnorderedWindow.close(window) }
     StyleViewHost.layOut(hosting)
-    await RunLoopBlockFence.afterPendingBlocks()
+    try await awaitParseOfTheResponse(of: entry, in: models)
+    PendingRunLoopBlocks.run()
     StyleViewHost.layOut(hosting)
     let frames = textViewFrames(in: hosting).sorted { lhs, rhs in
       lhs.minY == rhs.minY ? lhs.minX < rhs.minX : lhs.minY < rhs.minY
     }
     return MountedRow(height: hosting.frame.height, textHeights: frames.map(\.height))
+  }
+
+  /// Waits until the first parse of the Markdown of the first block of
+  /// `entry` lands, when the row shows that block in one response model.
+  ///
+  /// The parse runs off the main thread, and no block of the main run loop
+  /// waits for it. Before it lands, the view shows the text with no inline
+  /// styles, such as inline code and math.
+  ///
+  /// - Parameters:
+  ///   - entry: The entry of the row.
+  ///   - models: The cache of the EditorKit models of the row.
+  /// - Throws: An issue when the response model has no syntax.
+  private static func awaitParseOfTheResponse(
+    of entry: TranscriptEntry, in models: CodeBlockModelCache
+  ) async throws {
+    let id = EntryContentView.blockID(entryID: entry.rowKey, index: 0)
+    guard models.contains(ResponseView.modelID(for: id)) else { return }
+    // The cache holds the model of the view, so the text of a new model has
+    // no effect.
+    let model = ResponseView.model(in: models, id: id, markdown: "")
+    let syntax = try #require(model.syntax)
+    _ = await syntax.ensureParsed(upTo: model.state.version)
   }
 
   /// The frames of the outermost EditorKit text views under `root`.
@@ -143,13 +217,16 @@ nonisolated struct MountedTextMeasure: TranscriptTextMeasure {
   ///   - measure: The text measure of the cache, or `nil` for the heights of
   ///     the mounted text views (``MountedTextMeasure``), which check the
   ///     chrome alone.
+  ///   - tolerance: The largest difference between the two heights.
+  ///   - widthBefore: The width that the cache computes the row at before
+  ///     `width`, as after a resize of the thread, or `nil` for no resize.
   ///   - sourceLocation: The location of the caller.
   static func expectCachedHeightMatchesTheMountedRow(
     _ entry: TranscriptEntry, width: CGFloat, expanded: Bool = false, measure: (any TranscriptTextMeasure)? = nil,
-    sourceLocation: SourceLocation = #_sourceLocation
+    tolerance: CGFloat = tolerance, widthBefore: CGFloat? = nil, sourceLocation: SourceLocation = #_sourceLocation
   ) async throws {
     let store = ExpandedBlocksStore { _ in expanded }
-    let mounted = await mount(entry, width: width, store: store)
+    let mounted = try await mount(entry, width: width, store: store)
     let metrics = TranscriptRowMetrics.probe()
     let content = TranscriptRowContent(entry: entry, isExpanded: expanded)
     let parts = parts(of: content, width: width, metrics: metrics)
@@ -157,11 +234,72 @@ nonisolated struct MountedTextMeasure: TranscriptTextMeasure {
     let mountedMeasure = MountedTextMeasure(
       heights: Dictionary(zip(parts, mounted.textHeights)) { first, _ in first })
     let heights = TranscriptRowHeights(measure: measure ?? mountedMeasure, metrics: metrics, expandedBlocks: store)
-    heights.update(entries: [entry], width: width, rowsInView: 0..<1)
-    await ObservationWait.until(sourceLocation: sourceLocation) { heights.height(of: entry.rowKey) != nil }
-    let cached = try #require(heights.height(of: entry.rowKey), sourceLocation: sourceLocation)
+    if let widthBefore {
+      _ = try await cachedHeight(of: entry, in: heights, width: widthBefore, sourceLocation: sourceLocation)
+    }
+    let cached = try await cachedHeight(of: entry, in: heights, width: width, sourceLocation: sourceLocation)
     #expect(
       abs(cached - mounted.height) <= tolerance, "cached \(cached), mounted \(mounted.height)",
       sourceLocation: sourceLocation)
+  }
+
+  /// Mounts the row of an entry that shows an image, waits until the row
+  /// shows the loaded image, and reads the height of the row.
+  ///
+  /// While the image loads, its view takes one row of text. The load ends
+  /// off the main thread, and EditorKit then lays out its text again, so a
+  /// view of the row changes its frame. The bed waits for the frame changes
+  /// until the row is taller than `loadingHeight`, and lays out the row
+  /// again.
+  ///
+  /// - Parameters:
+  ///   - entry: The entry of the row.
+  ///   - session: The session of the entry. Its working folder holds the
+  ///     image.
+  ///   - width: The width of the row.
+  ///   - loadingHeight: The height of the row while the image loads.
+  /// - Returns: The height of the row with the loaded image.
+  static func mountAfterImageLoad(
+    _ entry: TranscriptEntry, session: SessionModel, width: CGFloat, loadingHeight: CGFloat
+  ) async -> CGFloat {
+    let (hosting, window) = UnorderedWindow.mount(
+      ItemRow(entry: entry)
+        .frame(width: width)
+        .environment(\.expandedBlocksStore, ExpandedBlocksStore { _ in false })
+        .environment(\.sessionModel, session),
+      size: CGSize(width: width, height: windowHeight))
+    let frames = FrameChangeCount(under: hosting)
+    defer {
+      frames.stop()
+      UnorderedWindow.close(window)
+    }
+    StyleViewHost.layOut(hosting)
+    PendingRunLoopBlocks.run()
+    await ObservationWait.until {
+      _ = frames.count
+      return hosting.fittingSize.height > loadingHeight
+    }
+    StyleViewHost.layOut(hosting)
+    PendingRunLoopBlocks.run()
+    StyleViewHost.layOut(hosting)
+    return hosting.frame.height
+  }
+
+  /// Gives a cache one entry, and waits until the cache publishes its
+  /// height.
+  ///
+  /// - Parameters:
+  ///   - entry: The entry of the row.
+  ///   - heights: The cache.
+  ///   - width: The width of the row.
+  ///   - sourceLocation: The location of the caller.
+  /// - Returns: The height of the cache.
+  static func cachedHeight(
+    of entry: TranscriptEntry, in heights: TranscriptRowHeights, width: CGFloat,
+    sourceLocation: SourceLocation = #_sourceLocation
+  ) async throws -> CGFloat {
+    heights.update(entries: [entry], width: width, rowsInView: 0..<1)
+    await ObservationWait.until(sourceLocation: sourceLocation) { heights.height(of: entry.rowKey) != nil }
+    return try #require(heights.height(of: entry.rowKey), sourceLocation: sourceLocation)
   }
 }

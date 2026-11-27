@@ -11,8 +11,8 @@ import Testing
 ///
 /// No window shows, and no window takes the focus. The host drives the
 /// clip view of the list, and lays the list out synchronously after each
-/// step. A wait for the blocks of the main run loop follows each step at
-/// rest, so the list reports its rows in view.
+/// step. One pass of the main run loop follows each step at rest
+/// (``PendingRunLoopBlocks``), so the list reports its rows in view.
 @MainActor final class MovingThread {
   /// The distance of one scroll step at rest, in points: less than the
   /// height of the list, so each row comes into view one time.
@@ -76,16 +76,23 @@ import Testing
   /// keeps a number of rows out of view that changes with the work on the
   /// main actor, such as the work of other tests.
   ///
+  /// The helper waits only for the computation of the cache
+  /// (``TranscriptRowHeights/computeHeights(of:)``), not for the main-actor
+  /// jobs of other tests. While the call waits for the
+  /// worker, the main-actor jobs of the list that are ready run, and they
+  /// can ask for a new layout of the list. Thus the host lays the list out
+  /// again after the call (``settle()``), so the list is at rest.
+  ///
   /// - Parameters:
   ///   - session: The session of the list.
   ///   - frames: The frames of the queue, such as ``ManualFrames``.
   /// - Returns: The list, at rest.
   static func makeCached(session: SessionModel, frames: any TranscriptFrameSource) async throws -> MovingThread {
     let thread = try MovingThread(session: session, frames: frames, expandedBlocks: ExpandedBlocksStore())
-    await thread.settle()
+    thread.settle()
     let cache = try #require(thread.heights.cache, "the list has no height cache")
-    let rowKeys = session.transcript.map(\.rowKey)
-    await ObservationWait.until { rowKeys.allSatisfy { cache.height(of: $0) != nil } }
+    await cache.computeHeights(of: session.transcript.map(\.rowKey))
+    thread.settle()
     try #require(session.transcript.allSatisfy { cache.knowsHeight(of: $0.id) }, "a row has no exact height")
     return thread
   }
@@ -99,9 +106,9 @@ import Testing
   /// blocks of the main run loop that the layout added.
   ///
   /// - Parameter y: The new offset of the clip view.
-  func scrollAtRest(to y: CGFloat) async {
+  func scrollAtRest(to y: CGFloat) {
     moveClip(to: y)
-    await settle()
+    settle()
   }
 
   /// Moves the clip view of the list to the offset `y`, and tells the
@@ -117,26 +124,26 @@ import Testing
   /// Scrolls the list at rest from the bottom to the top and back, so each
   /// row was real one time and has the height of its layout, and the list
   /// reported its rows in view.
-  func showEachRowAtRest() async {
+  func showEachRowAtRest() {
     let bottom = scrollView.contentView.bounds.origin.y
     let up = stride(from: bottom, through: .zero, by: -Self.settleDistance).dropFirst()
     let down = stride(from: .zero, through: bottom, by: Self.settleDistance)
     for y in Array(up) + [.zero] + Array(down) + [bottom] {
-      await scrollAtRest(to: y)
+      scrollAtRest(to: y)
     }
   }
 
   /// Starts a live scroll of the list, so the rows move, and lays the host
   /// out after the blocks of the main run loop that the layout added.
-  func startMoving() async {
-    await postLiveScroll(NSScrollView.willStartLiveScrollNotification)
+  func startMoving() {
+    postLiveScroll(NSScrollView.willStartLiveScrollNotification)
   }
 
   /// Ends the live scroll of the list, so the rows are at rest, and lays
   /// the host out after the blocks of the main run loop that the layout
   /// added.
-  func stopMoving() async {
-    await postLiveScroll(NSScrollView.didEndLiveScrollNotification)
+  func stopMoving() {
+    postLiveScroll(NSScrollView.didEndLiveScrollNotification)
   }
 
   /// Posts a live scroll notice of the scroll view of the list, and lays
@@ -144,9 +151,9 @@ import Testing
   /// added.
   ///
   /// - Parameter name: The name of the live scroll notice.
-  private func postLiveScroll(_ name: Notification.Name) async {
+  private func postLiveScroll(_ name: Notification.Name) {
     NotificationCenter.default.post(name: name, object: scrollView)
-    await settle()
+    settle()
   }
 
   /// Moves the offset of the list up by `distance`, and lays the host out
@@ -166,18 +173,19 @@ import Testing
 
   /// Scrolls the list at rest to the row of `key` on the path of a jump of
   /// the host (``ScrollAnchorManager/noteJump(to:)`` and the scroll of the
-  /// manager to the item), waits until the manager reports the row in view,
-  /// and lays the host out after the blocks of the main run loop that the
-  /// layout added. No live scroll starts, so the rows do not move in a live
+  /// manager to the item), lays the host out after the blocks of the main
+  /// run loop that the layout added, waits until the manager reports the
+  /// row in view, and lays the host out again in the same way. The wait
+  /// ends at once when the layout gave the report. No live scroll starts, so the rows do not move in a live
   /// motion.
   ///
   /// - Parameter key: The row key of the entry to scroll to.
   func jumpAtRest(to key: String) async {
     anchors.noteJump(to: key)
     anchors.onScroll(.item(key))
-    hosting.layoutSubtreeIfNeeded()
+    settle()
     await ObservationWait.until { self.anchors.visibleIDs.contains(key) }
-    await settle()
+    settle()
   }
 
   /// The number of EditorKit text views in the list.
@@ -203,12 +211,12 @@ import Testing
     return textViews.filter { $0.convert($0.bounds, to: nil).intersects(visible) }
   }
 
-  /// Lays the host out, waits for the blocks of the main run loop that the
-  /// layout added, and lays the host out again, so the list reports its
-  /// rows in view.
-  func settle() async {
+  /// Lays the host out, runs the blocks of the main run loop that the
+  /// layout added (``PendingRunLoopBlocks``), and lays the host out again,
+  /// so the list reports its rows in view.
+  func settle() {
     hosting.layoutSubtreeIfNeeded()
-    await RunLoopBlockFence.afterPendingBlocks()
+    PendingRunLoopBlocks.run()
     hosting.layoutSubtreeIfNeeded()
   }
 }

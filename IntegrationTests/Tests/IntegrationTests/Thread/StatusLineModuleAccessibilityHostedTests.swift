@@ -3,8 +3,6 @@
   import AgentViewKitTestSupport
   import AppKit
   import EditorTestSupport
-  import FoundationModelsACP
-  import FoundationModelsACPClient
   import SwiftUI
   import Testing
 
@@ -35,14 +33,8 @@
       definition: StatusLineDefinition = StatusLines.defaultDefinition
     ) -> HostedViewHarness<some View> {
       let harness = HostedViewHarness(size: size) {
-        ThreadStatusHeader(
-          session: .preview(cwd: AbsolutePath(rawValue: folder)), connection: .preview(),
-          sessionTitle: StatusLineModuleFixtures.sessionTitle, contextMenuPath: nil, select: { _ in }
-        )
-        .statusLine(definition)
-        .statusLineHomeFolder(StatusLineModuleFixtures.homeFolderURL)
-        .statusLineActions { module, _ in log.record(module) }
-        .transaction { $0.disablesAnimations = true }
+        StatusLineModuleFixtures.header(folder: folder, log: log, definition: definition)
+          .transaction { $0.disablesAnimations = true }
       }
       harness.render()
       return harness

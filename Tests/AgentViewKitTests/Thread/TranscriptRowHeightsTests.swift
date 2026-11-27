@@ -64,6 +64,52 @@ nonisolated final class RecordingTextMeasure: TranscriptTextMeasure {
   }
 }
 
+/// A main-actor job of another test: it runs, counts its turn, and adds
+/// itself to the end of the main queue again, until it stops.
+///
+/// Swift Testing runs many tests on the main actor at the same time. While
+/// such a job runs, the main queue holds one of its turns at each moment,
+/// so a job that a test adds to the main queue runs only after one more
+/// turn of the other job. The job counts the turns in which `condition`
+/// holds, so a test reads how many turns of another test came after an
+/// event.
+@MainActor final class OtherMainActorJob {
+  /// The most turns of the job. The bound ends the job when a test does not
+  /// stop it.
+  static let turnLimit = 1_000_000
+
+  /// The count of the turns in which the condition held.
+  private(set) var turnsWhileConditionHolds = 0
+
+  /// The task of the job.
+  private var task: Task<Void, Never>?
+
+  /// Starts the job.
+  ///
+  /// - Parameter condition: The condition whose turns the job counts.
+  init(counting condition: @escaping @MainActor () -> Bool) {
+    task = Task { @MainActor [weak self] in
+      for _ in 0..<Self.turnLimit where !Task.isCancelled {
+        self?.noteTurn(condition())
+        await Task.yield()
+      }
+    }
+  }
+
+  /// Counts one turn.
+  ///
+  /// - Parameter conditionHolds: Whether the condition holds in the turn.
+  private func noteTurn(_ conditionHolds: Bool) {
+    guard conditionHolds else { return }
+    turnsWhileConditionHolds += 1
+  }
+
+  /// Stops the job. A later turn does not run.
+  func stop() {
+    task?.cancel()
+  }
+}
+
 /// The cache of the row heights computes off the main thread, computes only
 /// the rows that change, and computes the rows in view first after a width
 /// change (card ^9h7bm9j).
@@ -269,6 +315,68 @@ nonisolated final class RecordingTextMeasure: TranscriptTextMeasure {
     }
   }
 
+  // MARK: - The wait for the heights
+
+  /// A production change that fails this test: the call publishes the
+  /// heights in a task of its own, or waits for an observation of the
+  /// published heights, so the call resumes in a new main-actor job, and a
+  /// job of another test runs between the store and the return. The test
+  /// registers the rows with no computation of the cache
+  /// (``TranscriptRowHeights/register(_:width:)``), so the call is the
+  /// only writer of the heights.
+  @Test func computingTheHeightsReturnsWithNoTurnOfAnotherMainActorJobAfterTheStore() async throws {
+    try await Self.withSession { session in
+      let entries = session.model.transcript
+      let key = try #require(entries.first?.rowKey)
+      let heights = TranscriptRowHeights(measure: RecordingTextMeasure(), metrics: TranscriptRowMetrics.probe())
+      let other = OtherMainActorJob { heights.height(of: key) != nil }
+      defer { other.stop() }
+
+      _ = heights.register(entries, width: Self.width)
+      await heights.computeHeights(of: [key])
+      try #require(heights.height(of: key) != nil, "the call stored no height")
+
+      #expect(other.turnsWhileConditionHolds == 0)
+    }
+  }
+
+  /// A production change that fails this test: the worker prepares each
+  /// text part again at a new width, so a resize of the thread costs a cold
+  /// measure of each part (card ^9ync5h3).
+  @Test func aNewWidthMeasuresThePreparedTextPartsWithNoNewPrepare() async throws {
+    let row = TranscriptRowFixtures.Row.agentFenced
+    let entry = try TranscriptRowHeightBed.entry([row.item])
+    let heights = TranscriptRowHeights(
+      metrics: TranscriptRowMetrics.probe(), expandedBlocks: ExpandedBlocksStore { _ in row.isExpanded })
+    _ = try await TranscriptRowHeightBed.cachedHeight(of: entry, in: heights, width: Self.width)
+    let prepares = await heights.prepareCount()
+
+    _ = try await TranscriptRowHeightBed.cachedHeight(of: entry, in: heights, width: Self.newWidth)
+
+    #expect(await heights.prepareCount() == prepares)
+  }
+
+  /// A production change that fails this test: the worker keeps the
+  /// prepared parts of each row that it measured, so the memory of the
+  /// prepared parts grows with the transcript with no limit (card ^9ync5h3).
+  @Test func theWorkerPreparesAgainARowPastTheLimitOfThePreparedRows() async throws {
+    let entries = SessionModel.preview(transcript: [
+      TranscriptRowFixtures.Row.userMessage.item, TranscriptRowFixtures.Row.agentProse.item,
+    ]).transcript
+    let jobs = entries.map {
+      TranscriptRowHeightWorker.Job(content: TranscriptRowContent(entry: $0, isExpanded: false), revision: .zero)
+    }
+    let first = try #require(jobs.first)
+    let worker = TranscriptRowHeightWorker(
+      measure: RecordingTextMeasure(), metrics: TranscriptRowMetrics.probe(), preparedRowLimit: 1)
+    _ = await worker.heights(of: jobs, width: Self.width)
+    let prepares = await worker.prepareCount
+
+    _ = await worker.heights(of: [first], width: Self.newWidth)
+
+    #expect(await worker.prepareCount > prepares)
+  }
+
   // MARK: - Height provider of the static rows
 
   @Test func theProviderGivesTheCachedHeightAtTheWidthOfTheCache() async throws {
@@ -369,12 +477,13 @@ nonisolated final class RecordingTextMeasure: TranscriptTextMeasure {
 
   @Test func aThreadWithNoStoreOfTheExpandedBlocksHasNoCache() {
     #expect(
-      TranscriptStaticRowHeights.makeCache(theme: SystemTheme(), expandedBlocks: nil, hasDefaultLook: true) == nil)
+      TranscriptStaticRowHeights.makeCache(
+        theme: SystemTheme(), expandedBlocks: nil, hasDefaultLook: true, imageFolder: nil) == nil)
   }
 
   @Test func aThreadWhoseRowsDoNotHaveTheDefaultLookHasNoCache() {
     let cache = TranscriptStaticRowHeights.makeCache(
-      theme: SystemTheme(), expandedBlocks: ExpandedBlocksStore(), hasDefaultLook: false)
+      theme: SystemTheme(), expandedBlocks: ExpandedBlocksStore(), hasDefaultLook: false, imageFolder: nil)
 
     #expect(cache == nil)
   }

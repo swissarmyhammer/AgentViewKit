@@ -43,7 +43,7 @@
     ///
     /// - Returns: The session model.
     static func longSession() -> SessionModel {
-      .preview(transcript: (0..<answerCount).map { .agent(AnswerText.answer($0, in: textName)) })
+      .preview(transcript: AnswerText.transcript(count: answerCount, in: textName))
     }
 
     /// The ``BodyEvaluationCounter`` key of the text of the `session` module

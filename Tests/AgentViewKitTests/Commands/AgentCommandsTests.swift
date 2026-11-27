@@ -665,6 +665,9 @@ final class CallCounter {
     #expect(targets == [.item(userKeys[0]), .item(userKeys[2]), .item(userKeys[1])])
     #expect(anchors.anchorID == userKeys[1])
 
+    // The user scrolls to the bottom. Until a scroll of the user, the
+    // manager keeps the jump item as the visible item.
+    anchors.noteScrollByUser()
     anchors.noteVisible(ids: [userKeys[2]], distanceFromBottom: 0)
     #expect(try !Self.isAvailable(.jumpToNext, in: fixture))
   }

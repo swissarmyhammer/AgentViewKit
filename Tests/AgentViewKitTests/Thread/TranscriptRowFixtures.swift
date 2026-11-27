@@ -19,6 +19,57 @@ enum TranscriptRowFixtures {
   static let agentFenced = PreviewTranscriptItem.agent(
     "Intro text.\n\n```swift\nlet rows = heights.count\nprint(rows)\n```\n\n" + paragraph)
 
+  /// A line of code that wraps at each test width.
+  static let longCodeLine =
+    "let summary = rows.filter { $0.isVisible }.map { row in row.title + \": \" + row.detail }.joined(separator: \", \")"
+
+  /// The numbers of the short lines of the long code block and the long
+  /// output: more than nine, so a line number gutter has two digits.
+  static let longLineNumbers = 1...12
+
+  /// Twelve lines of code, so the line number gutter has two digits, with
+  /// one line that wraps.
+  static let twelveCodeLines = longLineNumbers.map { "let value\($0) = \($0)" }.joined(separator: "\n") + "\n" + longCodeLine
+
+  /// An agent message with a Swift fence of twelve lines and a line that
+  /// wraps: a TextMate grammar and a gutter of two digits.
+  static let agentFencedLong = PreviewTranscriptItem.agent(
+    "The rows:\n\n```swift\n" + twelveCodeLines + "\n```\n\nThe end.")
+
+  /// An agent message with a fence that names no language and a line that
+  /// wraps: plain text with a gutter of one digit.
+  static let agentFencedPlain = PreviewTranscriptItem.agent(
+    "Run this:\n\n```\n" + longCodeLine + "\n```")
+
+  /// An agent message with a JSON fence: a tree-sitter grammar.
+  static let agentFencedJSON = PreviewTranscriptItem.agent(
+    "The config:\n\n```json\n{\n  \"name\": \"parser\",\n  \"rows\": [1, 2, 3],\n  \"detail\": \""
+      + paragraph + "\"\n}\n```")
+
+  /// The sentences of the inline math paragraph: enough to wrap at each
+  /// test width.
+  static let inlineMathSentences = 3
+
+  /// An agent message with inline math that moves the breaks of its lines
+  /// (EditorKit ^tg1hnz7).
+  static let agentInlineMath = PreviewTranscriptItem.agent(
+    String(
+      repeating: "The sum $\\sum_{i=1}^{n} i^2$ and the fraction $\\frac{a}{b}$ move the "
+        + "breaks of the line, with $x^2 + y^2 = z^2$ near the end. ",
+      count: inlineMathSentences))
+
+  /// An agent message with block math of many rows between two paragraphs
+  /// (EditorKit ^tg1hnz7).
+  static let agentBlockMath = PreviewTranscriptItem.agent(
+    "Text above.\n\n$$\\frac{\\frac{a}{b}}{\\frac{c}{d}}$$\n\n" + paragraph)
+
+  /// An agent message with a line of inline code spans that wraps at each
+  /// test width (EditorKit ^5b9fdah).
+  static let agentInlineCodeWrapped = PreviewTranscriptItem.agent(
+    "The cache reads `rows.count` and `heights.first` on a background task, so that a scroll "
+      + "does not wait for `layout(of:)` of the rows that are far from view, and it keeps "
+      + "`TranscriptRowHeights` in step with the `transcript` of the thread.")
+
   /// A thought.
   static let thought = PreviewTranscriptItem.thought(paragraph)
 
@@ -42,35 +93,96 @@ enum TranscriptRowFixtures {
     """
 
   /// A completed edit call with one diff.
-  static let diff = PreviewTranscriptItem.update(
-    .toolCallUpdate(
-      ToolCallUpdate(
-        toolCallId: ToolCallId(rawValue: "edit"),
-        content: .value([
-          .diff(
-            Diff(
-              changes: [
-                DiffChange(operation: .add(DiffPathChange(path: AbsolutePath(rawValue: "/project/" + diffPath))))
-              ],
-              patch: DiffPatch(format: .gitPatch, text: patch)))
-        ]),
-        kind: .value(.edit),
-        status: .value(.completed),
-        title: .value("Edit Sources/App.swift"))))
+  static let diff = edit(path: diffPath, patch: patch)
+
+  /// The relative path of the long diff: a JSON file, so the diff has a
+  /// tree-sitter grammar.
+  static let longDiffPath = "Config/rows.json"
+
+  /// The numbers of the value rows of the JSON object of the long diff.
+  static let longPatchRows = 2...10
+
+  /// The factor of the new value of a changed row of the long diff.
+  nonisolated static let changedValueFactor = 10
+
+  /// The rows of the long diff whose value changes. The context between
+  /// two changes is short, so the diff view folds no context.
+  nonisolated static let changedRows: Set<Int> = [4, 8]
+
+  /// One context or changed row of the JSON object of the long diff.
+  ///
+  /// - Parameter row: The number of the row.
+  /// - Returns: The lines of the patch for the row.
+  nonisolated static func longPatchRow(_ row: Int) -> String {
+    guard changedRows.contains(row) else { return "   \"row\(row)\": \(row),\n" }
+    return "-  \"row\(row)\": \(row),\n+  \"row\(row)\": \(row * changedValueFactor),\n"
+  }
+
+  /// The git patch of the long diff: thirteen lines in each file, so the
+  /// line number gutter has two digits, three changes, and one line that
+  /// wraps.
+  static let longPatch =
+    "diff --git a/\(longDiffPath) b/\(longDiffPath)\n--- a/\(longDiffPath)\n+++ b/\(longDiffPath)\n"
+    + "@@ -1,13 +1,13 @@\n {\n"
+    + longPatchRows.map(longPatchRow).joined()
+    + "-  \"detail\": \"old\",\n+  \"detail\": \"" + paragraph + "\",\n"
+    + "   \"last\": 12\n }\n"
+
+  /// A completed edit call with a diff of thirteen lines and a line that
+  /// wraps.
+  static let diffLong = edit(path: longDiffPath, patch: longPatch)
+
+  /// A completed edit call with one diff of a file.
+  ///
+  /// - Parameters:
+  ///   - path: The relative path of the file.
+  ///   - patch: The git patch text.
+  /// - Returns: The item.
+  static func edit(path: String, patch: String) -> PreviewTranscriptItem {
+    .update(
+      .toolCallUpdate(
+        ToolCallUpdate(
+          toolCallId: ToolCallId(rawValue: "edit"),
+          content: .value([
+            .diff(
+              Diff(
+                changes: [
+                  DiffChange(operation: .add(DiffPathChange(path: AbsolutePath(rawValue: "/project/" + path))))
+                ],
+                patch: DiffPatch(format: .gitPatch, text: patch)))
+          ]),
+          kind: .value(.edit),
+          status: .value(.completed),
+          title: .value("Edit " + path))))
+  }
 
   /// A completed execute call with its output and its exit code.
-  static let commandOutput = PreviewTranscriptItem.update(
-    .toolCallUpdate(
-      ToolCallUpdate(
-        toolCallId: ToolCallId(rawValue: "run"),
-        content: .value([
-          .content(Content(content: .text(TextContent(text: "Building...\nBuild complete.\n"))))
-        ]),
-        kind: .value(.execute),
-        rawInput: .value(.object(["command": .string("swift build")])),
-        rawOutput: .value(.object(["exitCode": .number(0)])),
-        status: .value(.completed),
-        title: .value("swift build"))))
+  static let commandOutput = run(output: "Building...\nBuild complete.\n")
+
+  /// A completed execute call with twelve lines of output and a line that
+  /// wraps.
+  static let commandOutputLong = run(
+    output: longLineNumbers.map { "Compiling module \($0)" }.joined(separator: "\n") + "\n" + paragraph + "\n")
+
+  /// A completed execute call of `swift build` with an output and the exit
+  /// code zero.
+  ///
+  /// - Parameter output: The output text.
+  /// - Returns: The item.
+  static func run(output: String) -> PreviewTranscriptItem {
+    .update(
+      .toolCallUpdate(
+        ToolCallUpdate(
+          toolCallId: ToolCallId(rawValue: "run"),
+          content: .value([
+            .content(Content(content: .text(TextContent(text: output))))
+          ]),
+          kind: .value(.execute),
+          rawInput: .value(.object(["command": .string("swift build")])),
+          rawOutput: .value(.object(["exitCode": .number(0)])),
+          status: .value(.completed),
+          title: .value("swift build"))))
+  }
 
   /// A terminal that ran a command.
   static let terminal = PreviewTranscriptItem.terminal(
@@ -108,14 +220,30 @@ enum TranscriptRowFixtures {
     case agentProse
     /// ``TranscriptRowFixtures/agentFenced``.
     case agentFenced
+    /// ``TranscriptRowFixtures/agentFencedLong``.
+    case agentFencedLong
+    /// ``TranscriptRowFixtures/agentFencedPlain``.
+    case agentFencedPlain
+    /// ``TranscriptRowFixtures/agentFencedJSON``.
+    case agentFencedJSON
+    /// ``TranscriptRowFixtures/agentInlineMath``.
+    case agentInlineMath
+    /// ``TranscriptRowFixtures/agentBlockMath``.
+    case agentBlockMath
+    /// ``TranscriptRowFixtures/agentInlineCodeWrapped``.
+    case agentInlineCodeWrapped
     /// ``TranscriptRowFixtures/thought``.
     case thought
     /// ``TranscriptRowFixtures/toolCall``.
     case toolCall
     /// ``TranscriptRowFixtures/diff``.
     case diff
+    /// ``TranscriptRowFixtures/diffLong``.
+    case diffLong
     /// ``TranscriptRowFixtures/commandOutput``.
     case commandOutput
+    /// ``TranscriptRowFixtures/commandOutputLong``.
+    case commandOutputLong
     /// ``TranscriptRowFixtures/terminal``.
     case terminal
     /// ``TranscriptRowFixtures/plan``.
@@ -133,10 +261,18 @@ enum TranscriptRowFixtures {
       case .userMessage: TranscriptRowFixtures.userMessage
       case .agentProse: TranscriptRowFixtures.agentProse
       case .agentFenced: TranscriptRowFixtures.agentFenced
+      case .agentFencedLong: TranscriptRowFixtures.agentFencedLong
+      case .agentFencedPlain: TranscriptRowFixtures.agentFencedPlain
+      case .agentFencedJSON: TranscriptRowFixtures.agentFencedJSON
+      case .agentInlineMath: TranscriptRowFixtures.agentInlineMath
+      case .agentBlockMath: TranscriptRowFixtures.agentBlockMath
+      case .agentInlineCodeWrapped: TranscriptRowFixtures.agentInlineCodeWrapped
       case .thought: TranscriptRowFixtures.thought
       case .toolCall: TranscriptRowFixtures.toolCall
       case .diff: TranscriptRowFixtures.diff
+      case .diffLong: TranscriptRowFixtures.diffLong
       case .commandOutput: TranscriptRowFixtures.commandOutput
+      case .commandOutputLong: TranscriptRowFixtures.commandOutputLong
       case .terminal: TranscriptRowFixtures.terminal
       case .plan: TranscriptRowFixtures.plan
       case .notice: TranscriptRowFixtures.notice
@@ -145,9 +281,26 @@ enum TranscriptRowFixtures {
       }
     }
 
+    /// The row kinds with a code block, a command output or a diff: the
+    /// row kinds whose heights need the EditorKit measure of code
+    /// (`EditorLayoutMeasure.measure(code:width:style:grammar:gutter:)`).
+    nonisolated static let codeRows: [Row] = [
+      .agentFenced, .agentFencedLong, .agentFencedPlain, .agentFencedJSON, .diff, .diffLong, .commandOutput,
+      .commandOutputLong,
+    ]
+
+    /// The row kinds with Markdown whose layout EditorKit measures off the
+    /// main actor: inline math, block math (EditorKit ^tg1hnz7) and a
+    /// wrapped line with inline code (EditorKit ^5b9fdah).
+    nonisolated static let measuredMarkdownRows: [Row] = mathRows + [.agentInlineCodeWrapped]
+
+    /// The row kinds with Markdown math: inline math and block math
+    /// (EditorKit ^tg1hnz7).
+    nonisolated static let mathRows: [Row] = [.agentInlineMath, .agentBlockMath]
+
     /// Whether the blocks of the row are expanded.
     var isExpanded: Bool {
-      self == .diff || self == .commandOutput
+      [.diff, .diffLong, .commandOutput, .commandOutputLong].contains(self)
     }
   }
 }

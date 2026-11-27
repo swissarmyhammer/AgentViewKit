@@ -95,10 +95,10 @@
     /// static text of each row in view again on each frame of a flick.
     @Test func aStaticRowInViewDoesNoWorkOnAStepOfTheOffset() async throws {
       let thread = try await MovingThread.makeCached(
-        session: .preview(transcript: (0..<Self.answerCount).map { .agent(AnswerText.answer($0, in: Self.textName)) }), frames: ManualFrames())
-      await thread.startMoving()
+        session: .preview(transcript: AnswerText.transcript(count: Self.answerCount, in: Self.textName)), frames: ManualFrames())
+      thread.startMoving()
       thread.step(by: Self.jumpDistance, isLive: true)
-      await thread.settle()
+      thread.settle()
       let atStart = Self.answersInView(of: thread)
       try #require(!atStart.isEmpty)
       let before = Dictionary(
