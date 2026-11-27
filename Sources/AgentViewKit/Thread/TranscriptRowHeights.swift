@@ -96,21 +96,34 @@ import Observation
   ///   - rowsInView: The indices of the rows in view.
   public func update(entries: [TranscriptEntry], width: CGFloat, rowsInView: Range<Int>) {
     let widthChanged = width != self.width
-    self.width = width
-    var changed: [String] = []
-    for entry in entries where objects[entry.rowKey] != ObjectIdentifier(entry.object) {
-      copy(entry)
-      changed.append(entry.rowKey)
-    }
+    let changed = register(entries, width: width)
     let inView = Set(entries.indices.clamped(to: rowsInView).map { entries[$0].rowKey })
-    guard widthChanged else {
-      compute(changed, inView: inView)
-      return
+    compute(widthChanged ? entries.map(\.rowKey) : changed, inView: inView)
+  }
+
+  /// Records the rows and their width, and starts no computation.
+  ///
+  /// The cache copies each entry that it does not know yet. A new width
+  /// starts a new width generation, and removes each published height.
+  /// ``update(entries:width:rowsInView:)`` then computes the rows, and
+  /// ``computeHeights(of:)`` computes the rows that its caller names.
+  ///
+  /// - Parameters:
+  ///   - entries: The transcript entries, in the order of the rows.
+  ///   - width: The width of the rows.
+  /// - Returns: The row keys of the entries that the cache copied.
+  func register(_ entries: [TranscriptEntry], width: CGFloat) -> [String] {
+    if width != self.width {
+      self.width = width
+      generation += 1
+      heights = [:]
+      exactHeights = [:]
     }
-    generation += 1
-    heights = [:]
-    exactHeights = [:]
-    compute(entries.map(\.rowKey), inView: inView)
+    let changed = entries.filter { objects[$0.rowKey] != ObjectIdentifier($0.object) }
+    for entry in changed {
+      copy(entry)
+    }
+    return changed.map(\.rowKey)
   }
 
   /// The height of a row at the width of the last update.

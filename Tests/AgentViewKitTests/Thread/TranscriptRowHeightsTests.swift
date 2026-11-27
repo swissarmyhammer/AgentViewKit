@@ -320,7 +320,10 @@ nonisolated final class RecordingTextMeasure: TranscriptTextMeasure {
   /// A production change that fails this test: the call publishes the
   /// heights in a task of its own, or waits for an observation of the
   /// published heights, so the call resumes in a new main-actor job, and a
-  /// job of another test runs between the store and the return.
+  /// job of another test runs between the store and the return. The test
+  /// registers the rows with no computation of the cache
+  /// (``TranscriptRowHeights/register(_:width:)``), so the call is the
+  /// only writer of the heights.
   @Test func computingTheHeightsReturnsWithNoTurnOfAnotherMainActorJobAfterTheStore() async throws {
     try await Self.withSession { session in
       let entries = session.model.transcript
@@ -329,7 +332,7 @@ nonisolated final class RecordingTextMeasure: TranscriptTextMeasure {
       let other = OtherMainActorJob { heights.height(of: key) != nil }
       defer { other.stop() }
 
-      heights.update(entries: entries, width: Self.width, rowsInView: entries.indices)
+      _ = heights.register(entries, width: Self.width)
       await heights.computeHeights(of: [key])
       try #require(heights.height(of: key) != nil, "the call stored no height")
 
