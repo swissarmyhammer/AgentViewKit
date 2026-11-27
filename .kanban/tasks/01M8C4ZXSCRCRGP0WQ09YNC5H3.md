@@ -113,6 +113,30 @@ comments:
     - evidence: de7bcece; 16 files (Sources: StaticEditorSlot, ConversationView, TranscriptRowElement, TranscriptRowMotion, TranscriptRowMountQueue, TranscriptStaticRow; Tests: MovingThread, TextHitTest, RowMotionProbe, StaticRowHost, TranscriptMotionEndTests, TranscriptMotionMountTests, TranscriptRestMountTests, TranscriptRowMountQueueTests; IntegrationTests: TranscriptWaitingRowClickPointerHostedTests; ARCHITECTURE.md). Thread suites 403 tests / 52 suites green; root swift test 2032 tests / 246 suites + 59 / 12 green, 0 warnings in the package. IntegrationTests built, not run.
     - next: run TranscriptWaitingRowClickPointerHostedTests hosted; flick trace to measure the motion-end frame; review.
   timestamp: 2026-11-27T17:25:47.612259+00:00
+- actor: claude-code
+  id: 01m8f4h012qcev5fz9dd2v70qc
+  text: |-
+    EK 21a8a01d adoption (worktree agent-a12e72cd67814a792, main a1e31614 merged). Pins: root, IntegrationTests and ScreenshotTests Package.resolved all at 21a8a01dca258e95457609ce2e34748b363352c4.
+    RED (one run, 22 tests, 27 issues):
+    - Item 1: RowPixels compare now has no row shift. The Markdown pixel check passed (8 cases, light and dark) with no shift on EK 21a8a01d.
+    - Item 3: new fixture diffFolded (a long context run between two changes). Parity failed at each width, the cache did not take it for exact, aDiffWithContextToFoldIsExact failed (old AVK TranscriptDiffLayout gives nil for foldable context).
+    - Item 2: theMeasureDrawsAPictureOfCode / thePictureOfCodeHasTheMeasuredHeight (3 parts each) failed; the code and output slot picture counters were 0; the pixel check of the fence rows failed (mean 0.80 to 4.45, large part 0.0070 to 0.051 against limits 0.75 / 0.0075). The output and terminal rows passed with the old Text form (plain text, no colors).
+    - Item 4: EK picture draws no citation chip (RenderedRowText: an inline widget shows one character as wide as its view, with no glyph), and no thread row gives citations (TextBlockView makes ResponseView with no citations). The Markdown with chips keeps the Text form.
+  timestamp: 2026-11-27T18:33:17.602554+00:00
+- actor: claude-code
+  id: 01m8f5dqpzdpjyxrrkaqfh4w0w
+  text: |-
+    ### implement — changed
+    - evidence: c4bd3a91 (on the merge of main a1e31614). 19 files: Sources (EditorLayoutTranscriptTextMeasure, TranscriptRowHeights, TranscriptStaticRowHeights, TranscriptStaticRow, TranscriptRowChrome, StaticEditorSlot, StaticMarkdownPicture, RenderedMarkdownView, CodeBlockView, OutputChrome; TranscriptDiffLayout removed), ARCHITECTURE.md, Tests (TranscriptStaticCodePictureTests new, TranscriptStaticPictureTests, RowPixels, StaticRowHost, StaticTextLayoutTests, TranscriptRowFixtures, EditorLayoutTranscriptTextMeasureTests).
+    - Pins: root, IntegrationTests, ScreenshotTests Package.resolved at EditorKit 21a8a01d.
+    - Picture now: Markdown (as before), code blocks (syntax colors, line numbers), command output and terminal in the plain text color. Text form stays: output with ANSI color runs (the code picture draws no color run), the diff slot (it shows the patch text), Markdown with citation chips (the EK picture draws a chip as a gap with no glyph; no thread row gives citations).
+    - Diff: EK prepare(diff:style:gutterGap:) replaces TranscriptDiffLayout and the 12 pt strip constant. Folded context is exact now (new fixture diffFolded, parity 0.0 pt at each width and after each resize).
+    - Discovery: each run of an output has a foreground (the palette default from ANSIText), so the output picture rule checks that each run has the palette foreground, no background, and that this foreground is the editor foreground.
+    - Tests changed: StaticTextLayoutTests flick test now expects no Text layout (all pictured); the code block layout tests use a cache with no pictures (makeCached drawsPictures: false).
+    - Item 5: no AVK test or committed fixture pins the band outline color or the image chip symbol; the root suite passed. The gallery images of code bands and image-loading rows will look different on the next gallery run (not run).
+    - Counts: thread suites 414 tests in 54 suites passed; root swift test one run 2043 tests in 248 suites + 59 tests in 12 suites passed, 0 issues, no own warnings. IntegrationTests and ScreenshotTests swift build --build-tests complete, not run.
+    - next: /review of c4bd3a91.
+  timestamp: 2026-11-27T18:48:59.359638+00:00
 position_column: doing
 position_ordinal: '80'
 title: 'Scroll 3: static rows while the transcript moves, real rows at rest'
