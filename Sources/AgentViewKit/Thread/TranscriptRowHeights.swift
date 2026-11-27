@@ -186,7 +186,20 @@ import Observation
     guard !batches.isEmpty else { return }
     let width = width
     let generation = generation
-    Task { await self.computeHeights(in: batches, width: width, generation: generation) }
+    let previous = computation
+    computation = Task {
+      await previous?.value
+      await self.computeHeights(in: batches, width: width, generation: generation)
+    }
+  }
+
+  /// The last computation that the cache started.
+  @ObservationIgnored private var computation: Task<Void, Never>?
+
+  /// Returns when the cache has computed each row that it started to
+  /// compute.
+  func finishPendingHeights() async {
+    await computation?.value
   }
 
   /// Computes the heights of rows on the worker at the width of the last
