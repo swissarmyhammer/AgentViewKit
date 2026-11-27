@@ -2,7 +2,6 @@
   @testable import AgentViewKit
   import AgentViewKitTestSupport
   import AppKit
-  import EditorTheme
   import EditorTestSupport
   import FoundationModelsACP
   import FoundationModelsACPClient
@@ -23,68 +22,6 @@
     /// The size of the window.
     static let size = CGSize(width: 640, height: 120)
 
-    /// The working folder of the session of the tests.
-    static let cwd = "/Users/me/code/Kit"
-
-    /// The home folder that the `directory` module shows as `~`.
-    static let homeFolder = URL(filePath: "/Users/me", directoryHint: .isDirectory)
-
-    /// The title of the session: not the name of the folder, so that the
-    /// line shows the `directory` and the `session` module.
-    static let sessionTitle = "Review"
-
-    /// The accessibility identifier of the `directory` module.
-    static let directoryIdentifier = StatusLineView.identifier(for: .directory)
-
-    /// A short working folder, whose `directory` module shows one form.
-    static let shortCwd = "/Users/me/Kit"
-
-    /// The largest difference, in points, between the frame of a module
-    /// element and the frame of its text.
-    static let textFrameTolerance: CGFloat = 1
-
-    /// A definition whose line shows only the `directory` module.
-    static var directoryOnlyDefinition: StatusLineDefinition {
-      get throws {
-        var definition = StatusLines.defaultDefinition
-        definition.format = try StatusLineFormat(parsing: "$directory")
-        return definition
-      }
-    }
-
-    /// The width of the text of the `directory` module of ``shortCwd`` in
-    /// the font of the line.
-    static var shortDirectoryTextWidth: CGFloat {
-      get throws {
-        let input = StatusLineInput(
-          cwd: shortCwd, homeFolder: homeFolder.path(percentEncoded: false), sessionTitle: sessionTitle)
-        let rendering = StatusLineRenderer.render(try directoryOnlyDefinition, input: input)
-        let piece = try #require(rendering.pieces.first { $0.module == .directory })
-        return NSHostingView(rootView: PieceTextProbe(piece: piece)).fittingSize.width
-      }
-    }
-
-    /// The text of one part of the line in the font of the line, with no
-    /// element and no frame of its own.
-    struct PieceTextProbe: View {
-      /// The part of the line.
-      let piece: StatusLinePiece
-
-      @Environment(\.editorTheme) private var editorTheme
-
-      var body: some View {
-        StatusLinePieceText(piece: piece)
-          .font(editorTheme.font(for: .ui, style: StatusLineContent.textStyle))
-          .lineLimit(1)
-      }
-    }
-
-    /// The modules that the status line action of the tests got, in order.
-    @MainActor final class ActionLog {
-      /// The module of each run of the action.
-      var modules: [StatusLineModuleID] = []
-    }
-
     /// Mounts the header of a root session, whose status line action records
     /// each module in `log`.
     ///
@@ -94,21 +31,31 @@
     ///   - definition: The status line definition.
     /// - Returns: The harness, after one render pass.
     static func mountHeader(
-      log: ActionLog = ActionLog(), folder: String = cwd,
+      log: StatusLineActionLog = StatusLineActionLog(), folder: String = StatusLineModuleFixtures.cwd,
       definition: StatusLineDefinition = StatusLines.defaultDefinition
     ) -> HostedViewHarness<some View> {
       let harness = HostedViewHarness(size: size) {
         ThreadStatusHeader(
           session: .preview(cwd: AbsolutePath(rawValue: folder)), connection: .preview(),
-          sessionTitle: sessionTitle, contextMenuPath: nil, select: { _ in }
+          sessionTitle: StatusLineModuleFixtures.sessionTitle, contextMenuPath: nil, select: { _ in }
         )
         .statusLine(definition)
-        .statusLineHomeFolder(homeFolder)
-        .statusLineActions { module, _ in log.modules.append(module) }
+        .statusLineHomeFolder(StatusLineModuleFixtures.homeFolderURL)
+        .statusLineActions { module, _ in log.record(module) }
         .transaction { $0.disablesAnimations = true }
       }
       harness.render()
       return harness
+    }
+
+    /// Mounts the header of a root session with the short working folder,
+    /// whose line shows only the `directory` module.
+    ///
+    /// - Returns: The harness, after one render pass.
+    /// - Throws: An error when the format of the definition does not parse.
+    static func mountDirectoryOnlyHeader() throws -> HostedViewHarness<some View> {
+      mountHeader(
+        folder: StatusLineModuleFixtures.shortCwd, definition: try StatusLineModuleFixtures.directoryOnlyDefinition)
     }
 
     /// A production change that fails this test: the line of a root session
@@ -118,7 +65,7 @@
       defer { harness.close() }
 
       let roles = harness.elements(under: StatusLineView.identifier)
-        .filter { $0.identifier == Self.directoryIdentifier }.map(\.role)
+        .filter { $0.identifier == StatusLineModuleFixtures.directoryIdentifier }.map(\.role)
 
       #expect(roles == [NSAccessibility.Role.button.rawValue])
     }
@@ -126,11 +73,11 @@
     /// A production change that fails this test: the module has no
     /// accessibility action, so a press runs no host command.
     @Test func aPressOfTheDirectoryModuleRunsItsActionOneTime() throws {
-      let log = ActionLog()
+      let log = StatusLineActionLog()
       let harness = Self.mountHeader(log: log)
       defer { harness.close() }
 
-      try harness.perform(.press, on: Self.directoryIdentifier)
+      try harness.perform(.press, on: StatusLineModuleFixtures.directoryIdentifier)
 
       #expect(log.modules == [.directory])
     }
@@ -151,11 +98,11 @@
     /// the line goes to the one module of the line, so the module has the
     /// frame of the line, where a tap does nothing.
     @Test func theOneModuleOfALineIsNarrowerThanTheLine() throws {
-      let harness = Self.mountHeader(folder: Self.shortCwd, definition: try Self.directoryOnlyDefinition)
+      let harness = try Self.mountDirectoryOnlyHeader()
       defer { harness.close() }
 
       let line = try #require(harness.frame(identifier: StatusLineView.identifier))
-      let module = try #require(harness.frame(identifier: Self.directoryIdentifier))
+      let module = try #require(harness.frame(identifier: StatusLineModuleFixtures.directoryIdentifier))
 
       #expect(module.width > 0 && module.width < line.width, "line \(line), module \(module)")
     }
@@ -163,26 +110,33 @@
     /// A production change that fails this test: the one module of the line
     /// has a frame that is not the frame of its text.
     @Test func theOneModuleOfALineHasTheWidthOfItsText() throws {
-      let textWidth = try Self.shortDirectoryTextWidth
-      let harness = Self.mountHeader(folder: Self.shortCwd, definition: try Self.directoryOnlyDefinition)
+      let textWidth = try StatusLineModuleFixtures.directoryTextWidth(folder: StatusLineModuleFixtures.shortCwd)
+      let harness = try Self.mountDirectoryOnlyHeader()
       defer { harness.close() }
 
-      let module = try #require(harness.frame(identifier: Self.directoryIdentifier))
+      let module = try #require(harness.frame(identifier: StatusLineModuleFixtures.directoryIdentifier))
 
-      #expect(abs(module.width - textWidth) <= Self.textFrameTolerance, "module \(module), text \(textWidth)")
+      #expect(
+        abs(module.width - textWidth) <= StatusLineModuleFixtures.textFrameTolerance,
+        "module \(module), text \(textWidth)")
     }
 
     /// A production change that fails this test: the line loses its label or
     /// its value, so VoiceOver does not read the text of the line or the
     /// full path of the folder.
+    ///
+    /// The line is an `.accessibilityElement(children: .contain)` container.
+    /// SwiftUI puts the value of a container in its value description alone,
+    /// and VoiceOver reads it from there. Thus the test reads only that field,
+    /// as the unit test `StatusLineModuleAccessibilityTests` does.
     @Test func theLineKeepsItsLabelAndItsValue() throws {
       let harness = Self.mountHeader()
       defer { harness.close() }
 
       let line = try #require(harness.element(identifier: StatusLineView.identifier))
 
-      #expect(line.label?.contains(Self.sessionTitle) == true)
-      #expect([line.value, line.valueDescription].contains(Self.cwd))
+      #expect(line.label?.contains(StatusLineModuleFixtures.sessionTitle) == true)
+      #expect(line.valueDescription == StatusLineModuleFixtures.cwd)
     }
   }
 #endif

@@ -145,7 +145,10 @@ private struct StatusLineFollow: Equatable {
 }
 
 /// The rendered line.
-struct StatusLineContent: View {
+///
+/// The type has `package` access, so that the test support target measures
+/// a part of the line in ``textStyle``. A host of the kit does not see it.
+package struct StatusLineContent: View {
   let input: StatusLineInput
   let definition: StatusLineDefinition
   /// The path of crumbs, or empty for no crumbs.
@@ -157,7 +160,7 @@ struct StatusLineContent: View {
   @Environment(\.editorTheme) private var editorTheme
   @Environment(\.editorStyle) private var editorStyle
 
-  var body: some View {
+  package var body: some View {
     let usesTime = definition.format.references.contains(StatusLineModuleID.time.rawValue)
     if usesTime {
       TimelineView(.everyMinute) { context in
@@ -197,7 +200,7 @@ struct StatusLineContent: View {
   }
 
   /// The text style of the line: the style of each run and of the crumbs.
-  static let textStyle = Font.TextStyle.callout
+  package static let textStyle = Font.TextStyle.callout
 
   /// The style of the crumbs in the line: the crumb text in the text style
   /// of the line.
@@ -280,7 +283,12 @@ extension View {
 /// width of the part with `onGeometryChange(for:of:action:)`, and shows only
 /// the form that fits. The other forms are hidden, and VoiceOver does not
 /// read them.
-struct StatusLinePieceText: View {
+///
+/// The view has `package` access, so that the test support target measures
+/// the text of a part as the line draws it. A host of the kit does not see
+/// it.
+package struct StatusLinePieceText: View {
+  /// The part of the line.
   let piece: StatusLinePiece
 
   /// The measured width of each form, by its index in ``forms``.
@@ -295,7 +303,14 @@ struct StatusLinePieceText: View {
     [piece.spans] + piece.narrowerSpans
   }
 
-  var body: some View {
+  /// Makes the view of a part.
+  ///
+  /// - Parameter piece: The part of the line.
+  package init(piece: StatusLinePiece) {
+    self.piece = piece
+  }
+
+  package var body: some View {
     let forms = forms
     if forms.count == 1 {
       StatusLineText(spans: piece.spans)
