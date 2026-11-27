@@ -96,9 +96,9 @@
     @Test(arguments: cases) func aRowIsNotDrawnAgainWhenOnlyTheOffsetChanges(_ testCase: Case) async throws {
       let session = SessionModel.preview(transcript: Array(repeating: Self.item(of: testCase.kind), count: Self.rowCount))
       let thread = try MovingThread(session: session)
-      await thread.showEachRowAtRest()
+      thread.showEachRowAtRest()
       if testCase.isMoving {
-        await thread.startMoving()
+        thread.startMoving()
       }
 
       let draws = try Self.mostDrawsOfOneLayer(in: thread, isLive: testCase.isMoving)

@@ -122,7 +122,7 @@ nonisolated struct MountedTextMeasure: TranscriptTextMeasure {
   ///   - width: The width of the row.
   ///   - store: The store that tells whether a block is expanded.
   /// - Returns: The layout of the row.
-  static func mount(_ entry: TranscriptEntry, width: CGFloat, store: ExpandedBlocksStore) async -> MountedRow {
+  static func mount(_ entry: TranscriptEntry, width: CGFloat, store: ExpandedBlocksStore) -> MountedRow {
     let (hosting, window) = UnorderedWindow.mount(
       ItemRow(entry: entry)
         .frame(width: width)
@@ -130,7 +130,7 @@ nonisolated struct MountedTextMeasure: TranscriptTextMeasure {
       size: CGSize(width: width, height: windowHeight))
     defer { UnorderedWindow.close(window) }
     StyleViewHost.layOut(hosting)
-    await RunLoopBlockFence.afterPendingBlocks()
+    PendingRunLoopBlocks.run()
     StyleViewHost.layOut(hosting)
     let frames = textViewFrames(in: hosting).sorted { lhs, rhs in
       lhs.minY == rhs.minY ? lhs.minX < rhs.minX : lhs.minY < rhs.minY
@@ -191,7 +191,7 @@ nonisolated struct MountedTextMeasure: TranscriptTextMeasure {
     tolerance: CGFloat = tolerance, sourceLocation: SourceLocation = #_sourceLocation
   ) async throws {
     let store = ExpandedBlocksStore { _ in expanded }
-    let mounted = await mount(entry, width: width, store: store)
+    let mounted = mount(entry, width: width, store: store)
     let metrics = TranscriptRowMetrics.probe()
     let content = TranscriptRowContent(entry: entry, isExpanded: expanded)
     let parts = parts(of: content, width: width, metrics: metrics)
@@ -236,13 +236,13 @@ nonisolated struct MountedTextMeasure: TranscriptTextMeasure {
       UnorderedWindow.close(window)
     }
     StyleViewHost.layOut(hosting)
-    await RunLoopBlockFence.afterPendingBlocks()
+    PendingRunLoopBlocks.run()
     await ObservationWait.until {
       _ = frames.count
       return hosting.fittingSize.height > loadingHeight
     }
     StyleViewHost.layOut(hosting)
-    await RunLoopBlockFence.afterPendingBlocks()
+    PendingRunLoopBlocks.run()
     StyleViewHost.layOut(hosting)
     return hosting.frame.height
   }

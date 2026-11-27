@@ -118,12 +118,12 @@ import SwiftUI
     return host
   }
 
-  /// Shows the row at rest, and lays it out again after the blocks of the
-  /// main run loop that the layout added, so each EditorKit view of the row
-  /// has its height.
-  func showAtRestAndSettle() async {
+  /// Shows the row at rest, runs the blocks of the main run loop that the
+  /// layout added (``PendingRunLoopBlocks``), and lays the row out again, so
+  /// each EditorKit view of the row has its height.
+  func showAtRestAndSettle() {
     show(rowsMove: false)
-    await RunLoopBlockFence.afterPendingBlocks()
+    PendingRunLoopBlocks.run()
     layOut()
   }
 
