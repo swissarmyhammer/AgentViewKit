@@ -178,33 +178,36 @@ public struct CodeBlockView: View {
       .editorTextMenu(.ancestor)
       .sizedToContent()
       .editorGutter(LineNumbers())
-    if let grammarID {
-      view.editorSyntax(grammarID)
-    } else if let textMateGrammar {
-      view.editorSyntax(textMate: textMateGrammar)
-    } else {
-      view
+    switch Self.grammar(of: language) {
+    case .treeSitter(let id): view.editorSyntax(id)
+    case .textMate(let grammar): view.editorSyntax(textMate: grammar)
+    case .plainText: view
     }
   }
 
-  /// The id of the EditorKit tree-sitter grammar of ``language``, or `nil`
-  /// when EditorKit has no grammar for it.
-  private var grammarID: LanguageID? {
-    guard let language else { return nil }
-    let id = LanguageID(language)
-    return GrammarRegistry.grammar(for: id) == nil ? nil : id
-  }
-
-  /// The TextMate grammar that ``GrammarBundle`` ships for ``language``, or
-  /// `nil` when the kit ships none.
+  /// The grammar that colors the code of a language: the EditorKit
+  /// tree-sitter grammar of the language, else the TextMate grammar that
+  /// ``GrammarBundle`` ships for it, else no grammar.
   ///
-  /// This is the second choice: a tree-sitter grammar gives better colors, so
-  /// the view reads ``grammarID`` first.
-  private var textMateGrammar: TextMateGrammar? {
-    guard let language, let id = GrammarBundle.languageID(forFenceTag: language) else {
-      return nil
+  /// A tree-sitter grammar gives better colors, so it is the first choice.
+  /// The editor of the block and the height measure of the block
+  /// (``EditorLayoutTranscriptTextMeasure``) use this one choice, so the
+  /// measure breaks the lines with the font runs of the grammar of the
+  /// editor.
+  ///
+  /// - Parameter language: The language of the code, with no whitespace at
+  ///   the start or the end, or `nil`.
+  /// - Returns: The grammar.
+  nonisolated static func grammar(of language: String?) -> EditorLayoutMeasure.CodeGrammar {
+    guard let language else { return .plainText }
+    let id = LanguageID(language)
+    if GrammarRegistry.grammar(for: id) != nil {
+      return .treeSitter(id)
     }
-    return GrammarBundle.registry.grammar(for: id)
+    guard let textMateID = GrammarBundle.languageID(forFenceTag: language),
+      let textMate = GrammarBundle.registry.grammar(for: textMateID)
+    else { return .plainText }
+    return .textMate(textMate)
   }
 
   /// `text` with no whitespace at the start or the end, or `nil` when no
@@ -212,7 +215,7 @@ public struct CodeBlockView: View {
   ///
   /// - Parameter text: The text to normalize.
   /// - Returns: The trimmed text, or `nil`.
-  private static func normalized(_ text: String?) -> String? {
+  nonisolated static func normalized(_ text: String?) -> String? {
     guard let trimmed = text?.trimmingCharacters(in: .whitespacesAndNewlines),
       !trimmed.isEmpty
     else { return nil }

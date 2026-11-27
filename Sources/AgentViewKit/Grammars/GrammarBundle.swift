@@ -24,7 +24,11 @@ import os
 ///   `repository`, and resolves each `include`. The kit gives it the bytes of
 ///   the file and adds nothing.
 /// - Load: ``registry`` loads each grammar one time, at the first read.
-public enum GrammarBundle {
+///
+/// The bundle is not isolated to the main actor: the height measure of the
+/// code blocks (``EditorLayoutTranscriptTextMeasure``) reads the grammars
+/// off the main thread.
+nonisolated public enum GrammarBundle {
   /// One bundled language.
   struct Language {
     /// The EditorKit id of the language.

@@ -14,26 +14,33 @@ import Testing
   /// A second identity.
   nonisolated static let second = ObjectIdentifier(NSString.self)
 
-  /// A setup with the system faces, the first store, the first session and
-  /// the default look.
+  /// An image folder.
+  nonisolated static let folder = URL(filePath: "/tmp/project", directoryHint: .isDirectory)
+
+  /// A setup with the system faces, the first store, the first session, the
+  /// default look and no image folder.
   nonisolated static let base = TranscriptRowCacheSetup(
     faces: [.system], expandedBlocks: first, session: first,
-    hasDefaultLook: true)
+    hasDefaultLook: true, imageFolder: nil)
 
   /// The setups that differ from ``base`` in one value each: the faces, the
-  /// store, the session and the look.
+  /// store, the session, the look and the image folder.
   nonisolated static let changed: [TranscriptRowCacheSetup] = [
     TranscriptRowCacheSetup(
       faces: [.monospaced], expandedBlocks: base.expandedBlocks, session: base.session,
-      hasDefaultLook: base.hasDefaultLook),
+      hasDefaultLook: base.hasDefaultLook, imageFolder: base.imageFolder),
     TranscriptRowCacheSetup(
       faces: base.faces, expandedBlocks: second, session: base.session,
-      hasDefaultLook: base.hasDefaultLook),
+      hasDefaultLook: base.hasDefaultLook, imageFolder: base.imageFolder),
     TranscriptRowCacheSetup(
       faces: base.faces, expandedBlocks: base.expandedBlocks, session: second,
-      hasDefaultLook: base.hasDefaultLook),
+      hasDefaultLook: base.hasDefaultLook, imageFolder: base.imageFolder),
     TranscriptRowCacheSetup(
-      faces: base.faces, expandedBlocks: base.expandedBlocks, session: base.session, hasDefaultLook: false),
+      faces: base.faces, expandedBlocks: base.expandedBlocks, session: base.session, hasDefaultLook: false,
+      imageFolder: base.imageFolder),
+    TranscriptRowCacheSetup(
+      faces: base.faces, expandedBlocks: base.expandedBlocks, session: base.session,
+      hasDefaultLook: base.hasDefaultLook, imageFolder: folder),
   ]
 
   /// A production change that fails this test: the comparison ignores one
@@ -47,7 +54,7 @@ import Testing
   @Test func theSameValuesGiveTheSameSetup() {
     let copy = TranscriptRowCacheSetup(
       faces: Self.base.faces, expandedBlocks: Self.base.expandedBlocks, session: Self.base.session,
-      hasDefaultLook: Self.base.hasDefaultLook)
+      hasDefaultLook: Self.base.hasDefaultLook, imageFolder: Self.base.imageFolder)
 
     #expect(copy == Self.base)
   }
