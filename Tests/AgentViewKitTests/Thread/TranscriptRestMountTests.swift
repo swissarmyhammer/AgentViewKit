@@ -53,7 +53,7 @@ import Testing
   /// - Returns: The list at rest with no frame of the queue.
   func restAfterAMotion() async throws -> MovingThread {
     let thread = try await MovingThread.makeCached(
-      session: .preview(transcript: (0..<Self.answerCount).map { .agent(AnswerText.answer($0, in: Self.textName)) }), frames: frames)
+      session: .preview(transcript: AnswerText.transcript(count: Self.answerCount, in: Self.textName)), frames: frames)
     await thread.startMoving()
     thread.step(by: Self.jumpDistance, isLive: true)
     await thread.settle()

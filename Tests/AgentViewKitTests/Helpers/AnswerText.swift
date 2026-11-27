@@ -1,3 +1,5 @@
+import FoundationModelsACPClient
+
 /// The Markdown texts of the agent answers in the transcripts of the
 /// thread tests (card ^7625j1b).
 ///
@@ -20,5 +22,18 @@ enum AnswerText {
     let prose = "\(test) answer \(index): the parser reads each line of the file."
     let fence = withCodeFence ? "\n\n```swift\nlet \(test)\(index) = \(index)\n```\n" : ""
     return prose + fence
+  }
+
+  /// The transcript of `count` agent answers of `test`: the answer at each
+  /// index is ``answer(_:in:withCodeFence:)``.
+  ///
+  /// - Parameters:
+  ///   - count: The number of answers.
+  ///   - test: The name of the test or suite, which makes the texts its own.
+  ///   - withCodeFence: Whether each answer has a Swift code fence after
+  ///     the prose.
+  /// - Returns: The items of the transcript, in the order of their indices.
+  static func transcript(count: Int, in test: String, withCodeFence: Bool = false) -> [PreviewTranscriptItem] {
+    (0..<count).map { .agent(answer($0, in: test, withCodeFence: withCodeFence)) }
   }
 }

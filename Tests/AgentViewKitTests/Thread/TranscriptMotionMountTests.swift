@@ -57,7 +57,7 @@ import Testing
   ///   - test: The name of the test (``AnswerText/answer(_:in:withCodeFence:)``).
   /// - Returns: The list.
   func restingThread(count: Int = answerCount, test: String) async throws -> MovingThread {
-    let answers = (0..<count).map { PreviewTranscriptItem.agent(AnswerText.answer($0, in: test, withCodeFence: true)) }
+    let answers = AnswerText.transcript(count: count, in: test, withCodeFence: true)
     let thread = try MovingThread(session: .preview(transcript: answers), frames: frames)
     let firstKey = try #require(thread.session.transcript.first?.rowKey)
     await thread.jumpAtRest(to: firstKey)
