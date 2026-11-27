@@ -441,8 +441,10 @@ public struct ConversationView<EmptyState: View>: View {
   /// The heights of the static forms of the rows (``TranscriptStaticRow``):
   /// the exact height of the cache of the rows, else the size of the real
   /// row at its last layout. The stack of the rows feeds the cache
-  /// (``TranscriptRowHeightsFeed``).
-  @State private var rowHeights = TranscriptStaticRowHeights()
+  /// (``TranscriptRowHeightsFeed``). The view makes its own heights,
+  /// unless it gets heights from a test
+  /// (``init(session:anchors:frames:heights:emptyState:)``).
+  @State private var rowHeights: TranscriptStaticRowHeights
 
   /// The queue that mounts the EditorKit editors of the rows over several
   /// frames when the rows come to rest
@@ -503,27 +505,32 @@ public struct ConversationView<EmptyState: View>: View {
   }
 
   /// Makes the list of the transcript of a session model whose
-  /// ``TranscriptRowMountQueue`` takes its frames from `frames`.
+  /// ``TranscriptRowMountQueue`` takes its frames from `frames`, and whose
+  /// static rows take their heights from `heights`.
   ///
   /// A test gives a source that it steps by hand, so the test needs no
-  /// clock (card ^7625j1b).
+  /// clock (card ^7625j1b). A test gives the heights, so it can wait until
+  /// the height cache of the rows knows the height of each row.
   ///
   /// - Parameters:
   ///   - session: The session model whose transcript the view shows.
   ///   - anchors: The manager that keeps the scroll position. With `nil`,
   ///     the view makes its own manager.
   ///   - frames: The frames that drive the queue of the rows.
+  ///   - heights: The heights of the static forms of the rows.
   ///   - emptyState: The view that shows when the transcript has no entry.
   init(
     session: SessionModel,
     anchors: ScrollAnchorManager?,
     frames: any TranscriptFrameSource,
+    heights: TranscriptStaticRowHeights = TranscriptStaticRowHeights(),
     @ViewBuilder emptyState: () -> EmptyState
   ) {
     self.session = session
     self.hostAnchors = anchors
     self.emptyState = emptyState()
     _rowMounts = State(initialValue: TranscriptRowMountQueue(frames: frames))
+    _rowHeights = State(initialValue: heights)
   }
 
   /// The manager that the view uses.
@@ -1019,15 +1026,20 @@ extension ConversationView where EmptyState == DefaultConversationEmptyState {
 
   /// Makes the list of the transcript of a session model with the default
   /// empty state, whose ``TranscriptRowMountQueue`` takes its frames from
-  /// `frames` (card ^7625j1b).
+  /// `frames` (card ^7625j1b), and whose static rows take their heights
+  /// from `heights`.
   ///
   /// - Parameters:
   ///   - session: The session model whose transcript the view shows.
   ///   - anchors: The manager that keeps the scroll position. With `nil`,
   ///     the view makes its own manager.
   ///   - frames: The frames that drive the queue of the rows.
-  init(session: SessionModel, anchors: ScrollAnchorManager? = nil, frames: any TranscriptFrameSource) {
-    self.init(session: session, anchors: anchors, frames: frames) {
+  ///   - heights: The heights of the static forms of the rows.
+  init(
+    session: SessionModel, anchors: ScrollAnchorManager? = nil, frames: any TranscriptFrameSource,
+    heights: TranscriptStaticRowHeights = TranscriptStaticRowHeights()
+  ) {
+    self.init(session: session, anchors: anchors, frames: frames, heights: heights) {
       ConversationEmptyState().modifier(ConversationEmptyStateMargin())
     }
   }

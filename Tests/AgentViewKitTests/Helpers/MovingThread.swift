@@ -33,6 +33,9 @@ import Testing
   /// The scroll view of the list.
   let scrollView: NSScrollView
 
+  /// The heights of the static forms of the rows of the list.
+  let heights = TranscriptStaticRowHeights()
+
   /// Shows the list of `session` at the bottom.
   ///
   /// - Parameter session: The session of the list.
@@ -43,15 +46,48 @@ import Testing
   /// Shows the list of `session` at the bottom, with the frames that drive
   /// the queue of its rows (``TranscriptRowMountQueue``, card ^7625j1b).
   ///
+  /// With no `expandedBlocks`, the list has no height cache: a static row
+  /// takes the height of the last layout of its real row.
+  ///
   /// - Parameters:
   ///   - session: The session of the list.
   ///   - frames: The frames of the queue, such as ``ManualFrames``.
-  init(session: SessionModel, frames: any TranscriptFrameSource) throws {
+  ///   - expandedBlocks: The store of the expanded blocks of the rows, or
+  ///     `nil`. With a store, the list has the height cache of an
+  ///     ``AgentThreadView`` (``TranscriptRowHeights``).
+  init(session: SessionModel, frames: any TranscriptFrameSource, expandedBlocks: ExpandedBlocksStore? = nil) throws {
     self.session = session
-    window = AnswerTextHitTests.mount(ConversationView(session: session, anchors: anchors, frames: frames))
+    window = AnswerTextHitTests.mount(
+      ConversationView(session: session, anchors: anchors, frames: frames, heights: heights)
+        .environment(\.expandedBlocksStore, expandedBlocks))
     hosting = try #require(window.contentView)
     scrollView = try #require(
       views(ofType: NSScrollView.self, in: hosting).max { $0.frame.height < $1.frame.height })
+  }
+
+  /// Shows the list of `session` at the bottom with the height cache of an
+  /// ``AgentThreadView``, and waits until the cache knows the exact height
+  /// of each row.
+  ///
+  /// A row that the list makes in a live motion then shows its static form
+  /// from its first frame, also when it was never real. The list does not
+  /// need to show each row at rest before the motion. The rows that the
+  /// list keeps from rest then do not decide which rows are static: SwiftUI
+  /// keeps a number of rows out of view that changes with the work on the
+  /// main actor, such as the work of other tests.
+  ///
+  /// - Parameters:
+  ///   - session: The session of the list.
+  ///   - frames: The frames of the queue, such as ``ManualFrames``.
+  /// - Returns: The list, at rest.
+  static func cached(session: SessionModel, frames: any TranscriptFrameSource) async throws -> MovingThread {
+    let thread = try MovingThread(session: session, frames: frames, expandedBlocks: ExpandedBlocksStore())
+    await thread.settle()
+    let cache = try #require(thread.heights.cache, "the list has no height cache")
+    let rowKeys = session.transcript.map(\.rowKey)
+    await ObservationWait.until { rowKeys.allSatisfy { cache.height(of: $0) != nil } }
+    try #require(session.transcript.allSatisfy { cache.knowsHeight(of: $0.id) }, "a row has no exact height")
+    return thread
   }
 
   /// The row keys of the rows in view.
