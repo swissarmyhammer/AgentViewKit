@@ -50,6 +50,9 @@
       try await hosted.theTitleLinesOfTheBars()
       try await hosted.theConfigAndToolControls()
       try await hosted.theChipRowsInANarrowColumn()
+      for width in SessionJumpListGalleryFixtures.Width.allCases {
+        try await hosted.theSessionJumpList(at: width)
+      }
       try await hosted.theNormalTheSelectedAndTheFocusedStateOfEachView()
       try await hosted.theButtonsInANarrowColumn()
       try await hosted.theButtonsInAWideColumn()

@@ -82,12 +82,16 @@ import SwiftUI
   ///
   /// - Parameters:
   ///   - view: The view to lay out.
+  ///   - size: The size of the window, in points. The default is
+  ///     ``hostSize``.
   ///   - read: The read of the hosting view.
   /// - Returns: What `read` returns.
-  private static func host<Value>(_ view: some View, _ read: (NSView) -> Value) async -> Value {
-    let hosting = NSHostingView(rootView: view.frame(width: hostSize.width, height: hostSize.height))
+  static func host<Value>(
+    _ view: some View, size: CGSize = hostSize, _ read: (NSView) -> Value
+  ) async -> Value {
+    let hosting = NSHostingView(rootView: view.frame(width: size.width, height: size.height))
     let window = NSWindow(
-      contentRect: NSRect(origin: .zero, size: hostSize), styleMask: [.titled], backing: .buffered, defer: true)
+      contentRect: NSRect(origin: .zero, size: size), styleMask: [.titled], backing: .buffered, defer: true)
     window.isReleasedWhenClosed = false
     window.contentView = hosting
     defer { window.close() }
