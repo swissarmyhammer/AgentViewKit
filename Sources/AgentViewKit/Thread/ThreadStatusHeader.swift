@@ -9,9 +9,15 @@ import SwiftUI
 ///
 /// The status line has no padding of its own (^rgsq3k4): the header insets
 /// it in its glass with the steps of the style (``inset(in:)``). The whole
-/// glass, with the inset, takes a click and opens the context menu. The view
+/// glass, with the inset, takes a click and opens the context menu. The glass
+/// is one accessibility container with the identifier ``identifier`` and the
+/// frame of the glass, inset included (^y43c2hw), so that a UI test can find
+/// a point of the glass that is not on a module. The view
 /// stands in the `FloatingGlassContainer` of the thread view.
 struct ThreadStatusHeader: View {
+  /// The accessibility identifier of the glass of the header.
+  static let identifier = "agent-status-header"
+
   /// The session of the thread.
   let session: SessionModel
 
@@ -42,6 +48,11 @@ struct ThreadStatusHeader: View {
     // of the header, and does not go through the glass to the list (D193
     // (f)). The shape is the window shape of `floatingGlass()`.
     .contentShape(EditorSurface.windowShape(radius: editorStyle.radii.l))
+    // The glass is one container of the line (^y43c2hw). The glass gives
+    // its shape, and thus its frame, to the container.
+    .keepsAccessibilityContainerSeparate()
+    .accessibilityElement(children: .contain)
+    .accessibilityIdentifier(Self.identifier)
     .floatingGlass()
     .hostPathContextMenu(contextMenuPath)
   }
@@ -54,5 +65,21 @@ struct ThreadStatusHeader: View {
   /// - Returns: The inset.
   static func inset(in spacing: EditorStyle.Spacing) -> EdgeInsets {
     EdgeInsets(top: spacing.s, leading: spacing.m, bottom: spacing.s, trailing: spacing.m)
+  }
+}
+
+extension View {
+  /// Keeps the container element that the caller sets next on this view as
+  /// a node of its own, above the one element of this view.
+  ///
+  /// SwiftUI merges an `.accessibilityElement(children: .contain)` container
+  /// with its child when the child is the one element in the container: the
+  /// two become one node, with the identifier of the outer container. A
+  /// hidden element in the background is a second child for this check, and
+  /// VoiceOver does not read it.
+  ///
+  /// - Returns: The view with the hidden element in its background.
+  fileprivate func keepsAccessibilityContainerSeparate() -> some View {
+    background { Color.clear.accessibilityElement().accessibilityHidden(true) }
   }
 }

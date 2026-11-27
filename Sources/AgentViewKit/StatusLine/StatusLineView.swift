@@ -18,12 +18,18 @@ import SwiftUI
 /// session module shows the crumbs of the path to it, with their sibling
 /// menus.
 ///
-/// The view is one accessibility element with the plain text of the line as
-/// its label, the full path of the working folder as its value, and the
-/// identifier ``identifier``. With crumbs, it is a container, so that each
-/// crumb is an element. The `directory` module shows the widest form of its
-/// path that fits the width of the line, with whole names only, and the full
-/// path of the working folder as its tooltip and its accessibility value.
+/// The view is one accessibility container with the plain text of the line
+/// as its label, the full path of the working folder as its value, and the
+/// identifier ``identifier``. Each module that takes a tap is a button
+/// element in the container, also with no crumbs (^y43c2hw): it has the
+/// identifier ``identifier(for:)``, its help as its value, and the frame of
+/// its text when the line shows two modules or more (SwiftUI gives the one
+/// element of a container the frame of the container). A press runs the same
+/// host command as a tap. With crumbs,
+/// each crumb is an element. The `directory` module shows the widest form of
+/// its path that fits the width of the line, with whole names only, and the
+/// full path of the working folder as its tooltip and its accessibility
+/// value.
 public struct StatusLineView: View {
   /// The accessibility identifier of the line.
   public static let identifier = "agent-status-line"
@@ -178,11 +184,12 @@ struct StatusLineContent: View {
     // The full width of the line takes a click, so that a right click on
     // its empty part opens the context menu of the header (D193 (f)).
     .contentShape(Rectangle())
-    .accessibilityElement(children: path.isEmpty ? .ignore : .contain)
+    // The line is a container, so that each module that takes a tap is an
+    // element of its own (^y43c2hw). VoiceOver reads the label and the value
+    // of the container.
+    .accessibilityElement(children: .contain)
     .accessibilityLabel(rendering.plainText)
-    // One element has no child, so the line gives the value of the
-    // directory module.
-    .statusLineAccessibilityValue(path.isEmpty ? rendering.help(of: .directory) : nil)
+    .statusLineAccessibilityValue(rendering.help(of: .directory))
     .accessibilityAddTraits(.isHeader)
     .accessibilityIdentifier(StatusLineView.identifier)
   }
@@ -201,6 +208,14 @@ struct StatusLineContent: View {
     return style
   }
 
+  /// Runs the host command of a module on the working folder: the action of
+  /// a tap and of an accessibility press.
+  ///
+  /// - Parameter module: The module.
+  private func run(_ module: StatusLineModuleID) {
+    actions?(module, folder: input.cwd.map { AbsolutePath(rawValue: $0) })
+  }
+
   @ViewBuilder
   private func pieceView(_ piece: StatusLinePiece) -> some View {
     if piece.module == .session, !path.isEmpty {
@@ -212,7 +227,12 @@ struct StatusLineContent: View {
     } else if let module = piece.module {
       StatusLinePieceText(piece: piece)
         .contentShape(Rectangle())
-        .onTapGesture { actions?(module, folder: input.cwd.map { AbsolutePath(rawValue: $0) }) }
+        .onTapGesture { run(module) }
+        // The module is one button element with the frame of its text, and a
+        // press of VoiceOver runs the action of a tap (^y43c2hw).
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { run(module) }
         .statusLineHelp(piece.help)
         .accessibilityIdentifier(StatusLineView.identifier(for: module))
     } else {
@@ -235,7 +255,7 @@ extension View {
     }
   }
 
-  /// Sets the accessibility value of the line.
+  /// Sets the accessibility value of the line or of a module.
   ///
   /// - Parameter text: The value, or `nil` for no value.
   /// - Returns: The view with the value.
