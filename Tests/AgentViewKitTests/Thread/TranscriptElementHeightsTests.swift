@@ -69,6 +69,20 @@ import Testing
     heights.height(of: shape, width: width, source: source, metrics: metrics)
   }
 
+  /// Records a layout of `shape` at the width of the tests.
+  ///
+  /// - Parameters:
+  ///   - heights: The record of the element heights.
+  ///   - height: The height of the layout.
+  ///   - shape: The shape of the element.
+  ///   - source: The source of the row heights.
+  static func record(
+    _ heights: TranscriptElementHeights, height: CGFloat, for shape: TranscriptElementShape,
+    source: FixedSource = FixedSource()
+  ) {
+    heights.record(height: height, width: width, for: shape, metrics: metrics, source: source)
+  }
+
   /// A production change that fails this test: an element that no source
   /// knows has no height, or a height that changes between two reads.
   @Test func anElementThatNoSourceKnowsTakesTheFixedEstimate() {
@@ -85,7 +99,7 @@ import Testing
   @Test func theExactHeightOfTheCacheComesBeforeAnOldLayout() {
     let heights = TranscriptElementHeights()
     let id = TranscriptEntry.ID.local(UUID())
-    heights.record(height: Self.measuredHeight, width: Self.width, for: Self.shape(id), metrics: Self.metrics)
+    Self.record(heights, height: Self.measuredHeight, for: Self.shape(id))
     heights.noteGone(id)
 
     let height = Self.height(heights, Self.shape(id), source: FixedSource(exact: Self.exactHeight))
@@ -99,7 +113,7 @@ import Testing
   @Test func theLiveLayoutComesBeforeTheExactHeight() {
     let heights = TranscriptElementHeights()
     let id = TranscriptEntry.ID.local(UUID())
-    heights.record(height: Self.measuredHeight, width: Self.width, for: Self.shape(id), metrics: Self.metrics)
+    Self.record(heights, height: Self.measuredHeight, for: Self.shape(id))
 
     let height = Self.height(heights, Self.shape(id), source: FixedSource(exact: Self.exactHeight))
 
@@ -111,7 +125,7 @@ import Testing
   @Test func anElementWithNoExactHeightTakesItsLastLayout() {
     let heights = TranscriptElementHeights()
     let id = TranscriptEntry.ID.local(UUID())
-    heights.record(height: Self.measuredHeight, width: Self.width, for: Self.shape(id), metrics: Self.metrics)
+    Self.record(heights, height: Self.measuredHeight, for: Self.shape(id))
     heights.noteGone(id)
 
     let height = Self.height(heights, Self.shape(id), source: FixedSource(estimate: Self.exactHeight))
@@ -125,9 +139,7 @@ import Testing
   @Test func theRecordOfTheLastElementLeavesOutTheBottomPadding() {
     let heights = TranscriptElementHeights()
     let id = TranscriptEntry.ID.local(UUID())
-    heights.record(
-      height: Self.measuredHeight + Self.metrics.bottomPadding, width: Self.width,
-      for: Self.shape(id, isLast: true), metrics: Self.metrics)
+    Self.record(heights, height: Self.measuredHeight + Self.metrics.bottomPadding, for: Self.shape(id, isLast: true))
 
     let height = Self.height(heights, Self.shape(id), source: FixedSource())
 
@@ -152,11 +164,25 @@ import Testing
   @Test func aRecordOfTheSameHeightIsNoChange() {
     let heights = TranscriptElementHeights()
     let shape = Self.shape(.local(UUID()))
-    heights.record(height: Self.measuredHeight, width: Self.width, for: shape, metrics: Self.metrics)
+    Self.record(heights, height: Self.measuredHeight, for: shape)
     let revision = heights.revision
 
-    heights.record(height: Self.measuredHeight, width: Self.width, for: shape, metrics: Self.metrics)
+    Self.record(heights, height: Self.measuredHeight, for: shape)
 
     #expect(heights.revision == revision)
+  }
+
+  /// A production change that fails this test: the first record of an
+  /// element counts as a change also when the layout has the exact height
+  /// that the stack used. Then each row that comes into view in a flick
+  /// makes the stack compute its geometry again, and the geometry does not
+  /// change.
+  @Test func aFirstRecordAtTheHeightInUseIsNoChange() {
+    let heights = TranscriptElementHeights()
+    let source = FixedSource(exact: Self.exactHeight)
+
+    Self.record(heights, height: Self.exactHeight, for: Self.shape(.local(UUID())), source: source)
+
+    #expect(heights.revision == 0)
   }
 }

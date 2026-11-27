@@ -81,17 +81,17 @@ import Testing
     #expect(geometry.visibleRows(offset: 1_000, viewportHeight: Self.viewportHeight).isEmpty)
   }
 
-  /// A production change that fails this test: the stack mounts only the
-  /// rows in view, with no overscan, or it mounts a whole screen of rows
-  /// above and below them, so each mounted row at rest mounts its editors.
-  @Test func theMountedRowsAreTheRowsInViewAndHalfAScreenAboveAndBelow() {
+  /// A production change that fails this test: the stack mounts rows above
+  /// and below the rows in view. Each scroll step then costs SwiftUI work
+  /// for each extra row, a flick makes the rows in batches, and the real
+  /// rows of a rest stay mounted at the start of a flick (card ^kr7cx7b).
+  @Test func theMountedRowsAreTheRowsInView() {
     let geometry = Self.geometry([50, 50, 50, 50, 50, 50, 50, 50])
 
-    // Rows 3 and 4 are in view, from 180 to 290. Half a screen of 100 above
-    // and below takes the rows from 130 to 340.
+    // Rows 3 and 4 are in view, from 180 to 290.
     let rows = geometry.mountedRows(visible: 3..<5, viewportHeight: Self.viewportHeight)
 
-    #expect(rows == [2, 3, 4, 5])
+    #expect(rows == [3, 4])
   }
 
   /// A production change that fails this test: the stack mounts no row
@@ -100,11 +100,10 @@ import Testing
   @Test func withNoReportTheStackMountsTheRowsAtTheBottom() {
     let geometry = Self.geometry()
 
-    // The bottom band is from 440 to 540: row 4. Half a screen above it,
-    // from 370, takes row 3.
+    // The bottom band is from 440 to 540: row 4.
     let rows = geometry.mountedRows(visible: nil, viewportHeight: Self.viewportHeight)
 
-    #expect(rows == [3, 4])
+    #expect(rows == [4])
   }
 
   /// A production change that fails this test: a scroll to an item far
@@ -128,17 +127,17 @@ import Testing
     #expect(Set([8, 9]).isSubset(of: rows))
   }
 
-  /// A production change that fails this test: a mounted row at the edge of
-  /// the overscan above the view leaves the stack when a height correction
-  /// moves that edge, and it mounts again in the next pass.
+  /// A production change that fails this test: a mounted row next to the
+  /// rows in view leaves the stack when a height correction moves the edge
+  /// of the view, and it mounts again in the next pass.
   @Test func aMountedRowInTheMarginStaysMounted() {
     let geometry = Self.geometry([50, 50, 50, 50, 50, 50, 50, 50, 50, 50])
 
-    // Rows 6 and 7 are in view, from 360 to 470. The overscan above them
-    // starts at 310, at row 5, so row 3 is two rows above it.
-    let rows = geometry.mountedRows(visible: 6..<8, viewportHeight: Self.viewportHeight, kept: [3])
+    // Rows 6 and 7 are in view, from 360 to 470, so row 5 is one row above
+    // them.
+    let rows = geometry.mountedRows(visible: 6..<8, viewportHeight: Self.viewportHeight, kept: [5])
 
-    #expect(rows.contains(3))
+    #expect(rows.contains(5))
   }
 
   /// A production change that fails this test: the stack mounts a row of the
@@ -148,7 +147,7 @@ import Testing
 
     let rows = geometry.mountedRows(visible: 6..<8, viewportHeight: Self.viewportHeight, kept: [])
 
-    #expect(!rows.contains(3))
+    #expect(!rows.contains(5))
   }
 
   /// A production change that fails this test: the stack keeps each row that

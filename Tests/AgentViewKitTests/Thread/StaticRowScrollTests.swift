@@ -39,8 +39,7 @@
 
     /// The distance of the first move of the motion, in points: three times
     /// the height of the list (600). At rest at the bottom, the virtual
-    /// stack keeps the rows in view, the overscan above them
-    /// (``TranscriptRowGeometry/overscanScreens``), and a margin of rows
+    /// stack keeps the rows in view and a margin of rows
     /// (``TranscriptRowGeometry/keptRowMargin``). After the move, the rows
     /// in view are above those rows, so each of them is a row that the list
     /// makes in the motion.

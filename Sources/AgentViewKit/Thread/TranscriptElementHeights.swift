@@ -117,18 +117,24 @@ nonisolated struct TranscriptElementMetrics: Equatable, Sendable {
 
   /// Records the size of the layout of an element in the stack.
   ///
+  /// The record counts as a change (``revision``) only when it changes the
+  /// height that the stack gives the element at the width of the layout.
+  /// Thus a row that comes into view at the exact height of the cache does
+  /// not make the stack compute its geometry again (card ^kr7cx7b).
+  ///
   /// - Parameters:
   ///   - height: The height of the element.
   ///   - width: The width of the element.
   ///   - shape: The shape of the element.
   ///   - metrics: The lengths of the stack.
+  ///   - source: The sources of the height of the row.
   func record(
-    height: CGFloat, width: CGFloat, for shape: TranscriptElementShape, metrics: TranscriptElementMetrics
+    height: CGFloat, width: CGFloat, for shape: TranscriptElementShape, metrics: TranscriptElementMetrics,
+    source: some TranscriptRowHeightSource
   ) {
-    let record = Record(width: width, height: height - metrics.padding(below: shape), isLive: true)
-    let old = records[shape.id]
-    records[shape.id] = record
-    guard old?.width != record.width || old?.height != record.height else { return }
+    let old = self.height(of: shape, width: width, source: source, metrics: metrics)
+    records[shape.id] = Record(width: width, height: height - metrics.padding(below: shape), isLive: true)
+    guard self.height(of: shape, width: width, source: source, metrics: metrics) != old else { return }
     revision += 1
   }
 
@@ -153,8 +159,11 @@ nonisolated struct TranscriptElementMetrics: Equatable, Sendable {
     of shape: TranscriptElementShape, width: CGFloat, source: some TranscriptRowHeightSource,
     metrics: TranscriptElementMetrics
   ) -> CGFloat {
-    let record = records[shape.id].flatMap { abs($0.width - width) <= TranscriptMeasuredRowHeights.widthTolerance ? $0 : nil }
-    return metrics.padding(below: shape) + coreHeight(of: shape, width: width, record: record, source: source, metrics: metrics)
+    let record = records[shape.id].flatMap {
+      abs($0.width - width) <= TranscriptMeasuredRowHeights.widthTolerance ? $0 : nil
+    }
+    return metrics.padding(below: shape)
+      + coreHeight(of: shape, width: width, record: record, source: source, metrics: metrics)
   }
 
   /// The height of an element without its bottom padding.

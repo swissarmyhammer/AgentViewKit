@@ -9,9 +9,9 @@ import Testing
 /// their heights (card ^kr7cx7b).
 ///
 /// The virtual stack of the rows gives a row with no known height an
-/// estimate. When the row comes into the overscan of rows above the view, it
-/// gets the height of its layout, and the stack moves the offset by the
-/// change, so the rows in view do not jump. The test shows a
+/// estimate. When the row comes into view at the top, it gets the height of
+/// its layout, and the stack moves the offset by the change, so the rows in
+/// view below it do not jump. The test shows a
 /// ``MovingThread`` of answers of different heights, scrolls it at rest to
 /// the middle, and then scrolls it up by ``stepDistance``. The text of a row
 /// in view moves by the distance of the scroll and no more.
@@ -21,8 +21,8 @@ import Testing
   static let answerCount = 120
 
   /// The distance of the scroll up at rest, in points: less than the
-  /// height of the overscan above the view (half a screen of 600), so the
-  /// rows that come into view were in that overscan.
+  /// height of the list (600), so the last row in view before the scroll
+  /// stays in view.
   static let stepDistance: CGFloat = 150
 
   /// The largest difference, in points, that the test counts as no
