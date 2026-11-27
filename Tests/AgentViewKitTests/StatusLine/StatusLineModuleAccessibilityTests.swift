@@ -1,6 +1,7 @@
 import AgentViewKitTestSupport
 import AppKit
 import EditorStyle
+import EditorTheme
 import EditorTestSupport
 import FoundationModelsACP
 import FoundationModelsACPClient
@@ -48,6 +49,59 @@ import Testing
   /// The largest difference, in points, between two edges that a frame
   /// test counts as the same edge. Layout rounds an edge to a pixel.
   static let edgeTolerance: CGFloat = 0.5
+
+  /// The largest difference, in points, between the frame of a module
+  /// element and the frame of its text.
+  static let textFrameTolerance: CGFloat = 1
+
+  /// A short working folder, whose `directory` module shows one form.
+  static let shortCwd = "/Users/me/Kit"
+
+  /// The data of a line that shows the `directory` module of ``shortCwd``.
+  static let shortInput = StatusLineInput(cwd: shortCwd, homeFolder: homeFolder, sessionTitle: sessionTitle)
+
+  /// A definition whose line shows only the `directory` module.
+  static var directoryOnlyDefinition: StatusLineDefinition {
+    get throws {
+      var definition = StatusLines.defaultDefinition
+      definition.format = try StatusLineFormat(parsing: "$directory")
+      return definition
+    }
+  }
+
+  /// The line of a root session that shows only the `directory` module of
+  /// ``shortCwd``.
+  static var directoryOnlyLine: some View {
+    get throws {
+      StatusLineContent(
+        input: shortInput, definition: try directoryOnlyDefinition, path: [], rootTitle: nil, select: { _ in })
+    }
+  }
+
+  /// The width of the text of the `directory` module of ``shortInput``, in
+  /// the font of the line.
+  static var directoryTextWidth: CGFloat {
+    get throws {
+      let rendering = StatusLineRenderer.render(try directoryOnlyDefinition, input: shortInput)
+      let piece = try #require(rendering.pieces.first { $0.module == .directory })
+      return NSHostingView(rootView: StatusLinePieceProbe(piece: piece)).fittingSize.width
+    }
+  }
+
+  /// The text of one part of the line in the font of the line, as
+  /// ``StatusLineContent`` draws it, with no element and no frame of its own.
+  struct StatusLinePieceProbe: View {
+    /// The part of the line.
+    let piece: StatusLinePiece
+
+    @Environment(\.editorTheme) private var editorTheme
+
+    var body: some View {
+      StatusLinePieceText(piece: piece)
+        .font(editorTheme.font(for: .ui, style: StatusLineContent.textStyle))
+        .lineLimit(1)
+    }
+  }
 
   /// The modules that the status line action of the tests got, in order.
   @MainActor final class ActionLog {
@@ -120,6 +174,33 @@ import Testing
     #expect(
       module.map { $0.width > 0 && $0.width < (line?.width ?? 0) } == true,
       "line \(String(describing: line)), module \(String(describing: module))")
+  }
+
+  /// A production change that fails this test: SwiftUI gives the one module
+  /// of the line the frame of the line, so a UI test sees a module where a
+  /// tap does nothing.
+  @Test func theOneModuleOfALineIsNarrowerThanTheLine() async throws {
+    let frames = await ControlProbe.read(StatusLineView.identifier, in: try Self.directoryOnlyLine) { line in
+      Self.frames(of: line, andOfTheElementIdentifiedAs: Self.directoryIdentifier)
+    }
+
+    let (line, module) = (frames??.outer, frames??.inner)
+    #expect(
+      module.map { $0.width > 0 && $0.width < (line?.width ?? 0) } == true,
+      "line \(String(describing: line)), module \(String(describing: module))")
+  }
+
+  /// A production change that fails this test: the one module of the line
+  /// has a frame that is not the frame of its text.
+  @Test func theOneModuleOfALineHasTheWidthOfItsText() async throws {
+    let textWidth = try Self.directoryTextWidth
+    let width = await ControlProbe.read(Self.directoryIdentifier, in: try Self.directoryOnlyLine) {
+      accessibilityFrame(of: $0)?.width
+    }
+
+    #expect(
+      width.map { abs(($0 ?? 0) - textWidth) <= Self.textFrameTolerance } == true,
+      "module \(String(describing: width)), text \(textWidth)")
   }
 
   /// A production change that fails this test: the line gives no label, so

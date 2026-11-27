@@ -9,9 +9,10 @@ import Testing
 /// IntegrationTests (`ThreadHeaderContextMenuHostedTests`) right-clicks the
 /// empty part of the line in a window.
 @MainActor @Suite struct StatusLineHitShapeTests {
-  /// The hit shape wraps the frame of the full width, not only the text of
-  /// a module.
-  static let fullWidthHitShape = "_FlexFrameLayout>, _ContentShapeModifier<Rectangle>>"
+  /// The hit shape is the outermost modifier of the line, around the frame
+  /// of the full width and the accessibility modifiers, and not only around
+  /// the text of a module. The shape is for clicks only (^y43c2hw).
+  static let fullWidthHitShape = "AccessibilityAttachmentModifier>, _ContentShapeKindModifier<Rectangle>>"
 
   @Test func theFullWidthOfTheLineHasARectangleHitShape() {
     let content = StatusLineContent(
