@@ -17,8 +17,11 @@ import SwiftUI
 /// height of the last layout of the real row. A row that neither one knows
 /// shows its real form.
 ///
-/// The heights feed the cache with the transcript of the session. The
-/// cache copies only the entries that it does not know yet, and the copy of
+/// The heights feed the cache with the transcript of the session and the
+/// rows in view. The cache computes each row of the transcript, the rows in
+/// view first and then the rows out from them, so a row that a flick
+/// reaches has its height before it comes into view. The cache copies only
+/// the entries that it does not know yet, and the copy of
 /// a known entry observes its own values, so a row that does not change
 /// costs no work on the main thread. The text measure is EditorKit's
 /// `EditorLayoutMeasure` (``EditorLayoutTranscriptTextMeasure``), so the
@@ -37,8 +40,9 @@ import SwiftUI
   /// The width of the rows, or zero before the first layout.
   private var width: CGFloat = .zero
 
-  /// The positions of the rows in view. The cache computes them first after
-  /// a width change.
+  /// The positions of the rows in view, or an empty range before the list
+  /// reports them. The cache computes them first, then the rows out from
+  /// them.
   private var rowsInView: Range<Int> = .zero ..< .zero
 
   /// Whether a change of the transcript of the session feeds the cache.
@@ -75,13 +79,15 @@ import SwiftUI
     feed()
   }
 
-  /// Records the positions of the rows in view.
+  /// Records the positions of the rows in view, and gives them to the
+  /// cache, so the next batch of the cache starts at them.
   ///
   /// - Parameter positions: The positions in the transcript of the rows in
   ///   view.
   func noteRowsInView(positions: [Int]) {
     guard let span = positions.positionSpan else { return }
     rowsInView = Range(span)
+    cache?.noteRowsInView(rowsInView)
   }
 
   /// Records the size of a real row.
