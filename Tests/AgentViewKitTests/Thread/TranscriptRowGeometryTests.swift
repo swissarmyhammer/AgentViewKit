@@ -82,15 +82,16 @@ import Testing
   }
 
   /// A production change that fails this test: the stack mounts only the
-  /// rows in view, with no screen of rows above and below them.
-  @Test func theMountedRowsAreTheRowsInViewAndOneScreenAboveAndBelow() {
+  /// rows in view, with no overscan, or it mounts a whole screen of rows
+  /// above and below them, so each mounted row at rest mounts its editors.
+  @Test func theMountedRowsAreTheRowsInViewAndHalfAScreenAboveAndBelow() {
     let geometry = Self.geometry([50, 50, 50, 50, 50, 50, 50, 50])
 
-    // Rows 3 and 4 are in view, from 180 to 290. One screen of 100 above
-    // and below takes the rows from 80 to 390.
+    // Rows 3 and 4 are in view, from 180 to 290. Half a screen of 100 above
+    // and below takes the rows from 130 to 340.
     let rows = geometry.mountedRows(visible: 3..<5, viewportHeight: Self.viewportHeight)
 
-    #expect(rows == [1, 2, 3, 4, 5, 6])
+    #expect(rows == [2, 3, 4, 5])
   }
 
   /// A production change that fails this test: the stack mounts no row
@@ -99,11 +100,11 @@ import Testing
   @Test func withNoReportTheStackMountsTheRowsAtTheBottom() {
     let geometry = Self.geometry()
 
-    // The bottom band is from 440 to 540: row 4. One screen above it takes
-    // rows 2 and 3.
+    // The bottom band is from 440 to 540: row 4. Half a screen above it,
+    // from 370, takes row 3.
     let rows = geometry.mountedRows(visible: nil, viewportHeight: Self.viewportHeight)
 
-    #expect(rows == [2, 3, 4])
+    #expect(rows == [3, 4])
   }
 
   /// A production change that fails this test: a scroll to an item far
@@ -128,13 +129,13 @@ import Testing
   }
 
   /// A production change that fails this test: a mounted row at the edge of
-  /// the screen above the view leaves the stack when a height correction
+  /// the overscan above the view leaves the stack when a height correction
   /// moves that edge, and it mounts again in the next pass.
   @Test func aMountedRowInTheMarginStaysMounted() {
     let geometry = Self.geometry([50, 50, 50, 50, 50, 50, 50, 50, 50, 50])
 
-    // Rows 6 and 7 are in view, from 360 to 470. The screen above them
-    // starts at 260, at row 4, so row 3 is one row above that screen.
+    // Rows 6 and 7 are in view, from 360 to 470. The overscan above them
+    // starts at 310, at row 5, so row 3 is two rows above it.
     let rows = geometry.mountedRows(visible: 6..<8, viewportHeight: Self.viewportHeight, kept: [3])
 
     #expect(rows.contains(3))

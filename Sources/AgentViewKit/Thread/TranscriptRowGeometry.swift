@@ -15,6 +15,12 @@ nonisolated struct TranscriptRowGeometry: Equatable, Sendable {
   /// (``mountedRows(visible:viewportHeight:itemRow:keepsBottom:kept:)``).
   static let keptRowMargin = 2
 
+  /// The part of the height in view that the stack mounts above the rows
+  /// in view, and again below them: half a screen on each side, one screen
+  /// of overscan in all. Each mounted row at rest is real and mounts its
+  /// editors, so the overscan is not larger.
+  static let overscanScreens: CGFloat = 0.5
+
   /// The row key of each row, in the order of the rows.
   let rowKeys: [String]
 
@@ -113,22 +119,20 @@ nonisolated struct TranscriptRowGeometry: Equatable, Sendable {
     min(top(ofRow: row), bottomOffset(viewportHeight: viewportHeight))
   }
 
-  /// The rows that the stack mounts: the rows in view, one screen of rows
-  /// above and below them, and the rows in view at the end of a scroll that
-  /// the list makes now.
+  /// The rows that the stack mounts: the rows in view, the overscan above
+  /// and below them (``overscanScreens``), and the rows in view at the end
+  /// of a scroll that the list makes now, with their overscan.
   ///
   /// A row that the stack mounted before stays mounted while it is in
-  /// ``keptRowMargin`` rows above or below the screen of rows above and
-  /// below the rows in view. A height correction moves the edge of that
-  /// screen by a row or two, and without this margin, a row at that edge
+  /// ``keptRowMargin`` rows above or below the overscan. A height
+  /// correction moves the edge of the overscan by a row or two, and without this margin, a row at that edge
   /// leaves the stack and mounts again in the next pass.
   ///
   /// - Parameters:
   ///   - visible: The rows in view at the last report, or `nil` before the
   ///     first report. With no report, the rows in view are the rows at the
   ///     bottom, where the list starts.
-  ///   - viewportHeight: The height of the part in view: also the height of
-  ///     the screen of rows above and below the rows in view.
+  ///   - viewportHeight: The height of the part in view.
   ///   - itemRow: The row of a scroll to an item that did not end, or `nil`.
   ///   - keepsBottom: Whether a scroll to the bottom did not end.
   ///   - kept: The rows that the stack mounted before.
@@ -139,15 +143,16 @@ nonisolated struct TranscriptRowGeometry: Equatable, Sendable {
   ) -> [Int] {
     let bottom = visibleRows(offset: bottomOffset(viewportHeight: viewportHeight), viewportHeight: viewportHeight)
     let inView = visible.map { $0.clamped(to: 0..<count) } ?? bottom
-    let screen = overscan(inView, viewportHeight: viewportHeight)
+    let distance = viewportHeight * Self.overscanScreens
+    let screen = overscan(inView, distance: distance)
     let margin = (screen.lowerBound - Self.keptRowMargin)..<(screen.upperBound + Self.keptRowMargin)
     var bands = [Array(screen), kept.filter(margin.contains)]
     if let itemRow, heights.indices.contains(itemRow) {
       let offset = scrollOffset(toShowRow: itemRow, viewportHeight: viewportHeight)
-      bands.append(Array(overscan(visibleRows(offset: offset, viewportHeight: viewportHeight), viewportHeight: viewportHeight)))
+      bands.append(Array(overscan(visibleRows(offset: offset, viewportHeight: viewportHeight), distance: distance)))
     }
     if keepsBottom {
-      bands.append(Array(overscan(bottom, viewportHeight: viewportHeight)))
+      bands.append(Array(overscan(bottom, distance: distance)))
     }
     return Set(bands.joined()).sorted()
   }
@@ -174,7 +179,7 @@ nonisolated struct TranscriptRowGeometry: Equatable, Sendable {
     return offset + top(ofRow: row) - old.top(ofRow: oldRow)
   }
 
-  /// The rows of a band of rows and one screen above and below it.
+  /// The rows of a band of rows and a distance above and below it.
   ///
   /// An empty band, such as the band of a part in view below the last row,
   /// takes the row at its place, so the stack always mounts the rows near
@@ -182,13 +187,13 @@ nonisolated struct TranscriptRowGeometry: Equatable, Sendable {
   ///
   /// - Parameters:
   ///   - band: The rows of the band.
-  ///   - viewportHeight: The height of one screen.
+  ///   - distance: The distance above and below the band.
   /// - Returns: The rows, empty only when the stack has no row.
-  private func overscan(_ band: Range<Int>, viewportHeight: CGFloat) -> Range<Int> {
+  private func overscan(_ band: Range<Int>, distance: CGFloat) -> Range<Int> {
     guard count > 0 else { return 0..<0 }
     let first = min(band.lowerBound, count - 1)
     let last = min(max(band.upperBound - 1, first), count - 1)
-    return rows(from: top(ofRow: first) - viewportHeight, to: bottom(ofRow: last) + viewportHeight)
+    return rows(from: top(ofRow: first) - distance, to: bottom(ofRow: last) + distance)
   }
 
   /// The first row for which `isPast` is true, with a binary search. The

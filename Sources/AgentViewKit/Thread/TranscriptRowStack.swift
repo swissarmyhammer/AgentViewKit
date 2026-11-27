@@ -92,6 +92,29 @@ struct TranscriptStackLayout: Layout {
     CGSize(width: proposal.width ?? .zero, height: geometry.totalHeight)
   }
 
+  /// The stack has no explicit horizontal alignment guide.
+  ///
+  /// The default implementation of `Layout` places each subview to merge
+  /// their guides, and so it measures each mounted row again. The scroll
+  /// view asks for the guides of its content on each layout pass (for its
+  /// `.alignment` scroll anchor). In the flick trace, that cost was about
+  /// 12 % of the main thread (card ^kr7cx7b).
+  func explicitAlignment(
+    of guide: HorizontalAlignment, in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews,
+    cache: inout ()
+  ) -> CGFloat? {
+    nil
+  }
+
+  /// The stack has no explicit vertical alignment guide, for the same
+  /// reason as the horizontal guide.
+  func explicitAlignment(
+    of guide: VerticalAlignment, in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews,
+    cache: inout ()
+  ) -> CGFloat? {
+    nil
+  }
+
   func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
     for subview in subviews {
       let index = subview[TranscriptRowIndexKey.self]
@@ -118,9 +141,10 @@ extension View {
 ///
 /// One custom layout (``TranscriptStackLayout``) places the rows. Its height
 /// is the exact sum of the heights of the shown rows and the spacings
-/// (``TranscriptRowGeometry``), and it mounts only the rows in view, one
+/// (``TranscriptRowGeometry``), and it mounts only the rows in view, half a
 /// screen of rows above and below them, and the rows at the end of a scroll
-/// of the list that did not end (``TranscriptRowGeometry/mountedRows(visible:viewportHeight:itemRow:keepsBottom:)``).
+/// of the list that did not end
+/// (``TranscriptRowGeometry/mountedRows(visible:viewportHeight:itemRow:keepsBottom:kept:)``).
 /// The height of each row comes from ``TranscriptElementHeights``.
 ///
 /// Each element of the `ForEach` is one ``TranscriptRowElement`` with the id
@@ -135,9 +159,10 @@ extension View {
 /// the same rows in view evaluates no body.
 ///
 /// When the heights change, such as when a row gets its first layout or
-/// the cache of the rows computes a row, the stack first lays out the old
-/// geometry, and then it takes the new geometry and moves the offset in one
-/// step, so that the first row in view stays at its place
+/// the cache of the rows computes a row, and the change moves the first row
+/// in view, the stack first lays out the old geometry, and then it takes
+/// the new geometry and moves the offset in one step, so that the first row
+/// in view stays at its place
 /// (``TranscriptRowGeometry/anchoredOffset(_:anchorRowKey:from:)``). The
 /// stack does not move the offset while the list follows the bottom (the
 /// bottom anchor of the list keeps the end in view), while the scroll
@@ -266,12 +291,19 @@ struct TranscriptRowStack: View {
   }
 
   /// The geometry to lay out: the geometry that the stack laid out last,
-  /// while it has the same rows as `target`, else `target`.
+  /// when the change to `target` moves the offset (``movedOffset(from:to:)``)
+  /// and the two have the same rows, else `target`.
+  ///
+  /// Only a change that moves the offset waits one pass, so the new
+  /// geometry and the new offset come in one step. Each other change, such
+  /// as a new height of the last row while the list follows the bottom, is
+  /// laid out at once, so no row draws past its place for a pass.
   ///
   /// - Parameter target: The geometry from the heights that are known now.
   /// - Returns: The geometry.
   private func shownGeometry(_ target: TranscriptStackGeometry) -> TranscriptStackGeometry {
-    guard let applied, applied.firstPosition == target.firstPosition, applied.rows.rowKeys == target.rows.rowKeys
+    guard let applied, applied != target, applied.firstPosition == target.firstPosition,
+      applied.rows.rowKeys == target.rows.rowKeys, movedOffset(from: applied, to: target) != nil
     else { return target }
     return applied
   }
@@ -309,14 +341,25 @@ struct TranscriptRowStack: View {
   private func apply(_ new: TranscriptStackGeometry) {
     let old = applied
     applied = new
-    guard let old, keepsRowsInView, let first = viewport?.visible.lowerBound,
-      let key = old.rowKey(atPosition: first)
-    else { return }
+    guard let old, let offset = movedOffset(from: old, to: new) else { return }
+    scrollOffset.y = offset
+    position.scrollTo(y: offset)
+  }
+
+  /// The offset that keeps the first row in view at its place after a
+  /// change of the geometry, when the stack keeps the rows in view
+  /// (``keepsRowsInView``) and the change moves that row.
+  ///
+  /// - Parameters:
+  ///   - old: The geometry before the change.
+  ///   - new: The geometry after the change.
+  /// - Returns: The new offset, or `nil` when the offset does not move.
+  private func movedOffset(from old: TranscriptStackGeometry, to new: TranscriptStackGeometry) -> CGFloat? {
+    guard let first = viewport?.visible.lowerBound, let key = old.rowKey(atPosition: first), keepsRowsInView
+    else { return nil }
     let offset = scrollOffset.y
     let anchored = new.rows.anchoredOffset(offset, anchorRowKey: key, from: old.rows)
-    guard anchored != offset else { return }
-    scrollOffset.y = anchored
-    position.scrollTo(y: anchored)
+    return anchored == offset ? nil : anchored
   }
 
   /// Whether the stack moves the offset after a change of the heights: the

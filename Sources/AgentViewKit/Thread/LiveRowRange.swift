@@ -5,9 +5,9 @@ import SwiftUI
 ///
 /// One rendered answer keeps its syntax trees and its TextKit 2 layout in
 /// its model and its editor, about 659 KiB in a release build (EditorKit
-/// benchmark). The virtual stack of the thread mounts one screen of rows
-/// above and below the rows in view, so a scroll could keep the model of
-/// each mounted row. Thus a ``ResponseView`` far from
+/// benchmark). The virtual stack of the thread mounts the rows in view and
+/// an overscan of rows above and below them, so a scroll could keep the
+/// model of each mounted row. Thus a ``ResponseView`` far from
 /// the rows in view drops its editor, and keeps only its text and its
 /// height. Its models stay in the ``CodeBlockModelCache`` of the thread,
 /// which has a limit (``CodeBlockModelCache/threadLimit``), so the response

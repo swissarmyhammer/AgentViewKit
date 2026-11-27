@@ -24,8 +24,9 @@
   /// its frame (``TranscriptStaticRowFrame``). Each count stays at its value
   /// before the steps.
   @MainActor @Suite struct StaticRowScrollTests {
-    /// The number of answers in the transcript: more than the rows in view.
-    static let answerCount = 50
+    /// The number of answers in the transcript: more than the rows in view,
+    /// so the list can still move up after ``jumpDistance``.
+    static let answerCount = 80
 
     /// The number of scroll steps while the rows move.
     static let stepCount = 30
@@ -34,10 +35,14 @@
     /// has a fraction, as a step of a flick has.
     static let stepDistance: CGFloat = 2.3
 
-    /// The distance of the first move of the motion, in points: more than
-    /// the list makes around the rows in view at the bottom, so the rows in
-    /// view after it are rows that the list makes in the motion.
-    static let jumpDistance: CGFloat = 1_200
+    /// The distance of the first move of the motion, in points: three times
+    /// the height of the list (600). At rest at the bottom, the virtual
+    /// stack keeps the rows in view, the overscan above them
+    /// (``TranscriptRowGeometry/overscanScreens``), and a margin of rows
+    /// (``TranscriptRowGeometry/keptRowMargin``). After the move, the rows
+    /// in view are above those rows, so each of them is a row that the list
+    /// makes in the motion.
+    static let jumpDistance: CGFloat = 1_800
 
     /// The name of the answer texts of the suite
     /// (``AnswerText/answer(_:in:withCodeFence:)``). No other test uses it,
