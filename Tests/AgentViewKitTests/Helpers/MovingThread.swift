@@ -177,6 +177,19 @@ import Testing
     views(ofType: NSTextView.self, in: hosting)
   }
 
+  /// The EditorKit text views of the list whose frames are in the visible
+  /// area of the scroll view.
+  ///
+  /// The count does not include the text views of the rows that the lazy
+  /// stack keeps out of view. The number of those rows changes with the
+  /// work on the main actor, such as the work of other tests, so a test
+  /// that counts only the text views in view gets the same count each time.
+  var textViewsInView: [NSTextView] {
+    let clip = scrollView.contentView
+    let visible = clip.convert(clip.bounds, to: nil)
+    return textViews.filter { $0.convert($0.bounds, to: nil).intersects(visible) }
+  }
+
   /// Lays the host out, waits for the blocks of the main run loop that the
   /// layout added, and lays the host out again, so the list reports its
   /// rows in view.
