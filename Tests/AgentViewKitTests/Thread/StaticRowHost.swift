@@ -247,11 +247,8 @@ import SwiftUI
   /// scroll-wheel event there, and that text view. Each is `nil` when the
   /// row has no text view; the hit is `nil` when no view takes the point.
   var hitAtText: (hit: NSView?, text: NSTextView?) {
-    guard let text = views(ofType: NSTextView.self, in: hosting).first, let frame = hosting.superview else {
-      return (nil, nil)
-    }
-    let center = text.convert(CGPoint(x: text.bounds.midX, y: text.bounds.midY), to: frame)
-    return (hosting.hitTest(center), text)
+    guard let text = views(ofType: NSTextView.self, in: hosting).first else { return (nil, nil) }
+    return (TextHitTest.hit(in: hosting, atCenterOf: text), text)
   }
 
   /// Whether the hit test at the text of the row (``hitAtText``) reaches a
@@ -259,8 +256,8 @@ import SwiftUI
   /// does not hold the text view, such as a scroll view does.
   var hitReachesRow: Bool {
     let (hit, text) = hitAtText
-    guard let hit, let text, hit !== hosting else { return false }
-    return hit === text || !text.isDescendant(of: hit)
+    guard let text else { return false }
+    return TextHitTest.reaches(hit, text: text, in: hosting)
   }
 
   /// Whether the hit test at the text of the row (``hitAtText``) reaches
@@ -333,7 +330,9 @@ import SwiftUI
 
   /// The row of the entry, with the environment of a thread. A new row
   /// that the host makes in a live motion (``movesLive``) enters while the
-  /// rows move, as the list of a thread makes it in a flick.
+  /// rows move, as the list of a thread makes it in a flick. The row takes
+  /// the hit test of the stack of the rows of a thread
+  /// (``TranscriptRowsHitTest``).
   ///
   /// - Parameter rowsMove: Whether the rows of the thread move.
   /// - Returns: The row at ``width``.
@@ -342,6 +341,7 @@ import SwiftUI
       slot: TranscriptRowSlot(position: 0, entry: entry), isLast: false, lines: [],
       entersWhileMoving: rowsMove && movesLive)
       .id(rowIdentity)
+      .modifier(TranscriptRowsHitTest(rowsMoveLive: rowsMove && movesLive))
       .frame(width: width)
       .fixedSize(horizontal: false, vertical: true)
       .environment(\.transcriptRowsMove, rowsMove)

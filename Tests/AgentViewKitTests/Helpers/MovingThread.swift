@@ -55,11 +55,18 @@ import Testing
   ///   - expandedBlocks: The store of the expanded blocks of the rows, or
   ///     `nil`. With a store, the list has the height cache of an
   ///     ``AgentThreadView`` (``TranscriptRowHeights``).
-  init(session: SessionModel, frames: any TranscriptFrameSource, expandedBlocks: ExpandedBlocksStore? = nil) throws {
+  ///   - messageFooter: The footer of each message row, as the
+  ///     `messageFooter` slot gives it, or `nil` (the default) for no
+  ///     footer.
+  init(
+    session: SessionModel, frames: any TranscriptFrameSource, expandedBlocks: ExpandedBlocksStore? = nil,
+    messageFooter: ItemViewRenderer<MessageEntry>? = nil
+  ) throws {
     self.session = session
     window = AnswerTextHitTests.mount(
       ConversationView(session: session, anchors: anchors, frames: frames, heights: heights)
-        .environment(\.expandedBlocksStore, expandedBlocks))
+        .environment(\.expandedBlocksStore, expandedBlocks)
+        .environment(\.messageFooter, messageFooter))
     hosting = try #require(window.contentView)
     scrollView = try #require(
       views(ofType: NSScrollView.self, in: hosting).max { $0.frame.height < $1.frame.height })
@@ -144,6 +151,26 @@ import Testing
   /// added.
   func stopMoving() {
     postLiveScroll(NSScrollView.didEndLiveScrollNotification)
+  }
+
+  /// Moves the offset of the list up by `distance` with no layout, and then
+  /// ends the live scroll of the list, so the first layout at rest also
+  /// brings the rows at the new offset into the list. Then lays the host
+  /// out after the blocks of the main run loop that the layout added.
+  ///
+  /// - Parameter distance: The distance of the last move, in points.
+  func stopMoving(afterMovingBy distance: CGFloat) {
+    moveClip(to: scrollView.contentView.bounds.origin.y - distance)
+    stopMoving()
+  }
+
+  /// Whether the hit test of the window at the center of the first
+  /// EditorKit text view in view reaches the view of that text, as a click
+  /// or a mouse move there does (``TextHitTest``). With no text view in
+  /// view, the value is `false`.
+  var hitReachesATextViewInView: Bool {
+    guard let text = textViewsInView.first else { return false }
+    return TextHitTest.reaches(TextHitTest.hit(in: hosting, atCenterOf: text), text: text, in: hosting)
   }
 
   /// Posts a live scroll notice of the scroll view of the list, and lays

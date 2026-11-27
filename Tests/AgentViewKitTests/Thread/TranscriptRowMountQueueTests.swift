@@ -538,7 +538,7 @@ import Testing
   @Test func theSlotsOfAHeldRowAreReal() {
     #expect(
       TranscriptRowForm.slotForm(
-        rowsMove: false, waitsToMount: true, holds: TranscriptRowHolds(isHovered: true), knowsHeight: true)
+        rowsMove: false, waitsToMount: true, holds: TranscriptRowHolds(hasSelection: true), knowsHeight: true)
         == .real)
   }
 

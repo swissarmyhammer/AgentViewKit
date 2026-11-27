@@ -55,7 +55,13 @@ struct TranscriptRowSlot: Identifiable {
 /// first layout, it reads that height again and takes its static form, so
 /// it mounts its editors one time in the motion. The mouse holds a row only
 /// when it comes on the row at rest: a row that moves under the mouse does
-/// not mount its editors.
+/// not mount its editors. The mouse does not hold a row that waits in the
+/// queue: the row under the mouse at the end of a live motion takes its
+/// turns as each other row of the motion does
+/// (``TranscriptRowHolds/keepsRealRow(waitsToMount:)``). A press of the
+/// mouse on the static text of a row that waits at rest makes the row real
+/// at once (``StaticEditorSlot``), so a click before the turn of the row
+/// does not stay on its static form.
 ///
 /// Only a row that shows its static form in a live motion of the user
 /// (``SwiftUI/EnvironmentValues/transcriptRowsMoveLive``) waits in the
@@ -79,10 +85,9 @@ struct TranscriptRowSlot: Identifiable {
 /// and each of its text areas shows its editor.
 ///
 /// In a live motion of the user, the row and its status lines take no hit
-/// test, so SwiftUI does not hit-test their hover responders on each frame
-/// of a flick, and the live motion ends the hover of the row
-/// (``TranscriptRowHover``). A scroll-wheel event goes to the scroll view
-/// of the list. At rest, the row takes the hit test again.
+/// test (``TranscriptRowsHitTest``, which ``ConversationView`` gives to
+/// each element), and the live motion ends the hover of the row
+/// (``TranscriptRowHover``).
 struct TranscriptRowElement: View {
   /// The entry of the row, and its position.
   let slot: TranscriptRowSlot
@@ -175,11 +180,6 @@ struct TranscriptRowElement: View {
       TranscriptStatusLines(lines: lines)
     }
     .padding(.bottom, isLast ? editorStyle.rowPadding : 0)
-    // In a live motion, the content moves under a still mouse, and SwiftUI
-    // hit-tests each hover responder of the rows again on each frame. The
-    // rows take no hit test then, so they have no hover responder to test.
-    // A scroll-wheel event goes to the scroll view of the list.
-    .allowsHitTesting(!rowsMoveLive)
     .background {
       if mount.waits {
         Color.clear.onGeometryChange(for: CGFloat.self, of: TranscriptRowMount.centerDistance(of:)) { distance in
@@ -202,7 +202,8 @@ struct TranscriptRowElement: View {
   /// - Parameters:
   ///   - isStatic: Whether the row shows its static form.
   ///   - rowsMoveLive: Whether the rows of the thread move in a live
-  ///     motion of the user.
+  ///     motion of the user, or in the frame of its end
+  ///     (``SwiftUI/EnvironmentValues/transcriptRowsMoveLive``).
   private func noteAppear(isStatic: Bool, rowsMoveLive: Bool) {
     mount.isInView = true
     if isStatic {
@@ -219,7 +220,8 @@ struct TranscriptRowElement: View {
   /// when it comes into view, so it does not change form out of view.
   ///
   /// - Parameter rowsMoveLive: Whether the rows of the thread move in a
-  ///   live motion of the user.
+  ///   live motion of the user, or in the frame of its end
+  ///   (``SwiftUI/EnvironmentValues/transcriptRowsMoveLive``).
   private func noteFirstHeight(rowsMoveLive: Bool) {
     guard mount.isInView else { return }
     readHeightIfNeeded(rowsMoveLive: rowsMoveLive)
@@ -233,9 +235,10 @@ struct TranscriptRowElement: View {
   /// motion.
   ///
   /// - Parameter rowsMoveLive: Whether the rows of the thread move in a
-  ///   live motion of the user.
+  ///   live motion of the user, or in the frame of its end
+  ///   (``SwiftUI/EnvironmentValues/transcriptRowsMoveLive``).
   private func readHeightIfNeeded(rowsMoveLive: Bool) {
-    guard mounts != nil, rowsMoveLive, !holds.keepsRealRow else { return }
+    guard mounts != nil, rowsMoveLive, !holds.keepsRealRow(waitsToMount: mount.waits) else { return }
     heightReads += 1
   }
 
@@ -294,7 +297,9 @@ struct TranscriptRowFormChange: Equatable {
   /// Whether the rows of the thread move (``TranscriptRowMotion``).
   let rowsMove: Bool
 
-  /// Whether the rows of the thread move in a live motion of the user.
+  /// Whether the rows of the thread move in a live motion of the user, or
+  /// in the frame of its end
+  /// (``SwiftUI/EnvironmentValues/transcriptRowsMoveLive``).
   let rowsMoveLive: Bool
 }
 

@@ -141,7 +141,9 @@ import Testing
   ///
   /// The motion is one live step of ``stepDistance``, less than the height
   /// of the list. The rows that were real at rest and that stay in view
-  /// keep their editors in the motion, so the test reads real rows.
+  /// keep their editors in the motion, so the test reads real rows. The
+  /// rows come to rest in the frame after the end of the motion
+  /// (``TranscriptMotionState``).
   @Test func noEditorLeavesTheWindowInTheFirstLayoutAtRest() async throws {
     let thread = try await restingThread(test: "flickRest")
     thread.startMoving()
@@ -151,6 +153,8 @@ import Testing
     try #require(!inMotion.isEmpty, "no editor of the motion is in view")
 
     thread.stopMoving()
+    frames.advance()
+    thread.settle()
 
     let atRest = thread.textViews
     let left = inMotion.filter { editor in !atRest.contains { $0 === editor } }
