@@ -23,9 +23,8 @@ import SwiftUI
 /// identifier ``identifier``. Each module that takes a tap is a button
 /// element in the container, also with no crumbs (^y43c2hw): it has the
 /// identifier ``identifier(for:)``, its help as its value, and the frame of
-/// its text when the line shows two modules or more (SwiftUI gives the one
-/// element of a container the frame of the container). A press runs the same
-/// host command as a tap. With crumbs,
+/// its text, also when it is the one module of the line. A press runs the
+/// same host command as a tap. With crumbs,
 /// each crumb is an element. The `directory` module shows the widest form of
 /// its path that fits the width of the line, with whole names only, and the
 /// full path of the working folder as its tooltip and its accessibility
@@ -181,9 +180,6 @@ struct StatusLineContent: View {
     .font(editorTheme.font(for: .ui, style: Self.textStyle))
     .lineLimit(1)
     .frame(maxWidth: .infinity, alignment: .leading)
-    // The full width of the line takes a click, so that a right click on
-    // its empty part opens the context menu of the header (D193 (f)).
-    .contentShape(Rectangle())
     // The line is a container, so that each module that takes a tap is an
     // element of its own (^y43c2hw). VoiceOver reads the label and the value
     // of the container.
@@ -192,6 +188,12 @@ struct StatusLineContent: View {
     .statusLineAccessibilityValue(rendering.help(of: .directory))
     .accessibilityAddTraits(.isHeader)
     .accessibilityIdentifier(StatusLineView.identifier)
+    // The full width of the line takes a click, so that a right click on
+    // its empty part opens the context menu of the header (D193 (f)). The
+    // shape is for clicks only, and it is after the element: an
+    // accessibility shape on the line goes to the one module of a line with
+    // one module, which then has the frame of the line (^y43c2hw).
+    .contentShape(.interaction, Rectangle())
   }
 
   /// The text style of the line: the style of each run and of the crumbs.
