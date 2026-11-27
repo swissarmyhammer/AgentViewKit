@@ -21,9 +21,18 @@ import Observation
 ///   prepares each text part one time (``TranscriptTextMeasure/prepared(_:)``),
 ///   so a new width measures the prepared parts again at a small part of the
 ///   cost of a first measure.
-/// - The cache publishes the heights to the main actor, as observable
-///   values. After a width change, it computes each row again, the rows in
-///   view first, and publishes the rows in view before the other rows.
+/// - The cache computes each row of the transcript as soon as it knows the
+///   transcript and the width, and each new or changed row when it comes
+///   (card ^9ync5h3). A row that a fast flick reaches thus has its height
+///   before it comes into view. The rows go to the worker in batches of
+///   ``batchSize``, in the order of a ``TranscriptRowHeightQueue``: the rows
+///   in view first, then out from them in the two directions, and the last
+///   rows first when no row in view is known. Each batch takes the order of
+///   the rows in view of its time (``noteRowsInView(_:)``).
+/// - The cache publishes the heights of each batch to the main actor, as
+///   observable values, before it sends the next batch: one store step per
+///   row. After a width change, it computes each row again in the same
+///   order. A batch of an older width is the last one of that width.
 @MainActor @Observable public final class TranscriptRowHeights {
   /// The published height of each row at ``width``, by row key. A row that
   /// no chrome rule covers has no height.
@@ -58,6 +67,26 @@ import Observation
   /// published.
   @ObservationIgnored private var generation = 0
 
+  /// The rows that the cache must still compute, in the order of their
+  /// computation.
+  @ObservationIgnored private var queue = TranscriptRowHeightQueue()
+
+  /// The task that sends the rows of the queue to the worker, batch by
+  /// batch, or `nil` when no row waits.
+  @ObservationIgnored private var drain: Task<Void, Never>?
+
+  /// The most rows of one computation on the worker. A small batch
+  /// publishes the rows near the view soon, and takes the new rows in view
+  /// soon.
+  static let batchSize = 16
+
+  /// The number of rows nearest the view (``TranscriptRowHeightQueue/Pick/rank``)
+  /// whose prepared parts the worker keeps: its limit of prepared rows. A
+  /// row farther out does not push out the prepared parts of a row near the
+  /// view, so a width change measures the rows near the view again with
+  /// their prepared parts.
+  static let preparedRank = TranscriptRowHeightWorker.defaultPreparedRowLimit
+
   /// Makes a cache.
   ///
   /// - Parameters:
@@ -75,6 +104,12 @@ import Observation
     self.expandedBlocks = expandedBlocks
   }
 
+  /// Stops the drain of the queue: a cache that no thread holds computes no
+  /// more rows.
+  isolated deinit {
+    drain?.cancel()
+  }
+
   /// The ``BodyEvaluationCounter`` key of each copy of the data of a row on
   /// the main thread.
   ///
@@ -90,18 +125,30 @@ import Observation
   /// Gives the rows and their width.
   ///
   /// The cache copies each entry that it does not know yet, and computes its
-  /// height. When the width changes, it computes each row again, the rows in
-  /// view first.
+  /// height. When the width changes, it computes each row again. The rows
+  /// in view come first, then the rows out from them.
   ///
   /// - Parameters:
   ///   - entries: The transcript entries, in the order of the rows.
   ///   - width: The width of the rows.
-  ///   - rowsInView: The indices of the rows in view.
+  ///   - rowsInView: The indices of the rows in view, or an empty range
+  ///     when no row in view is known: the last rows then come first.
   public func update(entries: [TranscriptEntry], width: CGFloat, rowsInView: Range<Int>) {
     let widthChanged = width != self.width
     let changed = register(entries, width: width)
-    let inView = Set(entries.indices.clamped(to: rowsInView).map { entries[$0].rowKey })
-    compute(widthChanged ? entries.map(\.rowKey) : changed, inView: inView)
+    let keys = entries.map(\.rowKey)
+    queue.setRows(keys)
+    queue.noteRowsInView(rowsInView)
+    compute(widthChanged ? keys : changed)
+  }
+
+  /// Gives the cache the rows in view. The next batch of the computation
+  /// starts at them.
+  ///
+  /// - Parameter rowsInView: The indices of the rows in view, or an empty
+  ///   range when no row in view is known.
+  public func noteRowsInView(_ rowsInView: Range<Int>) {
+    queue.noteRowsInView(rowsInView)
   }
 
   /// Records the rows and their width, and starts no computation.
@@ -172,21 +219,57 @@ import Observation
   private func entryChanged(_ entry: TranscriptEntry) {
     guard objects[entry.rowKey] == ObjectIdentifier(entry.object) else { return }
     copy(entry)
-    compute([entry.rowKey], inView: [])
+    compute([entry.rowKey])
   }
 
-  /// Computes the heights of rows on the worker in a new task, and
-  /// publishes them: the rows in view first, then the other rows.
+  /// Adds rows to the queue, and starts the drain of the queue when it
+  /// does not run.
   ///
-  /// - Parameters:
-  ///   - keys: The row keys.
-  ///   - inView: The row keys of the rows in view.
-  private func compute(_ keys: [String], inView: Set<String>) {
-    let batches = batches(of: keys, inView: inView)
-    guard !batches.isEmpty else { return }
-    let width = width
-    let generation = generation
-    Task { await self.computeHeights(in: batches, width: width, generation: generation) }
+  /// - Parameter keys: The row keys.
+  private func compute(_ keys: [String]) {
+    queue.add(keys)
+    guard drain == nil, !queue.isEmpty else { return }
+    drain = Task { [weak self] in
+      while let batch = self?.nextBatch(), !Task.isCancelled {
+        guard let worker = self?.worker else { return }
+        let results = await worker.heights(of: batch.jobs, width: batch.width)
+        self?.publish(results, generation: batch.generation)
+      }
+      self?.drain = nil
+    }
+  }
+
+  /// One batch of the drain: the jobs, and the width and the width
+  /// generation of the time that the drain took them.
+  private struct Batch {
+    /// The jobs.
+    let jobs: [TranscriptRowHeightWorker.Job]
+
+    /// The width of the rows.
+    let width: CGFloat
+
+    /// The width generation of the jobs.
+    let generation: Int
+  }
+
+  /// Takes the next batch out of the queue.
+  ///
+  /// - Returns: The batch, or `nil` when no row waits.
+  private func nextBatch() -> Batch? {
+    let jobs = queue.next(limit: Self.batchSize).compactMap { pick in
+      contents[pick.rowKey].map {
+        TranscriptRowHeightWorker.Job(
+          content: $0, revision: revisions[pick.rowKey, default: .zero], keepsPrepared: pick.rank < Self.preparedRank)
+      }
+    }
+    return jobs.isEmpty ? nil : Batch(jobs: jobs, width: width, generation: generation)
+  }
+
+  /// Returns when the cache has computed and published each row of its
+  /// queue: the rows of the transcript and of its width, and each row that
+  /// changed. The call awaits the drain task of the cache, with no clock.
+  func finishPendingHeights() async {
+    await drain?.value
   }
 
   /// Computes the heights of rows on the worker at the width of the last
@@ -201,39 +284,14 @@ import Observation
   ///
   /// - Parameter rowKeys: The row keys.
   func computeHeights(of rowKeys: [String]) async {
-    await computeHeights(in: batches(of: rowKeys, inView: []), width: width, generation: generation)
-  }
-
-  /// The jobs of the copied rows of `keys`, in batches: the rows in view,
-  /// then the other rows. A batch with no job is not in the list.
-  ///
-  /// - Parameters:
-  ///   - keys: The row keys.
-  ///   - inView: The row keys of the rows in view.
-  /// - Returns: The batches, in the order of their computation.
-  private func batches(of keys: [String], inView: Set<String>) -> [[TranscriptRowHeightWorker.Job]] {
-    let jobs = keys.compactMap { key in
-      contents[key].map { TranscriptRowHeightWorker.Job(content: $0, revision: revisions[key, default: .zero]) }
+    let jobs = rowKeys.compactMap { key in
+      contents[key].map {
+        TranscriptRowHeightWorker.Job(content: $0, revision: revisions[key, default: .zero], keepsPrepared: true)
+      }
     }
-    let first = jobs.filter { inView.contains($0.content.rowKey) }
-    let rest = jobs.filter { !inView.contains($0.content.rowKey) }
-    return [first, rest].filter { !$0.isEmpty }
-  }
-
-  /// Computes each batch on the worker, off the main thread, and publishes
-  /// its results on the main actor before the next batch.
-  ///
-  /// - Parameters:
-  ///   - batches: The batches of jobs, in the order of their computation.
-  ///   - width: The width of the rows.
-  ///   - generation: The width generation of the jobs.
-  private func computeHeights(
-    in batches: [[TranscriptRowHeightWorker.Job]], width: CGFloat, generation: Int
-  ) async {
-    for batch in batches {
-      let results = await worker.heights(of: batch, width: width)
-      publish(results, generation: generation)
-    }
+    guard !jobs.isEmpty else { return }
+    let generation = generation
+    publish(await worker.heights(of: jobs, width: width), generation: generation)
   }
 
   /// Publishes the results of the worker that are still current.
@@ -277,6 +335,24 @@ actor TranscriptRowHeightWorker {
 
     /// The copy count of the row when it was copied.
     let revision: Int
+
+    /// Whether the worker keeps the prepared parts of the row after the
+    /// measure. The cache keeps them for the rows nearest the view only
+    /// (``TranscriptRowHeights/preparedRank``).
+    let keepsPrepared: Bool
+
+    /// Makes a job.
+    ///
+    /// - Parameters:
+    ///   - content: The copy of the row.
+    ///   - revision: The copy count of the row when it was copied.
+    ///   - keepsPrepared: Whether the worker keeps the prepared parts of
+    ///     the row. The default is `true`.
+    init(content: TranscriptRowContent, revision: Int, keepsPrepared: Bool = true) {
+      self.content = content
+      self.revision = revision
+      self.keepsPrepared = keepsPrepared
+    }
   }
 
   /// The height of one row.
@@ -374,7 +450,7 @@ actor TranscriptRowHeightWorker {
   /// - Returns: The height of each row, in the order of the jobs.
   func heights(of jobs: [Job], width: CGFloat) -> [Result] {
     jobs.map { job in
-      let measured = measured(job.content, width: width)
+      let measured = measured(job.content, width: width, keepsPrepared: job.keepsPrepared)
       return Result(
         rowKey: job.content.rowKey, revision: job.revision, height: measured.height, isExact: measured.isExact)
     }
@@ -389,8 +465,10 @@ actor TranscriptRowHeightWorker {
   /// - Parameters:
   ///   - content: The copy of the row.
   ///   - width: The width.
+  ///   - keepsPrepared: Whether the worker keeps the prepared parts of the
+  ///     row after the measure.
   /// - Returns: The height, and whether it is exact.
-  private func measured(_ content: TranscriptRowContent, width: CGFloat) -> Measured {
+  private func measured(_ content: TranscriptRowContent, width: CGFloat, keepsPrepared: Bool) -> Measured {
     let key = content.rowKey
     let digest = content.hashValue
     var versions = kept[key, default: []]
@@ -398,7 +476,7 @@ actor TranscriptRowHeightWorker {
       return hit.measured
     }
     var isExact = true
-    let height = withPreparedParts(of: key) { measurement in
+    let height = withPreparedParts(of: key, keeps: keepsPrepared) { measurement in
       TranscriptRowChrome.height(of: content, width: width, metrics: metrics) { part, partWidth in
         let measured = measurement(part, partWidth)
         isExact = isExact && measured.isExact
@@ -415,17 +493,20 @@ actor TranscriptRowHeightWorker {
   /// Runs a measure of one row with the prepared parts of the row.
   ///
   /// The measure of a part takes its prepared value from the last measure
-  /// of the row, or prepares the part. After the measure, the row keeps the
-  /// prepared parts that the measure used, and the worker drops the
-  /// prepared parts of the oldest row past ``preparedRowLimit``.
+  /// of the row, or prepares the part. After the measure, a row that keeps
+  /// its prepared parts keeps the parts that the measure used, and the
+  /// worker drops the prepared parts of the oldest row past
+  /// ``preparedRowLimit``. A row that does not keep them drops them, and
+  /// pushes out no other row.
   ///
   /// - Parameters:
   ///   - key: The row key.
+  ///   - keeps: Whether the row keeps its prepared parts.
   ///   - body: The measure of the row. It gets the measurement of a part at
   ///     a width.
   /// - Returns: The result of `body`.
   private func withPreparedParts<Value>(
-    of key: String, _ body: ((TranscriptTextPart, CGFloat) -> TranscriptTextMeasurement) -> Value
+    of key: String, keeps: Bool, _ body: ((TranscriptTextPart, CGFloat) -> TranscriptTextMeasurement) -> Value
   ) -> Value {
     let measure = measure
     var last = preparedParts.removeValue(forKey: key) ?? [:]
@@ -441,7 +522,11 @@ actor TranscriptRowHeightWorker {
       return measured
     }
     prepareCount += prepares
-    keep(used, for: key)
+    if keeps {
+      keep(used, for: key)
+    } else {
+      preparedRows.removeAll { $0 == key }
+    }
     return result
   }
 
