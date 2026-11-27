@@ -58,6 +58,7 @@ nonisolated enum StaticMarkdownPicture {
 /// SwiftUI draws the bitmap as an image, and lays out no text. The view
 /// has the size of the picture: the width of the text area and the
 /// measured height of the text, so the row has the height of the cache.
+/// The text of the picture is the accessibility label of the image.
 struct StaticPictureView: View {
   /// The start of the ``BodyEvaluationCounter`` key of each picture.
   static let counterKeyPrefix = "static-picture-"
@@ -92,7 +93,9 @@ struct StaticPictureView: View {
     #endif
     ZStack(alignment: .topLeading) {
       if let image = picture.image {
-        Image(decorative: image, scale: picture.scale)
+        // The text is the label, so an assistive app finds the text of the
+        // slot, and its focus on the slot makes the row real (card ^7625j1b).
+        Image(image, scale: picture.scale, label: Text(verbatim: text))
       }
     }
     .frame(width: picture.size.width, height: picture.size.height, alignment: .topLeading)

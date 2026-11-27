@@ -9,18 +9,17 @@ import SwiftUI
 /// still view in place of the editor: the same text in SwiftUI `Text`, at
 /// the height of the last layout of the editor, so no view of the row moves.
 ///
-/// In a thread row, the slot adds its turn (``TranscriptSlotMount``) to the
-/// turn of its row (``SwiftUI/EnvironmentValues/transcriptRowMount``). When
-/// the row waits at rest in the ``TranscriptRowMountQueue``
-/// (``TranscriptSlotForm/inTurn``), the slot shows its still view until its
-/// own turn, and its editor after, while the row keeps the frame of its
-/// static form (card ^7625j1b). While it shows its still view, the slot
-/// gives the queue its top in the row, so the slots of a row become real
-/// from top to bottom. A press of the mouse on the still view of a slot in a
-/// row that waits at rest makes the row real at once: the turn of the row
-/// leaves the queue (``TranscriptRowMountQueue/release(_:)``), so a click
-/// does not stay on the static form until the turn of the row. In each other
-/// form, the still view has no such gesture.
+/// A row that waits at rest in the ``TranscriptRowMountQueue``
+/// (``TranscriptSlotForm/waiting``) keeps its static form until the user
+/// interacts with it (card ^7625j1b). A press of the mouse on the still view
+/// of the slot makes the row real at once: the wait of the row
+/// (``SwiftUI/EnvironmentValues/transcriptRowMount``) ends
+/// (``TranscriptRowMountQueue/release(_:)``). In each other form, the still
+/// view has no such gesture. The still view is one accessibility element
+/// (``StaticSlotAccessibility``): the press of an assistive app on it, or its
+/// focus on it, also makes the row real, so the app reads the text of the
+/// editor. A hover does not.
+///
 /// A slot whose editor was never laid out, such as the slot of a row that
 /// shows its static form from its first frame, shows the still view at the
 /// height of its text. The row then has the exact height of the height
@@ -42,9 +41,7 @@ import SwiftUI
 /// A slot whose still view cannot show its text, such as a Markdown text
 /// with math (card ^hh39bp4), keeps its editor in each form
 /// (``keepsEditor``). The row keeps the frame of its static form, at the
-/// exact height of the height cache, so the row does not move. Such a
-/// slot still takes its turn in the queue of its row, and the turn changes
-/// nothing.
+/// exact height of the height cache, so the row does not move.
 struct StaticEditorSlot<Editor: View, Still: View>: View {
   /// The EditorKit editor of the text area.
   let editor: Editor
@@ -68,8 +65,8 @@ struct StaticEditorSlot<Editor: View, Still: View>: View {
   /// The height of the editor at its last layout.
   @State private var laidOutHeight = LaidOutHeight()
 
-  /// The turn of the slot in the queue of the thread.
-  @State private var mount = TranscriptSlotMount()
+  /// Whether an assistive app has its focus on the still view.
+  @AccessibilityFocusState private var isAccessibilityFocused: Bool
 
   /// Makes the slot of an editor.
   ///
@@ -92,38 +89,20 @@ struct StaticEditorSlot<Editor: View, Still: View>: View {
   }
 
   var body: some View {
-    let mount = mount
-    let rowMount = rowMount
-    slotForm
-      .onAppear { rowMount?.add(mount) }
-      .onDisappear { rowMount?.remove(mount) }
-  }
-
-  /// Records a press of the mouse on the still view of the slot in a row
-  /// that waits at rest: the turn of the row leaves the queue, so each slot
-  /// of the row shows its editor at once.
-  private func notePress() {
-    guard let rowMount, rowMount.waits else { return }
-    mounts?.release(rowMount)
-  }
-
-  /// The still view or the editor, as the form of the row and the turn of
-  /// the slot tell. A slot that keeps its editor shows the editor.
-  @ViewBuilder private var slotForm: some View {
-    if !keepsEditor, form.showsStill(slotWaits: mount.waits) {
+    if !keepsEditor, form.showsStill {
       StaticSlotStill(picturePart: picturePart, still: still)
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .frame(height: laidOutHeight.points, alignment: .top)
         .clipped()
         .simultaneousGesture(
-          DragGesture(minimumDistance: 0).onChanged { _ in notePress() }, including: form == .inTurn ? .all : .none)
-        .background {
-          if rowMount != nil {
-            let mount = mount
-            Color.clear.onGeometryChange(for: CGFloat.self, of: TranscriptSlotMount.top(of:)) { top in
-              mount.top = top
-            }
-          }
+          DragGesture(minimumDistance: 0).onChanged { _ in noteInteraction() },
+          including: form == .waiting ? .all : .none)
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier(StaticSlotAccessibility.identifier)
+        .accessibilityAction { noteInteraction() }
+        .accessibilityFocused($isAccessibilityFocused)
+        .onChange(of: isAccessibilityFocused) { _, isFocused in
+          noteAccessibilityFocus(isFocused)
         }
     } else {
       let laidOutHeight = laidOutHeight
@@ -135,4 +114,34 @@ struct StaticEditorSlot<Editor: View, Still: View>: View {
         }
     }
   }
+
+  /// Records an interaction of the user with the still view of the slot: a
+  /// press of the mouse, or a press of an assistive app. In a row that
+  /// waits, the wait of the row ends, so each slot of the row shows its
+  /// editor at once. While the rows move, the row shows its real form when
+  /// they come to rest.
+  private func noteInteraction() {
+    guard let rowMount, rowMount.waits else { return }
+    mounts?.release(rowMount)
+  }
+
+  /// Records a new focus of an assistive app on the still view: the focus
+  /// that comes on it is an interaction (``noteInteraction()``).
+  ///
+  /// - Parameter isFocused: Whether the app has its focus on the still view.
+  private func noteAccessibilityFocus(_ isFocused: Bool) {
+    guard isFocused else { return }
+    noteInteraction()
+  }
+}
+
+/// The accessibility of the still view of a ``StaticEditorSlot`` (card
+/// ^7625j1b).
+///
+/// The still view is one element that holds the text of the slot. Its
+/// press, and the focus of an assistive app on it, make the row of the slot
+/// real.
+enum StaticSlotAccessibility {
+  /// The accessibility identifier of the still view of a slot.
+  static let identifier = "static-editor-slot-still"
 }

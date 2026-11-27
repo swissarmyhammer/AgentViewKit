@@ -137,7 +137,7 @@ import Testing
 
   /// A production change that fails this test: a row that is real in the
   /// motion waits in the queue, so at rest it takes its static form, and
-  /// its editors leave the window before the queue mounts them again.
+  /// its editors leave the window until an interaction mounts them again.
   ///
   /// The motion is one live step of ``stepDistance``, less than the height
   /// of the list. The rows that were real at rest and that stay in view
@@ -181,23 +181,9 @@ import Testing
     let host = await StaticRowHost.makeCached(
       .agentFenced, width: TranscriptStaticRowTests.widths[1], frames: frames, movesLive: false)
 
-    host.mounts?.noteRowsMove(false)
     host.show(rowsMove: false)
 
     #expect(host.textViewCount > 0)
-  }
-
-  /// A production change that fails this test: a row that a scroll of the
-  /// kit makes while the rows move waits in the queue, so the queue runs
-  /// at rest for a row that is real.
-  @Test func aRowThatAScrollOfTheKitMakesDoesNotWait() async {
-    let host = await StaticRowHost.makeCached(
-      .agentFenced, width: TranscriptStaticRowTests.widths[1], frames: frames, movesLive: false)
-
-    host.mounts?.noteRowsMove(false)
-    host.show(rowsMove: false)
-
-    #expect(!frames.isRunning)
   }
 
   /// A production change that fails this test: an animated scroll of the
@@ -232,19 +218,19 @@ import Testing
 
     #expect(
       shown == [true, true, true],
-      "rows in view \(thread.rowKeysInView.sorted()), \(thread.textViewCount) editors, queue runs: \(frames.isRunning)")
+      "rows in view \(thread.rowKeysInView.sorted()), \(thread.textViewCount) editors")
   }
 
   /// A production change that fails this test: the rows that a jump at
   /// rest makes wait in the queue as the rows of a live motion, so they
-  /// stay static until the queue turns.
+  /// stay static until an interaction.
   @Test func noRowOfAJumpAtRestWaitsInTheQueue() async throws {
     let thread = try await restingThread(count: Self.jumpAnswerCount, test: "jumpWaits")
     let key = try #require(thread.session.transcript.first?.rowKey)
 
     await thread.jumpAtRest(to: key)
 
-    #expect(!frames.isRunning)
+    #expect(!thread.textViewsInView.isEmpty, "no editor in view after the jump")
   }
 }
 

@@ -442,11 +442,11 @@ public struct ConversationView<EmptyState: View>: View {
   /// (``init(session:anchors:frames:heights:emptyState:)``).
   @State private var rowHeights: TranscriptStaticRowHeights
 
-  /// The queue that mounts the EditorKit editors of the rows over several
-  /// frames when the rows come to rest
-  /// (``TranscriptRowMountQueue/editorSlotsPerFrame``, card ^7625j1b). The
-  /// display link of the view drives it, unless the view gets a different
-  /// source of frames (``init(session:anchors:frames:emptyState:)``).
+  /// The queue of the rows that keep their static form at rest until the
+  /// user interacts with them (``TranscriptRowMountQueue``, card ^7625j1b),
+  /// and that gives the frame of the end of a live motion. The display link
+  /// of the view drives it, unless the view gets a different source of
+  /// frames (``init(session:anchors:frames:emptyState:)``).
   @State private var rowMounts: TranscriptRowMountQueue
 
   /// The command system of the thread, whose jump session keeps each row
@@ -645,8 +645,6 @@ public struct ConversationView<EmptyState: View>: View {
     .environment(\.staticRowHeights, rowHeights)
     .environment(\.transcriptRowMounts, rowMounts)
     .background { TranscriptFrameAnchor(frames: rowMounts.frames) }
-    .onChange(of: rowsMove) { rowMounts.noteRowsMove(rowsMove) }
-    .onChange(of: rowsMoveLive) { rowMounts.noteRowsMoveLive(rowsMoveLive) }
     .onChange(of: isJumping) { noteJump() }
     .onScrollGeometryChange(for: ConversationBottomGeometry.self) { geometry in
       ConversationBottomGeometry(geometry, tolerance: anchors.tolerance)

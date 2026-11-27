@@ -11,16 +11,16 @@ import Testing
 ///
 /// The mouse does not hold a row that waits in the queue
 /// (``TranscriptRowHolds/keepsRealRow(waitsToMount:)``): at the end of a
-/// live motion, the row under the mouse takes its turns as each other row
-/// does. A press of the mouse on such a row makes the row real at once, so a
-/// click does not stay on its static form until its turn.
+/// live motion, the row under the mouse keeps its static form at rest as
+/// each other row does. A press of the mouse on such a row makes the row
+/// real at once, so a click does not stay on its static form.
 ///
 /// A SwiftUI gesture reads a click only from a window that is ordered in, so
 /// this test is hosted. The test shows one answer row at rest, so the row
 /// records the height of its real form. Then the row comes into the list
 /// again as a new row in a live motion, and the rows come to rest: the row
 /// waits in the queue and shows its static form. The frames of the queue
-/// never step (``StillFrames``), so only the click can make the row real.
+/// never step (``StillFrames``), so only the click makes the row real.
 @Suite(.serialized, .hostedSerially) @MainActor struct TranscriptWaitingRowClickPointerHostedTests {
   /// The size of the window of the harness.
   static let size = CGSize(width: 480, height: 480)
@@ -39,8 +39,7 @@ import Testing
   static let settlePasses = 2
 
   /// A production change that fails this test: a press on a row that waits
-  /// at rest does not make the row real, so the click reaches no editor
-  /// until the turn of the row.
+  /// at rest does not make the row real, so the click reaches no editor.
   @Test func aClickOnARowThatWaitsAtRestMakesTheRowReal() async throws {
     let bed = WaitingRowBed(session: .preview(transcript: [.agent(Self.answer)]))
     let harness = HostedViewHarness(size: Self.size) { WaitingRowBedView(bed: bed) }
@@ -95,15 +94,12 @@ import Testing
   /// Brings the row into the list again as a new row in a live motion. The
   /// row shows its static form, and its mount waits from its start.
   func enterInALiveMotion() {
-    mounts.noteRowsMove(true)
-    mounts.noteRowsMoveLive(true)
     rowIdentity += 1
     rowsMoveLive = true
   }
 
   /// Brings the rows to rest after a live motion.
   func rest() {
-    mounts.noteRowsMove(false)
     rowsMoveLive = false
   }
 }

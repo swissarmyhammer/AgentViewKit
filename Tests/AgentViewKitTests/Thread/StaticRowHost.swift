@@ -41,8 +41,9 @@ import SwiftUI
   /// is a scroll of the kit, such as an animated scroll to a row.
   var movesLive = true
 
-  /// The queue that mounts the real row at rest, or `nil` for a row that
-  /// shows its real form at once at rest (card ^7625j1b).
+  /// The queue that keeps the static form of the row at rest until an
+  /// interaction, or `nil` for a row that shows its real form at once at
+  /// rest (card ^7625j1b).
   var mounts: TranscriptRowMountQueue?
 
   /// Whether the row is in a SwiftUI scroll view of the size of the window,
@@ -52,6 +53,10 @@ import SwiftUI
   /// The footer of the message row, as the `messageFooter` slot gives it.
   /// Set it before ``show(rowsMove:)``.
   var messageFooter: ItemViewRenderer<MessageEntry>?
+
+  /// The find hits of the thread of the row, or `nil` for a thread with
+  /// no search. Set it before ``show(rowsMove:)``.
+  var search: TranscriptSearch?
 
   /// The window of the host. It is never ordered in.
   private let window: NSWindow
@@ -115,8 +120,7 @@ import SwiftUI
   ///   - row: The fixture of the row.
   ///   - width: The width of the row, in points.
   ///   - frames: The frames of the queue of the row, or `nil` for a row
-  ///     with no queue (``mounts``). The queue knows that the rows move,
-  ///     and whether the motion is live (`movesLive`).
+  ///     with no queue (``mounts``).
   ///   - movesLive: Whether the motion is a live motion of the user
   ///     (``movesLive``).
   ///   - colorScheme: The appearance of the window. The default is light.
@@ -157,10 +161,7 @@ import SwiftUI
       item, width: width, isExpanded: isExpanded, colorScheme: colorScheme, showsAtRest: false)
     host.movesLive = movesLive
     if let frames {
-      let mounts = TranscriptRowMountQueue(frames: frames)
-      mounts.noteRowsMove(true)
-      mounts.noteRowsMoveLive(movesLive)
-      host.mounts = mounts
+      host.mounts = TranscriptRowMountQueue(frames: frames)
     }
     let cache = TranscriptRowHeights(metrics: TranscriptRowMetrics.probe(), expandedBlocks: host.store)
     if drawsPictures {
@@ -274,6 +275,15 @@ import SwiftUI
     views(ofType: NSTextView.self, in: hosting).count
   }
 
+  /// The accessibility elements of the row whose identifier is
+  /// `identifier`, in tree order.
+  ///
+  /// - Parameter identifier: The accessibility identifier.
+  /// - Returns: The elements.
+  func accessibilityElements(identifiedAs identifier: String) -> [NSObject] {
+    EditorTestSupport.accessibilityElements(identifiedAs: identifier, under: hosting)
+  }
+
   /// The view that the window hit-tests at the center of the first
   /// EditorKit text view of the row, as AppKit hit-tests a click or a
   /// scroll-wheel event there, and that text view. Each is `nil` when the
@@ -384,6 +394,7 @@ import SwiftUI
       .environment(\.sessionModel, session)
       .environment(\.codeBlockModelCache, cache)
       .environment(\.messageFooter, messageFooter)
+      .environment(\.transcriptSearch, search)
       .threadTextSelection()
       .transaction { $0.disablesAnimations = true }
   }

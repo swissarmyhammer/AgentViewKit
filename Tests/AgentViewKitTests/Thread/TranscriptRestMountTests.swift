@@ -5,8 +5,8 @@ import Testing
 
 @testable import AgentViewKit
 
-/// The first frame at rest of a thread whose rows came into the list while
-/// the rows moved (card ^7625j1b).
+/// The rest of a thread whose rows came into the list while the rows moved
+/// (card ^7625j1b).
 ///
 /// The test shows a ``MovingThread`` of ``answerCount`` agent answers with
 /// the height cache of an ``AgentThreadView``
@@ -17,10 +17,9 @@ import Testing
 /// ``lastStepDistance`` in the last step of the motion, so rows come into
 /// the list also in that last step. Each row in view comes into the list in
 /// the motion and shows its static form. Then the motion ends, the rows
-/// come to rest in the next frame (``TranscriptMotionState``), and the
-/// list lays out with no other frame of the queue. No editor of a row that
-/// was static in the motion becomes real before the first mount of the
-/// queue.
+/// come to rest in the next frame (``TranscriptMotionState``). No editor of
+/// a row that was static in the motion becomes real at rest with no
+/// interaction of the user.
 ///
 /// The test counts only the editors in view
 /// (``MovingThread/textViewsInView``). The rows that the lazy stack keeps
@@ -52,8 +51,7 @@ import Testing
   /// brings new rows into the list in the last step of the motion, ends
   /// the motion, and gives the frame in which the rows come to rest.
   ///
-  /// - Returns: The list at rest with no frame of the rest count of the
-  ///   queue.
+  /// - Returns: The list in its first layout at rest.
   func restAfterAMotion() async throws -> MovingThread {
     let thread = try await MovingThread.makeCached(
       session: .preview(transcript: AnswerText.transcript(count: Self.answerCount, in: Self.textName)), frames: frames)
@@ -65,30 +63,27 @@ import Testing
     thread.stopMoving()
     frames.advance()
     thread.settle()
-    try #require(frames.isRunning, "no row waits in the queue at rest")
     return thread
   }
 
   /// A production change that fails this test: a row that was static in
-  /// the motion shows its real form in the first layout at rest, outside
-  /// the queue, so the rows in view mount their editors in one frame.
-  @Test func noEditorBecomesRealAtRestBeforeTheFirstFrameOfTheQueue() async throws {
+  /// the motion shows its real form in the first layout at rest, so the
+  /// rows in view mount their editors in one frame.
+  @Test func noEditorBecomesRealInTheFirstLayoutAtRest() async throws {
     let thread = try await restAfterAMotion()
 
     #expect(thread.textViewsInView.isEmpty, "\(thread.textViewsInView.count) editors in view at rest")
   }
 
-  /// A production change that fails this test: the rows that wait at rest
-  /// do not take their turns, or a turn makes more than one editor real.
-  /// The first turn comes in the first frame after the rest frames of the
-  /// queue (``TranscriptRowMountQueue/restFramesBeforeMount``).
-  @Test func theFirstMountOfTheQueueMakesOneEditorReal() async throws {
+  /// A production change that fails this test: the frames of a rest mount
+  /// the editors of the rows that were static in the motion, with no
+  /// interaction of the user, so the frames of the rest hitch.
+  @Test func noEditorBecomesRealInTheFramesOfALongRest() async throws {
     let thread = try await restAfterAMotion()
 
-    frames.advanceToTheLastFrameBeforeTheMount()
-    frames.advance()
-    thread.hosting.layoutSubtreeIfNeeded()
+    frames.advance(ManualFrames.longRest)
+    thread.settle()
 
-    #expect(thread.textViewsInView.count == TranscriptRowMountQueue.editorSlotsPerFrame)
+    #expect(thread.textViewsInView.isEmpty, "\(thread.textViewsInView.count) editors in view at rest")
   }
 }

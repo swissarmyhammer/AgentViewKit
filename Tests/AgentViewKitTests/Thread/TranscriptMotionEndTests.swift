@@ -10,9 +10,9 @@ import Testing
 ///
 /// At the end of a live motion, the rows take the hit test again, and
 /// SwiftUI tells the row under a still mouse that the mouse is on it. That
-/// row does not make all its EditorKit editors real in that frame: it waits
-/// in the ``TranscriptRowMountQueue`` as each other row of the motion
-/// waits. Each test shows one row of a fixture with two editor slots (its
+/// row does not make its EditorKit editors real: it waits in the
+/// ``TranscriptRowMountQueue`` for an interaction as each other row of the
+/// motion waits. Each test shows one row of a fixture with two editor slots (its
 /// text and its code fence) in a ``StaticRowHost``, with the height cache of
 /// a thread and frames that the test steps by hand (``ManualFrames``).
 @MainActor @Suite struct TranscriptHoverAtRestTests {
@@ -24,22 +24,21 @@ import Testing
 
   /// The row of a fixture with two editor slots, made in a live motion and
   /// then at rest, with a hover responder in its footer. The row waits in
-  /// the queue, and the queue gave no frame yet.
+  /// the queue for an interaction.
   ///
   /// - Returns: The host of the row.
   func waitingRowAtRest() async throws -> StaticRowHost {
     let host = await StaticRowHost.makeCached(.agentFenced, width: TranscriptStaticRowTests.widths[1], frames: frames)
     host.messageFooter = probe.footer
     host.show(rowsMove: true)
-    host.mounts?.noteRowsMove(false)
     host.show(rowsMove: false)
-    try #require(host.textViewCount == 0, "the row is real at rest before its turn")
+    try #require(host.textViewCount == 0, "the row is real at rest before an interaction")
     return host
   }
 
   /// A production change that fails this test: the mouse that comes on a
   /// row at the end of a live motion holds the row, so the row makes each
-  /// of its editor slots real in that frame, outside the queue.
+  /// of its editor slots real with no press.
   @Test func aMouseThatComesOnAWaitingRowAtRestMountsNoEditor() async throws {
     let host = try await waitingRowAtRest()
 
@@ -49,22 +48,21 @@ import Testing
     #expect(host.textViewCount == 0)
   }
 
-  /// A production change that fails this test: the row under the mouse
-  /// skips its turns in the queue, so the first frame of the queue makes
-  /// more than one editor slot of the row real.
-  @Test func theRowUnderTheMouseMountsOneEditorSlotInTheFirstMountOfTheQueue() async throws {
+  /// A production change that fails this test: the frames of a rest mount
+  /// the editors of the row under the mouse, so a hover that stays on a
+  /// row mounts its editors with no press.
+  @Test func theRowUnderTheMouseStaysStaticAfterALongRest() async throws {
     let host = try await waitingRowAtRest()
     try host.moveMouse(over: probe, moves: 1)
 
-    frames.advanceToTheLastFrameBeforeTheMount()
-    frames.advance()
+    frames.advance(ManualFrames.longRest)
     host.layOut()
 
-    #expect(host.textViewCount == TranscriptRowMountQueue.editorSlotsPerFrame)
+    #expect(host.textViewCount == 0)
   }
 
   /// A production change that fails this test: the hover holds a row that
-  /// waits in the queue at rest, so the row skips the queue.
+  /// waits in the queue at rest, so a hover mounts the editors of the row.
   @Test func theHoverDoesNotMakeAWaitingRowRealAtOnce() {
     #expect(
       TranscriptRowForm.isStatic(
