@@ -37,8 +37,22 @@ comments:
     - A private helper `expectTheMountedHeight(of:width:tolerance:)` holds the mount-and-compare body, and the default-measure test uses it too.
     - `swift build --build-tests`: Build complete, 0 project warnings (warnings only in .build/checkouts). Tests wait for the free screen slot.
   timestamp: 2026-11-27T13:22:30.048887+00:00
-position_column: doing
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m8en6jk8t9pej86c2wnfx2cd
+  text: |-
+    ### implement — changed
+    - evidence: commit 306eb9eb (worktree-agent-a7c398eb8a268e589, not pushed). 2 files — Tests/AgentViewKitTests/Thread/TranscriptRowFixtures.swift, Tests/AgentViewKitTests/Thread/TranscriptRowMeasureTests.swift. Measure suites: 25 tests in 3 suites passed (exact test 66 cases, cache test 11 cases). Root `swift test` (one run): 1998 tests in 242 suites passed, and 59 tests in 12 suites passed; 0 failures; 0 project warnings. Both review findings are `- [x]`.
+    - next: /review.
+  timestamp: 2026-11-27T14:05:27.528113+00:00
+- actor: claude-code
+  id: 01m8endep4hep606vpv182a1q5
+  text: |-
+    ### review — clean
+    - evidence: review sha 306eb9eb^1..306eb9eb; 0 findings, 0 confirmed, 0 refuted (7 attempted, 0 failed); 2 files reviewed. All prior findings are checked. Measure suites: 25 tests in 3 suites pass. Root swift test: 1998 + 59 pass.
+    - next: none. The card is in done.
+  timestamp: 2026-11-27T14:09:12.900135+00:00
+position_column: done
+position_ordinal: ffffffffbb80
 title: 'Test: markdownWithMathIsNotExact fails after EditorKit measures math'
 ---
 Found on 2026-11-26 during ^7625j1b. Root `swift test` in worktree-agent-a5f3ddbd4f5df14ea (main 45123917, plus test helper edits only) fails `EditorLayoutTranscriptTextMeasureTests.markdownWithMathIsNotExact`. The test also fails when it runs alone (2.6 s).
