@@ -253,6 +253,21 @@ import Testing
     try await Self.generate(RowSectionGalleryFixtures.gallery, named: name, size: size)
   }
 
+  /// The list of Jump to Session with eight sessions with long paths
+  /// (``SessionJumpListGalleryFixtures``), in EditorKit's
+  /// `EditorSelectionList`. At the narrow width each path is wider than its
+  /// row, and no label of a row stands over another row.
+  ///
+  /// - Parameter width: The width of the list.
+  @Test(arguments: SessionJumpListGalleryFixtures.Width.allCases)
+  func theSessionJumpList(at width: SessionJumpListGalleryFixtures.Width) async throws {
+    let session = try await SessionJumpListFixtures.openSession()
+    defer { session.close() }
+
+    try await Self.generate(
+      SessionJumpListGalleryFixtures.gallery(of: session), named: width.name, size: width.size)
+  }
+
   /// A list whose rows show the icon of their source, a symbol and an image
   /// of the host, above rows with a kit symbol (``SourceIconGalleryFixtures``,
   /// TestudoApp D212). The titles of all rows start at one x.

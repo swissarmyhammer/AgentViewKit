@@ -18,12 +18,17 @@ import SwiftUI
 /// session module shows the crumbs of the path to it, with their sibling
 /// menus.
 ///
-/// The view is one accessibility element with the plain text of the line as
-/// its label, the full path of the working folder as its value, and the
-/// identifier ``identifier``. With crumbs, it is a container, so that each
-/// crumb is an element. The `directory` module shows the widest form of its
-/// path that fits the width of the line, with whole names only, and the full
-/// path of the working folder as its tooltip and its accessibility value.
+/// The view is one accessibility container with the plain text of the line
+/// as its label, the full path of the working folder as its value, and the
+/// identifier ``identifier``. Each module that takes a tap is a button
+/// element in the container, also with no crumbs (^y43c2hw): it has the
+/// identifier ``identifier(for:)``, its help as its value, and the frame of
+/// its text, also when it is the one module of the line. A press runs the
+/// same host command as a tap. With crumbs,
+/// each crumb is an element. The `directory` module shows the widest form of
+/// its path that fits the width of the line, with whole names only, and the
+/// full path of the working folder as its tooltip and its accessibility
+/// value.
 public struct StatusLineView: View {
   /// The accessibility identifier of the line.
   public static let identifier = "agent-status-line"
@@ -140,7 +145,10 @@ private struct StatusLineFollow: Equatable {
 }
 
 /// The rendered line.
-struct StatusLineContent: View {
+///
+/// The type has `package` access, so that the test support target measures
+/// a part of the line in ``textStyle``. A host of the kit does not see it.
+package struct StatusLineContent: View {
   let input: StatusLineInput
   let definition: StatusLineDefinition
   /// The path of crumbs, or empty for no crumbs.
@@ -152,7 +160,7 @@ struct StatusLineContent: View {
   @Environment(\.editorTheme) private var editorTheme
   @Environment(\.editorStyle) private var editorStyle
 
-  var body: some View {
+  package var body: some View {
     let usesTime = definition.format.references.contains(StatusLineModuleID.time.rawValue)
     if usesTime {
       TimelineView(.everyMinute) { context in
@@ -175,20 +183,24 @@ struct StatusLineContent: View {
     .font(editorTheme.font(for: .ui, style: Self.textStyle))
     .lineLimit(1)
     .frame(maxWidth: .infinity, alignment: .leading)
-    // The full width of the line takes a click, so that a right click on
-    // its empty part opens the context menu of the header (D193 (f)).
-    .contentShape(Rectangle())
-    .accessibilityElement(children: path.isEmpty ? .ignore : .contain)
+    // The line is a container, so that each module that takes a tap is an
+    // element of its own (^y43c2hw). VoiceOver reads the label and the value
+    // of the container.
+    .accessibilityElement(children: .contain)
     .accessibilityLabel(rendering.plainText)
-    // One element has no child, so the line gives the value of the
-    // directory module.
-    .statusLineAccessibilityValue(path.isEmpty ? rendering.help(of: .directory) : nil)
+    .statusLineAccessibilityValue(rendering.help(of: .directory))
     .accessibilityAddTraits(.isHeader)
     .accessibilityIdentifier(StatusLineView.identifier)
+    // The full width of the line takes a click, so that a right click on
+    // its empty part opens the context menu of the header (D193 (f)). The
+    // shape is for clicks only, and it is after the element: an
+    // accessibility shape on the line goes to the one module of a line with
+    // one module, which then has the frame of the line (^y43c2hw).
+    .contentShape(.interaction, Rectangle())
   }
 
   /// The text style of the line: the style of each run and of the crumbs.
-  static let textStyle = Font.TextStyle.callout
+  package static let textStyle = Font.TextStyle.callout
 
   /// The style of the crumbs in the line: the crumb text in the text style
   /// of the line.
@@ -199,6 +211,14 @@ struct StatusLineContent: View {
     var style = style
     style.buttons.crumbCaptionStyle = textStyle
     return style
+  }
+
+  /// Runs the host command of a module on the working folder: the action of
+  /// a tap and of an accessibility press.
+  ///
+  /// - Parameter module: The module.
+  private func run(_ module: StatusLineModuleID) {
+    actions?(module, folder: input.cwd.map { AbsolutePath(rawValue: $0) })
   }
 
   @ViewBuilder
@@ -212,7 +232,12 @@ struct StatusLineContent: View {
     } else if let module = piece.module {
       StatusLinePieceText(piece: piece)
         .contentShape(Rectangle())
-        .onTapGesture { actions?(module, folder: input.cwd.map { AbsolutePath(rawValue: $0) }) }
+        .onTapGesture { run(module) }
+        // The module is one button element with the frame of its text, and a
+        // press of VoiceOver runs the action of a tap (^y43c2hw).
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { run(module) }
         .statusLineHelp(piece.help)
         .accessibilityIdentifier(StatusLineView.identifier(for: module))
     } else {
@@ -235,7 +260,7 @@ extension View {
     }
   }
 
-  /// Sets the accessibility value of the line.
+  /// Sets the accessibility value of the line or of a module.
   ///
   /// - Parameter text: The value, or `nil` for no value.
   /// - Returns: The view with the value.
@@ -258,7 +283,12 @@ extension View {
 /// width of the part with `onGeometryChange(for:of:action:)`, and shows only
 /// the form that fits. The other forms are hidden, and VoiceOver does not
 /// read them.
-struct StatusLinePieceText: View {
+///
+/// The view has `package` access, so that the test support target measures
+/// the text of a part as the line draws it. A host of the kit does not see
+/// it.
+package struct StatusLinePieceText: View {
+  /// The part of the line.
   let piece: StatusLinePiece
 
   /// The measured width of each form, by its index in ``forms``.
@@ -273,7 +303,14 @@ struct StatusLinePieceText: View {
     [piece.spans] + piece.narrowerSpans
   }
 
-  var body: some View {
+  /// Makes the view of a part.
+  ///
+  /// - Parameter piece: The part of the line.
+  package init(piece: StatusLinePiece) {
+    self.piece = piece
+  }
+
+  package var body: some View {
     let forms = forms
     if forms.count == 1 {
       StatusLineText(spans: piece.spans)

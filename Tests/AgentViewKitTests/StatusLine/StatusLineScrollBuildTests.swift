@@ -35,11 +35,15 @@
     /// The distance of one scroll step, in points.
     static let stepDistance: CGFloat = 40
 
+    /// The name of the answer texts of the suite
+    /// (``AnswerText/answer(_:in:withCodeFence:)``).
+    static let textName = "statusLineScroll"
+
     /// A session with ``answerCount`` agent answers.
     ///
     /// - Returns: The session model.
     static func longSession() -> SessionModel {
-      .preview(transcript: (0..<answerCount).map { .agent("Answer \($0): the parser reads each line of the file.") })
+      .preview(transcript: (0..<answerCount).map { .agent(AnswerText.answer($0, in: textName)) })
     }
 
     /// The ``BodyEvaluationCounter`` key of the text of the `session` module

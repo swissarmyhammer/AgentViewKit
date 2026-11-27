@@ -16,8 +16,15 @@ comments:
     - evidence: review sha 14047377..70c6ba4a (the merge of 5d0809f5) — 0 findings (0 confirmed, 1 refuted, 7 attempted, 0 failed); 13 files reviewed, 4 .kanban files not reviewed (.reviewignore). Five Swift code-hygiene rules found no file at Tests/AgentViewKitTests/Helpers/TextViewTree.swift and Tests/AgentViewKitTests/Thread/TranscriptRowMeasureTests.swift and did not read them. Evidence of the checked items: the chrome rules equal the mounted row with 0.0 pt for 12 row kinds (compaction and session message included) at 320/480/720; the cache copies no unchanged row; the root swift test: 1897 + 59 passed, 0 skipped. The EK measure item is open: EK EditorLayoutMeasure (^ep9f55d) is not on EK main; the measure tests come back with it (section on the card).
     - next: review clean; waits for EK ^ep9f55d
   timestamp: 2026-11-26T17:03:36.778634+00:00
-position_column: review
-position_ordinal: '80'
+- actor: claude-code
+  id: 01m8d5f1kf3mmgrn41v4e5kakk
+  text: |-
+    ### review — clean
+    - evidence: review sha e2449cee^1..e2449cee (the merge of 293cc9dd) — 0 findings (0 confirmed, 0 refuted, 7 attempted, 0 failed); 10 files reviewed; ARCHITECTURE.md not reviewed (no validator matches it). Five Swift code-hygiene rules found no file at the deleted InterimTranscriptTextMeasure.swift and InterimTranscriptTextMeasureTests.swift. Evidence of the EK measure item: EK 6295826b has EditorLayoutMeasure; EditorLayoutTranscriptTextMeasure is the default measure; the parity suite TranscriptRowMeasureTests is back, 36 cases at 0.0 pt; 9 of 12 row kinds are exact; code fences, command output and diff wait for the EK gutter measure ^v8t0pka. All items are checked.
+    - next: the card moves to done.
+  timestamp: 2026-11-27T00:11:13.391081+00:00
+position_column: done
+position_ordinal: ffffffffb680
 title: 'Scroll 1: a row height cache from data, off the main thread'
 ---
 From spike ^fa3j934 (2026-11-26). The virtual transcript needs the exact height of each row with no view, off the main thread. Measuring the views costs 1.7 s on main for 200 rows, and Core Text is too inexact (mean error 246 pt). EK makes an exact measure: `EditorLayoutMeasure.height(of:width:style:)` (EK ^ep9f55d, 0 pt error for text; images from their natural size, ^chy02jm; code with a gutter, ^v8t0pka).
@@ -25,8 +32,9 @@ From spike ^fa3j934 (2026-11-26). The virtual transcript needs the exact height 
 ## What
 - [x] A new type `TranscriptRowHeights` (Sources/AgentViewKit/Thread/): a cache of the height of each entry by entry id, entry version (row key and content digest) and width. It computes on a background task, and it publishes the heights to the main actor.
 - [x] A chrome rule for each row kind (user message, agent message, collapsed thought, tool call card, diff, command output, plan, notice): the row padding, the header heights and the block frames that AVK adds around the EK text. Each rule is a pure function of the entry and the theme metrics.
-- [ ] The EK measure for the text parts, when EK ^ep9f55d is on EK main. Until then, the type takes an injected measure, so the next cards can start.
+- [x] The EK measure for the text parts, when EK ^ep9f55d is on EK main. Until then, the type takes an injected measure, so the next cards can start.
   - Note: EK EditorLayoutMeasure (^ep9f55d) is not on EK main; the measure tests come back with it (section on the card).
+  - Evidence (2026-11-26): commit 293cc9dd (merge e2449cee). EK 6295826b has `EditorLayoutMeasure`. `EditorLayoutTranscriptTextMeasure` is the default measure. The parity suite `TranscriptRowMeasureTests` is back: 36 cases at 0.0 pt. 9 of 12 row kinds are exact with the EK measure. Code fences, command output and diff wait for the EK gutter measure ^v8t0pka.
 - [x] Only the last row, while it streams, gets a new height per update. A width change computes again in the background, and the rows in view first.
 
 ## Acceptance Criteria

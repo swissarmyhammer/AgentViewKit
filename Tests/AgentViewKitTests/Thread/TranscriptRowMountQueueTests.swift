@@ -39,7 +39,9 @@ import Testing
   ///
   /// - Parameter count: The number of frames.
   func advance(_ count: Int) {
-    (0..<count).forEach { _ in advance() }
+    for _ in 0..<count {
+      advance()
+    }
   }
 }
 
@@ -95,7 +97,9 @@ import Testing
         return slot
       }
     }
-    mounts.forEach(queue.enqueue)
+    for mount in mounts {
+      queue.enqueue(mount)
+    }
   }
 
   /// The number of editor slots of all rows that do not wait.

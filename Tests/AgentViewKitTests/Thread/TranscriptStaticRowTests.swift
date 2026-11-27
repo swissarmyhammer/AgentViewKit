@@ -227,7 +227,7 @@ import Testing
   /// heights of the cache, so a row seen for the first time stays real
   /// while the rows move.
   @Test func anExactRowSeenForTheFirstTimeIsStaticWhileTheRowsMove() async {
-    let host = await StaticRowHost.cached(.agentProse, width: Self.widths[1])
+    let host = await StaticRowHost.makeCached(.agentProse, width: Self.widths[1])
 
     #expect(host.textViewCount == 0)
   }
@@ -236,7 +236,7 @@ import Testing
   /// of a row kind whose text parts are each exact.
   @Test(arguments: exactRows)
   func theCacheKnowsTheHeightOfAnExactRowSeenForTheFirstTime(row: TranscriptRowFixtures.Row) async {
-    let host = await StaticRowHost.cached(row, width: Self.widths[1])
+    let host = await StaticRowHost.makeCached(row, width: Self.widths[1])
 
     #expect(host.cacheKnowsHeight)
   }
@@ -245,7 +245,7 @@ import Testing
   /// height of a row with a code fence, which the text measure does not
   /// give exactly, so the row jumps when it changes form.
   @Test func aRowWithACodeFenceSeenForTheFirstTimeStaysReal() async {
-    let host = await StaticRowHost.cached(.agentFenced, width: Self.widths[1])
+    let host = await StaticRowHost.makeCached(.agentFenced, width: Self.widths[1])
 
     #expect(host.textViewCount > 0)
   }
@@ -254,7 +254,7 @@ import Testing
   /// height of a row kind with a text part that is not exact.
   @Test(arguments: inexactRows)
   func theCacheKnowsNoHeightOfAnInexactRowSeenForTheFirstTime(row: TranscriptRowFixtures.Row) async {
-    let host = await StaticRowHost.cached(row, width: Self.widths[1])
+    let host = await StaticRowHost.makeCached(row, width: Self.widths[1])
 
     #expect(!host.cacheKnowsHeight)
   }
@@ -266,7 +266,7 @@ import Testing
   func aCachedRowKeepsItsFrameHeightWhenItChangesFromStaticToReal(
     row: TranscriptRowFixtures.Row, width: CGFloat
   ) async throws {
-    let host = await StaticRowHost.cached(row, width: width)
+    let host = await StaticRowHost.makeCached(row, width: width)
     try #require(host.cacheKnowsHeight)
     let still = host.rowHeight
 
