@@ -369,12 +369,13 @@ nonisolated final class RecordingTextMeasure: TranscriptTextMeasure {
 
   @Test func aThreadWithNoStoreOfTheExpandedBlocksHasNoCache() {
     #expect(
-      TranscriptStaticRowHeights.makeCache(theme: SystemTheme(), expandedBlocks: nil, hasDefaultLook: true) == nil)
+      TranscriptStaticRowHeights.makeCache(
+        theme: SystemTheme(), expandedBlocks: nil, hasDefaultLook: true, imageFolder: nil) == nil)
   }
 
   @Test func aThreadWhoseRowsDoNotHaveTheDefaultLookHasNoCache() {
     let cache = TranscriptStaticRowHeights.makeCache(
-      theme: SystemTheme(), expandedBlocks: ExpandedBlocksStore(), hasDefaultLook: false)
+      theme: SystemTheme(), expandedBlocks: ExpandedBlocksStore(), hasDefaultLook: false, imageFolder: nil)
 
     #expect(cache == nil)
   }

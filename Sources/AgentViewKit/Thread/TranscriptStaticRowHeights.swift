@@ -147,20 +147,22 @@ import SwiftUI
   ///   - expandedBlocks: The store of the expanded blocks of the rows, or
   ///     `nil`.
   ///   - hasDefaultLook: Whether the rows have their default look.
+  ///   - imageFolder: The folder that the images of the Markdown of the
+  ///     rows load from (``RenderedMarkdownView/imageFolder(of:)``), or `nil`.
   /// - Returns: The cache, with the EditorKit text measure
   ///   (``EditorLayoutTranscriptTextMeasure``) and the metrics of the theme.
   static func makeCache(
-    theme: any Theme, expandedBlocks: ExpandedBlocksStore?, hasDefaultLook: Bool
+    theme: any Theme, expandedBlocks: ExpandedBlocksStore?, hasDefaultLook: Bool, imageFolder: URL?
   ) -> TranscriptRowHeights? {
     guard let expandedBlocks, hasDefaultLook else { return nil }
     return TranscriptRowHeights(
-      measure: EditorLayoutTranscriptTextMeasure(theme: theme), metrics: TranscriptRowMetrics.probe(theme: theme),
-      expandedBlocks: expandedBlocks)
+      measure: EditorLayoutTranscriptTextMeasure(theme: theme, imageFolder: imageFolder),
+      metrics: TranscriptRowMetrics.probe(theme: theme), expandedBlocks: expandedBlocks)
   }
 }
 
 /// The values of the environment of the rows that set the cache of a thread
-/// (``TranscriptStaticRowHeights/makeCache(theme:expandedBlocks:hasDefaultLook:)``).
+/// (``TranscriptStaticRowHeights/makeCache(theme:expandedBlocks:hasDefaultLook:imageFolder:)``).
 /// A change of one of them makes a new cache.
 nonisolated struct TranscriptRowCacheSetup: Equatable {
   /// The font faces of the theme: the UI, the display and the code face.
@@ -175,6 +177,10 @@ nonisolated struct TranscriptRowCacheSetup: Equatable {
   /// Whether the rows have their default look.
   let hasDefaultLook: Bool
 
+  /// The folder that the images of the Markdown of the rows load from, or
+  /// `nil`.
+  let imageFolder: URL?
+
   /// Tells if two setups make the same cache: each value of the one setup
   /// is the value of the other setup.
   ///
@@ -182,10 +188,10 @@ nonisolated struct TranscriptRowCacheSetup: Equatable {
   ///   - lhs: A setup.
   ///   - rhs: A setup.
   /// - Returns: `true` when the faces, the store of the expanded blocks, the
-  ///   session and the look are the same.
+  ///   session, the look and the image folder are the same.
   static func == (lhs: TranscriptRowCacheSetup, rhs: TranscriptRowCacheSetup) -> Bool {
     lhs.faces == rhs.faces && lhs.expandedBlocks == rhs.expandedBlocks && lhs.session == rhs.session
-      && lhs.hasDefaultLook == rhs.hasDefaultLook
+      && lhs.hasDefaultLook == rhs.hasDefaultLook && lhs.imageFolder == rhs.imageFolder
   }
 }
 
@@ -212,7 +218,8 @@ struct TranscriptRowHeightsFeed: ViewModifier {
       }
       .onChange(of: setup, initial: true) {
         let cache = TranscriptStaticRowHeights.makeCache(
-          theme: theme, expandedBlocks: expandedBlocks, hasDefaultLook: hasDefaultLook)
+          theme: theme, expandedBlocks: expandedBlocks, hasDefaultLook: hasDefaultLook,
+          imageFolder: setup.imageFolder)
         heights.attach(cache: cache, session: session)
       }
   }
@@ -221,7 +228,8 @@ struct TranscriptRowHeightsFeed: ViewModifier {
   private var setup: TranscriptRowCacheSetup {
     TranscriptRowCacheSetup(
       faces: [theme.uiFace, theme.displayFace, theme.codeFace], expandedBlocks: expandedBlocks.map(ObjectIdentifier.init),
-      session: ObjectIdentifier(session), hasDefaultLook: hasDefaultLook)
+      session: ObjectIdentifier(session), hasDefaultLook: hasDefaultLook,
+      imageFolder: RenderedMarkdownView.imageFolder(of: session))
   }
 }
 
