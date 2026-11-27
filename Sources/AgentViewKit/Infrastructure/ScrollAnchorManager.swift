@@ -53,11 +53,14 @@ public final class ScrollAnchorManager {
   /// The identifiers of the items in view, in the order that the list gave.
   ///
   /// After ``noteJump(to:)``, the value is the item of the jump, until the
-  /// list reports a set of rows with that item. After a long jump, a lazy
-  /// list can report the rows of a layout pass before it placed the item,
+  /// list reports a set of rows with that item, the user scrolls the list
+  /// (``noteScrollByUser()``), or the manager sends a scroll to the bottom.
+  /// After a long jump, a lazy list can report the rows of one or more
+  /// layout passes before it placed the item, also the rows at the bottom,
   /// and then not report again until the next scroll. The manager does not
-  /// keep the rows of that first report. Thus ``saveAnchor()`` and the jump
-  /// commands start from the item of the jump.
+  /// keep the rows of these reports. Thus ``saveAnchor()`` and the jump
+  /// commands start from the item of the jump, and a wait for the item in
+  /// view ends at the jump.
   public private(set) var visibleIDs: [String] = []
 
   /// The number of items appended since the list became unpinned.
@@ -76,8 +79,9 @@ public final class ScrollAnchorManager {
   /// the manager already knows the last item of the transcript.
   @ObservationIgnored private(set) var lastItemID: String?
 
-  /// The item of the last jump, until the next report of new rows, or `nil`
-  /// when the manager does not wait for the rows of a jump.
+  /// The item of the last jump, until a report of rows with the item, a
+  /// scroll of the user or a scroll to the bottom that the manager sends,
+  /// or `nil` when the manager does not wait for the rows of a jump.
   @ObservationIgnored private var jumpItemID: String?
 
   /// `true` after ``pinToBottom()`` pinned an unpinned list, until the list
@@ -137,14 +141,17 @@ public final class ScrollAnchorManager {
   /// ``tolerance``. A change to pinned sets ``newItemsSinceUnpinned`` to zero
   /// and clears ``anchorID``.
   ///
-  /// After ``noteJump(to:)``, the first report with identifiers that are not
-  /// ``visibleIDs`` replaces ``visibleIDs`` only when it includes the item of
-  /// the jump, or when it pins the list. A report without the item comes
-  /// from a layout pass before the list placed the item. The report after it
-  /// replaces ``visibleIDs`` again. A report equal to ``visibleIDs``, such as
-  /// the report of a scroll geometry change, changes only the pin state. The
-  /// manager does not write ``visibleIDs`` for such a report (task
-  /// ^q1fy0n2, #scroll-perf).
+  /// After ``noteJump(to:)``, a report replaces ``visibleIDs`` only when it
+  /// includes the item of the jump. A report without the item comes from a
+  /// layout pass before the list placed the item, also when it is at the
+  /// bottom. After such reports, the list can send no report of the item
+  /// (CI run 45924309592). The wait for the item ends at the first report
+  /// with the item, at ``noteScrollByUser()``, at the next jump, and when
+  /// the manager sends a scroll to the bottom. Each report still sets the
+  /// pin state. A report equal to ``visibleIDs``, such as the report of a
+  /// scroll geometry change, changes only the pin state. The manager does
+  /// not write ``visibleIDs`` for such a report (task ^q1fy0n2,
+  /// #scroll-perf).
   ///
   /// After ``pinToBottom()`` pins an unpinned list, a report that is not at
   /// the bottom does not unpin the list, until the first report at the
@@ -176,10 +183,8 @@ public final class ScrollAnchorManager {
     guard !ids.isEmpty || lastItemID == nil else { return }
     let isAtBottom = isAtBottom(visibleIDs: ids, distanceFromBottom: distanceFromBottom)
     let isNewReport = ids != visibleIDs
-    if isNewReport, acceptsReport(of: ids) || isAtBottom {
+    if isNewReport, acceptsReport(of: ids) {
       visibleIDs = ids
-    }
-    if isNewReport {
       jumpItemID = nil
     }
     if isAtBottom {
@@ -279,8 +284,13 @@ public final class ScrollAnchorManager {
   /// is not at the bottom unpins the list. The list calls this function
   /// from its scroll phase, and only for a phase that the user starts. A
   /// scroll of the kit does not call it.
+  ///
+  /// The call also ends the wait for the rows of a jump (see
+  /// ``noteVisible(ids:distanceFromBottom:)``): the user moves the list away
+  /// from the item, so the next report replaces ``visibleIDs``.
   public func noteScrollByUser() {
     followedEndIDs = []
+    jumpItemID = nil
   }
 
   // MARK: - Anchor
@@ -376,17 +386,17 @@ public final class ScrollAnchorManager {
     return followedEndIDs.contains(last)
   }
 
-  /// Tells if a report of the rows in view replaces ``visibleIDs``.
+  /// Tells if a new report of the rows in view replaces ``visibleIDs``.
   ///
   /// The function does not change state.
   /// ``noteVisible(ids:distanceFromBottom:)`` ends the wait for the rows of a
-  /// jump at the first new report.
+  /// jump at the first report that it accepts.
   ///
   /// - Parameter ids: The identifiers of the items in view.
-  /// - Returns: `false` when `ids` is the first new report after a jump and
-  ///   does not include the item of the jump, else `true`.
+  /// - Returns: `false` while the manager waits for the rows of a jump and
+  ///   `ids` does not include the item of the jump, else `true`.
   private func acceptsReport(of ids: [String]) -> Bool {
-    guard ids != visibleIDs, let jumpItemID else { return true }
+    guard let jumpItemID else { return true }
     return ids.contains(jumpItemID)
   }
 
@@ -406,9 +416,12 @@ public final class ScrollAnchorManager {
     }
   }
 
-  /// Clears the requested scroll and sends it.
+  /// Clears the requested scroll and sends it. The scroll moves the list
+  /// away from the item of a jump, so it ends the wait for the rows of the
+  /// jump.
   private func sendPendingScroll() {
     pendingScroll = nil
+    jumpItemID = nil
     onScroll(.bottom)
   }
 }
