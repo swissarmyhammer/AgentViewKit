@@ -98,7 +98,10 @@ struct OutputExitLabel: View {
 /// ``CommandOutputView`` and ``TerminalView`` show their output in this
 /// area. A right click on the output gives the menu of the row, not the
 /// text menu of AppKit (D108, D193 (f)). In the static form of a thread
-/// row, the output shows in SwiftUI `Text`, with its colors.
+/// row, an output in the plain text color shows the picture that the
+/// height cache drew of it (``picturePart``). An output with other colors,
+/// such as ANSI colors, shows in SwiftUI `Text`, with its colors: the
+/// EditorKit picture of code draws no color run.
 struct OutputTextArea: View {
   /// The model of the editor.
   let model: EditorModel
@@ -109,8 +112,26 @@ struct OutputTextArea: View {
   /// The search mark of the row around the view, or `nil`.
   @Environment(\.transcriptSearchMark) private var searchMark
 
+  @Environment(\.editorTheme) private var editorTheme
+
+  /// The text part of the picture of the output: the rows that show, when
+  /// the picture draws them in the colors of the editor, else `nil`.
+  ///
+  /// The parser gives each run with no SGR color the default foreground of
+  /// the terminal palette (``ANSIText``). The picture draws the text in the
+  /// editor foreground of the theme. So the output has a picture when each
+  /// run has the default foreground and no background, and that foreground
+  /// is the editor foreground.
+  var picturePart: TranscriptTextPart? {
+    let plain = editorTheme.terminalPalette[.foreground]
+    guard plain == editorTheme.editorForeground,
+      output.colorRuns.allSatisfy({ $0.foreground == plain && $0.background == nil })
+    else { return nil }
+    return TranscriptTextPart(text: output.rows.text, style: .output)
+  }
+
   var body: some View {
-    StaticEditorSlot {
+    StaticEditorSlot(picturePart: picturePart) {
       EditorView(model: model)
         .editorTextMenu(.ancestor)
         .sizedToContent()

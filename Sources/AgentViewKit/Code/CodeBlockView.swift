@@ -80,9 +80,10 @@ public struct CodeBlockView: View {
     ContentTileStack {
       header
     } body: {
-      // In the static form of a thread row, the code shows in SwiftUI
-      // `Text`, with no syntax colors (card ^9ync5h3).
-      StaticEditorSlot {
+      // In the static form of a thread row, the code shows the picture
+      // that the height cache drew of it, or else SwiftUI `Text` with no
+      // syntax colors (card ^9ync5h3).
+      StaticEditorSlot(picturePart: TranscriptTextPart(text: code, style: .code(language: language))) {
         editor(model: model)
       } still: {
         StaticCodeText(code, showsLineNumbers: true)

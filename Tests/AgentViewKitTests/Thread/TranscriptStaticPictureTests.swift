@@ -42,7 +42,9 @@ import Testing
   /// The limits come from a first run of the pixel texts, light and dark,
   /// at a scale of 2 (2026-11-27): the largest mean was 0.62 and the
   /// largest part was 0.0055, at a row shift of one pixel. Each limit is a
-  /// little more than that value. The SwiftUI `Text` form of the plain
+  /// little more than that value. With EditorKit 21a8a01d, the baselines of
+  /// the picture are on the pixel rows of the mounted editor, and the
+  /// compare with no row shift stays in the same limits. The SwiftUI `Text` form of the plain
   /// text differs from the real row in 0.15 of its pixels.
   static let meanLimit = 0.75
 
@@ -90,7 +92,7 @@ import Testing
     let part = TranscriptTextPart(text: Self.plainText, style: .markdown)
     let picture = try #require(measure.picture(of: part, width: Self.width, appearance: Self.lightAppearance))
 
-    let size = NSHostingView(rootView: StaticPictureView(picture, markdown: part.text)).fittingSize
+    let size = NSHostingView(rootView: StaticPictureView(picture, text: part.text)).fittingSize
 
     #expect(size == picture.size, "\(size) \(picture.size)")
   }
@@ -115,10 +117,9 @@ import Testing
   /// in other fonts, colors or places than the real EditorKit editor of
   /// the row, in light or in dark.
   ///
-  /// The compare allows the vertical shift of one pixel that the two forms
-  /// of a row may have (``TranscriptStaticRowTests/pixelTolerance``). At a
-  /// scale of 2, EditorKit puts the baselines of the picture one pixel
-  /// higher than its mounted editor does.
+  /// The compare reads each pixel at the same place in the two forms, with
+  /// no vertical shift: EditorKit puts each baseline of the picture on the
+  /// pixel row where TextKit 2 puts it in the mounted editor.
   @Test(arguments: pixelTexts, [ColorScheme.light, .dark])
   func thePictureOfARowIsNearTheRealRow(text: String, colorScheme: ColorScheme) async throws {
     let host = await StaticRowHost.makeCached(.agent(text), width: Self.width, colorScheme: colorScheme)
@@ -130,8 +131,7 @@ import Testing
     let real = try host.bitmap()
 
     let difference = try RowPixelDifference.between(
-      still, and: real, over: RowPixelDifference.background(of: colorScheme),
-      rowTolerance: TranscriptStaticRowTests.pixelTolerance)
+      still, and: real, over: RowPixelDifference.background(of: colorScheme))
 
     #expect(difference.isWithin(meanLimit: Self.meanLimit, largePartLimit: Self.largePartLimit), "\(difference)")
   }
@@ -160,7 +160,7 @@ import Testing
 
     await cache.computeHeights(of: [rowKey])
 
-    #expect(cache.picture(of: text, inRow: rowKey, appearance: Self.lightAppearance) != nil)
+    #expect(cache.picture(of: Self.markdown(text), inRow: rowKey, appearance: Self.lightAppearance) != nil)
   }
 
   /// A production change that fails this test: a new color scheme keeps
@@ -171,11 +171,11 @@ import Testing
     let (cache, rowKey) = try Self.cache(measure: EditorLayoutTranscriptTextMeasure(), text: text)
     cache.noteAppearance(Self.lightAppearance)
     await cache.computeHeights(of: [rowKey])
-    let light = try #require(cache.picture(of: text, inRow: rowKey, appearance: Self.lightAppearance)?.image)
+    let light = try #require(cache.picture(of: Self.markdown(text), inRow: rowKey, appearance: Self.lightAppearance)?.image)
 
     cache.noteAppearance(Self.darkAppearance)
     await cache.computeHeights(of: [rowKey])
-    let dark = try #require(cache.picture(of: text, inRow: rowKey, appearance: Self.darkAppearance)?.image)
+    let dark = try #require(cache.picture(of: Self.markdown(text), inRow: rowKey, appearance: Self.darkAppearance)?.image)
 
     #expect(dark.dataProvider?.data as Data? != light.dataProvider?.data as Data?)
   }
@@ -188,7 +188,7 @@ import Testing
     cache.noteAppearance(Self.lightAppearance)
     await cache.computeHeights(of: [rowKey])
 
-    #expect(cache.picture(of: text, inRow: rowKey, appearance: Self.darkAppearance) == nil)
+    #expect(cache.picture(of: Self.markdown(text), inRow: rowKey, appearance: Self.darkAppearance) == nil)
   }
 
   // MARK: - What the picture draws
@@ -216,6 +216,14 @@ import Testing
   @Test(arguments: pixelTexts)
   func thePictureIsDrawnForAPartThatEditorKitDraws(text: String) {
     #expect(StaticMarkdownPicture.draws(text))
+  }
+
+  /// The Markdown text part of `text`, as the slot of an answer names it.
+  ///
+  /// - Parameter text: The Markdown text.
+  /// - Returns: The text part.
+  static func markdown(_ text: String) -> TranscriptTextPart {
+    TranscriptTextPart(text: text, style: .markdown)
   }
 
   /// A height cache of the one agent answer `text`, with the probe metrics,

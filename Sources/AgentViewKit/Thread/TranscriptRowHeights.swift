@@ -37,8 +37,8 @@ import os
 ///   row. After a width change, it computes each row again in the same
 ///   order. A batch of an older width is the last one of that width.
 /// - With an appearance (``noteAppearance(_:)``), the worker also draws a
-///   picture of each Markdown text part that EditorKit draws
-///   (``TranscriptTextMeasure/picture(of:width:appearance:)``), at the
+///   picture of each Markdown, code and output text part that EditorKit
+///   draws (``TranscriptTextMeasure/picture(of:width:appearance:)``), at the
 ///   width of its measure, in the same batch as the height of the row, and
 ///   thus in the same order. The cache publishes the pictures of a row
 ///   with its height. A static row then shows the pictures in place of the
@@ -88,10 +88,10 @@ import os
   @ObservationIgnored private var appearanceGeneration = 0
 
   /// The published pictures of each row at ``width`` in ``appearance``, by
-  /// row key, and in a row by Markdown text. They are not observable: the
+  /// row key, and in a row by text part. They are not observable: the
   /// cache publishes them with the height of the row, so a row that shows
   /// its static form from the cache height finds its pictures.
-  @ObservationIgnored private var pictures = TranscriptPictureCache<String, [String: EditorStaticRendering]>(
+  @ObservationIgnored private var pictures = TranscriptPictureCache<String, [TranscriptTextPart: EditorStaticRendering]>(
     byteLimit: TranscriptRowHeightWorker.defaultPictureByteLimit)
 
   /// The rows that the cache must still compute, in the order of their
@@ -229,21 +229,21 @@ import os
     compute(Array(contents.keys))
   }
 
-  /// The published picture of a Markdown text of a row, at the width of the
+  /// The published picture of a text part of a row, at the width of the
   /// last update.
   ///
   /// - Parameters:
-  ///   - markdown: The Markdown text of a text part of the row.
+  ///   - part: A text part of the row.
   ///   - rowKey: The row key of the entry.
   ///   - appearance: The appearance of the view that shows the picture.
   /// - Returns: The picture, or `nil` when the worker did not draw it yet,
   ///   when EditorKit does not draw the text, or when `appearance` is not
   ///   the appearance of the pictures.
   func picture(
-    of markdown: String, inRow rowKey: String, appearance: TranscriptTextAppearance
+    of part: TranscriptTextPart, inRow rowKey: String, appearance: TranscriptTextAppearance
   ) -> EditorStaticRendering? {
     guard appearance == self.appearance else { return nil }
-    return pictures[rowKey]?[markdown]
+    return pictures[rowKey]?[part]
   }
 
   /// The count of text parts that the worker prepared for a measure: the
@@ -383,9 +383,9 @@ import os
   /// with no picture.
   ///
   /// - Parameters:
-  ///   - rowPictures: The pictures of the row, by Markdown text.
+  ///   - rowPictures: The pictures of the row, by text part.
   ///   - rowKey: The row key.
-  private func publishPictures(_ rowPictures: [String: EditorStaticRendering], of rowKey: String) {
+  private func publishPictures(_ rowPictures: [TranscriptTextPart: EditorStaticRendering], of rowKey: String) {
     guard !rowPictures.isEmpty else {
       pictures.remove(rowKey)
       return
@@ -473,9 +473,9 @@ actor TranscriptRowHeightWorker {
     /// Whether each text part of the row is exact with the text measure.
     let isExact: Bool
 
-    /// The pictures of the Markdown text parts of the row, by text. A part
-    /// that EditorKit does not draw has no picture.
-    let pictures: [String: EditorStaticRendering]
+    /// The pictures of the text parts of the row, by part. A part that
+    /// EditorKit does not draw has no picture.
+    let pictures: [TranscriptTextPart: EditorStaticRendering]
   }
 
   /// A computed height of a row at one width.
@@ -601,8 +601,8 @@ actor TranscriptRowHeightWorker {
     self.preparedRowLimit = preparedRowLimit
   }
 
-  /// The heights of rows at a width, and the pictures of their Markdown
-  /// text parts in an appearance. A version that the worker keeps is not
+  /// The heights of rows at a width, and the pictures of their text parts
+  /// in an appearance. A version that the worker keeps is not
   /// computed again, and a picture that the worker keeps is not drawn
   /// again.
   ///
@@ -622,19 +622,19 @@ actor TranscriptRowHeightWorker {
     }
   }
 
-  /// The pictures of the parts of a row, by text: the kept pictures, and
+  /// The pictures of the parts of a row, by part: the kept pictures, and
   /// the pictures that the measure draws. A part with no picture is not in
   /// the result.
   ///
   /// - Parameters:
   ///   - parts: The measured text parts of the row.
   ///   - appearance: The appearance of the pictures.
-  /// - Returns: The pictures, by the text of their parts.
+  /// - Returns: The pictures, by their parts.
   private func pictures(
     of parts: [MeasuredPart], appearance: TranscriptTextAppearance
-  ) -> [String: EditorStaticRendering] {
+  ) -> [TranscriptTextPart: EditorStaticRendering] {
     assert(!Thread.isMainThread, "the worker draws a picture on the main thread")
-    let drawn = parts.compactMap { part in picture(of: part, appearance: appearance).map { (part.part.text, $0) } }
+    let drawn = parts.compactMap { part in picture(of: part, appearance: appearance).map { (part.part, $0) } }
     return Dictionary(drawn) { _, last in last }
   }
 

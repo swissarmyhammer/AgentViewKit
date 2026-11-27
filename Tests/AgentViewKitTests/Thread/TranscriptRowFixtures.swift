@@ -109,28 +109,53 @@ enum TranscriptRowFixtures {
   /// two changes is short, so the diff view folds no context.
   nonisolated static let changedRows: Set<Int> = [4, 8]
 
-  /// One context or changed row of the JSON object of the long diff.
+  /// One context or changed row of the JSON object of a long diff.
   ///
-  /// - Parameter row: The number of the row.
+  /// - Parameters:
+  ///   - row: The number of the row.
+  ///   - changed: The rows whose value changes.
   /// - Returns: The lines of the patch for the row.
-  nonisolated static func longPatchRow(_ row: Int) -> String {
-    guard changedRows.contains(row) else { return "   \"row\(row)\": \(row),\n" }
+  nonisolated static func longPatchRow(_ row: Int, changed: Set<Int>) -> String {
+    guard changed.contains(row) else { return "   \"row\(row)\": \(row),\n" }
     return "-  \"row\(row)\": \(row),\n+  \"row\(row)\": \(row * changedValueFactor),\n"
   }
+
+  /// The header of the patch of the file of the long diffs.
+  static let longPatchHeader =
+    "diff --git a/\(longDiffPath) b/\(longDiffPath)\n--- a/\(longDiffPath)\n+++ b/\(longDiffPath)\n"
 
   /// The git patch of the long diff: thirteen lines in each file, so the
   /// line number gutter has two digits, three changes, and one line that
   /// wraps.
   static let longPatch =
-    "diff --git a/\(longDiffPath) b/\(longDiffPath)\n--- a/\(longDiffPath)\n+++ b/\(longDiffPath)\n"
+    longPatchHeader
     + "@@ -1,13 +1,13 @@\n {\n"
-    + longPatchRows.map(longPatchRow).joined()
+    + longPatchRows.map { longPatchRow($0, changed: changedRows) }.joined()
     + "-  \"detail\": \"old\",\n+  \"detail\": \"" + paragraph + "\",\n"
     + "   \"last\": 12\n }\n"
 
   /// A completed edit call with a diff of thirteen lines and a line that
   /// wraps.
   static let diffLong = edit(path: longDiffPath, patch: longPatch)
+
+  /// The numbers of the value rows of the JSON object of the folded diff.
+  static let foldedPatchRows = 2...20
+
+  /// The rows of the folded diff whose value changes: the first and the
+  /// last value row. The context between them is longer than two runs of
+  /// the context of the diff view, so the view folds it.
+  nonisolated static let foldedChangedRows: Set<Int> = [2, 20]
+
+  /// The patch of the folded diff: twenty-two lines in each file, with a
+  /// long run of context between its two changes.
+  static let foldedPatch =
+    longPatchHeader
+    + "@@ -1,22 +1,22 @@\n {\n"
+    + foldedPatchRows.map { longPatchRow($0, changed: foldedChangedRows) }.joined()
+    + "   \"last\": 21\n }\n"
+
+  /// A completed edit call with a diff whose view folds a run of context.
+  static let diffFolded = edit(path: longDiffPath, patch: foldedPatch)
 
   /// A completed edit call with one diff of a file.
   ///
@@ -240,6 +265,8 @@ enum TranscriptRowFixtures {
     case diff
     /// ``TranscriptRowFixtures/diffLong``.
     case diffLong
+    /// ``TranscriptRowFixtures/diffFolded``.
+    case diffFolded
     /// ``TranscriptRowFixtures/commandOutput``.
     case commandOutput
     /// ``TranscriptRowFixtures/commandOutputLong``.
@@ -271,6 +298,7 @@ enum TranscriptRowFixtures {
       case .toolCall: TranscriptRowFixtures.toolCall
       case .diff: TranscriptRowFixtures.diff
       case .diffLong: TranscriptRowFixtures.diffLong
+      case .diffFolded: TranscriptRowFixtures.diffFolded
       case .commandOutput: TranscriptRowFixtures.commandOutput
       case .commandOutputLong: TranscriptRowFixtures.commandOutputLong
       case .terminal: TranscriptRowFixtures.terminal
@@ -285,8 +313,8 @@ enum TranscriptRowFixtures {
     /// row kinds whose heights need the EditorKit measure of code
     /// (`EditorLayoutMeasure.measure(code:width:style:grammar:gutter:)`).
     nonisolated static let codeRows: [Row] = [
-      .agentFenced, .agentFencedLong, .agentFencedPlain, .agentFencedJSON, .diff, .diffLong, .commandOutput,
-      .commandOutputLong,
+      .agentFenced, .agentFencedLong, .agentFencedPlain, .agentFencedJSON, .diff, .diffLong, .diffFolded,
+      .commandOutput, .commandOutputLong,
     ]
 
     /// The row kinds with Markdown whose layout EditorKit measures off the
@@ -305,7 +333,7 @@ enum TranscriptRowFixtures {
 
     /// Whether the blocks of the row are expanded.
     var isExpanded: Bool {
-      [.diff, .diffLong, .commandOutput, .commandOutputLong].contains(self)
+      [.diff, .diffLong, .diffFolded, .commandOutput, .commandOutputLong].contains(self)
     }
   }
 }

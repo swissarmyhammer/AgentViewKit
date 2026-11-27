@@ -109,7 +109,9 @@ struct RenderedMarkdownView: View {
     // In the static form of a thread row, the text shows in SwiftUI `Text`
     // (card ^9ync5h3).
     let hasMath = mathMemo.value(for: markdown, counterKey: Self.mathCounterKey(for: markdown), parse: Self.hasMath)
-    StaticEditorSlot(keepsEditor: hasMath, pictureText: citations.isEmpty ? markdown : nil) {
+    StaticEditorSlot(
+      keepsEditor: hasMath, picturePart: citations.isEmpty ? TranscriptTextPart(text: markdown, style: .markdown) : nil
+    ) {
       editor(model: model, selection: selection)
     } still: {
       StaticMarkdownText(markdown: markdown)

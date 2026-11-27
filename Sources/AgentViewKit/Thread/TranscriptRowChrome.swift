@@ -174,7 +174,10 @@ nonisolated private struct TranscriptRowRule {
   /// - Returns: The height.
   func codeBlock(_ code: String, language: String?, width: CGFloat) -> CGFloat? {
     let header = line(metrics.height(.blockHeaderTitle), metrics.height(.copyButton))
-    return tile(header, text(code, .code(language: language), width: tileContent(width)))
+    // The part names the language as the view of the block keeps it, so
+    // the slot of the view finds the picture of the part.
+    let style = TranscriptTextPart.Style.code(language: CodeBlockView.normalized(language))
+    return tile(header, text(code, style, width: tileContent(width)))
   }
 
   /// The height of a `StatusTitleLayout`: the symbol and the headline title
