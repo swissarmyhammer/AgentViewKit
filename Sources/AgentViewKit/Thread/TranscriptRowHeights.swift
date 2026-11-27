@@ -151,27 +151,64 @@ import Observation
     compute([entry.rowKey], inView: [])
   }
 
-  /// Computes the heights of rows on the worker, and publishes them: the
-  /// rows in view first, then the other rows.
+  /// Computes the heights of rows on the worker in a new task, and
+  /// publishes them: the rows in view first, then the other rows.
   ///
   /// - Parameters:
   ///   - keys: The row keys.
   ///   - inView: The row keys of the rows in view.
   private func compute(_ keys: [String], inView: Set<String>) {
+    let batches = batches(of: keys, inView: inView)
+    guard !batches.isEmpty else { return }
+    let width = width
+    let generation = generation
+    Task { await self.computeHeights(in: batches, width: width, generation: generation) }
+  }
+
+  /// Computes the heights of rows on the worker at the width of the last
+  /// update, and returns when the cache holds them.
+  ///
+  /// The call awaits the worker itself, and publishes the results in the
+  /// main-actor step that resumes it: the same step in which the call
+  /// returns. Thus the call needs one turn of the main actor after the
+  /// worker, and no main-actor job that is ready at that turn runs between
+  /// the publish and the return. A row that the cache did not copy yet has
+  /// no height.
+  ///
+  /// - Parameter rowKeys: The row keys.
+  func computeHeights(of rowKeys: [String]) async {
+    await computeHeights(in: batches(of: rowKeys, inView: []), width: width, generation: generation)
+  }
+
+  /// The jobs of the copied rows of `keys`, in batches: the rows in view,
+  /// then the other rows. A batch with no job is not in the list.
+  ///
+  /// - Parameters:
+  ///   - keys: The row keys.
+  ///   - inView: The row keys of the rows in view.
+  /// - Returns: The batches, in the order of their computation.
+  private func batches(of keys: [String], inView: Set<String>) -> [[TranscriptRowHeightWorker.Job]] {
     let jobs = keys.compactMap { key in
       contents[key].map { TranscriptRowHeightWorker.Job(content: $0, revision: revisions[key, default: .zero]) }
     }
-    guard !jobs.isEmpty else { return }
     let first = jobs.filter { inView.contains($0.content.rowKey) }
     let rest = jobs.filter { !inView.contains($0.content.rowKey) }
-    let width = width
-    let generation = generation
-    let worker = worker
-    Task {
-      for batch in [first, rest] where !batch.isEmpty {
-        let results = await worker.heights(of: batch, width: width)
-        publish(results, generation: generation)
-      }
+    return [first, rest].filter { !$0.isEmpty }
+  }
+
+  /// Computes each batch on the worker, off the main thread, and publishes
+  /// its results on the main actor before the next batch.
+  ///
+  /// - Parameters:
+  ///   - batches: The batches of jobs, in the order of their computation.
+  ///   - width: The width of the rows.
+  ///   - generation: The width generation of the jobs.
+  private func computeHeights(
+    in batches: [[TranscriptRowHeightWorker.Job]], width: CGFloat, generation: Int
+  ) async {
+    for batch in batches {
+      let results = await worker.heights(of: batch, width: width)
+      publish(results, generation: generation)
     }
   }
 

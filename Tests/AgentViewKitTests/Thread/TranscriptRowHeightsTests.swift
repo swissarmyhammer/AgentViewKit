@@ -64,6 +64,52 @@ nonisolated final class RecordingTextMeasure: TranscriptTextMeasure {
   }
 }
 
+/// A main-actor job of another test: it runs, counts its turn, and adds
+/// itself to the end of the main queue again, until it stops.
+///
+/// Swift Testing runs many tests on the main actor at the same time. While
+/// such a job runs, the main queue holds one of its turns at each moment,
+/// so a job that a test adds to the main queue runs only after one more
+/// turn of the other job. The job counts the turns in which `condition`
+/// holds, so a test reads how many turns of another test came after an
+/// event.
+@MainActor final class OtherMainActorJob {
+  /// The most turns of the job. The bound ends the job when a test does not
+  /// stop it.
+  static let turnLimit = 1_000_000
+
+  /// The count of the turns in which the condition held.
+  private(set) var turnsWhileConditionHolds = 0
+
+  /// The task of the job.
+  private var task: Task<Void, Never>?
+
+  /// Starts the job.
+  ///
+  /// - Parameter condition: The condition whose turns the job counts.
+  init(counting condition: @escaping @MainActor () -> Bool) {
+    task = Task { @MainActor [weak self] in
+      for _ in 0..<Self.turnLimit where !Task.isCancelled {
+        self?.noteTurn(condition())
+        await Task.yield()
+      }
+    }
+  }
+
+  /// Counts one turn.
+  ///
+  /// - Parameter conditionHolds: Whether the condition holds in the turn.
+  private func noteTurn(_ conditionHolds: Bool) {
+    guard conditionHolds else { return }
+    turnsWhileConditionHolds += 1
+  }
+
+  /// Stops the job. A later turn does not run.
+  func stop() {
+    task?.cancel()
+  }
+}
+
 /// The cache of the row heights computes off the main thread, computes only
 /// the rows that change, and computes the rows in view first after a width
 /// change (card ^9h7bm9j).
@@ -266,6 +312,28 @@ nonisolated final class RecordingTextMeasure: TranscriptTextMeasure {
 
       #expect(cache.measure.measuredTexts.first?.contains("answer") == true)
       #expect(cache.measure.measuredTexts.contains { $0.contains("question") })
+    }
+  }
+
+  // MARK: - The wait for the heights
+
+  /// A production change that fails this test: the call publishes the
+  /// heights in a task of its own, or waits for an observation of the
+  /// published heights, so the call resumes in a new main-actor job, and a
+  /// job of another test runs between the store and the return.
+  @Test func computingTheHeightsReturnsWithNoTurnOfAnotherMainActorJobAfterTheStore() async throws {
+    try await Self.withSession { session in
+      let entries = session.model.transcript
+      let key = try #require(entries.first?.rowKey)
+      let heights = TranscriptRowHeights(measure: RecordingTextMeasure(), metrics: TranscriptRowMetrics.probe())
+      let other = OtherMainActorJob { heights.height(of: key) != nil }
+      defer { other.stop() }
+
+      heights.update(entries: entries, width: Self.width, rowsInView: entries.indices)
+      await heights.computeHeights(of: [key])
+      try #require(heights.height(of: key) != nil, "the call stored no height")
+
+      #expect(other.turnsWhileConditionHolds == 0)
     }
   }
 

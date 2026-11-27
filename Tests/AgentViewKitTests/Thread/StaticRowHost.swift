@@ -88,7 +88,9 @@ import SwiftUI
   ///
   /// The row has no record of a real layout, so the cache alone can give
   /// the height of its static form. The row of each fixture has a chrome
-  /// rule, so the cache publishes a height.
+  /// rule, so the cache publishes a height. The host waits only for the
+  /// computation of the cache (``TranscriptRowHeights/computeHeights(of:)``),
+  /// not for the main-actor jobs of other tests.
   ///
   /// - Parameters:
   ///   - row: The fixture of the row.
@@ -113,7 +115,7 @@ import SwiftUI
     host.heights.attach(cache: cache, session: host.session)
     host.heights.noteRowWidth(width)
     let rowKey = host.entry.rowKey
-    await ObservationWait.until { cache.height(of: rowKey) != nil }
+    await cache.computeHeights(of: [rowKey])
     host.show(rowsMove: true)
     return host
   }
