@@ -294,6 +294,11 @@ enum TranscriptRowFixtures {
     /// wrapped line with inline code (EditorKit ^5b9fdah).
     nonisolated static let measuredMarkdownRows: [Row] = mathRows + [.agentInlineCodeWrapped]
 
+    /// The row kinds whose height the EditorKit measure gives with no
+    /// difference from the mounted row: the code rows (``codeRows``) and
+    /// the measured Markdown rows (``measuredMarkdownRows``).
+    nonisolated static let exactlyMeasuredRows: [Row] = codeRows + measuredMarkdownRows
+
     /// The row kinds with Markdown math: inline math and block math
     /// (EditorKit ^tg1hnz7).
     nonisolated static let mathRows: [Row] = [.agentInlineMath, .agentBlockMath]
