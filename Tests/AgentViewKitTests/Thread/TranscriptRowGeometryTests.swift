@@ -160,6 +160,29 @@ import Testing
     #expect(!rows.contains(0))
   }
 
+  /// A production change that fails this test: a kept row past the last row,
+  /// such as the last row before a reset or a rollback made the transcript
+  /// shorter, stays in the margin, so the window reads an entry past the end
+  /// of the transcript and the app stops.
+  @Test func aKeptRowPastTheLastRowLeaves() {
+    let geometry = Self.geometry([50, 50, 50, 50, 50])
+
+    let rows = geometry.mountedRows(visible: 4..<5, viewportHeight: Self.viewportHeight, kept: [5])
+
+    #expect(!rows.contains(5))
+  }
+
+  /// A production change that fails this test: a kept row before the first
+  /// row, such as a row of a page that the stack no longer shows, stays in
+  /// the margin, so the window mounts a row that the layout cannot place.
+  @Test func aKeptRowBeforeTheFirstRowLeaves() {
+    let geometry = Self.geometry([50, 50, 50, 50, 50])
+
+    let rows = geometry.mountedRows(visible: 0..<1, viewportHeight: Self.viewportHeight, kept: [-1])
+
+    #expect(!rows.contains(-1))
+  }
+
   /// A production change that fails this test: the scroll to an item does
   /// not put the top of the row at the top of the view.
   @Test func theOffsetOfAnItemScrollIsTheTopOfItsRow() {

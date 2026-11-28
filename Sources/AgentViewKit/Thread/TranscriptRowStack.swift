@@ -261,6 +261,11 @@ struct TranscriptRowStack: View {
   /// The body reads the count of the records of the elements and the
   /// heights of the cache of the rows, so a new height evaluates it again.
   ///
+  /// The stack shows at most each entry of the transcript. The stack reads
+  /// the transcript itself, and ``shownCount`` comes from the list, so a
+  /// change that makes the transcript shorter, such as the reset of a
+  /// replay, can evaluate the stack before the list gives the new count.
+  ///
   /// - Parameters:
   ///   - transcript: The transcript of the session.
   ///   - metrics: The lengths of the elements.
@@ -269,7 +274,7 @@ struct TranscriptRowStack: View {
     of transcript: [TranscriptEntry], metrics: TranscriptElementMetrics
   ) -> TranscriptStackGeometry {
     _ = elements.revision
-    let first = transcript.count - shownCount
+    let first = transcript.count - min(shownCount, transcript.count)
     let positions = first..<transcript.count
     let heights = positions.map { position in
       #if DEBUG
@@ -437,7 +442,11 @@ struct TranscriptRowWindow: View {
     // The record holds the same report or a later one.
     let lastMountReport = viewport
     let report = viewportRecord.value ?? lastMountReport
-    let slots = mountedPositions(report: report).map { TranscriptRowSlot(position: $0, entry: transcript[$0]) }
+    // The window reads the transcript itself, and the geometry comes from
+    // the stack, so a shorter transcript can come before its geometry.
+    let slots = mountedPositions(report: report).filter(transcript.indices.contains).map {
+      TranscriptRowSlot(position: $0, entry: transcript[$0])
+    }
     let entersWhileMoving = entersWhileMoving
     let elements = elements
     let metrics = metrics

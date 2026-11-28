@@ -127,7 +127,9 @@ nonisolated struct TranscriptRowGeometry: Equatable, Sendable {
   /// ``keptRowMargin`` rows above or below the rows in view. A height
   /// correction moves the edge of the view by a row, and without this
   /// margin, a row at that edge leaves the stack and mounts again in the
-  /// next pass.
+  /// next pass. The margin holds only the rows of this geometry: a kept row
+  /// past the last row, such as the last row before a reset or a rollback
+  /// made the transcript shorter, leaves.
   ///
   /// - Parameters:
   ///   - visible: The rows in view at the last report, or `nil` before the
@@ -144,7 +146,7 @@ nonisolated struct TranscriptRowGeometry: Equatable, Sendable {
   ) -> [Int] {
     let bottom = visibleRows(offset: bottomOffset(viewportHeight: viewportHeight), viewportHeight: viewportHeight)
     let screen = nonEmpty(visible.map { $0.clamped(to: 0..<count) } ?? bottom)
-    let margin = (screen.lowerBound - Self.keptRowMargin)..<(screen.upperBound + Self.keptRowMargin)
+    let margin = max(screen.lowerBound - Self.keptRowMargin, 0)..<min(screen.upperBound + Self.keptRowMargin, count)
     var bands = [Array(screen), kept.filter(margin.contains)]
     if let itemRow, heights.indices.contains(itemRow) {
       let offset = scrollOffset(toShowRow: itemRow, viewportHeight: viewportHeight)
