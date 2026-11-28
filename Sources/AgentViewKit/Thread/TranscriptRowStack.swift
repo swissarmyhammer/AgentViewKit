@@ -29,6 +29,25 @@ nonisolated struct TranscriptStackGeometry: Equatable, Sendable {
   }
 }
 
+/// The heights of the parts of the list of a thread under its bars: the
+/// top and the bottom content insets of its scroll view
+/// (``TranscriptRowStack``, card ^6fax5yx).
+///
+/// In an ``AgentThreadView``, the list goes on under the header and under
+/// the composer, and the scroll view gives the heights of the bars as its
+/// content insets. The bounds of the scroll view leave out those parts, but
+/// the glass of each bar shows the rows under it.
+nonisolated struct TranscriptScrollInsets: Equatable, Sendable {
+  /// The insets of a list with no bars.
+  static let zero = TranscriptScrollInsets(top: .zero, bottom: .zero)
+
+  /// The height of the part under the top bar, in points.
+  let top: CGFloat
+
+  /// The height of the part under the bottom bar, in points.
+  let bottom: CGFloat
+}
+
 /// The rows in view of the virtual stack of a thread, and the height of the
 /// part in view (``TranscriptRowStack``).
 ///
@@ -37,21 +56,31 @@ nonisolated struct TranscriptStackGeometry: Equatable, Sendable {
 /// changes, or when the height of the part in view changes. Thus a scroll
 /// that keeps the same rows in view evaluates no body.
 nonisolated struct TranscriptViewport: Equatable, Sendable {
-  /// The positions in the transcript of the rows in view.
+  /// The positions in the transcript of the rows in view between the bars
+  /// of the list: the rows in the bounds of the scroll view.
   let visible: Range<Int>
 
-  /// The height of the part in view.
+  /// The positions in the transcript of the rows that show: the rows in
+  /// view between the bars, and the rows under the bars
+  /// (``TranscriptScrollInsets``).
+  let shown: Range<Int>
+
+  /// The height of the part in view between the bars.
   let height: CGFloat
 
   /// Reads the value from the part in view of the stack.
   ///
   /// - Parameters:
   ///   - bounds: The bounds of the scroll view, in the coordinates of the
-  ///     stack.
+  ///     stack. They leave out the parts under the bars.
+  ///   - insets: The heights of the parts under the bars.
   ///   - geometry: The geometry of the shown rows.
-  init(bounds: CGRect, geometry: TranscriptStackGeometry) {
+  init(bounds: CGRect, insets: TranscriptScrollInsets, geometry: TranscriptStackGeometry) {
+    let first = geometry.firstPosition
     let rows = geometry.rows.visibleRows(offset: bounds.minY, viewportHeight: bounds.height)
-    visible = (rows.lowerBound + geometry.firstPosition)..<(rows.upperBound + geometry.firstPosition)
+    let shownRows = geometry.rows.rows(from: bounds.minY - insets.top, to: bounds.maxY + insets.bottom)
+    visible = (rows.lowerBound + first)..<(rows.upperBound + first)
+    shown = (shownRows.lowerBound + first)..<(shownRows.upperBound + first)
     height = bounds.height
   }
 }
@@ -62,9 +91,33 @@ nonisolated struct TranscriptViewport: Equatable, Sendable {
 ///
 /// The value is not observable: the list writes it on each frame of a
 /// scroll, and no body reads it.
+///
+/// The offset is in the coordinates of a point of the scroll position
+/// (`ScrollPosition.scrollTo(y:)`), which the stack writes. Those
+/// coordinates start below the top content inset of the scroll view: the
+/// content offset less that inset (``positionY(contentOffsetY:topInset:)``).
+/// In an ``AgentThreadView``, the top inset is the height of the header. A
+/// write of the content offset moved the list up by that height, the move
+/// brought new rows under the header, and their heights moved the list
+/// again, up to the top of the transcript (card ^6fax5yx).
 @MainActor final class TranscriptScrollOffset {
-  /// The vertical content offset of the list, in points.
+  /// The vertical offset of the list, in points, in the coordinates of a
+  /// point of the scroll position.
   var y: CGFloat = .zero
+
+  /// The vertical offset of a scroll geometry in the coordinates of a
+  /// point of the scroll position.
+  ///
+  /// - Parameters:
+  ///   - contentOffsetY: The vertical content offset of the scroll view.
+  ///     It is minus the top inset when the top of the content is in view
+  ///     below the top bar.
+  ///   - topInset: The top content inset of the scroll view.
+  /// - Returns: The offset that `ScrollPosition.scrollTo(y:)` takes to put
+  ///   the list at the same place.
+  nonisolated static func positionY(contentOffsetY: CGFloat, topInset: CGFloat) -> CGFloat {
+    contentOffsetY + topInset
+  }
 
   /// Makes an offset of zero.
   init() {}
@@ -141,7 +194,8 @@ extension View {
 ///
 /// One custom layout (``TranscriptStackLayout``) places the rows. Its height
 /// is the exact sum of the heights of the shown rows and the spacings
-/// (``TranscriptRowGeometry``), and it mounts only the rows in view, a
+/// (``TranscriptRowGeometry``), and it mounts only the rows in view (with
+/// the rows under the bars of the thread, ``TranscriptScrollInsets``), a
 /// margin of the rows that it mounted before, and the rows at the end of a
 /// scroll of the list that did not end
 /// (``TranscriptRowGeometry/mountedRows(visible:viewportHeight:itemRow:keepsBottom:kept:)``).
@@ -202,6 +256,10 @@ struct TranscriptRowStack: View {
   /// The latest scroll offset of the list.
   let scrollOffset: TranscriptScrollOffset
 
+  /// The heights of the parts of the list under its bars: the window
+  /// mounts the rows there too.
+  let insets: TranscriptScrollInsets
+
   /// The heights of the static rows of the thread: a source of the heights
   /// of the rows. The stack feeds them with its width
   /// (``TranscriptRowHeightsFeed``).
@@ -243,7 +301,7 @@ struct TranscriptRowStack: View {
     TranscriptRowWindow(
       session: session, geometry: shownGeometry(target), placements: placements,
       entersWhileMoving: entersWhileMoving, rowsMoveLive: rowsMoveLive, itemPosition: itemPosition,
-      keepsBottom: keepsBottom, elements: elements, metrics: metrics, rowHeights: rowHeights,
+      keepsBottom: keepsBottom, insets: insets, elements: elements, metrics: metrics, rowHeights: rowHeights,
       viewportRecord: viewport)
     .modifier(TranscriptRowHeightsFeed(heights: rowHeights, session: session))
     .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
@@ -397,6 +455,10 @@ struct TranscriptRowWindow: View {
   /// rows at the bottom.
   let keepsBottom: Bool
 
+  /// The heights of the parts of the list under its bars: the window
+  /// mounts the rows there too (``TranscriptViewport/shown``).
+  let insets: TranscriptScrollInsets
+
   /// The heights of the layouts of the elements, which each element feeds.
   let elements: TranscriptElementHeights
 
@@ -469,8 +531,8 @@ struct TranscriptRowWindow: View {
       }
     }
     .scrollTargetLayout()
-    .onGeometryChange(for: TranscriptViewport?.self) { proxy in
-      proxy.bounds(of: .scrollView).map { TranscriptViewport(bounds: $0, geometry: geometry) }
+    .onGeometryChange(for: TranscriptViewport?.self) { [insets] proxy in
+      proxy.bounds(of: .scrollView).map { TranscriptViewport(bounds: $0, insets: insets, geometry: geometry) }
     } action: { new in
       noteReport(new)
     }
@@ -522,7 +584,7 @@ struct TranscriptRowWindow: View {
   /// - Returns: The positions, in order.
   private func rows(for report: TranscriptViewport?, kept: [Int]) -> [Int] {
     let visible = report.map {
-      geometry.index(ofPosition: $0.visible.lowerBound)..<geometry.index(ofPosition: $0.visible.upperBound)
+      geometry.index(ofPosition: $0.shown.lowerBound)..<geometry.index(ofPosition: $0.shown.upperBound)
     }
     let rows = geometry.rows.mountedRows(
       visible: visible, viewportHeight: report?.height ?? Self.fallbackViewportHeight,

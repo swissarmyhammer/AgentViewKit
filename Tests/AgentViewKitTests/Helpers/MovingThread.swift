@@ -58,18 +58,36 @@ import Testing
   ///   - messageFooter: The footer of each message row, as the
   ///     `messageFooter` slot gives it, or `nil` (the default) for no
   ///     footer.
+  ///   - barHeight: The height of a clear bar over the top and of a clear
+  ///     bar over the bottom of the list (`.safeAreaBar`), as the header
+  ///     and the composer of an ``AgentThreadView`` are, or zero (the
+  ///     default) for no bars. The list goes on under the bars, and its
+  ///     scroll view gets the heights of the bars as its content insets.
   init(
     session: SessionModel, frames: any TranscriptFrameSource, expandedBlocks: ExpandedBlocksStore? = nil,
-    messageFooter: ItemViewRenderer<MessageEntry>? = nil
+    messageFooter: ItemViewRenderer<MessageEntry>? = nil, barHeight: CGFloat = .zero
   ) throws {
     self.session = session
     window = AnswerTextHitTests.mount(
       ConversationView(session: session, anchors: anchors, frames: frames, heights: heights)
         .environment(\.expandedBlocksStore, expandedBlocks)
-        .environment(\.messageFooter, messageFooter))
+        .environment(\.messageFooter, messageFooter)
+        .safeAreaBar(edge: .top) { Self.bar(height: barHeight) }
+        .safeAreaBar(edge: .bottom) { Self.bar(height: barHeight) })
     hosting = try #require(window.contentView)
     scrollView = try #require(
       views(ofType: NSScrollView.self, in: hosting).max { $0.frame.height < $1.frame.height })
+  }
+
+  /// A clear bar of a height, or no view for a height of zero, so a list
+  /// with no bars has no content insets.
+  ///
+  /// - Parameter height: The height of the bar.
+  /// - Returns: The bar.
+  @ViewBuilder private static func bar(height: CGFloat) -> some View {
+    if height > .zero {
+      Color.clear.frame(height: height)
+    }
   }
 
   /// Shows the list of `session` at the bottom with the height cache of an

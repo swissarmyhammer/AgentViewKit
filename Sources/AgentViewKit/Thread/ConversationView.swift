@@ -445,6 +445,12 @@ public struct ConversationView<EmptyState: View>: View {
   /// when it keeps the rows in view at their place after a height change.
   @State private var scrollOffset = TranscriptScrollOffset()
 
+  /// The heights of the parts of the list under the bars of the thread:
+  /// the virtual stack mounts the rows there too, so the glass of the bars
+  /// shows them (card ^6fax5yx). The value changes only when a bar changes
+  /// its height.
+  @State private var scrollInsets = TranscriptScrollInsets.zero
+
   /// The rows that keep their EditorKit models: the rows in view and a
   /// margin on each side of them. A row far from them drops its models
   /// (task ^t9416x5).
@@ -667,8 +673,15 @@ public struct ConversationView<EmptyState: View>: View {
     .onScrollPhaseChange { _, phase in
       noteScrollPhase(phase)
     }
-    .onScrollGeometryChange(for: CGFloat.self) { $0.contentOffset.y } action: { _, offset in
+    .onScrollGeometryChange(for: CGFloat.self) {
+      TranscriptScrollOffset.positionY(contentOffsetY: $0.contentOffset.y, topInset: $0.contentInsets.top)
+    } action: { _, offset in
       scrollOffset.y = offset
+    }
+    .onScrollGeometryChange(for: TranscriptScrollInsets.self) {
+      TranscriptScrollInsets(top: $0.contentInsets.top, bottom: $0.contentInsets.bottom)
+    } action: { _, insets in
+      scrollInsets = insets
     }
     .environment(\.transcriptRowsMove, rowsMove)
     .environment(\.transcriptRowsMoveLive, rowsEnterLive)
@@ -857,7 +870,7 @@ public struct ConversationView<EmptyState: View>: View {
       rowsMoveLive: rowsMoveLive,
       itemPosition: unsettledItemID.flatMap { rowIndex.position(ofRowKey: $0, in: session) },
       keepsBottom: keepsBottomRows, anchors: anchors, position: scrollPosition, scrollOffset: scrollOffset,
-      rowHeights: rowHeights)
+      insets: scrollInsets, rowHeights: rowHeights)
   }
 
   /// The status lines of the modelChanged notices before the first entry,
