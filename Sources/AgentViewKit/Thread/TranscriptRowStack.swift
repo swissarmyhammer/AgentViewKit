@@ -1,6 +1,7 @@
 import EditorStyle
 import FoundationModelsACPClient
 import SwiftUI
+import Synchronization
 
 /// The geometry of the shown rows of a thread, and the position in the
 /// transcript of the first shown row (``TranscriptRowStack``).
@@ -68,10 +69,11 @@ nonisolated struct TranscriptScrollInsets: Equatable, Sendable {
 /// The rows in view of the virtual stack of a thread, and the height of the
 /// part in view (``TranscriptRowStack``).
 ///
-/// The stack reads the value from its geometry on each frame of a scroll,
-/// but the value changes only when the first or the last row in view
-/// changes, or when the height of the part in view changes. Thus a scroll
-/// that keeps the same rows in view evaluates no body.
+/// The window of the stack reads the value from its geometry on each frame
+/// of a scroll, and keeps it in its record (``TranscriptViewportRecord``)
+/// with no action of SwiftUI. The value changes only when the first or the
+/// last row in view changes, or when the height of the part in view
+/// changes.
 nonisolated struct TranscriptViewport: Equatable, Sendable {
   /// The positions in the transcript of the rows in view between the bars
   /// of the list: the rows in the bounds of the scroll view.
@@ -135,7 +137,8 @@ nonisolated struct TranscriptViewport: Equatable, Sendable {
 /// (``TranscriptRowStack``).
 ///
 /// The value is not observable: the list writes it on each frame of a
-/// scroll, and no body reads it.
+/// scroll, in the transform of its scroll geometry (``record(_:)``), and no
+/// body reads it.
 ///
 /// The offset is in the coordinates of a point of the scroll position
 /// (`ScrollPosition.scrollTo(y:)`), which the stack writes. Those
@@ -166,6 +169,20 @@ nonisolated struct TranscriptViewport: Equatable, Sendable {
 
   /// Makes an offset of zero.
   init() {}
+
+  /// Records the offset of a scroll geometry, in the coordinates of a
+  /// point of the scroll position (``positionY(contentOffsetY:topInset:)``).
+  ///
+  /// The list calls it in the transform of its scroll geometry, so a frame
+  /// of a scroll writes the offset with no action of SwiftUI.
+  ///
+  /// - Parameter geometry: The scroll geometry of the list.
+  /// - Returns: `true`, the same value on each frame, so the change of the
+  ///   geometry runs no action.
+  func record(_ geometry: ScrollGeometry) -> Bool {
+    y = Self.positionY(contentOffsetY: geometry.contentOffset.y, topInset: geometry.contentInsets.top)
+    return true
+  }
 }
 
 /// The index of a row in the virtual stack of a thread
@@ -247,12 +264,10 @@ extension View {
 /// The height of each row comes from ``TranscriptElementHeights``.
 ///
 /// The stack computes the geometry, and its window (``TranscriptRowWindow``)
-/// mounts the rows. The rows in view are state of the window only, so a
-/// change of the rows in view evaluates only the body of the window, and
-/// the stack does not read the height of each row again. The rows in view
-/// change only when the first or the last row in view changes
-/// (``TranscriptViewport``), so a scroll step that keeps the same rows in
-/// view evaluates no body.
+/// mounts the rows. The window evaluates its body only when the rows in
+/// view need a row that it did not mount (``TranscriptMountPlan``), so a
+/// scroll step that mounts no row evaluates no body and runs no action of
+/// SwiftUI, and the stack does not read the height of each row again.
 ///
 /// When the heights change, such as when a row gets its first layout or
 /// the cache of the rows computes a row, and the change moves the first row
@@ -516,9 +531,6 @@ struct TranscriptRowWindow: View {
   /// The record of the rows in view that the stack reads.
   let viewportRecord: TranscriptViewportRecord
 
-  /// The height of the part in view before the first report, in points.
-  static let fallbackViewportHeight: CGFloat = 1_000
-
   /// The prefix of the ``BodyEvaluationCounter`` key of the window of the
   /// stack of a session.
   static let counterKeyPrefix = "transcript-stack-window-"
@@ -533,8 +545,23 @@ struct TranscriptRowWindow: View {
     BodyEvaluationKey.make(prefix: counterKeyPrefix, object: session)
   }
 
-  /// The rows in view at the last report, or `nil` before the first one.
-  @State private var viewport: TranscriptViewport?
+  /// The prefix of the ``BodyEvaluationCounter`` key of the reports of the
+  /// window of the stack of a session.
+  static let reportCounterKeyPrefix = "transcript-stack-report-"
+
+  /// The ``BodyEvaluationCounter`` key of the reports of the window of the
+  /// stack of a session: one count for each action that SwiftUI runs to
+  /// give the window a new report of the rows in view.
+  ///
+  /// - Parameter session: The session of the stack.
+  /// - Returns: The key.
+  static func reportCounterKey(for session: SessionModel) -> String {
+    BodyEvaluationKey.make(prefix: reportCounterKeyPrefix, object: session)
+  }
+
+  /// The count of the reports that needed a row that the window did not
+  /// mount. The body reads it, so only such a report evaluates the body.
+  @State private var mountRequests = 0
 
   /// The positions of the rows that the window mounted at its last body.
   @State private var mounted = TranscriptMountedRows()
@@ -543,15 +570,17 @@ struct TranscriptRowWindow: View {
     #if DEBUG
       let _ = BodyEvaluationCounter.note(Self.counterKey(for: session))
     #endif
+    // The body reads the count, so a report that needs a row evaluates it.
+    let _ = mountRequests
     let transcript = session.transcript
     let geometry = geometry
-    // The body reads the state, so a report that needs a row evaluates it.
-    // The record holds the same report or a later one.
-    let lastMountReport = viewport
-    let report = viewportRecord.value ?? lastMountReport
+    let plan = TranscriptMountPlan(
+      geometry: geometry, itemPosition: itemPosition, keepsBottom: keepsBottom, leadsMotion: rowsMoveLive)
+    let record = viewportRecord
+    let positions = mountedPositions(plan: plan)
     // The window reads the transcript itself, and the geometry comes from
     // the stack, so a shorter transcript can come before its geometry.
-    let slots = mountedPositions(report: report).filter(transcript.indices.contains).map {
+    let slots = positions.filter(transcript.indices.contains).map {
       TranscriptRowSlot(position: $0, entry: transcript[$0])
     }
     let entersWhileMoving = entersWhileMoving
@@ -579,117 +608,111 @@ struct TranscriptRowWindow: View {
       }
     }
     .scrollTargetLayout()
-    .onGeometryChange(for: TranscriptViewport?.self) { [insets] proxy in
-      proxy.bounds(of: .scrollView).map { TranscriptViewport(bounds: $0, insets: insets, geometry: geometry) }
-    } action: { new in
-      noteReport(new)
+    .onGeometryChange(for: [Int].self) { [insets] proxy in
+      // The record keeps each report, with no action of SwiftUI. Only the
+      // rows to mount are the value of the change.
+      let report = proxy.bounds(of: .scrollView).map {
+        TranscriptViewport(bounds: $0, insets: insets, geometry: geometry)
+      }
+      record.note(report)
+      return plan.rowsToMount(report: report, movesDown: record.movesDown, mounted: positions)
+    } action: { rowsToMount in
+      noteRowsToMount(rowsToMount)
     }
   }
 
-  /// Records a report of the rows in view, and evaluates the body only when
-  /// the report needs a row that the window did not mount: a row in view,
-  /// or the lead row of a live motion (``leadPosition(of:)``). The report
-  /// also records the direction of the move of the rows in view.
+  /// The positions in the transcript of the rows that the window mounts
+  /// (``TranscriptMountPlan/positions(report:movesDown:kept:)``), from the
+  /// latest report of the rows in view.
   ///
-  /// A row that leaves the view stays mounted until the next body, in the
-  /// margin of the kept rows
-  /// (``TranscriptRowGeometry/keptRowMargin``). Thus a flick evaluates the
-  /// body one time for each row that comes into view, and not again for
-  /// each row that leaves it.
-  ///
-  /// - Parameter report: The new report, or `nil` when the window is not
-  ///   in a scroll view.
-  private func noteReport(_ report: TranscriptViewport?) {
-    if let old = viewportRecord.value, let report, let movesDown = report.movesDown(from: old) {
-      mounted.movesDown = movesDown
-    }
-    viewportRecord.value = report
-    let needed = Set(rows(for: report, kept: []) + [leadPosition(of: report)].compactMap { $0 })
-    guard !needed.isSubset(of: mounted.positions) else { return }
-    viewport = report
-  }
-
-  /// The positions in the transcript of the rows that the window mounts.
-  ///
-  /// The body records the positions (``mounted``). A row that the window
+  /// The body records the positions (``mounted``), so a row that the window
   /// mounted stays mounted in a margin of rows
-  /// (``TranscriptRowGeometry/keptRowMargin``), so a height correction does
-  /// not make a real row and its editors again, and a row that leaves the
-  /// view in a flick does not evaluate the body (``noteReport(_:)``).
+  /// (``TranscriptRowGeometry/keptRowMargin``): a height correction does
+  /// not make a real row and its editors again.
   ///
-  /// - Parameter report: The latest report of the rows in view, or `nil`
-  ///   before the first one.
+  /// - Parameter plan: The plan of the mounted rows of the body.
   /// - Returns: The positions, in order.
-  private func mountedPositions(report: TranscriptViewport?) -> [Int] {
-    let kept = mounted.positions
-    var positions = rows(for: report, kept: kept)
-    if let lead = leadPosition(of: report), !positions.contains(lead),
-      kept.contains(lead) || Set(positions).isSubset(of: kept)
-    {
-      positions = (positions + [lead]).sorted()
-    }
+  private func mountedPositions(plan: TranscriptMountPlan) -> [Int] {
+    let positions = plan.positions(
+      report: viewportRecord.value, movesDown: viewportRecord.movesDown, kept: mounted.positions)
     mounted.positions = positions
     return positions
   }
 
-  /// The position of the lead row of a live motion: one row past the shown
-  /// rows in the direction of the last move of the rows in view
-  /// (``TranscriptViewport/leadPosition(movesDown:in:)``).
+  /// Evaluates the body when a report of the rows in view needs a row that
+  /// the window did not mount: a row in view, or the lead row of a live
+  /// motion (``TranscriptMountPlan/leadPosition(report:movesDown:)``).
   ///
-  /// While the user moves the rows, the window mounts this one row before
-  /// it comes into view, so the first frame of a new row (its make, its
-  /// layout and its draw) is a frame in which the row is not in view. The
-  /// window mounts a new lead row only in a body that mounts no other new
-  /// row, so a body makes at most one row that is not in view. A full
-  /// screen of rows around the view cost about 50 % more in a flick
-  /// (``TranscriptRowGeometry/keptRowMargin``); one row in the direction of
-  /// the motion costs one row.
+  /// The geometry of the window gives each report to the record of the
+  /// rows in view (``TranscriptViewportRecord``) with no action of
+  /// SwiftUI, and the value of its change is only the rows to mount. Thus
+  /// a scroll step that mounts no row, such as a step in which a row leaves
+  /// the view, runs no action and evaluates no body. A row that leaves the
+  /// view stays mounted until the next body, in the margin of the kept rows
+  /// (``TranscriptRowGeometry/keptRowMargin``).
   ///
-  /// - Parameter report: The latest report of the rows in view, or `nil`.
-  /// - Returns: The position, or `nil` when the rows do not move live, or
-  ///   when the window knows no direction of the motion.
-  private func leadPosition(of report: TranscriptViewport?) -> Int? {
-    guard rowsMoveLive, let report, let movesDown = mounted.movesDown else { return nil }
-    let positions = geometry.firstPosition..<(geometry.firstPosition + geometry.rows.count)
-    return report.leadPosition(movesDown: movesDown, in: positions)
-  }
-
-  /// The positions in the transcript of the rows that the window mounts for
-  /// a report of the rows in view
-  /// (``TranscriptRowGeometry/mountedRows(visible:shown:viewportHeight:itemRow:keepsBottom:kept:)``).
-  ///
-  /// - Parameters:
-  ///   - report: The report of the rows in view, or `nil` before the first
-  ///     one.
-  ///   - kept: The positions of the rows that the window mounted before.
-  /// - Returns: The positions, in order.
-  private func rows(for report: TranscriptViewport?, kept: [Int]) -> [Int] {
-    let visible = report.map {
-      geometry.index(ofPosition: $0.visible.lowerBound)..<geometry.index(ofPosition: $0.visible.upperBound)
-    }
-    let shown = report.map {
-      geometry.index(ofPosition: $0.shown.lowerBound)..<geometry.index(ofPosition: $0.shown.upperBound)
-    }
-    let rows = geometry.rows.mountedRows(
-      visible: visible, shown: shown, viewportHeight: report?.height ?? Self.fallbackViewportHeight,
-      itemRow: itemPosition.map(geometry.index(ofPosition:)), keepsBottom: keepsBottom,
-      kept: kept.map(geometry.index(ofPosition:)))
-    return rows.map { $0 + geometry.firstPosition }
+  /// - Parameter rowsToMount: The positions of the rows that the latest
+  ///   report needs and that the window did not mount.
+  private func noteRowsToMount(_ rowsToMount: [Int]) {
+    #if DEBUG
+      BodyEvaluationCounter.note(Self.reportCounterKey(for: session))
+    #endif
+    guard !rowsToMount.isEmpty else { return }
+    mountRequests &+= 1
   }
 }
 
 /// The rows in view of the virtual stack of a thread at the last report of
-/// its window (``TranscriptRowWindow``).
+/// its window (``TranscriptRowWindow``), and the direction of their last
+/// move.
 ///
-/// The value is not observable: the window writes it on each change of the
-/// rows in view, and the stack reads it only when the heights change, so
-/// that change of the rows in view does not evaluate the stack.
-@MainActor final class TranscriptViewportRecord {
+/// The values are not observable: the geometry of the window writes them on
+/// each frame of a scroll, off the actions of SwiftUI, and the stack reads
+/// them only when the heights change, so that change of the rows in view
+/// does not evaluate the stack. The geometry of SwiftUI reads its value off
+/// the main actor, so the record holds its values under a lock.
+nonisolated final class TranscriptViewportRecord: Sendable {
+  /// The values of the record.
+  private struct Values {
+    /// The rows in view, or `nil` before the first report.
+    var value: TranscriptViewport?
+
+    /// Whether the last move of the rows in view went down the
+    /// transcript, or `nil` before the first move.
+    var movesDown: Bool?
+  }
+
+  /// The values, under a lock.
+  private let values = Mutex(Values())
+
   /// The rows in view, or `nil` before the first report.
-  var value: TranscriptViewport?
+  var value: TranscriptViewport? {
+    values.withLock { $0.value }
+  }
+
+  /// Whether the last move of the rows in view went down the transcript,
+  /// or `nil` before the first move. The window mounts the lead row of a
+  /// live motion in that direction (``TranscriptMountPlan``).
+  var movesDown: Bool? {
+    values.withLock { $0.movesDown }
+  }
 
   /// Makes a record with no report.
   init() {}
+
+  /// Records a report of the rows in view, and the direction of the move
+  /// of the rows in view from the last report.
+  ///
+  /// - Parameter report: The report, or `nil` when the window is not in a
+  ///   scroll view.
+  func note(_ report: TranscriptViewport?) {
+    values.withLock { values in
+      if let old = values.value, let report, let movesDown = report.movesDown(from: old) {
+        values.movesDown = movesDown
+      }
+      values.value = report
+    }
+  }
 }
 
 /// The positions in the transcript of the rows that the virtual stack of a
@@ -700,11 +723,6 @@ struct TranscriptRowWindow: View {
 @MainActor final class TranscriptMountedRows {
   /// The positions, in order.
   var positions: [Int] = []
-
-  /// Whether the last move of the rows in view went down the transcript,
-  /// or `nil` before the first move. The window mounts the lead row of a
-  /// live motion in that direction (``TranscriptRowWindow``).
-  var movesDown: Bool?
 
   /// Makes an empty record.
   init() {}

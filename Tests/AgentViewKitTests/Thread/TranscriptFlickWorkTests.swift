@@ -126,4 +126,39 @@ import Testing
     try #require(!steadyRows.isEmpty, "no row came into view in the steady flick")
     #expect(madeInView.count == 0)
   }
+
+  /// A production change that fails this test: a scroll step that mounts
+  /// no row still runs SwiftUI work of the list: an action of the scroll
+  /// offset of the list or of the report of the rows in view of the stack
+  /// (a transaction of SwiftUI on each frame), or a body, such as the body
+  /// of the binding of the scroll position when SwiftUI writes the
+  /// position as a new row comes to the top edge.
+  @Test func aStepThatMountsNoRowRunsNoWorkOfTheList() async throws {
+    let name = "flickIdleSteps"
+    let session = SessionModel.preview(transcript: FlickTranscript.items(turns: Self.flickTurns, in: name))
+    let thread = try await MovingThread.makeCached(session: session, frames: ManualFrames())
+    thread.startMoving()
+    let mountKeys = [TranscriptRowWindow.counterKey(for: session)]
+      + session.transcript.map { ItemRow.counterKey(for: $0.rowKey) }
+    let workKeys = [
+      TranscriptRowWindow.reportCounterKey(for: session), ConversationLayout.offsetCounterKey(for: thread.anchors),
+      ConversationLayout.positionCounterKey(for: thread.anchors), ConversationLayout.listCounterKey(for: thread.anchors),
+    ]
+    let total = { (keys: [String]) in keys.map(BodyEvaluationCounter.count).reduce(0, +) }
+    var idleSteps = 0
+    var idleWork = 0
+
+    for _ in 0..<Self.flickSteps {
+      let mountsBefore = total(mountKeys)
+      let workBefore = total(workKeys)
+      thread.step(by: Self.flickStep, isLive: true)
+      if total(mountKeys) == mountsBefore {
+        idleSteps += 1
+        idleWork += total(workKeys) - workBefore
+      }
+    }
+
+    try #require(idleSteps > 0, "each step mounted a row")
+    #expect(idleWork == 0)
+  }
 }

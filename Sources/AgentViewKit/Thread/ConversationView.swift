@@ -47,6 +47,34 @@ public enum ConversationLayout {
     BodyEvaluationKey.make(prefix: listCounterKeyPrefix, object: anchors)
   }
 
+  /// The prefix of the ``BodyEvaluationCounter`` key of the records of the
+  /// scroll offset of the list of a ``ConversationView``.
+  static let offsetCounterKeyPrefix = "conversation-offset-"
+
+  /// The ``BodyEvaluationCounter`` key of the records of the scroll offset
+  /// of the list of the conversation of a manager: one count for each
+  /// action that SwiftUI runs to give the list a new offset.
+  ///
+  /// - Parameter anchors: The manager of the conversation.
+  /// - Returns: The key.
+  static func offsetCounterKey(for anchors: ScrollAnchorManager) -> String {
+    BodyEvaluationKey.make(prefix: offsetCounterKeyPrefix, object: anchors)
+  }
+
+  /// The prefix of the ``BodyEvaluationCounter`` key of the binding of the
+  /// scroll position of the list of a ``ConversationView``.
+  static let positionCounterKeyPrefix = "conversation-position-"
+
+  /// The ``BodyEvaluationCounter`` key of the binding of the scroll
+  /// position of the list of the conversation of a manager: one count for
+  /// each body of the modifier that binds the position to the scroll view.
+  ///
+  /// - Parameter anchors: The manager of the conversation.
+  /// - Returns: The key.
+  static func positionCounterKey(for anchors: ScrollAnchorManager) -> String {
+    BodyEvaluationKey.make(prefix: positionCounterKeyPrefix, object: anchors)
+  }
+
   /// The SF Symbol name of the load-earlier row.
   static let loadEarlierSymbolName = AgentSymbol.loadEarlier
 
@@ -663,7 +691,10 @@ public struct ConversationView<EmptyState: View>: View {
     .defaultScrollAnchor(.bottom, for: .initialOffset)
     .defaultScrollAnchor(.bottom, for: .alignment)
     .modifier(ConversationFollowAnchor(anchors: anchors))
-    .modifier(ConversationScrollPositionBinding(position: scrollPosition))
+    .modifier(
+      ConversationScrollPositionBinding(
+        position: scrollPosition, holdsWrites: rowsMoveLive,
+        counterKey: ConversationLayout.positionCounterKey(for: anchors)))
     .onScrollTargetVisibilityChange(
       idType: String.self, threshold: ConversationLayout.visibilityThreshold
     ) { ids in
@@ -673,11 +704,8 @@ public struct ConversationView<EmptyState: View>: View {
     .onScrollPhaseChange { _, phase in
       noteScrollPhase(phase)
     }
-    .onScrollGeometryChange(for: CGFloat.self) {
-      TranscriptScrollOffset.positionY(contentOffsetY: $0.contentOffset.y, topInset: $0.contentInsets.top)
-    } action: { _, offset in
-      scrollOffset.y = offset
-    }
+    .modifier(
+      TranscriptScrollOffsetRecord(offset: scrollOffset, counterKey: ConversationLayout.offsetCounterKey(for: anchors)))
     .onScrollGeometryChange(for: TranscriptScrollInsets.self) {
       TranscriptScrollInsets(top: $0.contentInsets.top, bottom: $0.contentInsets.bottom)
     } action: { _, insets in
@@ -1364,9 +1392,25 @@ struct ConversationBottomGeometry: Equatable {
 /// evaluates only this modifier, and not the list in its content. A write of
 /// the scroll view evaluates only this modifier, in a later update, so the
 /// scroll view then gets a binding that holds the position that it wrote.
+///
+/// While the user moves the rows (``holdsWrites``), a write of the scroll
+/// view evaluates no body: SwiftUI writes the position each time a new row
+/// comes to the top edge, and that body was the only body of a flick step
+/// that mounts no row (card ^9ync5h3). The model keeps each write. When the
+/// live motion ends, ``holdsWrites`` changes, so the modifier evaluates its
+/// body in the same update as the list, and the scroll view gets a binding
+/// that holds the last position that it wrote.
 private struct ConversationScrollPositionBinding: ViewModifier {
   /// The scroll position of the list.
   let position: ConversationScrollPosition
+
+  /// Whether the user moves the rows: a write of the scroll view then goes
+  /// only to the model, and evaluates no body.
+  let holdsWrites: Bool
+
+  /// The ``BodyEvaluationCounter`` key of the body of the modifier
+  /// (``ConversationLayout/positionCounterKey(for:)``).
+  let counterKey: String
 
   /// The position that the scroll view wrote last. A write changes the
   /// state, and not the model, so it evaluates this modifier in a later
@@ -1374,9 +1418,45 @@ private struct ConversationScrollPositionBinding: ViewModifier {
   @State private var scrollViewWrite = ScrollPosition(idType: String.self)
 
   func body(content: Content) -> some View {
+    #if DEBUG
+      let _ = BodyEvaluationCounter.note(counterKey)
+    #endif
     // The body reads the state, so a write of the scroll view evaluates it.
     let _ = scrollViewWrite
-    content.scrollPosition(position.binding { scrollViewWrite = $0 })
+    let holdsWrites = holdsWrites
+    content.scrollPosition(
+      position.binding { written in
+        if !holdsWrites {
+          scrollViewWrite = written
+        }
+      })
+  }
+}
+
+/// Records the scroll offset of the list of a ``ConversationView`` on each
+/// frame of a scroll, for the virtual stack of its rows
+/// (``TranscriptScrollOffset``), with no action of SwiftUI (card ^9ync5h3).
+///
+/// The transform of the scroll geometry writes the offset to the record,
+/// which no body reads, and gives the same value on each frame. Thus a
+/// scroll step runs no action for the offset: an action that SwiftUI runs
+/// after the update of a frame is one more transaction of that frame.
+private struct TranscriptScrollOffsetRecord: ViewModifier {
+  /// The record of the offset.
+  let offset: TranscriptScrollOffset
+
+  /// The ``BodyEvaluationCounter`` key of the actions of the offset
+  /// (``ConversationLayout/offsetCounterKey(for:)``).
+  let counterKey: String
+
+  func body(content: Content) -> some View {
+    content.onScrollGeometryChange(for: Bool.self) { geometry in
+      offset.record(geometry)
+    } action: { _, _ in
+      #if DEBUG
+        BodyEvaluationCounter.note(counterKey)
+      #endif
+    }
   }
 }
 
