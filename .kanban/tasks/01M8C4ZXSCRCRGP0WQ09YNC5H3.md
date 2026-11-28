@@ -186,6 +186,33 @@ comments:
     - tests: root `swift test` 2036 tests / 250 suites + 59 / 12, 0 issues. Hosted, each under a 5 min guard: TranscriptSearchStepHostedTests 2 pass, SessionTranscriptViewHostedTests 9 pass, ThreadModelCacheHostedTests 2 pass. Full IntegrationTests (15 min guard): 1100 tests / 164 suites pass, 5 known issues (FontRoleExpectationsTests, by design). No guard kill.
     - next: /review.
   timestamp: 2026-11-27T23:49:15.060325+00:00
+- actor: claude-code
+  id: 01m8g28gcy75a0m2hk1hfedhqw
+  text: |-
+    Flick hitch work (worktree agent-a245360c9ed7cff2e, on main f0063a21). No push, no merge.
+    1. Live Text in entering rows. Cause found: the published pictures had a byte bound (128 MiB) that dropped the OLDEST pictures first. The cache draws the rows in view first, so the bound dropped the pictures where a flick starts. At scale 2, one screen of pictures is about 7 MB, so the bound holds about 18 screens and a long thread has more. Fix: the bound drops the rows farthest from the rows in view; on each change of the rows in view the cache draws again the dropped pictures of the rows in view and 8 rows on each side (TranscriptRowHeights.pictureReach); the queue takes the row ahead of the last move first. A mounted slot now observes a per-row signal (TranscriptPictureSignal), so a row made before its picture (the lead row) shows the picture when it comes. Seam: pictureByteLimit on TranscriptStaticRowHeights / TranscriptRowHeights. Count: BoundedPictureFlickTests (50 turns, bound of 8 screens, worker awaited per step) Text layouts 12 -> 0; queue order test RED/GREEN; late-picture slot test 0 -> >0 picture bodies. Not checked: the trace harness config. If it still mounts ConversationView with no expandedBlocksStore, it has no cache and no pictures at all (see the comment of 2026-11-27 17:05).
+    2. Lead row: TranscriptMountPlan mounts one row past the shown rows in the direction of the last move during a live motion. A new lead row mounts only in a pass with no other new row. Count: rows made in the step that first shows them (steady flick, after 10 warm-up steps) 10 -> 0.
+    3. Idle steps: the offset record is written in the scroll-geometry transform (no action). The window geometry writes each report to a locked TranscriptViewportRecord and gives only the rows to mount as its value. The scroll position binding holds the SwiftUI writes in the model during a live motion and is evaluated again at the motion end. Count: actions and bodies of the list in steps that mount no row 156 -> 0. Hover: hit tests in live motion were already 0 (aLiveMotionHitTestsNoHoverResponderOfARow), and per-step hover bodies are 0. The SwiftUI-internal enqueueHoverUpdateIfNeeded cannot be counted in a unit test, so it is not verified.
+
+    ### implement — changed
+    - evidence: 788fc1f0, 879f069d, 524d5102, a2ff63d2. Root swift test one run: 2083 tests in 259 suites + 59 tests in 12 suites passed, 0 issues. Thread suites 453/65 passed before the last commit. IntegrationTests, ScreenshotTests, xctrace not run (parent).
+    - next: flick trace by the parent; /review of 788fc1f0..a2ff63d2.
+  timestamp: 2026-11-28T03:12:56.734763+00:00
+- actor: claude-code
+  id: 01m8g59kddd48g1xr149h3fke6
+  text: |-
+    EditorKit 0bc02f8c check of the row-entry fixes (worktree agent-a245360c9ed7cff2e, HEAD a2ff63d2). No push, no merge.
+    - Pins: `swift package update EditorKit` in root, IntegrationTests and ScreenshotTests. Each Package.resolved shows 0bc02f8ce35e1f5f8b93412eb74be033d6f9f34b. The three Package.resolved files are in .gitignore, so the pin change gives no file to commit. The root tests, IntegrationTests and ScreenshotTests compiled with no change to the code (no API break).
+    - Root swift test, one run: 2083 tests in 259 suites + 59 tests in 12 suites passed, 0 issues, exit 0.
+    - IntegrationTests, one full run under a 15 min guard: 1100 tests in 164 suites passed, 5 known issues (FontRoleExpectationsTests, by design), exit 0, no guard kill.
+    - ScreenshotTests gallery, one run: 47 tests in 4 suites passed. Copy: /private/tmp/claude-501/-Users-wballard-github-swissarmyhammer-AgentViewKit/cb6ea94a-55e6-4196-a95c-8572bfe4fa85/scratchpad/gallery-rowentry/.
+    - Pixel compare with gallery-6fax/run2 (same relative paths; run2 holds some images only in generated/, so its generated/ copy was used where snapshots/ had none): all 278 PNGs that index.html shows are the same to the pixel (mean 0, 0 pixels changed), with each thread and transcript image. One extra file that the page does not show differs: generated/GlassSnapshotTests/floating-notes-dark.png, mean 0.0023, large part 0.00002, 104 pixels in x 1502-1513, y 407-929 (the scroll bar strip at the right edge). It is in the RowPixels limits (0.75 / 0.0075) and it is not a thread image.
+    - Tool friction: code_context `grep code` with `file_path` did not limit the search to the file; it searched the whole index (1.28 M characters).
+
+    ### implement — no-change
+    - evidence: no file changed (Package.resolved is gitignored in all three packages); root 2083/259 + 59/12 green; IntegrationTests 1100/164 green (5 known issues); gallery 278 shown PNGs same to the pixel as run2.
+    - next: parent: merge decision for 788fc1f0..a2ff63d2; /review.
+  timestamp: 2026-11-28T04:05:58.317545+00:00
 position_column: doing
 position_ordinal: '80'
 title: 'Scroll 3: static rows while the transcript moves, real rows at rest'
