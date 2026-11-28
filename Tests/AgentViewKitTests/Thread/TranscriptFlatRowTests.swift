@@ -111,14 +111,63 @@ import Testing
     #expect(BodyEvaluationCounter.count(key) == 0)
   }
 
-  /// A production change that fails this test: a message row with a footer
-  /// shows the flat form, which draws no footer, so the actions of the
-  /// footer go while the rows move.
-  @Test func aMessageWithAFooterKeepsTheViewsOfItsRealRow() async {
-    let host = await StaticRowHost.makeCached(.agentProse, width: Self.width)
-    host.messageFooter = { entry in AnyView(MessageActions(entry: entry)) }
+  /// A production change that fails this test: a message row with a
+  /// custom footer shows the flat form, which draws no custom footer, so
+  /// the footer goes while the rows move.
+  @Test func aMessageWithACustomFooterKeepsTheViewsOfItsRealRow() async {
+    let host = await StaticRowHost.makeCached(
+      .agentProse, width: Self.width, messageFooter: MessageFooter { _ in Text(verbatim: "Custom") })
 
     #expect(Self.realViewBodies(whenEntering: host) > 0)
+  }
+
+  // MARK: - The message actions (card ^grwk69d)
+
+  /// A production change that fails this test: a message row with a
+  /// footer of ``MessageActions`` that comes into a moving list builds the
+  /// views of its real row (its item view, its responses and the buttons of
+  /// its actions), and not one flat view with a chrome line of the actions.
+  @Test(arguments: TranscriptRowFixtures.messageRows)
+  func aMessageWithActionsThatEntersWhileMovingBuildsNoViewOfTheRealRow(row: TranscriptRowFixtures.Row) async {
+    let host = await StaticRowHost.makeCached(
+      row, width: Self.width, messageFooter: TranscriptRowFixtures.messageActions)
+
+    #expect(Self.realViewBodies(whenEntering: host) == 0)
+  }
+
+  /// A production change that fails this test: the flat form of a message
+  /// row with a footer of ``MessageActions`` has another height than its
+  /// real row, so the row jumps when it becomes real at rest.
+  @Test(arguments: TranscriptRowFixtures.messageRows)
+  func aFlatMessageWithActionsKeepsItsHeightWhenItBecomesReal(row: TranscriptRowFixtures.Row) async throws {
+    let host = await StaticRowHost.makeCached(
+      row, width: Self.width, messageFooter: TranscriptRowFixtures.messageActions)
+    try #require(Self.realViewBodies(whenEntering: host) == 0)
+    let flat = host.rowHeight
+
+    host.showAtRestAndSettle()
+
+    #expect(host.rowHeight == flat, "flat \(flat), real \(host.rowHeight)")
+  }
+
+  /// A production change that fails this test: the chrome line of the
+  /// message actions draws other buttons, other symbols, other colors or
+  /// other places than the real ``MessageActions`` row, in light or in
+  /// dark.
+  @Test(arguments: TranscriptRowFixtures.messageRows, [ColorScheme.light, .dark])
+  func theFlatMessageWithActionsIsNearTheRealRow(
+    row: TranscriptRowFixtures.Row, colorScheme: ColorScheme
+  ) async throws {
+    let host = await StaticRowHost.makeCached(
+      row, width: Self.width, colorScheme: colorScheme, messageFooter: TranscriptRowFixtures.messageActions)
+    try #require(Self.realViewBodies(whenEntering: host) == 0)
+
+    let difference = try await Self.flatToRealDifference(of: host, colorScheme: colorScheme)
+
+    #expect(
+      difference.isWithin(
+        meanLimit: TranscriptStaticPictureTests.meanLimit, largePartLimit: TranscriptStaticPictureTests.largePartLimit),
+      "\(difference)")
   }
 
   /// A production change that fails this test: a row with a find hit shows
@@ -149,6 +198,22 @@ import Testing
 
   // MARK: - The pixels
 
+  /// The pixel difference between the flat form of the row of a host and
+  /// its real form: the host draws the flat row, shows the row at rest,
+  /// waits for the parses of its text, and draws the real row.
+  ///
+  /// - Parameters:
+  ///   - host: The host, with the flat row in its first frame.
+  ///   - colorScheme: The appearance of the host.
+  /// - Returns: The difference.
+  static func flatToRealDifference(of host: StaticRowHost, colorScheme: ColorScheme) async throws -> RowPixelDifference {
+    let flat = try host.bitmap()
+    host.showAtRestAndSettle()
+    await host.awaitSegmentParses()
+    let real = try host.bitmap()
+    return try RowPixelDifference.between(flat, and: real, over: RowPixelDifference.background(of: colorScheme))
+  }
+
   /// A production change that fails this test: the flat form draws the
   /// chrome or the text of a row in other fonts, colors or places than the
   /// real row, in light or in dark.
@@ -156,13 +221,8 @@ import Testing
   func theFlatRowIsNearTheRealRow(row: TranscriptRowFixtures.Row, colorScheme: ColorScheme) async throws {
     let host = await StaticRowHost.makeCached(row, width: Self.width, colorScheme: colorScheme)
     try #require(Self.realViewBodies(whenEntering: host) == 0)
-    let flat = try host.bitmap()
-    host.showAtRestAndSettle()
-    await host.awaitSegmentParses()
-    let real = try host.bitmap()
 
-    let difference = try RowPixelDifference.between(
-      flat, and: real, over: RowPixelDifference.background(of: colorScheme))
+    let difference = try await Self.flatToRealDifference(of: host, colorScheme: colorScheme)
 
     #expect(
       difference.isWithin(
@@ -179,7 +239,7 @@ import Testing
     let host = await StaticRowHost.makeCached(.agentProse, width: Self.width)
     try #require(Self.realViewBodies(whenEntering: host) == 0)
 
-    let labels = try await withAccessibilityTree {
+    let labels = await withAccessibilityTree {
       host.accessibilityElements(identifiedAs: StaticSlotAccessibility.identifier).map {
         accessibilityLabel(of: $0) ?? ""
       }

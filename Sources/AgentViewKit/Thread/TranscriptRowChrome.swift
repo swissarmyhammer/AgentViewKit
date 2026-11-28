@@ -56,7 +56,8 @@ nonisolated private struct TranscriptRowRule {
   /// - Returns: The tree, or `nil` when no rule covers the row.
   func layout(of kind: TranscriptRowContent.Kind) -> TranscriptRowNode? {
     switch kind {
-    case .message(let role, let blocks, let sendState): message(role: role, blocks: blocks, sendState: sendState)
+    case .message(let role, let blocks, let sendState, let hasActions):
+      message(role: role, blocks: blocks, sendState: sendState, hasActions: hasActions)
     case .collapsedThought(let title): collapsedThought(title: title)
     case .toolCall(let call): toolCall(call)
     case .terminal(let terminal): self.terminal(terminal)
@@ -197,18 +198,22 @@ nonisolated private struct TranscriptRowRule {
 
   /// The rule of a user or an agent message (`TranscriptMessageView`).
   ///
-  /// The role header and the blocks stand in a stack with the small
-  /// spacing. The send state caption of a user message stands below with the
-  /// extra-small spacing, and the extra-small inset pads the whole message.
+  /// The role header, the blocks and the row of the message actions of a
+  /// footer of ``MessageActions`` stand in a stack with the small spacing
+  /// (`MessageLayout`). The send state caption of a user message stands
+  /// below with the extra-small spacing, and the extra-small inset pads the
+  /// whole message.
   ///
   /// - Parameters:
   ///   - role: The sender of the message.
   ///   - blocks: The text blocks.
   ///   - sendState: The send state of a user message, or `nil`.
+  ///   - hasActions: Whether the footer shows the message actions.
   /// - Returns: The message.
-  func message(role: MessageRole, blocks: [String], sendState: SendState?) -> TranscriptRowNode? {
+  func message(role: MessageRole, blocks: [String], sendState: SendState?, hasActions: Bool) -> TranscriptRowNode? {
     let header = chrome(metrics.height(.messageHeader), line: .messageHeader(role))
-    guard let layout = stack([header] + blocks.map(response), spacing: metrics.spacingS) else { return nil }
+    let actions = hasActions ? [chrome(metrics.height(.messageActions), line: .messageActions(nil))] : []
+    guard let layout = stack([header] + blocks.map(response) + actions, spacing: metrics.spacingS) else { return nil }
     guard let sendState else { return .inset(layout, padding: metrics.spacingXS) }
     let caption = chrome(metrics.height(.sendState(sendState)), line: .sendState(sendState))
     return stack([layout, caption], spacing: metrics.spacingXS).map { .inset($0, padding: metrics.spacingXS) }

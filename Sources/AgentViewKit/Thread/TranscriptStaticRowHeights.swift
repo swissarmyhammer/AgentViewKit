@@ -67,7 +67,7 @@ import SwiftUI
   @ObservationIgnored private var generation = 0
 
   /// The most bytes of the bitmaps of the pictures of each cache that the
-  /// heights make (``makeCache(theme:expandedBlocks:hasDefaultLook:imageFolder:pictureByteLimit:)``).
+  /// heights make (``makeCache(theme:expandedBlocks:hasDefaultLook:messageFooter:imageFolder:pictureByteLimit:)``).
   @ObservationIgnored let pictureByteLimit: Int
 
   /// Makes the heights with no cache: each static row takes the height of
@@ -225,6 +225,8 @@ import SwiftUI
   ///   - expandedBlocks: The store of the expanded blocks of the rows, or
   ///     `nil`.
   ///   - hasDefaultLook: Whether the rows have their default look.
+  ///   - messageFooter: The kind of the footer of the message rows
+  ///     (``MessageFooter``), or `nil` for no footer.
   ///   - imageFolder: The folder that the images of the Markdown of the
   ///     rows load from (``RenderedMarkdownView/imageFolder(of:)``), or `nil`.
   ///   - pictureByteLimit: The most bytes of the bitmaps of the pictures of
@@ -232,19 +234,19 @@ import SwiftUI
   /// - Returns: The cache, with the EditorKit text measure
   ///   (``EditorLayoutTranscriptTextMeasure``) and the metrics of the theme.
   static func makeCache(
-    theme: any Theme, expandedBlocks: ExpandedBlocksStore?, hasDefaultLook: Bool, imageFolder: URL?,
-    pictureByteLimit: Int = TranscriptRowHeights.defaultPictureByteLimit
+    theme: any Theme, expandedBlocks: ExpandedBlocksStore?, hasDefaultLook: Bool, messageFooter: MessageFooterKind?,
+    imageFolder: URL?, pictureByteLimit: Int = TranscriptRowHeights.defaultPictureByteLimit
   ) -> TranscriptRowHeights? {
     guard let expandedBlocks, hasDefaultLook else { return nil }
     return TranscriptRowHeights(
       measure: EditorLayoutTranscriptTextMeasure(theme: theme, imageFolder: imageFolder),
-      metrics: TranscriptRowMetrics.probe(theme: theme), expandedBlocks: expandedBlocks,
+      metrics: TranscriptRowMetrics.probe(theme: theme), expandedBlocks: expandedBlocks, messageFooter: messageFooter,
       pictureByteLimit: pictureByteLimit)
   }
 }
 
 /// The values of the environment of the rows that set the cache of a thread
-/// (``TranscriptStaticRowHeights/makeCache(theme:expandedBlocks:hasDefaultLook:imageFolder:)``).
+/// (``TranscriptStaticRowHeights/makeCache(theme:expandedBlocks:hasDefaultLook:messageFooter:imageFolder:)``).
 /// A change of one of them makes a new cache.
 nonisolated struct TranscriptRowCacheSetup: Equatable {
   /// The font faces of the theme: the UI, the display and the code face.
@@ -259,6 +261,9 @@ nonisolated struct TranscriptRowCacheSetup: Equatable {
   /// Whether the rows have their default look.
   let hasDefaultLook: Bool
 
+  /// The kind of the footer of the message rows, or `nil` for no footer.
+  let messageFooter: MessageFooterKind?
+
   /// The folder that the images of the Markdown of the rows load from, or
   /// `nil`.
   let imageFolder: URL?
@@ -270,10 +275,11 @@ nonisolated struct TranscriptRowCacheSetup: Equatable {
   ///   - lhs: A setup.
   ///   - rhs: A setup.
   /// - Returns: `true` when the faces, the store of the expanded blocks, the
-  ///   session, the look and the image folder are the same.
+  ///   session, the look, the footer and the image folder are the same.
   static func == (lhs: TranscriptRowCacheSetup, rhs: TranscriptRowCacheSetup) -> Bool {
     lhs.faces == rhs.faces && lhs.expandedBlocks == rhs.expandedBlocks && lhs.session == rhs.session
-      && lhs.hasDefaultLook == rhs.hasDefaultLook && lhs.imageFolder == rhs.imageFolder
+      && lhs.hasDefaultLook == rhs.hasDefaultLook && lhs.messageFooter == rhs.messageFooter
+      && lhs.imageFolder == rhs.imageFolder
   }
 }
 
@@ -294,6 +300,7 @@ struct TranscriptRowHeightsFeed: ViewModifier {
   @Environment(\.editorTheme) private var theme
   @Environment(\.expandedBlocksStore) private var expandedBlocks
   @Environment(\.transcriptRowsHaveDefaultLook) private var hasDefaultLook
+  @Environment(\.messageFooter) private var messageFooter
   @Environment(\.colorScheme) private var colorScheme
   @Environment(\.displayScale) private var displayScale
 
@@ -309,7 +316,7 @@ struct TranscriptRowHeightsFeed: ViewModifier {
       .onChange(of: setup, initial: true) {
         let cache = TranscriptStaticRowHeights.makeCache(
           theme: theme, expandedBlocks: expandedBlocks, hasDefaultLook: hasDefaultLook,
-          imageFolder: setup.imageFolder, pictureByteLimit: heights.pictureByteLimit)
+          messageFooter: setup.messageFooter, imageFolder: setup.imageFolder, pictureByteLimit: heights.pictureByteLimit)
         heights.attach(cache: cache, session: session)
       }
   }
@@ -318,7 +325,7 @@ struct TranscriptRowHeightsFeed: ViewModifier {
   private var setup: TranscriptRowCacheSetup {
     TranscriptRowCacheSetup(
       faces: [theme.uiFace, theme.displayFace, theme.codeFace], expandedBlocks: expandedBlocks.map(ObjectIdentifier.init),
-      session: ObjectIdentifier(session), hasDefaultLook: hasDefaultLook,
+      session: ObjectIdentifier(session), hasDefaultLook: hasDefaultLook, messageFooter: messageFooter?.kind,
       imageFolder: RenderedMarkdownView.imageFolder(of: session))
   }
 }

@@ -52,7 +52,7 @@ import SwiftUI
 
   /// The footer of the message row, as the `messageFooter` slot gives it.
   /// Set it before ``show(rowsMove:)``.
-  var messageFooter: ItemViewRenderer<MessageEntry>?
+  var messageFooter: MessageFooter?
 
   /// The find hits of the thread of the row, or `nil` for a thread with
   /// no search. Set it before ``show(rowsMove:)``.
@@ -124,14 +124,16 @@ import SwiftUI
   ///   - movesLive: Whether the motion is a live motion of the user
   ///     (``movesLive``).
   ///   - colorScheme: The appearance of the window. The default is light.
+  ///   - messageFooter: The footer of the message row (``messageFooter``),
+  ///     which the cache knows too, or `nil` (the default) for no footer.
   /// - Returns: The host, with the row in its first frame.
   static func makeCached(
     _ row: TranscriptRowFixtures.Row, width: CGFloat, frames: (any TranscriptFrameSource)? = nil,
-    movesLive: Bool = true, colorScheme: ColorScheme = .light
+    movesLive: Bool = true, colorScheme: ColorScheme = .light, messageFooter: MessageFooter? = nil
   ) async -> StaticRowHost {
     await makeCached(
       row.item, width: width, isExpanded: row.isExpanded, frames: frames, movesLive: movesLive,
-      colorScheme: colorScheme)
+      colorScheme: colorScheme, messageFooter: messageFooter)
   }
 
   /// Gives the row of `item` the height cache of a thread, as
@@ -151,19 +153,24 @@ import SwiftUI
   ///   - drawsPictures: Whether the cache knows the appearance of the
   ///     window, and thus draws the pictures of the static text. With
   ///     `false`, each slot shows its SwiftUI `Text`. The default is `true`.
+  ///   - messageFooter: The footer of the message row (``messageFooter``),
+  ///     which the cache knows too, as the cache of a thread knows the
+  ///     footer of its rows, or `nil` (the default) for no footer.
   /// - Returns: The host, with the row in its first frame.
   static func makeCached(
     _ item: PreviewTranscriptItem, width: CGFloat, isExpanded: Bool = false,
     frames: (any TranscriptFrameSource)? = nil, movesLive: Bool = true, colorScheme: ColorScheme = .light,
-    drawsPictures: Bool = true
+    drawsPictures: Bool = true, messageFooter: MessageFooter? = nil
   ) async -> StaticRowHost {
     let host = StaticRowHost(
       item, width: width, isExpanded: isExpanded, colorScheme: colorScheme, showsAtRest: false)
     host.movesLive = movesLive
+    host.messageFooter = messageFooter
     if let frames {
       host.mounts = TranscriptRowMountQueue(frames: frames)
     }
-    let cache = TranscriptRowHeights(metrics: TranscriptRowMetrics.probe(), expandedBlocks: host.store)
+    let cache = TranscriptRowHeights(
+      metrics: TranscriptRowMetrics.probe(), expandedBlocks: host.store, messageFooter: messageFooter?.kind)
     if drawsPictures {
       host.heights.noteAppearance(host.appearance)
     }

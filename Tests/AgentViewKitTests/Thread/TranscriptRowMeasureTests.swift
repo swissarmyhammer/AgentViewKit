@@ -105,7 +105,7 @@ struct TranscriptRowMeasureTests {
     let entry = try #require(session.transcript.first)
     let cache = try #require(
       TranscriptStaticRowHeights.makeCache(
-        theme: SystemTheme(), expandedBlocks: ExpandedBlocksStore(), hasDefaultLook: true,
+        theme: SystemTheme(), expandedBlocks: ExpandedBlocksStore(), hasDefaultLook: true, messageFooter: nil,
         imageFolder: RenderedMarkdownView.imageFolder(of: session)))
     _ = try await TranscriptRowHeightBed.cachedHeight(of: entry, in: cache, width: TranscriptRowHeightBed.regularWidth)
 

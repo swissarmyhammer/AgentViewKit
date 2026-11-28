@@ -1,6 +1,8 @@
 import FoundationModelsACP
 import FoundationModelsACPClient
 
+@testable import AgentViewKit
+
 /// The preview items of the row height tests: one for each row kind.
 enum TranscriptRowFixtures {
   /// A paragraph that wraps at each test width.
@@ -236,6 +238,17 @@ enum TranscriptRowFixtures {
       SessionMessage(
         messageId: MessageId(rawValue: "mail"), content: .value([.text(TextContent(text: paragraph))]),
         senderSessionId: .value(SessionId(rawValue: "child-1")))))
+
+  /// The message rows of the fixtures: a user message with its send state
+  /// caption, an agent message of prose and an agent message with a code
+  /// fence (card ^grwk69d).
+  nonisolated static let messageRows: [Row] = [.userMessage, .agentProse, .agentFenced]
+
+  /// The footer of the message rows of a thread that shows the message
+  /// actions, as a host sets it: `.messageFooter { MessageActions(entry: $0) }`.
+  @MainActor static var messageActions: MessageFooter {
+    MessageFooter { entry in MessageActions(entry: entry) }
+  }
 
   /// Each row kind of the fixtures.
   enum Row: String, CaseIterable, Sendable {

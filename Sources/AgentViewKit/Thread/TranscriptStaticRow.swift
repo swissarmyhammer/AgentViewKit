@@ -244,7 +244,7 @@ struct TranscriptStaticRow: ViewModifier {
     }
     return TranscriptStaticRowFrame(id: id, staticHeight: staticHeight) {
       if let flatPlan, let heights {
-        TranscriptFlatRow(rowKey: id.rowKey, plan: flatPlan, chrome: heights.chrome)
+        TranscriptFlatRow(rowKey: id.rowKey, plan: flatPlan, chrome: heights.chrome, message: MessageEntry(entry))
           .environment(\.transcriptSlotForm, slotForm)
       } else {
         content
@@ -279,12 +279,13 @@ struct TranscriptStaticRow: ViewModifier {
   }
 
   /// Whether the real row shows no view that the flat form does not draw:
-  /// no footer of a message, no find hit, and no status of the MCP server
-  /// of a tool call.
+  /// no custom footer of a message (the flat form draws the footer of the
+  /// message actions, card ^grwk69d), no find hit, and no status of the MCP
+  /// server of a tool call.
   private var showsOnlyFlatChrome: Bool {
     guard search?.mark(forRowKey: id.rowKey) == nil else { return false }
     switch entry {
-    case .userMessage, .agentMessage: return footer == nil
+    case .userMessage, .agentMessage: return footer?.kind != .custom
     case .toolCall(let call): return connectionState?(call) == nil
     case .thought, .terminal, .plan, .unknown, .error, .compaction, .sessionMessage: return true
     }

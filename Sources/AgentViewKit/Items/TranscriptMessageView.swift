@@ -73,7 +73,7 @@ struct TranscriptMessageView<Accessory: View>: View {
       MessageLayout(id: key, role: entry.role) {
         EntryContentView(content: entry.content, id: key)
         if let footer {
-          footer(entry)
+          footer.content(entry)
         }
       }
       accessory

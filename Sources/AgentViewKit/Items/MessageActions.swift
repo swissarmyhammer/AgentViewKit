@@ -1,3 +1,4 @@
+import EditorCommands
 import EditorCommandsUI
 import EditorStyle
 import EditorSwiftUI
@@ -179,13 +180,12 @@ public struct MessageActions: View {
   }
 
   public var body: some View {
-    ControlStack(.horizontal) {
+    MessageActionsLayout {
       ForEach(actionsToShow, id: \.self) { action in
         button(for: action)
           .accessibilityIdentifier(action.identifier)
       }
     }
-    .editorButtonCaptions(.hidden)
     .modifier(MarkdownExportPresentation(presenter: markdownExports))
   }
 
@@ -210,22 +210,24 @@ public struct MessageActions: View {
     }
   }
 
+  /// The values of the environment that set the buttons of the row.
+  private var context: Context {
+    Context(session: session, commandTarget: commandTarget, forkFromHere: forkFromHere, groupsOff: groupsOff)
+  }
+
   /// The buttons for the message, in display order.
   private var actionsToShow: [Action] {
-    guard let session else { return [.copy] }
-    let canFork = forkFromHere != nil && !groupsOff.contains(.fork)
-    return Self.actions(for: entry.role, canFork: canFork, isReadOnly: session.isReadOnly)
+    context.actions(for: entry.role)
   }
 
   /// The reason that the button of `action` with no command scope is
-  /// disabled, or `nil` when the button is enabled: the reason of the fork
-  /// action for Fork, else ``disabledReason(of:in:)``.
+  /// disabled, or `nil` when the button is enabled
+  /// (``Context/disabledReason(of:for:)``).
   ///
   /// - Parameter action: The action of the button.
   /// - Returns: The reason, or `nil`.
   private func disabledReason(of action: Action) -> String? {
-    if action == .fork { return forkFromHere?.unavailableReason(for: entry) }
-    return session.flatMap { Self.disabledReason(of: action, in: $0) }
+    context.disabledReason(of: action, for: entry)
   }
 
   /// The Markdown of the message: `ThreadExporter.markdown(for:)`, read at
@@ -359,6 +361,138 @@ public struct MessageActions: View {
       promptText.wrappedValue = AttributedString(text)
     } else {
       logger.error("Edit found no composer for \(entry.id.rowKey, privacy: .private).")
+    }
+  }
+}
+
+extension MessageActions {
+  /// The values of the environment of a row of message actions that set
+  /// its buttons and the enabled state of each button (card ^grwk69d).
+  ///
+  /// The real row (``MessageActions``) and the chrome line of the flat form
+  /// of a static row (``MessageActionsLook``) read the same values with the
+  /// same rules, so the picture of the line shows the buttons of the row.
+  struct Context {
+    /// The session model of the row, or `nil`.
+    let session: SessionModel?
+
+    /// The agent command scope of the row, or `nil`.
+    let commandTarget: AgentCommandTarget?
+
+    /// The fork action of the host, or `nil`.
+    let forkFromHere: ForkFromHereAction?
+
+    /// The command groups that the host turned off.
+    let groupsOff: Set<AgentCommandGroup>
+
+    /// The buttons for a message of `role`, in display order: only Copy
+    /// with no session model, else ``MessageActions/actions(for:canFork:isReadOnly:)``.
+    ///
+    /// - Parameter role: The sender of the message.
+    /// - Returns: The buttons.
+    func actions(for role: MessageRole) -> [Action] {
+      guard let session else { return [.copy] }
+      let canFork = forkFromHere != nil && !groupsOff.contains(.fork)
+      return MessageActions.actions(for: role, canFork: canFork, isReadOnly: session.isReadOnly)
+    }
+
+    /// The reason that the button of `action` with no command scope is
+    /// disabled, or `nil` when the button is enabled: the reason of the
+    /// fork action for Fork, else ``MessageActions/disabledReason(of:in:)``.
+    ///
+    /// - Parameters:
+    ///   - action: The action of the button.
+    ///   - entry: The message entry of the row.
+    /// - Returns: The reason, or `nil`.
+    func disabledReason(of action: Action, for entry: MessageEntry) -> String? {
+      if action == .fork { return forkFromHere?.unavailableReason(for: entry) }
+      return session.flatMap { MessageActions.disabledReason(of: action, in: $0) }
+    }
+
+    /// Whether the button of `action` is enabled: in an agent command scope,
+    /// the availability of the command of its ``Action/verb``, with the
+    /// message of the row as the item of the scope, as the registry gives it
+    /// to the command button; else no ``disabledReason(of:for:)``.
+    ///
+    /// - Parameters:
+    ///   - action: The action of the button.
+    ///   - entry: The message entry of the row.
+    /// - Returns: `true` when the button is enabled.
+    func isEnabled(_ action: Action, for entry: MessageEntry) -> Bool {
+      guard let verb = action.verb, let commandTarget else { return disabledReason(of: action, for: entry) == nil }
+      let payload = verb.itemPayloadKey.map { CommandPayload(values: [$0: entry.id.rowKey]) }
+      return commandTarget.availability(of: verb, payload: payload).isAvailable
+    }
+
+    /// The look of the row of a message entry: each button, in display
+    /// order, with its name, its symbol and its enabled state.
+    ///
+    /// - Parameter entry: The message entry of the row.
+    /// - Returns: The look.
+    func look(for entry: MessageEntry) -> MessageActionsLook {
+      MessageActionsLook(
+        buttons: actions(for: entry.role).map { action in
+          MessageActionsLook.Button(
+            title: action.title, systemImage: action.systemImage, isEnabled: isEnabled(action, for: entry))
+        })
+    }
+  }
+}
+
+/// The layout of the buttons of a row of message actions: one horizontal
+/// stack of controls, with no captions (card ^grwk69d).
+///
+/// ``MessageActions`` and the picture of its chrome line
+/// (``MessageActionsLookView``) lay out their buttons in it, so the two
+/// have the same size and the same places.
+struct MessageActionsLayout<Content: View>: View {
+  /// The buttons.
+  @ViewBuilder let content: Content
+
+  var body: some View {
+    ControlStack(.horizontal) {
+      content
+    }
+    .editorButtonCaptions(.hidden)
+  }
+}
+
+/// The look of a row of message actions: what the chrome line of the flat
+/// form of a static message row draws in place of the real row (card
+/// ^grwk69d).
+///
+/// Two rows with the same look draw the same picture.
+nonisolated struct MessageActionsLook: Hashable, Sendable {
+  /// One button of the row.
+  struct Button: Hashable, Sendable {
+    /// The name of the button, which is its tooltip.
+    let title: String
+
+    /// The SF Symbol of the button.
+    let systemImage: String
+
+    /// Whether the button is enabled.
+    let isEnabled: Bool
+  }
+
+  /// The buttons, in display order.
+  let buttons: [Button]
+}
+
+/// The buttons of a ``MessageActionsLook`` with no action, in the layout of
+/// ``MessageActions``: the view that the chrome line of the actions draws
+/// (card ^grwk69d).
+struct MessageActionsLookView: View {
+  /// The look of the row.
+  let look: MessageActionsLook
+
+  var body: some View {
+    MessageActionsLayout {
+      ForEach(look.buttons.indices, id: \.self) { index in
+        let button = look.buttons[index]
+        EditorToolbarButton(button.title, systemImage: button.systemImage) {}
+          .disabled(!button.isEnabled)
+      }
     }
   }
 }

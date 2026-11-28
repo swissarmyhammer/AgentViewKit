@@ -106,18 +106,50 @@ import Testing
     let name = "flickFlatRows"
     let session = SessionModel.preview(transcript: FlickTranscript.items(turns: Self.flickTurns, in: name))
     let thread = try await MovingThread.makeCached(session: session, frames: ManualFrames())
+
+    let (made, real) = Self.flickBodies(of: thread)
+
+    try #require(made > 0, "no row came in")
+    #expect(real == 0)
+  }
+
+  /// A production change that fails this test: a message row with a
+  /// footer of ``MessageActions`` that the stack makes in a live flick
+  /// builds the views of its real row, and not one flat view whose footer
+  /// is a chrome line (card ^grwk69d).
+  @Test func aFlickBuildsNoRealRowForAMessageWithActionsThatComesIn() async throws {
+    let name = "flickFlatActions"
+    let session = SessionModel.preview(transcript: FlickTranscript.items(turns: Self.flickTurns, in: name))
+    let thread = try await MovingThread.makeCached(
+      session: session, frames: ManualFrames(), messageFooter: TranscriptRowFixtures.messageActions)
+
+    let (made, real) = Self.flickBodies(of: thread)
+
+    try #require(made > 0, "no row came in")
+    #expect(real == 0)
+  }
+
+  /// Moves a thread up in a live flick of ``flickSteps`` steps, and counts
+  /// the rows that the stack made and the bodies of the views of real rows
+  /// in the flick.
+  ///
+  /// - Parameter thread: The thread, at rest.
+  /// - Returns: The count of the bodies of the static rows that the stack
+  ///   made, and the count of the bodies of the views of their real rows
+  ///   (``TranscriptFlatRowTests/realViewKeys(of:)``).
+  static func flickBodies(of thread: MovingThread) -> (made: Int, real: Int) {
     thread.startMoving()
-    let rowKeys = session.transcript.map(\.rowKey)
+    let rowKeys = thread.session.transcript.map(\.rowKey)
     let madeKeys = rowKeys.map(TranscriptStaticRow.counterKey(for:))
     let realKeys = rowKeys.flatMap(TranscriptFlatRowTests.realViewKeys(of:))
     BodyEvaluationCounter.reset(madeKeys + realKeys)
 
-    for _ in 0..<Self.flickSteps {
-      thread.step(by: Self.flickStep, isLive: true)
+    for _ in 0..<flickSteps {
+      thread.step(by: flickStep, isLive: true)
     }
 
-    try #require(madeKeys.map(BodyEvaluationCounter.count).reduce(0, +) > 0, "no row came in")
-    #expect(realKeys.map(BodyEvaluationCounter.count).reduce(0, +) == 0)
+    let total = { (keys: [String]) in keys.map(BodyEvaluationCounter.count).reduce(0, +) }
+    return (total(madeKeys), total(realKeys))
   }
 
   /// The number of the first steps of a flick in which the stack does not

@@ -199,11 +199,7 @@ extension AgentCommandTarget {
     guard let key = AgentCommandPayload.string(AgentCommandPayload.messageKey, in: payload),
       let position = transcript.position(ofRowKey: key)
     else { return nil }
-    switch transcript[position] {
-    case .userMessage(let entry): return .user(entry)
-    case .agentMessage(let entry): return .agent(entry)
-    default: return nil
-    }
+    return MessageEntry(transcript[position])
   }
 }
 

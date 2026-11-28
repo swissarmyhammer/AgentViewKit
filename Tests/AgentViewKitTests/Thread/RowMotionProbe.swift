@@ -15,8 +15,8 @@ import SwiftUI
   private(set) var rowsMove: Bool?
 
   /// The footer of the message rows, for the `messageFooter` slot.
-  var footer: ItemViewRenderer<MessageEntry> {
-    { _ in AnyView(RowMotionProbeView(probe: self)) }
+  var footer: MessageFooter {
+    MessageFooter { _ in RowMotionProbeView(probe: self) }
   }
 
   /// Records the value that a footer read.

@@ -80,6 +80,14 @@ nonisolated enum TranscriptChromeLine: Hashable, Sendable {
   /// The send state caption of a user message.
   case sendState(SendState)
 
+  /// The row of the message actions in the footer of a message
+  /// (``MessageActions``, card ^grwk69d), with its look. The chrome rule
+  /// does not know the look: the buttons and their states come from the
+  /// environment of the row, so the tree holds `nil`, and the flat row
+  /// draws the line with the look of its row
+  /// (``TranscriptMessageActionsLine``).
+  case messageActions(MessageActionsLook?)
+
   /// The header of a code block: its symbol, its title and its copy button
   /// (`CodeBlockHeader`).
   case codeBlockHeader(title: String)

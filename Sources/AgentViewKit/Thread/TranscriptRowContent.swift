@@ -25,9 +25,10 @@ nonisolated public struct TranscriptRowContent: Hashable, Sendable {
 
   /// The data of each row kind.
   enum Kind: Hashable, Sendable {
-    /// A user or an agent message: its sender, its text blocks, and the
-    /// send state of a user message.
-    case message(role: MessageRole, blocks: [String], sendState: SendState?)
+    /// A user or an agent message: its sender, its text blocks, the send
+    /// state of a user message, and whether the row shows the footer of the
+    /// message actions (``MessageFooterKind/messageActions``).
+    case message(role: MessageRole, blocks: [String], sendState: SendState?, hasActions: Bool)
 
     /// A collapsed thought: the title of its header.
     case collapsedThought(title: String)
@@ -131,24 +132,29 @@ nonisolated public struct TranscriptRowContent: Hashable, Sendable {
   /// - Parameters:
   ///   - entry: The transcript entry.
   ///   - isExpanded: Whether the blocks of the row are expanded.
-  @MainActor public init(entry: TranscriptEntry, isExpanded: Bool) {
+  ///   - footer: The kind of the footer of the message rows of the thread
+  ///     (``MessageFooter``), or `nil` (the default) for no footer.
+  @MainActor public init(entry: TranscriptEntry, isExpanded: Bool, footer: MessageFooterKind? = nil) {
     rowKey = entry.rowKey
-    kind = Self.kind(of: entry, isExpanded: isExpanded)
+    kind = Self.kind(of: entry, isExpanded: isExpanded, footer: footer)
   }
 
   /// The data of the row kind of `entry`.
   ///
+  /// A message row with a custom footer is not covered: no rule knows the
+  /// height of its footer (card ^grwk69d).
+  ///
   /// - Parameters:
   ///   - entry: The transcript entry.
   ///   - isExpanded: Whether the blocks of the row are expanded.
+  ///   - footer: The kind of the footer of the message rows, or `nil`.
   /// - Returns: The data.
-  @MainActor private static func kind(of entry: TranscriptEntry, isExpanded: Bool) -> Kind {
+  @MainActor private static func kind(of entry: TranscriptEntry, isExpanded: Bool, footer: MessageFooterKind?) -> Kind {
     switch entry {
     case .userMessage(let message):
-      textBlocks(of: message.content).map { .message(role: .user, blocks: $0, sendState: message.sendState) }
-        ?? .uncovered
+      messageKind(role: .user, content: message.content, sendState: message.sendState, footer: footer)
     case .agentMessage(let message):
-      textBlocks(of: message.content).map { .message(role: .assistant, blocks: $0, sendState: nil) } ?? .uncovered
+      messageKind(role: .assistant, content: message.content, sendState: nil, footer: footer)
     case .thought:
       isExpanded ? .uncovered : .collapsedThought(title: ReasoningView.completedTitle(duration: entry.timing.duration))
     case .toolCall(let call):
@@ -167,6 +173,22 @@ nonisolated public struct TranscriptRowContent: Hashable, Sendable {
     case .unknown:
       .uncovered
     }
+  }
+
+  /// The data of a user or an agent message.
+  ///
+  /// - Parameters:
+  ///   - role: The sender of the message.
+  ///   - content: The content blocks of the message.
+  ///   - sendState: The send state of a user message, or `nil`.
+  ///   - footer: The kind of the footer of the message rows, or `nil`.
+  /// - Returns: The data, or ``Kind/uncovered`` for a block that is not
+  ///   text or for a custom footer.
+  private static func messageKind(
+    role: MessageRole, content: [ContentBlock], sendState: SendState?, footer: MessageFooterKind?
+  ) -> Kind {
+    guard footer != .custom, let blocks = textBlocks(of: content) else { return .uncovered }
+    return .message(role: role, blocks: blocks, sendState: sendState, hasActions: footer == .messageActions)
   }
 
   /// The texts of the shown blocks of a content list, with adjacent text

@@ -67,7 +67,7 @@ import Testing
   ///     the height cache. The default is the default of the cache.
   init(
     session: SessionModel, frames: any TranscriptFrameSource, expandedBlocks: ExpandedBlocksStore? = nil,
-    messageFooter: ItemViewRenderer<MessageEntry>? = nil, barHeight: CGFloat = .zero,
+    messageFooter: MessageFooter? = nil, barHeight: CGFloat = .zero,
     pictureByteLimit: Int = TranscriptRowHeights.defaultPictureByteLimit
   ) throws {
     self.session = session
@@ -116,15 +116,19 @@ import Testing
   /// - Parameters:
   ///   - session: The session of the list.
   ///   - frames: The frames of the queue, such as ``ManualFrames``.
+  ///   - messageFooter: The footer of each message row, as the
+  ///     `messageFooter` slot gives it, or `nil` (the default) for no
+  ///     footer.
   ///   - pictureByteLimit: The most bytes of the bitmaps of the pictures of
   ///     the height cache. The default is the default of the cache.
   /// - Returns: The list, at rest.
   static func makeCached(
-    session: SessionModel, frames: any TranscriptFrameSource,
+    session: SessionModel, frames: any TranscriptFrameSource, messageFooter: MessageFooter? = nil,
     pictureByteLimit: Int = TranscriptRowHeights.defaultPictureByteLimit
   ) async throws -> MovingThread {
     let thread = try MovingThread(
-      session: session, frames: frames, expandedBlocks: ExpandedBlocksStore(), pictureByteLimit: pictureByteLimit)
+      session: session, frames: frames, expandedBlocks: ExpandedBlocksStore(), messageFooter: messageFooter,
+      pictureByteLimit: pictureByteLimit)
     thread.settle()
     let cache = try #require(thread.heights.cache, "the list has no height cache")
     await cache.computeHeights(of: session.transcript.map(\.rowKey))

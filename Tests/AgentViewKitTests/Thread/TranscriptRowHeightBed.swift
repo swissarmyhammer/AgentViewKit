@@ -127,15 +127,20 @@ nonisolated struct MountedTextMeasure: TranscriptTextMeasure {
   ///   - entry: The entry of the row.
   ///   - width: The width of the row.
   ///   - store: The store that tells whether a block is expanded.
+  ///   - messageFooter: The footer of a message row, or `nil` (the default)
+  ///     for no footer.
   /// - Returns: The layout of the row.
   /// - Throws: An issue when the response model of the row has no syntax.
-  static func mount(_ entry: TranscriptEntry, width: CGFloat, store: ExpandedBlocksStore) async throws -> MountedRow {
+  static func mount(
+    _ entry: TranscriptEntry, width: CGFloat, store: ExpandedBlocksStore, messageFooter: MessageFooter? = nil
+  ) async throws -> MountedRow {
     let models = CodeBlockModelCache(limit: CodeBlockModelCache.threadLimit)
     let (hosting, window) = UnorderedWindow.mount(
       ItemRow(entry: entry)
         .frame(width: width)
         .environment(\.expandedBlocksStore, store)
-        .environment(\.codeBlockModelCache, models),
+        .environment(\.codeBlockModelCache, models)
+        .environment(\.messageFooter, messageFooter),
       size: CGSize(width: width, height: windowHeight))
     defer { UnorderedWindow.close(window) }
     StyleViewHost.layOut(hosting)
@@ -220,20 +225,24 @@ nonisolated struct MountedTextMeasure: TranscriptTextMeasure {
   ///   - tolerance: The largest difference between the two heights.
   ///   - widthBefore: The width that the cache computes the row at before
   ///     `width`, as after a resize of the thread, or `nil` for no resize.
+  ///   - messageFooter: The footer of a message row, which the mounted row
+  ///     shows and the cache knows, or `nil` (the default) for no footer.
   ///   - sourceLocation: The location of the caller.
   static func expectCachedHeightMatchesTheMountedRow(
     _ entry: TranscriptEntry, width: CGFloat, expanded: Bool = false, measure: (any TranscriptTextMeasure)? = nil,
-    tolerance: CGFloat = tolerance, widthBefore: CGFloat? = nil, sourceLocation: SourceLocation = #_sourceLocation
+    tolerance: CGFloat = tolerance, widthBefore: CGFloat? = nil, messageFooter: MessageFooter? = nil,
+    sourceLocation: SourceLocation = #_sourceLocation
   ) async throws {
     let store = ExpandedBlocksStore { _ in expanded }
-    let mounted = try await mount(entry, width: width, store: store)
+    let mounted = try await mount(entry, width: width, store: store, messageFooter: messageFooter)
     let metrics = TranscriptRowMetrics.probe()
-    let content = TranscriptRowContent(entry: entry, isExpanded: expanded)
+    let content = TranscriptRowContent(entry: entry, isExpanded: expanded, footer: messageFooter?.kind)
     let parts = parts(of: content, width: width, metrics: metrics)
     try #require(parts.count == mounted.textHeights.count, sourceLocation: sourceLocation)
     let mountedMeasure = MountedTextMeasure(
       heights: Dictionary(zip(parts, mounted.textHeights)) { first, _ in first })
-    let heights = TranscriptRowHeights(measure: measure ?? mountedMeasure, metrics: metrics, expandedBlocks: store)
+    let heights = TranscriptRowHeights(
+      measure: measure ?? mountedMeasure, metrics: metrics, expandedBlocks: store, messageFooter: messageFooter?.kind)
     if let widthBefore {
       _ = try await cachedHeight(of: entry, in: heights, width: widthBefore, sourceLocation: sourceLocation)
     }

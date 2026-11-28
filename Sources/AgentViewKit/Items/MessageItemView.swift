@@ -16,6 +16,18 @@ public enum MessageEntry {
   /// An `AgentMessageEntry` of the transcript.
   case agent(AgentMessageEntry)
 
+  /// The message entry of a transcript entry, or `nil` for an entry that
+  /// is not a message.
+  ///
+  /// - Parameter entry: The transcript entry.
+  init?(_ entry: TranscriptEntry) {
+    switch entry {
+    case .userMessage(let message): self = .user(message)
+    case .agentMessage(let message): self = .agent(message)
+    case .thought, .toolCall, .terminal, .plan, .unknown, .error, .compaction, .sessionMessage: return nil
+    }
+  }
+
   /// The stable identity of the entry.
   public var id: TranscriptEntry.ID {
     switch self {
@@ -59,6 +71,46 @@ public enum MessageEntry {
   }
 }
 
+/// The footer of each message row, as ``SwiftUI/View/messageFooter(_:)``
+/// sets it: the view of the footer of a message entry, and the kind of
+/// that view (card ^grwk69d).
+///
+/// The kind sets the chrome rule of a message row in the height cache of a
+/// thread (``TranscriptRowChrome``). A footer of ``MessageActions`` has a
+/// rule: one line of buttons of a known height, which the flat form of a
+/// static row draws as a chrome line. Each other footer is custom: the
+/// cache cannot know its height, so it gives a message row with that
+/// footer no height, and the row is not flat while the rows move.
+public struct MessageFooter {
+  /// The view of the footer of a message entry.
+  let content: ItemViewRenderer<MessageEntry>
+
+  /// The kind of the footer.
+  let kind: MessageFooterKind
+
+  /// Makes the footer of a function that makes a view of a message entry.
+  ///
+  /// The footer is a ``MessageFooterKind/messageActions`` footer when the
+  /// function makes a ``MessageActions`` view and nothing else, else a
+  /// ``MessageFooterKind/custom`` footer.
+  ///
+  /// - Parameter content: The function that makes the footer of a message
+  ///   entry.
+  init<Content: View>(@ViewBuilder _ content: @escaping @MainActor (MessageEntry) -> Content) {
+    self.content = { entry in AnyView(content(entry)) }
+    kind = Content.self == MessageActions.self ? .messageActions : .custom
+  }
+}
+
+/// The kind of the footer of the message rows of a thread (card ^grwk69d).
+nonisolated public enum MessageFooterKind: Hashable, Sendable {
+  /// A ``MessageActions`` row: one line of buttons of a known height.
+  case messageActions
+
+  /// Another view, whose height no chrome rule knows.
+  case custom
+}
+
 extension EnvironmentValues {
   /// The footer of each message row: the `messageFooter` slot
   /// (plan.md §9 A2).
@@ -68,7 +120,7 @@ extension EnvironmentValues {
   /// it reads the model directly. The value is `nil` by default, and the
   /// views then show no footer. Set the value with
   /// ``SwiftUI/View/messageFooter(_:)``.
-  @Entry public var messageFooter: ItemViewRenderer<MessageEntry>? = nil
+  @Entry public var messageFooter: MessageFooter? = nil
 }
 
 extension View {
@@ -81,13 +133,19 @@ extension View {
   ///   .messageFooter { entry in MessageActions(entry: entry) }
   /// ```
   ///
+  /// A function that makes a ``MessageActions`` view and nothing else gives
+  /// a footer of a known height, so the height cache of the thread covers
+  /// the message rows (``MessageFooter``). With another footer, the message
+  /// rows of the thread take the height of the last layout of their real
+  /// rows while the rows move.
+  ///
   /// - Parameter content: The function that makes the footer of a message
   ///   entry.
   /// - Returns: A view that gives the footer to its subtree.
   public func messageFooter<Content: View>(
     @ViewBuilder _ content: @escaping @MainActor (MessageEntry) -> Content
   ) -> some View {
-    environment(\.messageFooter) { entry in AnyView(content(entry)) }
+    environment(\.messageFooter, MessageFooter(content))
   }
 }
 

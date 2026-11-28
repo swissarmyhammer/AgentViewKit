@@ -34,6 +34,10 @@ struct TranscriptFlatRow: View {
   /// The pictures of the chrome lines of the thread.
   let chrome: TranscriptChromePictures
 
+  /// The message entry of a message row, whose look the line of its
+  /// message actions draws, or `nil` for another row.
+  let message: MessageEntry?
+
   /// The ``BodyEvaluationCounter`` key of the flat row of a row key.
   ///
   /// - Parameter rowKey: The row key of the entry.
@@ -49,7 +53,7 @@ struct TranscriptFlatRow: View {
     let leaves = plan.leaves
     return TranscriptFlatRowLayout(rowKey: rowKey, frames: leaves.map(\.frame), size: plan.size) {
       ForEach(leaves.indices, id: \.self) { index in
-        TranscriptFlatLeafView(leaf: leaves[index], chrome: chrome)
+        TranscriptFlatLeafView(leaf: leaves[index], chrome: chrome, message: message)
       }
     }
     .contentShape(Rectangle())
@@ -254,7 +258,7 @@ extension TranscriptFlatRowPlan {
       case .chrome(let line): line.spokenText
       case .band: nil
       }
-    }.joined(separator: "\n")
+    }.filter { !$0.isEmpty }.joined(separator: "\n")
   }
 }
 
@@ -334,12 +338,63 @@ struct TranscriptFlatLeafView: View {
   /// The pictures of the chrome lines of the thread.
   let chrome: TranscriptChromePictures
 
+  /// The message entry of a message row, or `nil` for another row.
+  let message: MessageEntry?
+
   var body: some View {
     switch leaf.kind {
     case .picture(let rendering, let text): StaticPictureView(rendering, text: text)
+    case .chrome(.messageActions(nil)):
+      TranscriptMessageActionsLine(entry: message, size: leaf.frame.size, chrome: chrome)
     case .chrome(let line): TranscriptChromeLineView(line: line, size: leaf.frame.size, chrome: chrome)
     case .band: Color.clear.editorBlockFrame()
     }
+  }
+}
+
+/// The picture of the row of the message actions of a flat message row,
+/// with the look of the row (card ^grwk69d).
+///
+/// The chrome rule of a message does not know the buttons of the row and
+/// their states: they come from the environment of the row, as the real
+/// ``MessageActions`` row reads them (``MessageActions/Context``). This
+/// view reads them, so only this view of the flat row observes the session
+/// and the command scope, and it draws the line with that look
+/// (``TranscriptChromeLine/messageActions(_:)``). Each later row with the
+/// same look shows the kept picture.
+struct TranscriptMessageActionsLine: View {
+  /// The message entry of the row, or `nil` when the row is not a message.
+  let entry: MessageEntry?
+
+  /// The size of the place of the line.
+  let size: CGSize
+
+  /// The pictures of the chrome lines of the thread.
+  let chrome: TranscriptChromePictures
+
+  /// The log of a line of a row that is not a message.
+  private static let logger = Logger(subsystem: "AgentViewKit", category: "TranscriptMessageActionsLine")
+
+  @Environment(\.sessionModel) private var session
+  @Environment(\.agentCommandTarget) private var commandTarget
+  @Environment(\.forkFromHere) private var forkFromHere
+  @Environment(\.agentCommandGroupsOff) private var groupsOff
+
+  var body: some View {
+    if let entry {
+      let context = MessageActions.Context(
+        session: session, commandTarget: commandTarget, forkFromHere: forkFromHere, groupsOff: groupsOff)
+      TranscriptChromeLineView(line: .messageActions(context.look(for: entry)), size: size, chrome: chrome)
+    } else {
+      Color.clear.frame(width: size.width, height: size.height).onAppear(perform: Self.noteNoMessage)
+    }
+  }
+
+  /// Records a line of the message actions in a row that is not a message:
+  /// the line stays clear.
+  private static func noteNoMessage() {
+    assertionFailure("a flat row that is not a message has a line of message actions")
+    logger.error("a flat row that is not a message has a line of message actions; the line stays clear")
   }
 }
 
@@ -489,6 +544,7 @@ extension TranscriptChromeLine {
     switch self {
     case .messageHeader(let role): MessageHeader(role: role)
     case .sendState(let state): StatusCaption(status: EditorStatus(state), identifier: "")
+    case .messageActions(let look): look.map(MessageActionsLookView.init(look:))
     case .codeBlockHeader(let title): CodeBlockHeader(title: title) {}
     case .thoughtHeader(let title):
       ReasoningHeader(id: "", title: title, isOn: .constant(false), isExpanded: false) {}
@@ -509,6 +565,7 @@ extension TranscriptChromeLine {
     switch self {
     case .messageHeader(let role): role.title
     case .sendState(let state): EditorStatus(state).summary
+    case .messageActions: ""
     case .codeBlockHeader(let title), .thoughtHeader(let title): title
     case .toolCallHeader(let header): ToolCallView.accessibilityLabel(title: header.title, status: header.status)
     }

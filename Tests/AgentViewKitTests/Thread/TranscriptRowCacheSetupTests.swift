@@ -18,29 +18,32 @@ import Testing
   nonisolated static let folder = URL(filePath: "/tmp/project", directoryHint: .isDirectory)
 
   /// A setup with the system faces, the first store, the first session, the
-  /// default look and no image folder.
+  /// default look, no footer and no image folder.
   nonisolated static let base = TranscriptRowCacheSetup(
     faces: [.system], expandedBlocks: first, session: first,
-    hasDefaultLook: true, imageFolder: nil)
+    hasDefaultLook: true, messageFooter: nil, imageFolder: nil)
 
   /// The setups that differ from ``base`` in one value each: the faces, the
-  /// store, the session, the look and the image folder.
+  /// store, the session, the look, the footer and the image folder.
   nonisolated static let changed: [TranscriptRowCacheSetup] = [
     TranscriptRowCacheSetup(
       faces: [.monospaced], expandedBlocks: base.expandedBlocks, session: base.session,
-      hasDefaultLook: base.hasDefaultLook, imageFolder: base.imageFolder),
+      hasDefaultLook: base.hasDefaultLook, messageFooter: base.messageFooter, imageFolder: base.imageFolder),
     TranscriptRowCacheSetup(
       faces: base.faces, expandedBlocks: second, session: base.session,
-      hasDefaultLook: base.hasDefaultLook, imageFolder: base.imageFolder),
+      hasDefaultLook: base.hasDefaultLook, messageFooter: base.messageFooter, imageFolder: base.imageFolder),
     TranscriptRowCacheSetup(
       faces: base.faces, expandedBlocks: base.expandedBlocks, session: second,
-      hasDefaultLook: base.hasDefaultLook, imageFolder: base.imageFolder),
+      hasDefaultLook: base.hasDefaultLook, messageFooter: base.messageFooter, imageFolder: base.imageFolder),
     TranscriptRowCacheSetup(
       faces: base.faces, expandedBlocks: base.expandedBlocks, session: base.session, hasDefaultLook: false,
-      imageFolder: base.imageFolder),
+      messageFooter: base.messageFooter, imageFolder: base.imageFolder),
     TranscriptRowCacheSetup(
       faces: base.faces, expandedBlocks: base.expandedBlocks, session: base.session,
-      hasDefaultLook: base.hasDefaultLook, imageFolder: folder),
+      hasDefaultLook: base.hasDefaultLook, messageFooter: .messageActions, imageFolder: base.imageFolder),
+    TranscriptRowCacheSetup(
+      faces: base.faces, expandedBlocks: base.expandedBlocks, session: base.session,
+      hasDefaultLook: base.hasDefaultLook, messageFooter: base.messageFooter, imageFolder: folder),
   ]
 
   /// A production change that fails this test: the comparison ignores one
@@ -54,7 +57,8 @@ import Testing
   @Test func theSameValuesGiveTheSameSetup() {
     let copy = TranscriptRowCacheSetup(
       faces: Self.base.faces, expandedBlocks: Self.base.expandedBlocks, session: Self.base.session,
-      hasDefaultLook: Self.base.hasDefaultLook, imageFolder: Self.base.imageFolder)
+      hasDefaultLook: Self.base.hasDefaultLook, messageFooter: Self.base.messageFooter,
+      imageFolder: Self.base.imageFolder)
 
     #expect(copy == Self.base)
   }

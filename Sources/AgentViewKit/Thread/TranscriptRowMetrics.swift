@@ -22,6 +22,10 @@ nonisolated public struct TranscriptRowMetrics: Hashable, Sendable {
     /// The send state caption of a user message.
     case sendState(SendState)
 
+    /// The row of the message actions in the footer of a message
+    /// (``MessageActions``, card ^grwk69d).
+    case messageActions
+
     /// A text in the font of the row, such as the title of a thought.
     case rowText
 
@@ -205,6 +209,14 @@ nonisolated public struct TranscriptRowMetrics: Hashable, Sendable {
   /// The title of a probe button.
   static let buttonTitle = "Probe"
 
+  /// A row of message actions with each button, enabled.
+  static var actionsLook: MessageActionsLook {
+    MessageActionsLook(
+      buttons: MessageActions.Action.allCases.map { action in
+        MessageActionsLook.Button(title: action.title, systemImage: action.systemImage, isEnabled: true)
+      })
+  }
+
   /// The theme, or `nil` for the environment with no theme.
   let theme: (any Theme)?
 
@@ -267,6 +279,7 @@ nonisolated public struct TranscriptRowMetrics: Hashable, Sendable {
   private func fixedSizes() -> [TranscriptRowMetrics.Atom: CGSize] {
     [
       .messageHeader: size(of: MessageHeader(role: .assistant)),
+      .messageActions: size(of: MessageActionsLookView(look: Self.actionsLook)),
       .rowText: size(of: Text(Self.sample)),
       .disclosureButton: size(
         of: EditorToolbarButton(Self.buttonTitle, symbol: .action(.disclosure), isOn: .constant(false))

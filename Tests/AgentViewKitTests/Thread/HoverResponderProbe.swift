@@ -26,17 +26,16 @@ import Synchronization
 
   /// The footer of the message row, for ``StaticRowHost/messageFooter``:
   /// the marker view under a clear hover responder of the same size.
-  var footer: ItemViewRenderer<MessageEntry> {
+  var footer: MessageFooter {
     let hitTests = hitTests
-    return { _ in
-      AnyView(
-        ZStack {
-          HoverProbeMarker()
-          Color.clear
-            .contentShape(CountingShape(hitTests: hitTests))
-            .onContinuousHover { _ in }
-        }
-        .frame(width: Self.width, height: Self.height))
+    return MessageFooter { _ in
+      ZStack {
+        HoverProbeMarker()
+        Color.clear
+          .contentShape(CountingShape(hitTests: hitTests))
+          .onContinuousHover { _ in }
+      }
+      .frame(width: Self.width, height: Self.height)
     }
   }
 

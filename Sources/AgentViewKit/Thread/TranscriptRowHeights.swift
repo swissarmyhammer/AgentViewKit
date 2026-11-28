@@ -137,18 +137,24 @@ import os
   ///   - metrics: The theme metrics of the rows.
   ///   - expandedBlocks: The store that tells whether the blocks of a row are
   ///     expanded, or `nil` when each block is collapsed.
+  ///   - messageFooter: The kind of the footer of the message rows
+  ///     (``MessageFooter``), or `nil` (the default) for no footer.
   ///   - pictureByteLimit: The most bytes of the bitmaps of the pictures
   ///     that the cache publishes, and that its worker keeps.
   public init(
     measure: any TranscriptTextMeasure = EditorLayoutTranscriptTextMeasure(), metrics: TranscriptRowMetrics,
-    expandedBlocks: ExpandedBlocksStore? = nil,
+    expandedBlocks: ExpandedBlocksStore? = nil, messageFooter: MessageFooterKind? = nil,
     pictureByteLimit: Int = TranscriptRowHeights.defaultPictureByteLimit
   ) {
     worker = TranscriptRowHeightWorker(measure: measure, metrics: metrics, pictureByteLimit: pictureByteLimit)
     pictures = TranscriptPictureCache(byteLimit: pictureByteLimit)
     self.expandedBlocks = expandedBlocks
+    self.messageFooter = messageFooter
     self.metrics = metrics
   }
+
+  /// The kind of the footer of the message rows, or `nil` for no footer.
+  @ObservationIgnored private let messageFooter: MessageFooterKind?
 
   /// The theme metrics of the rows.
   @ObservationIgnored private let metrics: TranscriptRowMetrics
@@ -338,11 +344,12 @@ import os
   private func copy(_ entry: TranscriptEntry) {
     let key = entry.rowKey
     let store = expandedBlocks
+    let footer = messageFooter
     #if DEBUG
       BodyEvaluationCounter.note(Self.copyCounterKey(for: key))
     #endif
     let content = withObservationTracking {
-      TranscriptRowContent(entry: entry, isExpanded: store?.isExpanded(entry: entry) ?? false)
+      TranscriptRowContent(entry: entry, isExpanded: store?.isExpanded(entry: entry) ?? false, footer: footer)
     } onChange: { [weak self] in
       Task { @MainActor in self?.entryChanged(entry) }
     }
