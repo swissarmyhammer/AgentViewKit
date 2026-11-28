@@ -85,4 +85,45 @@ import Testing
     let madeRows = rowKeys.map(BodyEvaluationCounter.count).reduce(0, +)
     #expect(BodyEvaluationCounter.count(windowKey) <= madeRows)
   }
+
+  /// The number of the first steps of a flick in which the stack does not
+  /// know the direction of the motion yet: the steps before the steady
+  /// flick.
+  static let warmUpSteps = 10
+
+  /// A production change that fails this test: the window of the virtual
+  /// stack mounts a row only when the row comes into view, so the first
+  /// frame of each new row (its make, its layout and its draw) is a frame
+  /// in which the row is in view.
+  ///
+  /// The test lays the host out and runs one pass of the main run loop
+  /// after each step, so the list reports its rows in view. A row counts
+  /// when the step that first shows it also made it (``ItemRow`` evaluates
+  /// its body only when the stack makes it).
+  @Test func aSteadyFlickMountsNoRowInTheStepThatShowsIt() async throws {
+    let name = "flickLeadRow"
+    let session = SessionModel.preview(transcript: FlickTranscript.items(turns: Self.flickTurns, in: name))
+    let thread = try await MovingThread.makeCached(session: session, frames: ManualFrames())
+    thread.startMoving()
+    let rowKeys = session.transcript.map(\.rowKey)
+    let makes = { (key: String) in BodyEvaluationCounter.count(ItemRow.counterKey(for: key)) }
+    var shown = thread.rowKeysInView
+    var steadyRows: [String] = []
+    var madeInView: [String] = []
+
+    for step in 0..<Self.flickSteps {
+      let before = Dictionary(uniqueKeysWithValues: rowKeys.map { ($0, makes($0)) })
+      thread.step(by: Self.flickStep, isLive: true)
+      thread.settle()
+      let new = thread.rowKeysInView.subtracting(shown)
+      shown.formUnion(new)
+      if step >= Self.warmUpSteps {
+        steadyRows.append(contentsOf: new)
+        madeInView.append(contentsOf: new.filter { makes($0) > before[$0, default: .zero] })
+      }
+    }
+
+    try #require(!steadyRows.isEmpty, "no row came into view in the steady flick")
+    #expect(madeInView.count == 0)
+  }
 }

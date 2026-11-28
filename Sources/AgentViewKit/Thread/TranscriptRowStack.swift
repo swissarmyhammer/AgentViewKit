@@ -100,6 +100,34 @@ nonisolated struct TranscriptViewport: Equatable, Sendable {
     shown = (shownRows.lowerBound + first)..<(shownRows.upperBound + first)
     height = bounds.height
   }
+
+  /// Whether the rows in view moved down the transcript from an older
+  /// report to this one: `true` for a move down, `false` for a move up,
+  /// and `nil` when the rows in view did not move.
+  ///
+  /// - Parameter old: The older report.
+  /// - Returns: The direction of the move, or `nil`.
+  func movesDown(from old: TranscriptViewport) -> Bool? {
+    if visible.lowerBound != old.visible.lowerBound {
+      return visible.lowerBound > old.visible.lowerBound
+    }
+    guard visible.upperBound != old.visible.upperBound else { return nil }
+    return visible.upperBound > old.visible.upperBound
+  }
+
+  /// The position of the lead row of a motion: the row next to the shown
+  /// rows in the direction of the motion.
+  ///
+  /// - Parameters:
+  ///   - movesDown: Whether the motion goes down the transcript.
+  ///   - positions: The positions of the rows of the transcript that the
+  ///     stack shows.
+  /// - Returns: The position, or `nil` when no row is past the shown rows
+  ///   in that direction.
+  func leadPosition(movesDown: Bool, in positions: Range<Int>) -> Int? {
+    let lead = movesDown ? shown.upperBound : shown.lowerBound - 1
+    return positions.contains(lead) ? lead : nil
+  }
 }
 
 /// The latest scroll offset of the list of a thread, which the virtual stack
@@ -559,7 +587,9 @@ struct TranscriptRowWindow: View {
   }
 
   /// Records a report of the rows in view, and evaluates the body only when
-  /// the report needs a row that the window did not mount.
+  /// the report needs a row that the window did not mount: a row in view,
+  /// or the lead row of a live motion (``leadPosition(of:)``). The report
+  /// also records the direction of the move of the rows in view.
   ///
   /// A row that leaves the view stays mounted until the next body, in the
   /// margin of the kept rows
@@ -570,8 +600,11 @@ struct TranscriptRowWindow: View {
   /// - Parameter report: The new report, or `nil` when the window is not
   ///   in a scroll view.
   private func noteReport(_ report: TranscriptViewport?) {
+    if let old = viewportRecord.value, let report, let movesDown = report.movesDown(from: old) {
+      mounted.movesDown = movesDown
+    }
     viewportRecord.value = report
-    let needed = Set(rows(for: report, kept: []))
+    let needed = Set(rows(for: report, kept: []) + [leadPosition(of: report)].compactMap { $0 })
     guard !needed.isSubset(of: mounted.positions) else { return }
     viewport = report
   }
@@ -588,9 +621,37 @@ struct TranscriptRowWindow: View {
   ///   before the first one.
   /// - Returns: The positions, in order.
   private func mountedPositions(report: TranscriptViewport?) -> [Int] {
-    let positions = rows(for: report, kept: mounted.positions)
+    let kept = mounted.positions
+    var positions = rows(for: report, kept: kept)
+    if let lead = leadPosition(of: report), !positions.contains(lead),
+      kept.contains(lead) || Set(positions).isSubset(of: kept)
+    {
+      positions = (positions + [lead]).sorted()
+    }
     mounted.positions = positions
     return positions
+  }
+
+  /// The position of the lead row of a live motion: one row past the shown
+  /// rows in the direction of the last move of the rows in view
+  /// (``TranscriptViewport/leadPosition(movesDown:in:)``).
+  ///
+  /// While the user moves the rows, the window mounts this one row before
+  /// it comes into view, so the first frame of a new row (its make, its
+  /// layout and its draw) is a frame in which the row is not in view. The
+  /// window mounts a new lead row only in a body that mounts no other new
+  /// row, so a body makes at most one row that is not in view. A full
+  /// screen of rows around the view cost about 50 % more in a flick
+  /// (``TranscriptRowGeometry/keptRowMargin``); one row in the direction of
+  /// the motion costs one row.
+  ///
+  /// - Parameter report: The latest report of the rows in view, or `nil`.
+  /// - Returns: The position, or `nil` when the rows do not move live, or
+  ///   when the window knows no direction of the motion.
+  private func leadPosition(of report: TranscriptViewport?) -> Int? {
+    guard rowsMoveLive, let report, let movesDown = mounted.movesDown else { return nil }
+    let positions = geometry.firstPosition..<(geometry.firstPosition + geometry.rows.count)
+    return report.leadPosition(movesDown: movesDown, in: positions)
   }
 
   /// The positions in the transcript of the rows that the window mounts for
@@ -639,6 +700,11 @@ struct TranscriptRowWindow: View {
 @MainActor final class TranscriptMountedRows {
   /// The positions, in order.
   var positions: [Int] = []
+
+  /// Whether the last move of the rows in view went down the transcript,
+  /// or `nil` before the first move. The window mounts the lead row of a
+  /// live motion in that direction (``TranscriptRowWindow``).
+  var movesDown: Bool?
 
   /// Makes an empty record.
   init() {}
