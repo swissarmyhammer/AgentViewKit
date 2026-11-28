@@ -30,7 +30,7 @@ public struct CodeBlockView: View {
   public static let titleIdentifier = "code-block-title"
 
   /// The name of the language in the header when the block has no language.
-  public static let plainTextName = "plain text"
+  public nonisolated static let plainTextName = "plain text"
 
   /// The code to show.
   let code: String
