@@ -213,8 +213,86 @@ comments:
     - evidence: no file changed (Package.resolved is gitignored in all three packages); root 2083/259 + 59/12 green; IntegrationTests 1100/164 green (5 known issues); gallery 278 shown PNGs same to the pixel as run2.
     - next: parent: merge decision for 788fc1f0..a2ff63d2; /review.
   timestamp: 2026-11-28T04:05:58.317545+00:00
+- actor: claude-code
+  id: 01m8gbn8bmmwhxmrk00fnrq705
+  text: |-
+    Idle-frame work of a flick: hover update and scroll observers (worktree agent-abccc0067a726ce86, on main 204a33b8). No push, no merge.
+
+    A. Hover (572f0fab): the per-row `.onHover` is gone. One `.onContinuousHover` on the stack (`TranscriptRowsHover`) finds the row under the mouse from `TranscriptRowGeometry.row(atY:)` and gives it to `TranscriptRowHoverTarget`; each row reads its hold from its own `TranscriptRowHoverSignal`. A hover responder takes the hover over its whole frame also where no child takes the hit test: on the stack with no hit-test change it got 80 callbacks in 20 live steps with mouse moves; with `.allowsHitTesting(!rowsMoveLive)` on the stack (the per-element `TranscriptRowsHitTest` stays) it gets 0. TranscriptRowRedrawTests stay green with that modifier. Did not work: a clear overlay with the hover (it took the hover from the controls of a row: probe callbacks 0 at rest); a clear background (it got no hover over a row). RED: theMouseOverARowAtRestIsTheHoverOfThatRow (no row under the mouse). Not done: the rows still hold EditorKit hover responders (`EditorToolbarButton.onHover`, `.help` of `EditorButtonParts`) and the press gesture of a static slot; no unit test can count the responders that SwiftUI walks. New card ^zqsemdq: measure first, then remove them in a live motion if the trace still shows the cost.
+
+    B. Scroll observers (fcc9de30): one `ConversationScrollGeometryObserver` (insets, bottom state, offset): 180 -> 60 transforms in 60 steps. Rows in view from the window report (`TranscriptWindowChange.visibleRowKeys`), `onScrollTargetVisibilityChange` removed: 9 SwiftUI visibility actions -> 0; 9 reports for 9 changes. A static row and its element with the exact cache height (no status line) have no size observer (background, conditional): 6 -> 0 transforms for the rows made in the flick (RED with the observers always on).
+    Discoveries: SwiftUI runs the first action of onGeometryChange/onScrollGeometryChange with old == new; the old bottom observer used that first call to set contentFitsInView, so the merged action gives both parts on it. A report before the list's onAppear set the manager's last item first, so the list made no first scroll to the bottom (it stayed at the top under load); such a report now waits for the appearance (`ConversationEarlyRowsInView`). The stack report comes in the layout pass of the scroll; on main, SwiftUI's report came later, so an at-rest clip move to the middle went back to the bottom before the report. TranscriptRowAnchorTests now measures the first row in view (a scroll up can take the partly shown last row out of the stack).
+    Seen once and not again: TranscriptFlickWorkTests.aSteadyFlickMountsNoRowInTheStepThatShowsIt failed one time in a two-suite run during the work, and passed in each later run, also in the full root run.
+
+    ### implement — changed
+    - evidence: ccd96c1e (RED counters and tests), 572f0fab (A), fcc9de30 (B). Root `swift test` one run: 2091 tests in 261 suites + 59 tests in 12 suites passed, 0 issues, no own warnings. Thread suites 562/88 green. IntegrationTests, ScreenshotTests, xctrace not run (parent); IntegrationTests files changed only in doc comments.
+    - next: parent: flick trace, hosted hover/menu/scroll suites; /review of ccd96c1e..fcc9de30.
+  timestamp: 2026-11-28T05:57:11.668816+00:00
+- actor: claude-code
+  id: 01m8gd95t5b8mj8fdppvm5e7xf
+  text: |-
+    Follow-up on the release traces of fcc9de30 (worse than main: 2924 vs 2611 ms, editor mounts 50/48 in 2 of 4 runs, other scroll paths).
+    - Cause found (certain unit test): in fcc9de30 the size observer of an element was in a `.background`. With it, the first layouts of a long thread (MovingThread, 120 answers, no store, as the trace harness) ended at rows 0-8: content grew, isNearBottom went false, the manager unpinned. RED: ConversationStartTests.aLongThreadShowsItsLastRowAfterItsFirstLayouts failed on fcc9de30, passed on main 204a33b8. Bisect: the TranscriptStaticRow background was not the cause; an unconditional background on the element failed; an overlay (conditional) passes. Fix 39f90217: overlay for both observers. The top screen then the bottom screen of real rows is the likely cause of the 25 extra editor mounts and of the other scroll path; a new trace must confirm it.
+    - The one failure of aSteadyFlickMountsNoRowInTheStepThatShowsIt: FlickTranscript gave all tests the same preview row keys, and the flick tests count makes per row key while they run at the same time. RED theTurnsOfTwoTestsShareNoRowKey (6 shared keys); fix b6003720: message ids with the test name.
+    - Did not work: reading the rows in view in the transform of the scroll geometry of the list (after the commit): 5 failures in the root suite (stale rows after a jump, anchor and redraw tests). Reverted.
+    - On main too, TranscriptRowAnchorTests depends on timing: in an isolated run on main it failed (the at-rest move to the middle does not stay or does not snap back the same way each run).
+    - Hover: no evidence that TranscriptRowsHover makes rows real; not changed.
+
+    ### implement — changed
+    - evidence: 39f90217, b6003720. Root swift test one run: 2093 tests in 263 suites + 59 in 12 passed, 0 issues. A and B counts unchanged (TranscriptScrollObserverTests, TranscriptRowHoverTests green).
+    - next: parent: release trace of b6003720 against main.
+  timestamp: 2026-11-28T06:25:32.997569+00:00
+- actor: claude-code
+  id: 01m8gdpfej1g5tbp8cafra30rr
+  text: |-
+    ### trace — hover and scroll observer branch not landed
+    - evidence: release flick, 4 rounds each, main 204a33b8 against b6003720 (branch worktree-agent-abccc0067a726ce86: one stack hover, one scroll geometry observer, no visibility observer, overlay size views): main-thread 2852 → 2757 ms, per 1000 pt 116 → 115 ms, hitches 48.5 → 53.5, hitch sum 442 → 498 ms, delivered 99.38 % both, largest 16.7 ms → one run 25 ms. The first try fcc9de30 was worse (2924 ms, largest 83 ms, 25 extra editor mounts).
+    - result: the hover cost (550 ms in the analysis) did not go away; the rows still hold EditorKit hover responders and the press gesture (card ^zqsemdq). Hitch metrics regress, so the branch stays unmerged.
+    - next: cause C (the static form holds and measures the full real row content), one flat picture of the whole row while rows move.
+  timestamp: 2026-11-28T06:32:48.850350+00:00
+- actor: claude-code
+  id: 01m8gekaac4dmq9z49zachewd5
+  text: |-
+    Flat moving row, research (2026-11-28, worktree agent-a4dbd496cdb4401c9, on main 204a33b8).
+    - Probe 1 (headless, StaticRowHost, agent answer of one line, width 480): with a `messageFooter` of `MessageActions`, the cache height is 48 pt, the static row is 48 pt, and the real row is 73 pt. `transcriptRowsHaveDefaultLook` does not look at `messageFooter`, and no chrome rule has a footer. Thus in a host with a footer (the demo app, `SessionThreadColumn`), each static message row has a wrong height, and it jumps 25 pt when it becomes real. This is a defect of the current main.
+    - Probe 2: SwiftUI `ImageRenderer` of the real chrome view (`MessageHeader`) at scale 2, put above the worker picture of the text in a plain `VStack` with the padding of the message, gives a row that is the same as the real row: mean 0.0013, large part 0.0 (light and dark). `ImageRenderer` also draws an `EditorToolbarButton` (25x25 px).
+    - EditorKit has no off-main picture of a diff (only `render(markdown:)` and `render(code:)`). A diff slot shows `StaticCodeText`, so a row with a diff cannot be one flat picture without new EditorKit work.
+    - EditorKit buttons (`EditorPlainButton`, `EditorToolbarButton`) use internal style parts (`tint.style(in:)`, `clearingHostTint()`), so AVK cannot copy their look with plain SwiftUI views. A picture of the real chrome view keeps the look exact.
+    Plan: the chrome rules give a layout tree (`TranscriptRowNode`) in place of a bare height; the height is the height of the tree (no copy of the rules). The worker publishes the tree of each row with its height. A static row with an exact height, the pictures of each text part, and a chrome picture for each chrome line shows one flat view (`TranscriptFlatRow`): one layout that places the pictures and the chrome pictures at the rects of the tree, in a frame of the exact height. Chrome pictures: `ImageRenderer` of the real chrome view of the line, kept by line, width and appearance.
+  timestamp: 2026-11-28T06:48:33.868179+00:00
+- actor: claude-code
+  id: 01m8gh7v2792zctc0hx3qxkdr1
+  text: |-
+    Flat moving rows landed in 0ee8c5c4 (worktree agent-a4dbd496cdb4401c9, on main 204a33b8). No push, no merge.
+    - Design: `TranscriptRowChrome` gives a layout tree (`TranscriptRowNode`); the height is the height of the tree (one rule for the cache and the flat form). A static row (moving, or waiting at rest) with an exact height, a picture of each text part and a chrome line for each chrome view shows one `TranscriptFlatRow`: one `TranscriptFlatRowLayout` (no size query of a part) of `StaticPictureView`s, chrome line pictures (`ImageRenderer` of the real `MessageHeader`, `StatusCaption`, `CodeBlockHeader`, `ReasoningHeader`, `ToolCallToggle`, in the whole environment of the row, 8 pt bleed, kept by line/size/appearance in `TranscriptChromePictures`), and `editorBlockFrame()` bands. One accessibility element with the text of the row; press / assistive press / focus release a waiting row (`TranscriptStillInteraction`, shared with `StaticEditorSlot`). Kinds: user and agent messages (prose and fences), closed thought, closed tool call.
+    - Counts per entering row (StaticRowHost, width 480), before -> after: views of the real row (ItemRow, item view, EntryContentView, ResponseView, tool header bodies) user 4->0, prose 4->0, fenced 4->0, thought 2->0, tool 2->0; flat body 1; flat layout 2 calls (one size, one placement); frame sizeThatFits 1->1; CA layers user 5->4, prose 3->3, fenced 10->7, thought 4->2, tool 6->2; chrome pictures drawn for a row that enters again: 0.
+    - Pixels, flat vs real (mean / large part; limits 0.75 / 0.0075): user 0.0025/0 (light) 0.0024/0 (dark); prose 0.0016/0, 0.0016/0; fenced 0.077/0.0006, 0.078/0.0006; thought 0.035/0.0002, 0.038/0.0004; tool call 0.212/0.0021, 0.229/0.0021.
+    - RED: 6 new tests (22 cases) and aFlickBuildsNoRealRowForARowThatComesIn failed on the old code (real-row bodies > 0). The footer, find-hit and chrome-cache guards were checked by one mutation run each (3 of 3 failed).
+    - Did not work: a `@State` flag from `entersWhileMoving` to keep a row made at rest out of the flat form (onChange did not always run for a row past the view). Now the static row notes each body that shows the real views (`TranscriptRowRealViews`).
+    - Discoveries: (1) a host footer (`MessageActions`) is in no chrome rule: cache 48 pt, real row 73 pt -> card ^grwk69d; such messages keep the old static form. (2) EditorKit has no off-main diff picture, so diff rows are not flat -> card ^5ywdsmm (also outputs, expanded tool bodies, terminal, plan, error, compaction, session message). (3) `aSteadyFlickMountsNoRowInTheStepThatShowsIt` depends on the test order: with `--filter "aSteadyFlick...|TranscriptFlatRowTests"` it fails 6/6 also with the flat form off (main behavior): the row above the view leaves before the flick and is made again in the showing step -> card ^dwybk4c. (4) FlickTranscript rows had shared row keys across tests; now message ids hold the test name.
+    - Behavior changes: a waiting flat row has no context menu, no keyboard focus stops and no hover views until an interaction makes it real; `MessageRole` is nonisolated.
+    - Tool friction: kanban `add comment` / `add task` return the whole board plan (~187 k characters) to a file.
+
+    ### implement — changed
+    - evidence: 0ee8c5c4, 18 files. Root `swift test` one run: 2093 tests in 260 suites + 59 tests in 12 suites, 0 issues, no own warnings. New tests (TranscriptFlatRowTests + aFlickBuildsNoRealRowForARowThatComesIn) 6 runs, 0 issues each. IntegrationTests, ScreenshotTests, xctrace not run (parent).
+    - next: parent: release flick trace of 0ee8c5c4; /review.
+  timestamp: 2026-11-28T07:34:43.527101+00:00
+- actor: claude-code
+  id: 01m8gk153hh11he4tr8srrha2p
+  text: |-
+    Check of the flat moving rows (worktree agent-a4dbd496cdb4401c9, HEAD 0ee8c5c4 -> 128a0e63). No push, no merge.
+    - Pins: `swift package update EditorKit` in IntegrationTests and ScreenshotTests. Root, IntegrationTests and ScreenshotTests Package.resolved: EditorKit ea0ff6f76e0e76be94088ef7c16d811176e0b657.
+    - IntegrationTests, one full run under a 15 min guard: 1100 tests in 164 suites passed, 5 known issues (FontRoleExpectationsTests, by design), exit 0, no guard kill. The build log had one own warning: CodeBlockView.swift, "main actor-isolated static property 'plainTextName' can not be referenced from a nonisolated autoclosure" (0ee8c5c4 made title(language:filename:) nonisolated). Fix 128a0e63: plainTextName is nonisolated. No unit test can show a compile warning, so no RED test; the IntegrationTests and root builds after the fix show no own warning.
+    - Root swift test on 128a0e63, one run: 2093 tests in 260 suites + 59 tests in 12 suites passed, no own warnings.
+    - ScreenshotTests gallery, one run (cache folder cleared first): 47 tests in 4 suites passed. Copy: /private/tmp/claude-501/-Users-wballard-github-swissarmyhammer-AgentViewKit/cb6ea94a-55e6-4196-a95c-8572bfe4fa85/scratchpad/gallery-flat/ (388 PNGs).
+    - Pixel compare with gallery-rowentry (main look): 383 same paths same to the pixel; 28 images that rowentry has only in snapshots/ (an old cache folder) compared with the flat generated/ copies, and the 4 thread images that flat has only in generated/ compared with the rowentry snapshots/ copies. Each thread, transcript and row image is the same to the pixel. Two images differ: generated/GlassSnapshotTests/floating-notes-reduce-transparency-light.png and floating-notes-dark.png (vs rowentry snapshots/), each mean 0.0023, large part 0.00002, 104 pixels in x 1502-1513, y 407-929: the scroll bar strip at the right edge. The rowentry run showed the same strip difference against run2, so this strip changes from run to run, and it is not a row. No flat-row defect found.
+
+    ### implement — changed
+    - evidence: 128a0e63 (Sources/AgentViewKit/Code/CodeBlockView.swift). IntegrationTests 1100/164 green (5 known issues); root 2093/260 + 59/12 green; gallery 47/4 green, no thread image changed.
+    - next: parent: /review of 0ee8c5c4..128a0e63; merge decision.
+  timestamp: 2026-11-28T08:06:01.585470+00:00
 position_column: doing
-position_ordinal: '80'
+position_ordinal: '8380'
 title: 'Scroll 3: static rows while the transcript moves, real rows at rest'
 ---
 From spike ^fa3j934 (2026-11-26). This card gives most of the gain: in the spike, static rows in motion (V2) used 1927 ms of main-thread time in a 15 s flick, against 6731 ms for the current list (-71 %), with 16 hitches against 63. The cost is the EK editor that mounts in each row while the list moves.
