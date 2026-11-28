@@ -160,6 +160,29 @@ import Testing
     #expect(!rows.contains(0))
   }
 
+  /// A production change that fails this test: the stack mounts only the
+  /// rows between the bars of the thread, so the glass of a bar shows no
+  /// row (card ^6fax5yx).
+  @Test func theRowsUnderTheBarsMount() {
+    let geometry = Self.geometry([50, 50, 50, 50, 50, 50, 50, 50, 50, 50])
+
+    let rows = geometry.mountedRows(visible: 6..<8, shown: 4..<9, viewportHeight: Self.viewportHeight)
+
+    #expect(rows == [4, 5, 6, 7, 8])
+  }
+
+  /// A production change that fails this test: the rows under the bars
+  /// widen the margin of the kept rows, so a row out of view stays mounted,
+  /// and the first scroll to the bottom of the inspector gallery screen
+  /// stopped away from the bottom (card ^6fax5yx).
+  @Test func aKeptRowNextToTheRowsUnderTheBarsLeaves() {
+    let geometry = Self.geometry([50, 50, 50, 50, 50, 50, 50, 50, 50, 50])
+
+    let rows = geometry.mountedRows(visible: 6..<8, shown: 5..<8, viewportHeight: Self.viewportHeight, kept: [4])
+
+    #expect(!rows.contains(4))
+  }
+
   /// A production change that fails this test: a kept row past the last row,
   /// such as the last row before a reset or a rollback made the transcript
   /// shorter, stays in the margin, so the window reads an entry past the end

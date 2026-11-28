@@ -48,6 +48,23 @@ nonisolated struct TranscriptScrollInsets: Equatable, Sendable {
   let bottom: CGFloat
 }
 
+/// The heights of the parts of the list of a thread under its bars, which
+/// the window of the virtual stack reads (``TranscriptRowWindow``).
+///
+/// The list writes the value from its scroll geometry. Only the body of the
+/// window reads it, so a change evaluates only the window, and not the list
+/// or the stack. An evaluation of the list in the first layout passes of a
+/// thread, when the bars get their heights, moved the first scroll to the
+/// bottom away from the bottom in the inspector gallery screen
+/// (card ^6fax5yx).
+@MainActor @Observable final class TranscriptScrollInsetsModel {
+  /// The heights of the parts under the bars.
+  var value = TranscriptScrollInsets.zero
+
+  /// Makes a model of a list with no bars.
+  init() {}
+}
+
 /// The rows in view of the virtual stack of a thread, and the height of the
 /// part in view (``TranscriptRowStack``).
 ///
@@ -198,7 +215,7 @@ extension View {
 /// the rows under the bars of the thread, ``TranscriptScrollInsets``), a
 /// margin of the rows that it mounted before, and the rows at the end of a
 /// scroll of the list that did not end
-/// (``TranscriptRowGeometry/mountedRows(visible:viewportHeight:itemRow:keepsBottom:kept:)``).
+/// (``TranscriptRowGeometry/mountedRows(visible:shown:viewportHeight:itemRow:keepsBottom:kept:)``).
 /// The height of each row comes from ``TranscriptElementHeights``.
 ///
 /// The stack computes the geometry, and its window (``TranscriptRowWindow``)
@@ -258,7 +275,7 @@ struct TranscriptRowStack: View {
 
   /// The heights of the parts of the list under its bars: the window
   /// mounts the rows there too.
-  let insets: TranscriptScrollInsets
+  let insets: TranscriptScrollInsetsModel
 
   /// The heights of the static rows of the thread: a source of the heights
   /// of the rows. The stack feeds them with its width
@@ -457,7 +474,7 @@ struct TranscriptRowWindow: View {
 
   /// The heights of the parts of the list under its bars: the window
   /// mounts the rows there too (``TranscriptViewport/shown``).
-  let insets: TranscriptScrollInsets
+  let insets: TranscriptScrollInsetsModel
 
   /// The heights of the layouts of the elements, which each element feeds.
   let elements: TranscriptElementHeights
@@ -513,6 +530,9 @@ struct TranscriptRowWindow: View {
     let elements = elements
     let metrics = metrics
     let rowHeights = rowHeights
+    // The body reads the insets, so a new height of a bar reads the rows
+    // in view again.
+    let insets = insets.value
     TranscriptStackLayout(geometry: geometry.rows) {
       ForEach(slots) { slot in
         let lines = placements.lines(at: .after(slot.id))
@@ -575,7 +595,7 @@ struct TranscriptRowWindow: View {
 
   /// The positions in the transcript of the rows that the window mounts for
   /// a report of the rows in view
-  /// (``TranscriptRowGeometry/mountedRows(visible:viewportHeight:itemRow:keepsBottom:kept:)``).
+  /// (``TranscriptRowGeometry/mountedRows(visible:shown:viewportHeight:itemRow:keepsBottom:kept:)``).
   ///
   /// - Parameters:
   ///   - report: The report of the rows in view, or `nil` before the first
@@ -584,10 +604,13 @@ struct TranscriptRowWindow: View {
   /// - Returns: The positions, in order.
   private func rows(for report: TranscriptViewport?, kept: [Int]) -> [Int] {
     let visible = report.map {
+      geometry.index(ofPosition: $0.visible.lowerBound)..<geometry.index(ofPosition: $0.visible.upperBound)
+    }
+    let shown = report.map {
       geometry.index(ofPosition: $0.shown.lowerBound)..<geometry.index(ofPosition: $0.shown.upperBound)
     }
     let rows = geometry.rows.mountedRows(
-      visible: visible, viewportHeight: report?.height ?? Self.fallbackViewportHeight,
+      visible: visible, shown: shown, viewportHeight: report?.height ?? Self.fallbackViewportHeight,
       itemRow: itemPosition.map(geometry.index(ofPosition:)), keepsBottom: keepsBottom,
       kept: kept.map(geometry.index(ofPosition:)))
     return rows.map { $0 + geometry.firstPosition }

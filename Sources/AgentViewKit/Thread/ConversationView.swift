@@ -447,9 +447,9 @@ public struct ConversationView<EmptyState: View>: View {
 
   /// The heights of the parts of the list under the bars of the thread:
   /// the virtual stack mounts the rows there too, so the glass of the bars
-  /// shows them (card ^6fax5yx). The value changes only when a bar changes
-  /// its height.
-  @State private var scrollInsets = TranscriptScrollInsets.zero
+  /// shows them (card ^6fax5yx). Only the window of the stack reads it in a
+  /// body, so a change does not evaluate the list.
+  @State private var scrollInsets = TranscriptScrollInsetsModel()
 
   /// The rows that keep their EditorKit models: the rows in view and a
   /// margin on each side of them. A row far from them drops its models
@@ -681,7 +681,7 @@ public struct ConversationView<EmptyState: View>: View {
     .onScrollGeometryChange(for: TranscriptScrollInsets.self) {
       TranscriptScrollInsets(top: $0.contentInsets.top, bottom: $0.contentInsets.bottom)
     } action: { _, insets in
-      scrollInsets = insets
+      scrollInsets.value = insets
     }
     .environment(\.transcriptRowsMove, rowsMove)
     .environment(\.transcriptRowsMoveLive, rowsEnterLive)

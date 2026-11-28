@@ -12,7 +12,7 @@ import CoreGraphics
 nonisolated struct TranscriptRowGeometry: Equatable, Sendable {
   /// The number of rows above and below the screen of mounted rows in which
   /// a mounted row stays mounted
-  /// (``mountedRows(visible:viewportHeight:itemRow:keepsBottom:kept:)``).
+  /// (``mountedRows(visible:shown:viewportHeight:itemRow:keepsBottom:kept:)``).
   ///
   /// The stack mounts no overscan around the rows in view: each mounted row
   /// costs SwiftUI work on each scroll step, an overscan makes the rows of a
@@ -131,23 +131,30 @@ nonisolated struct TranscriptRowGeometry: Equatable, Sendable {
   /// past the last row, such as the last row before a reset or a rollback
   /// made the transcript shorter, leaves.
   ///
+  /// The rows under the bars of the thread (`shown`) also mount, but they
+  /// do not widen the margin of the kept rows. With a wider margin, a row
+  /// out of view stayed mounted, and the first scroll to the bottom of the
+  /// inspector gallery screen stopped away from the bottom (card ^6fax5yx).
+  ///
   /// - Parameters:
   ///   - visible: The rows in view at the last report, or `nil` before the
   ///     first report. With no report, the rows in view are the rows at the
   ///     bottom, where the list starts.
+  ///   - shown: The rows in view with the rows under the bars of the thread
+  ///     at the last report, or `nil` for the rows in view only.
   ///   - viewportHeight: The height of the part in view.
   ///   - itemRow: The row of a scroll to an item that did not end, or `nil`.
   ///   - keepsBottom: Whether a scroll to the bottom did not end.
   ///   - kept: The rows that the stack mounted before.
   /// - Returns: The indices of the rows, in order, each one time.
   func mountedRows(
-    visible: Range<Int>?, viewportHeight: CGFloat, itemRow: Int? = nil, keepsBottom: Bool = false,
-    kept: [Int] = []
+    visible: Range<Int>?, shown: Range<Int>? = nil, viewportHeight: CGFloat, itemRow: Int? = nil,
+    keepsBottom: Bool = false, kept: [Int] = []
   ) -> [Int] {
     let bottom = visibleRows(offset: bottomOffset(viewportHeight: viewportHeight), viewportHeight: viewportHeight)
     let screen = nonEmpty(visible.map { $0.clamped(to: 0..<count) } ?? bottom)
     let margin = max(screen.lowerBound - Self.keptRowMargin, 0)..<min(screen.upperBound + Self.keptRowMargin, count)
-    var bands = [Array(screen), kept.filter(margin.contains)]
+    var bands = [Array(screen), kept.filter(margin.contains), Array((shown ?? screen).clamped(to: 0..<count))]
     if let itemRow, heights.indices.contains(itemRow) {
       let offset = scrollOffset(toShowRow: itemRow, viewportHeight: viewportHeight)
       bands.append(Array(nonEmpty(visibleRows(offset: offset, viewportHeight: viewportHeight))))
