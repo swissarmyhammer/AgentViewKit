@@ -62,9 +62,19 @@ import SwiftUI
   /// an older session or cache does nothing.
   @ObservationIgnored private var generation = 0
 
+  /// The most bytes of the bitmaps of the pictures of each cache that the
+  /// heights make (``makeCache(theme:expandedBlocks:hasDefaultLook:imageFolder:pictureByteLimit:)``).
+  @ObservationIgnored let pictureByteLimit: Int
+
   /// Makes the heights with no cache: each static row takes the height of
   /// the last layout of its real row.
-  init() {}
+  ///
+  /// - Parameter pictureByteLimit: The most bytes of the bitmaps of the
+  ///   pictures of each cache of the heights. The default is the default of
+  ///   the cache (``TranscriptRowHeights/defaultPictureByteLimit``).
+  init(pictureByteLimit: Int = TranscriptRowHeights.defaultPictureByteLimit) {
+    self.pictureByteLimit = pictureByteLimit
+  }
 
   /// Gives the heights a cache, and the session whose transcript feeds it.
   ///
@@ -194,15 +204,19 @@ import SwiftUI
   ///   - hasDefaultLook: Whether the rows have their default look.
   ///   - imageFolder: The folder that the images of the Markdown of the
   ///     rows load from (``RenderedMarkdownView/imageFolder(of:)``), or `nil`.
+  ///   - pictureByteLimit: The most bytes of the bitmaps of the pictures of
+  ///     the cache. The default is the default of the cache.
   /// - Returns: The cache, with the EditorKit text measure
   ///   (``EditorLayoutTranscriptTextMeasure``) and the metrics of the theme.
   static func makeCache(
-    theme: any Theme, expandedBlocks: ExpandedBlocksStore?, hasDefaultLook: Bool, imageFolder: URL?
+    theme: any Theme, expandedBlocks: ExpandedBlocksStore?, hasDefaultLook: Bool, imageFolder: URL?,
+    pictureByteLimit: Int = TranscriptRowHeights.defaultPictureByteLimit
   ) -> TranscriptRowHeights? {
     guard let expandedBlocks, hasDefaultLook else { return nil }
     return TranscriptRowHeights(
       measure: EditorLayoutTranscriptTextMeasure(theme: theme, imageFolder: imageFolder),
-      metrics: TranscriptRowMetrics.probe(theme: theme), expandedBlocks: expandedBlocks)
+      metrics: TranscriptRowMetrics.probe(theme: theme), expandedBlocks: expandedBlocks,
+      pictureByteLimit: pictureByteLimit)
   }
 }
 
@@ -272,7 +286,7 @@ struct TranscriptRowHeightsFeed: ViewModifier {
       .onChange(of: setup, initial: true) {
         let cache = TranscriptStaticRowHeights.makeCache(
           theme: theme, expandedBlocks: expandedBlocks, hasDefaultLook: hasDefaultLook,
-          imageFolder: setup.imageFolder)
+          imageFolder: setup.imageFolder, pictureByteLimit: heights.pictureByteLimit)
         heights.attach(cache: cache, session: session)
       }
   }

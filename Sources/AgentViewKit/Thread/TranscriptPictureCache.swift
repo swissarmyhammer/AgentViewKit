@@ -12,7 +12,9 @@ nonisolated protocol TranscriptPictureMemory {
 ///
 /// The cache keeps the newest values last. A new value that takes the bytes
 /// past the bound drops the oldest values, as the height worker drops the
-/// prepared parts of its oldest rows. The newest value stays, also when it
+/// prepared parts of its oldest rows, or the values farthest from a place,
+/// such as the rows farthest from the rows in view
+/// (``insert(_:forKey:distance:)``). One value always stays, also when it
 /// alone is past the bound.
 nonisolated struct TranscriptPictureCache<Key: Hashable, Value: TranscriptPictureMemory> {
   /// The most bytes of the bitmaps that the cache keeps.
@@ -48,12 +50,25 @@ nonisolated struct TranscriptPictureCache<Key: Hashable, Value: TranscriptPictur
   ///   - value: The value.
   ///   - key: The key of the value.
   mutating func insert(_ value: Value, forKey key: Key) {
+    insert(value, forKey: key) { _ in .zero }
+  }
+
+  /// Keeps a value as the newest, and drops the values farthest from a
+  /// place past the bound: the oldest value first of values at the same
+  /// distance. The new value can be the value that goes, when it is the
+  /// farthest.
+  ///
+  /// - Parameters:
+  ///   - value: The value.
+  ///   - key: The key of the value.
+  ///   - distance: The distance of the value of a key from the place.
+  mutating func insert(_ value: Value, forKey key: Key, distance: (Key) -> Int) {
     remove(key)
     values[key] = value
     order.append(key)
     byteCount += value.pictureBytes
-    while byteCount > byteLimit, order.count > 1 {
-      remove(order[0])
+    while byteCount > byteLimit, order.count > 1, let farthest = order.max(by: { distance($0) < distance($1) }) {
+      remove(farthest)
     }
   }
 

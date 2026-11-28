@@ -34,7 +34,7 @@ import Testing
   let scrollView: NSScrollView
 
   /// The heights of the static forms of the rows of the list.
-  let heights = TranscriptStaticRowHeights()
+  let heights: TranscriptStaticRowHeights
 
   /// Shows the list of `session` at the bottom.
   ///
@@ -63,11 +63,16 @@ import Testing
   ///     and the composer of an ``AgentThreadView`` are, or zero (the
   ///     default) for no bars. The list goes on under the bars, and its
   ///     scroll view gets the heights of the bars as its content insets.
+  ///   - pictureByteLimit: The most bytes of the bitmaps of the pictures of
+  ///     the height cache. The default is the default of the cache.
   init(
     session: SessionModel, frames: any TranscriptFrameSource, expandedBlocks: ExpandedBlocksStore? = nil,
-    messageFooter: ItemViewRenderer<MessageEntry>? = nil, barHeight: CGFloat = .zero
+    messageFooter: ItemViewRenderer<MessageEntry>? = nil, barHeight: CGFloat = .zero,
+    pictureByteLimit: Int = TranscriptRowHeights.defaultPictureByteLimit
   ) throws {
     self.session = session
+    let heights = TranscriptStaticRowHeights(pictureByteLimit: pictureByteLimit)
+    self.heights = heights
     window = AnswerTextHitTests.mount(
       ConversationView(session: session, anchors: anchors, frames: frames, heights: heights)
         .environment(\.expandedBlocksStore, expandedBlocks)
@@ -111,9 +116,15 @@ import Testing
   /// - Parameters:
   ///   - session: The session of the list.
   ///   - frames: The frames of the queue, such as ``ManualFrames``.
+  ///   - pictureByteLimit: The most bytes of the bitmaps of the pictures of
+  ///     the height cache. The default is the default of the cache.
   /// - Returns: The list, at rest.
-  static func makeCached(session: SessionModel, frames: any TranscriptFrameSource) async throws -> MovingThread {
-    let thread = try MovingThread(session: session, frames: frames, expandedBlocks: ExpandedBlocksStore())
+  static func makeCached(
+    session: SessionModel, frames: any TranscriptFrameSource,
+    pictureByteLimit: Int = TranscriptRowHeights.defaultPictureByteLimit
+  ) async throws -> MovingThread {
+    let thread = try MovingThread(
+      session: session, frames: frames, expandedBlocks: ExpandedBlocksStore(), pictureByteLimit: pictureByteLimit)
     thread.settle()
     let cache = try #require(thread.heights.cache, "the list has no height cache")
     await cache.computeHeights(of: session.transcript.map(\.rowKey))

@@ -2,8 +2,11 @@
 /// their computation (card ^9ync5h3).
 ///
 /// The order starts at the rows in view and goes out from them in the two
-/// directions, one row above and one row below at each step. Thus the rows
-/// that a flick reaches first get their heights first. When no row in view
+/// directions, one row above and one row below at each step. The row ahead
+/// of the last move of the rows in view comes first at each step: the row
+/// below them after a move down the transcript, else the row above them.
+/// Thus the rows that a flick reaches first get their heights and their
+/// pictures first. When no row in view
 /// is known, the order starts at the last row: a thread shows its last rows
 /// first (`defaultScrollAnchor(.bottom)`).
 ///
@@ -25,8 +28,16 @@ nonisolated struct TranscriptRowHeightQueue {
   /// The row keys of the transcript, in the order of the rows.
   private var rowKeys: [String] = []
 
+  /// The position of each row of the transcript, by row key.
+  private var positions: [String: Int] = [:]
+
   /// The positions of the rows in view.
   private var rowsInView: Range<Int> = .zero ..< .zero
+
+  /// Whether the last move of the rows in view went down the transcript,
+  /// so the row below the rows in view comes first at each step of the
+  /// order.
+  private var movesDown = false
 
   /// The row keys that the cache must still compute.
   private var pending: Set<String> = []
@@ -46,6 +57,7 @@ nonisolated struct TranscriptRowHeightQueue {
   mutating func setRows(_ keys: [String]) {
     guard keys != rowKeys else { return }
     rowKeys = keys
+    positions = Dictionary(keys.enumerated().map { ($1, $0) }) { first, _ in first }
     order = nil
   }
 
@@ -55,6 +67,9 @@ nonisolated struct TranscriptRowHeightQueue {
   ///   view is known.
   mutating func noteRowsInView(_ rows: Range<Int>) {
     guard rows != rowsInView else { return }
+    if !rows.isEmpty, !rowsInView.isEmpty {
+      movesDown = rows.lowerBound > rowsInView.lowerBound || rows.upperBound > rowsInView.upperBound
+    }
     rowsInView = rows
     order = nil
   }
@@ -67,6 +82,53 @@ nonisolated struct TranscriptRowHeightQueue {
     pending.formUnion(keys)
     guard pending.count != count else { return }
     order = nil
+  }
+
+  /// The distance of a row from the rows in view, in rows: zero for a row
+  /// in view, one for the row next to them. When no row in view is known,
+  /// the distance is from the last row, where a thread starts.
+  ///
+  /// - Parameter rowKey: The row key.
+  /// - Returns: The distance, or `Int.max` for a row that is not in the
+  ///   transcript.
+  func distance(ofRow rowKey: String) -> Int {
+    guard let position = positions[rowKey] else { return .max }
+    let rows = start
+    if position < rows.lowerBound {
+      return rows.lowerBound - position
+    }
+    return Swift.max(position - rows.upperBound + 1, .zero)
+  }
+
+  /// The row keys of the rows in view and of the rows near them: `reach`
+  /// rows above and `reach` rows below them.
+  ///
+  /// - Parameter reach: The number of rows on each side of the rows in
+  ///   view.
+  /// - Returns: The row keys, in the order of the rows.
+  func rowKeys(near reach: Int) -> ArraySlice<String> {
+    let rows = start
+    let lower = Swift.max(rows.lowerBound - reach, .zero)
+    let upper = Swift.min(rows.upperBound + reach, rowKeys.count)
+    return lower < upper ? rowKeys[lower..<upper] : []
+  }
+
+  /// The rows from which the order starts: the rows in view, or the last
+  /// row when no row in view is known.
+  private var start: Range<Int> {
+    Self.start(count: rowKeys.count, rowsInView: rowsInView)
+  }
+
+  /// The rows from which the order starts.
+  ///
+  /// - Parameters:
+  ///   - count: The number of rows.
+  ///   - rowsInView: The positions of the rows in view, or an empty range
+  ///     for the last row.
+  /// - Returns: The rows in view in the transcript, or the last row.
+  private static func start(count: Int, rowsInView: Range<Int>) -> Range<Int> {
+    let rows = rowsInView.clamped(to: .zero ..< count)
+    return rows.isEmpty ? (Swift.max(count - 1, .zero) ..< count) : rows
   }
 
   /// Takes the next rows to compute out of the queue.
@@ -91,7 +153,8 @@ nonisolated struct TranscriptRowHeightQueue {
   ///
   /// - Returns: The order.
   private mutating func makeOrder() -> [Pick] {
-    let picks = Self.walk(count: rowKeys.count, rowsInView: rowsInView).enumerated().compactMap { rank, position in
+    let walk = Self.walk(count: rowKeys.count, rowsInView: rowsInView, belowFirst: movesDown)
+    let picks = walk.enumerated().compactMap { rank, position in
       pending.contains(rowKeys[position]) ? Pick(rowKey: rowKeys[position], rank: rank) : nil
     }
     pending = Set(picks.map(\.rowKey))
@@ -105,13 +168,16 @@ nonisolated struct TranscriptRowHeightQueue {
   ///   - count: The number of rows.
   ///   - rowsInView: The positions of the rows in view, or an empty range
   ///     for the last row.
+  ///   - belowFirst: Whether the row below comes before the row above at
+  ///     each step. The default is `false`.
   /// - Returns: Each position from zero to `count` one time.
-  static func walk(count: Int, rowsInView: Range<Int>) -> [Int] {
-    let rows = rowsInView.clamped(to: .zero ..< count)
-    let start = rows.isEmpty ? (Swift.max(count - 1, .zero) ..< count) : rows
+  static func walk(count: Int, rowsInView: Range<Int>, belowFirst: Bool = false) -> [Int] {
+    let start = start(count: count, rowsInView: rowsInView)
     let steps = Swift.max(start.lowerBound, count - start.upperBound)
     let outward = (0 ..< steps).flatMap { step in
-      [start.lowerBound - 1 - step, start.upperBound + step].filter { (0 ..< count).contains($0) }
+      let above = start.lowerBound - 1 - step
+      let below = start.upperBound + step
+      return (belowFirst ? [below, above] : [above, below]).filter { (0 ..< count).contains($0) }
     }
     return Array(start) + outward
   }

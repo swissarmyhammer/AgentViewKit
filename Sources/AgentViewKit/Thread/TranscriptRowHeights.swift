@@ -90,9 +90,15 @@ import os
   /// The published pictures of each row at ``width`` in ``appearance``, by
   /// row key, and in a row by text part. They are not observable: the
   /// cache publishes them with the height of the row, so a row that shows
-  /// its static form from the cache height finds its pictures.
-  @ObservationIgnored private var pictures = TranscriptPictureCache<String, [TranscriptTextPart: EditorStaticRendering]>(
-    byteLimit: TranscriptRowHeightWorker.defaultPictureByteLimit)
+  /// its static form from the cache height finds its pictures. Past the
+  /// byte bound, the pictures of the rows farthest from the rows in view
+  /// go first, so the cache keeps the pictures that a flick needs next.
+  @ObservationIgnored private var pictures: TranscriptPictureCache<String, [TranscriptTextPart: EditorStaticRendering]>
+
+  /// The rows whose last result has a picture: the rows whose pictures the
+  /// cache draws again when its bound dropped them
+  /// (``drawPicturesNearView()``).
+  @ObservationIgnored private var picturedRows: Set<String> = []
 
   /// The rows that the cache must still compute, in the order of their
   /// computation.
@@ -114,6 +120,10 @@ import os
   /// their prepared parts.
   static let preparedRank = TranscriptRowHeightWorker.defaultPreparedRowLimit
 
+  /// The default of the most bytes of the bitmaps of the pictures that the
+  /// cache publishes, and that its worker keeps.
+  public static let defaultPictureByteLimit = TranscriptRowHeightWorker.defaultPictureByteLimit
+
   /// Makes a cache.
   ///
   /// - Parameters:
@@ -123,11 +133,15 @@ import os
   ///   - metrics: The theme metrics of the rows.
   ///   - expandedBlocks: The store that tells whether the blocks of a row are
   ///     expanded, or `nil` when each block is collapsed.
+  ///   - pictureByteLimit: The most bytes of the bitmaps of the pictures
+  ///     that the cache publishes, and that its worker keeps.
   public init(
     measure: any TranscriptTextMeasure = EditorLayoutTranscriptTextMeasure(), metrics: TranscriptRowMetrics,
-    expandedBlocks: ExpandedBlocksStore? = nil
+    expandedBlocks: ExpandedBlocksStore? = nil,
+    pictureByteLimit: Int = TranscriptRowHeights.defaultPictureByteLimit
   ) {
-    worker = TranscriptRowHeightWorker(measure: measure, metrics: metrics)
+    worker = TranscriptRowHeightWorker(measure: measure, metrics: metrics, pictureByteLimit: pictureByteLimit)
+    pictures = TranscriptPictureCache(byteLimit: pictureByteLimit)
     self.expandedBlocks = expandedBlocks
   }
 
@@ -176,6 +190,25 @@ import os
   ///   range when no row in view is known.
   public func noteRowsInView(_ rowsInView: Range<Int>) {
     queue.noteRowsInView(rowsInView)
+    drawPicturesNearView()
+  }
+
+  /// The number of rows above and below the rows in view whose pictures
+  /// the cache draws again when its bound dropped them
+  /// (``drawPicturesNearView()``): about two screens of rows on each side.
+  static let pictureReach = 8
+
+  /// Draws again the pictures that the bound of the cache dropped, of the
+  /// rows in view and of the ``pictureReach`` rows on each side of them.
+  ///
+  /// The queue sends these rows to the worker in its order: the rows in
+  /// view first, then the rows out from them, so a row that a flick
+  /// reaches gets its picture before it comes into view. The worker keeps
+  /// the height of each such row, so it only draws the picture.
+  private func drawPicturesNearView() {
+    let dropped = queue.rowKeys(near: Self.pictureReach).filter { picturedRows.contains($0) && pictures[$0] == nil }
+    guard !dropped.isEmpty else { return }
+    compute(Array(dropped))
   }
 
   /// Records the rows and their width, and starts no computation.
@@ -244,6 +277,14 @@ import os
   ) -> EditorStaticRendering? {
     guard appearance == self.appearance else { return nil }
     return pictures[rowKey]?[part]
+  }
+
+  /// Whether the cache publishes a picture of a text part of a row now.
+  ///
+  /// - Parameter rowKey: The row key of the entry.
+  /// - Returns: `true` when the cache holds a picture of the row.
+  func hasPictures(ofRow rowKey: String) -> Bool {
+    pictures[rowKey] != nil
   }
 
   /// The count of text parts that the worker prepared for a measure: the
@@ -387,10 +428,13 @@ import os
   ///   - rowKey: The row key.
   private func publishPictures(_ rowPictures: [TranscriptTextPart: EditorStaticRendering], of rowKey: String) {
     guard !rowPictures.isEmpty else {
+      picturedRows.remove(rowKey)
       pictures.remove(rowKey)
       return
     }
-    pictures.insert(rowPictures, forKey: rowKey)
+    picturedRows.insert(rowKey)
+    let queue = queue
+    pictures.insert(rowPictures, forKey: rowKey) { queue.distance(ofRow: $0) }
   }
 }
 
@@ -582,8 +626,7 @@ actor TranscriptRowHeightWorker {
   private static let logger = Logger(subsystem: "AgentViewKit", category: "TranscriptRowHeightWorker")
 
   /// The drawn pictures, by part, width and appearance, the newest last.
-  private var drawnPictures = TranscriptPictureCache<PictureKey, EditorStaticRendering>(
-    byteLimit: defaultPictureByteLimit)
+  private var drawnPictures: TranscriptPictureCache<PictureKey, EditorStaticRendering>
 
   /// Makes a worker.
   ///
@@ -592,13 +635,16 @@ actor TranscriptRowHeightWorker {
   ///   - metrics: The theme metrics.
   ///   - preparedRowLimit: The most rows whose prepared parts the worker
   ///     keeps.
+  ///   - pictureByteLimit: The most bytes of the bitmaps of the pictures
+  ///     that the worker keeps.
   init(
     measure: any TranscriptTextMeasure, metrics: TranscriptRowMetrics,
-    preparedRowLimit: Int = defaultPreparedRowLimit
+    preparedRowLimit: Int = defaultPreparedRowLimit, pictureByteLimit: Int = defaultPictureByteLimit
   ) {
     self.measure = measure
     self.metrics = metrics
     self.preparedRowLimit = preparedRowLimit
+    drawnPictures = TranscriptPictureCache(byteLimit: pictureByteLimit)
   }
 
   /// The heights of rows at a width, and the pictures of their text parts
