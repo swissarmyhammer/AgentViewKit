@@ -84,6 +84,24 @@ import Testing
     #expect(BodyEvaluationCounter.count(StaticPictureView.counterKey(for: text)) > 0)
   }
 
+  /// A production change that fails this test: the slot of a static row
+  /// reads the picture of the cache only when the row comes into the list,
+  /// so a row that the list made before the cache drew its picture, such as
+  /// the lead row of a flick, shows its SwiftUI `Text` when it comes into
+  /// view.
+  @Test func aStaticSlotShowsThePictureThatTheCacheDrawsAfterTheRowCame() async throws {
+    let text = Self.plainText + " A late picture."
+    let host = await StaticRowHost.makeCached(.agent(text), width: Self.width, drawsPictures: false)
+    let cache = try #require(host.heights.cache)
+    try #require(BodyEvaluationCounter.count(StaticPictureView.counterKey(for: text)) == 0)
+
+    host.heights.noteAppearance(host.appearance)
+    await cache.finishPendingHeights()
+    host.layOut()
+
+    #expect(BodyEvaluationCounter.count(StaticPictureView.counterKey(for: text)) > 0)
+  }
+
   /// A production change that fails this test: the view of a picture takes
   /// another size than the picture, so the row moves when its form
   /// changes.

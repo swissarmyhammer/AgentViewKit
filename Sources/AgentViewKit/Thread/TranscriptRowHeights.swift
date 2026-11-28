@@ -100,6 +100,10 @@ import os
   /// (``drawPicturesNearView()``).
   @ObservationIgnored private var picturedRows: Set<String> = []
 
+  /// The signal of the pictures of each row whose picture a slot read, by
+  /// row key (``TranscriptPictureSignal``).
+  @ObservationIgnored private var pictureSignals: [String: TranscriptPictureSignal] = [:]
+
   /// The rows that the cache must still compute, in the order of their
   /// computation.
   @ObservationIgnored private var queue = TranscriptRowHeightQueue()
@@ -275,8 +279,25 @@ import os
   func picture(
     of part: TranscriptTextPart, inRow rowKey: String, appearance: TranscriptTextAppearance
   ) -> EditorStaticRendering? {
+    // The read observes the pictures of the row, so a slot that reads no
+    // picture now shows the picture when the cache publishes it.
+    _ = pictureSignal(ofRow: rowKey).revision
     guard appearance == self.appearance else { return nil }
     return pictures[rowKey]?[part]
+  }
+
+  /// The signal of the pictures of a row, which a read of a picture of the
+  /// row observes (``TranscriptPictureSignal``).
+  ///
+  /// - Parameter rowKey: The row key of the entry.
+  /// - Returns: The signal of the row.
+  private func pictureSignal(ofRow rowKey: String) -> TranscriptPictureSignal {
+    if let signal = pictureSignals[rowKey] {
+      return signal
+    }
+    let signal = TranscriptPictureSignal()
+    pictureSignals[rowKey] = signal
+    return signal
   }
 
   /// Whether the cache publishes a picture of a text part of a row now.
@@ -433,9 +454,30 @@ import os
       return
     }
     picturedRows.insert(rowKey)
+    let hadPictures = pictures[rowKey] != nil
     let queue = queue
     pictures.insert(rowPictures, forKey: rowKey) { queue.distance(ofRow: $0) }
+    if !hadPictures {
+      pictureSignals[rowKey]?.revision &+= 1
+    }
   }
+}
+
+/// The signal of the pictures of one row of the height cache (card
+/// ^9ync5h3).
+///
+/// The slot of a static text reads the signal of its row when it reads its
+/// picture (``TranscriptRowHeights/picture(of:inRow:appearance:)``). The
+/// cache changes the signal when it publishes the pictures of a row that
+/// had none, so only the slots of that row evaluate their bodies again,
+/// and a row that the list made before its picture, such as the lead row
+/// of a flick, shows the picture before it comes into view.
+@MainActor @Observable final class TranscriptPictureSignal {
+  /// The count of the publishes of the pictures of the row.
+  var revision = 0
+
+  /// Makes a signal of a row with no picture.
+  init() {}
 }
 
 /// The cache is the height provider of the static rows (^9ync5h3): a row
