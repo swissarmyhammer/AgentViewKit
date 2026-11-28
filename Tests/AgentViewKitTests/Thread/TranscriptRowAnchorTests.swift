@@ -12,17 +12,26 @@ import Testing
 /// estimate. When the row comes into view at the top, it gets the height of
 /// its layout, and the stack moves the offset by the change, so the rows in
 /// view below it do not jump. The test shows a
-/// ``MovingThread`` of answers of different heights, scrolls it at rest to
-/// the middle, and then scrolls it up by ``stepDistance``. The text of a row
-/// in view moves by the distance of the scroll and no more.
+/// ``MovingThread`` of answers of different heights, jumps at rest to the
+/// middle answer (``MovingThread/jumpAtRest(to:)``), and then scrolls it up
+/// by ``stepDistance``. The text of a row in view moves by the distance of
+/// the scroll and no more.
+///
+/// The test jumps, and does not move the clip view to the middle. The first
+/// layouts of the list at the bottom can unpin it, or not, with the order
+/// of the reports of SwiftUI. A pinned list keeps the bottom when the rows
+/// get their heights, so it moved back from the middle in some runs. A jump
+/// keeps its item, so the list stays at the item in each run
+/// (card ^dwybk4c).
 @MainActor @Suite(.serialized) struct TranscriptRowAnchorTests {
   /// The number of answers in the transcript: many more than the rows in
   /// view.
   static let answerCount = 120
 
   /// The distance of the scroll up at rest, in points: less than the
-  /// height of the list (600), so the last row in view before the scroll
-  /// stays in view.
+  /// height of the list (600), so the first row in view before the scroll
+  /// stays in view. The rows move down by this distance, so the last row in
+  /// view before the scroll can leave the view and the stack.
   static let stepDistance: CGFloat = 150
 
   /// The largest difference, in points, that the test counts as no
@@ -50,15 +59,16 @@ import Testing
   }
 
   /// A production change that fails this test: the stack does not move the
-  /// offset when a row above the view gets its height, or it moves the
-  /// offset in the wrong unit, so the rows in view jump by the change.
+  /// offset when a row above the view gets its height, it moves the offset
+  /// in the wrong unit, or it keeps at its place a row that comes into view
+  /// with no layout yet, so the rows in view jump by the change.
   @Test func aRowInViewMovesOnlyByTheScrollWhenTheRowsAboveGetTheirHeights() async throws {
     let thread = try MovingThread(
       session: .preview(transcript: (0..<Self.answerCount).map { .agent(Self.answer($0)) }))
     thread.settle()
-    thread.scrollAtRest(to: thread.scrollView.contentView.bounds.origin.y / 2)
-    let lastKeyInView = try #require(thread.anchors.visibleIDs.last)
-    let index = try #require(thread.session.transcript.firstIndex { $0.rowKey == lastKeyInView })
+    await thread.jumpAtRest(to: thread.session.transcript[Self.answerCount / 2].rowKey)
+    let firstKeyInView = try #require(thread.anchors.visibleIDs.first)
+    let index = try #require(thread.session.transcript.firstIndex { $0.rowKey == firstKeyInView })
     let text = try #require(thread.textViews.first { $0.string == Self.answer(index) })
     let before = Self.windowY(of: text)
 

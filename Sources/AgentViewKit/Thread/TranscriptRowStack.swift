@@ -12,6 +12,47 @@ nonisolated struct TranscriptStackGeometry: Equatable, Sendable {
   /// The geometry of the shown rows.
   let rows: TranscriptRowGeometry
 
+  /// Whether each shown row, in the order of ``rows``, had the height of
+  /// its own layout when the stack computed the geometry: a row in the
+  /// stack at the same width. A row that was not laid out has a height from
+  /// the cache or an estimate, and its first layout can change it.
+  let isLaidOut: [Bool]
+
+  /// Makes the geometry of the shown rows.
+  ///
+  /// - Parameters:
+  ///   - firstPosition: The position in the transcript of the first shown
+  ///     row.
+  ///   - rows: The geometry of the shown rows.
+  ///   - isLaidOut: Whether each shown row had the height of its own
+  ///     layout, in the order of `rows`.
+  init(firstPosition: Int, rows: TranscriptRowGeometry, isLaidOut: [Bool]) {
+    precondition(rows.count == isLaidOut.count, "each row has one layout state")
+    self.firstPosition = firstPosition
+    self.rows = rows
+    self.isLaidOut = isLaidOut
+  }
+
+  /// The row key of the anchor of a height change: the first row in view
+  /// that was laid out (``isLaidOut``), or the first row in view when no
+  /// row in view was laid out.
+  ///
+  /// The stack keeps the anchor at its place when the heights change. A
+  /// row that comes into view at the top of a scroll up has a height that
+  /// is not the height of its layout. With that row as the anchor, its new
+  /// height moved each row in view below it (card ^dwybk4c).
+  ///
+  /// - Parameter visible: The positions in the transcript of the rows in
+  ///   view.
+  /// - Returns: The row key, or `nil` when no row in view is shown.
+  func anchorRowKey(visible: Range<Int>) -> String? {
+    let laidOut = visible.first { position in
+      let index = index(ofPosition: position)
+      return isLaidOut.indices.contains(index) && isLaidOut[index]
+    }
+    return rowKey(atPosition: laidOut ?? visible.lowerBound)
+  }
+
   /// The index in ``rows`` of the row at a position of the transcript.
   ///
   /// - Parameter position: The position in the transcript.
@@ -71,9 +112,9 @@ nonisolated struct TranscriptScrollInsets: Equatable, Sendable {
 ///
 /// The window of the stack reads the value from its geometry on each frame
 /// of a scroll, and keeps it in its record (``TranscriptViewportRecord``)
-/// with no action of SwiftUI. The value changes only when the first or the
-/// last row in view changes, or when the height of the part in view
-/// changes.
+/// with no action of SwiftUI. The value changes on each frame of a scroll,
+/// but the window evaluates its body only when the value needs a row that
+/// it did not mount (``TranscriptMountPlan``).
 nonisolated struct TranscriptViewport: Equatable, Sendable {
   /// The positions in the transcript of the rows in view between the bars
   /// of the list: the rows in the bounds of the scroll view.
@@ -86,6 +127,16 @@ nonisolated struct TranscriptViewport: Equatable, Sendable {
 
   /// The height of the part in view between the bars.
   let height: CGFloat
+
+  /// The distance from the top of the first row in view down to the top of
+  /// the part in view, in points, or zero when no row is in view.
+  ///
+  /// A scroll inside a row taller than the part in view keeps the same rows
+  /// in view, but it changes this distance, so the report knows the
+  /// direction of the move (``movesDown(from:)``). A height change above the
+  /// first row in view moves that row and the offset by the same distance,
+  /// so it does not change this distance.
+  let firstRowDepth: CGFloat
 
   /// Reads the value from the part in view of the stack.
   ///
@@ -101,17 +152,29 @@ nonisolated struct TranscriptViewport: Equatable, Sendable {
     visible = (rows.lowerBound + first)..<(rows.upperBound + first)
     shown = (shownRows.lowerBound + first)..<(shownRows.upperBound + first)
     height = bounds.height
+    firstRowDepth =
+      geometry.rows.heights.indices.contains(rows.lowerBound)
+      ? bounds.minY - geometry.rows.top(ofRow: rows.lowerBound) : .zero
   }
 
   /// Whether the rows in view moved down the transcript from an older
   /// report to this one: `true` for a move down, `false` for a move up,
   /// and `nil` when the rows in view did not move.
   ///
+  /// With the same first row in view, the change of ``firstRowDepth`` gives
+  /// the direction. Thus a flick that starts in a row taller than the part
+  /// in view knows its direction from its first step, and the window mounts
+  /// the lead row of the flick, and not the lead row of an older move
+  /// (card ^dwybk4c).
+  ///
   /// - Parameter old: The older report.
   /// - Returns: The direction of the move, or `nil`.
   func movesDown(from old: TranscriptViewport) -> Bool? {
     if visible.lowerBound != old.visible.lowerBound {
       return visible.lowerBound > old.visible.lowerBound
+    }
+    if firstRowDepth != old.firstRowDepth {
+      return firstRowDepth > old.firstRowDepth
     }
     guard visible.upperBound != old.visible.upperBound else { return nil }
     return visible.upperBound > old.visible.upperBound
@@ -270,10 +333,11 @@ extension View {
 /// SwiftUI, and the stack does not read the height of each row again.
 ///
 /// When the heights change, such as when a row gets its first layout or
-/// the cache of the rows computes a row, and the change moves the first row
-/// in view, the stack first lays out the old geometry, and then it takes
-/// the new geometry and moves the offset in one step, so that the first row
-/// in view stays at its place
+/// the cache of the rows computes a row, and the change moves the anchor
+/// row (the first row in view that was laid out,
+/// ``TranscriptStackGeometry/anchorRowKey(visible:)``), the stack first lays
+/// out the old geometry, and then it takes the new geometry and moves the
+/// offset in one step, so that the anchor row stays at its place
 /// (``TranscriptRowGeometry/anchoredOffset(_:anchorRowKey:from:)``). The
 /// stack does not move the offset while the list follows the bottom (the
 /// bottom anchor of the list keeps the end in view), while the scroll
@@ -406,15 +470,16 @@ struct TranscriptRowStack: View {
     }
     let rows = TranscriptRowGeometry(
       rowKeys: positions.map { transcript[$0].rowKey }, heights: heights, spacing: metrics.spacing)
-    return TranscriptStackGeometry(firstPosition: first, rows: rows)
+    let isLaidOut = positions.map { elements.isLaidOut(transcript[$0].id, width: width) }
+    return TranscriptStackGeometry(firstPosition: first, rows: rows, isLaidOut: isLaidOut)
   }
 
   /// The geometry to lay out: the geometry that the stack laid out last,
-  /// when the change to `target` moves the first row in view
+  /// when the change to `target` moves the anchor row
   /// (``anchoredOffset(from:to:)``) and the two have the same rows, else
   /// `target`.
   ///
-  /// Only a change that moves the first row in view waits one pass, so the
+  /// Only a change that moves the anchor row waits one pass, so the
   /// new geometry and the new offset come in one step. Each other change,
   /// such as a new height of the last row while the list follows the
   /// bottom, is laid out at once, so no row draws past its place for a
@@ -431,8 +496,8 @@ struct TranscriptRowStack: View {
     return applied
   }
 
-  /// Takes a new geometry, and moves the offset so the first row in view
-  /// stays at its place, when the stack keeps the rows in view
+  /// Takes a new geometry, and moves the offset so the anchor row stays at
+  /// its place, when the stack keeps the rows in view
   /// (``keepsRowsInView``).
   ///
   /// - Parameter new: The new geometry.
@@ -444,16 +509,18 @@ struct TranscriptRowStack: View {
     position.value.scrollTo(y: offset)
   }
 
-  /// The offset that keeps the first row in view at its place after a
-  /// change of the geometry, when the change moves that row.
+  /// The offset that keeps the anchor row at its place after a change of
+  /// the geometry, when the change moves that row. The anchor row is the
+  /// first row in view that was laid out in the old geometry
+  /// (``TranscriptStackGeometry/anchorRowKey(visible:)``).
   ///
   /// - Parameters:
   ///   - old: The geometry before the change.
   ///   - new: The geometry after the change.
   /// - Returns: The new offset, or `nil` when the change does not move the
-  ///   first row in view.
+  ///   anchor row.
   private func anchoredOffset(from old: TranscriptStackGeometry, to new: TranscriptStackGeometry) -> CGFloat? {
-    guard let first = viewport.value?.visible.lowerBound, let key = old.rowKey(atPosition: first) else {
+    guard let visible = viewport.value?.visible, let key = old.anchorRowKey(visible: visible) else {
       return nil
     }
     let offset = scrollOffset.y

@@ -159,11 +159,35 @@ nonisolated struct TranscriptElementMetrics: Equatable, Sendable {
     of shape: TranscriptElementShape, width: CGFloat, source: some TranscriptRowHeightSource,
     metrics: TranscriptElementMetrics
   ) -> CGFloat {
-    let record = records[shape.id].flatMap {
-      abs($0.width - width) <= TranscriptMeasuredRowHeights.widthTolerance ? $0 : nil
-    }
-    return metrics.padding(below: shape)
-      + coreHeight(of: shape, width: width, record: record, source: source, metrics: metrics)
+    metrics.padding(below: shape)
+      + coreHeight(
+        of: shape, width: width, record: record(of: shape.id, width: width), source: source, metrics: metrics)
+  }
+
+  /// Whether an element is in the stack and has the height of its own
+  /// layout at a width: a live record of that width.
+  ///
+  /// The stack anchors a height change only on such an element
+  /// (``TranscriptStackGeometry/anchorRowKey(visible:)``). The first layout
+  /// of each other element can change its height.
+  ///
+  /// - Parameters:
+  ///   - id: The id of the entry of the element.
+  ///   - width: The width of the stack.
+  /// - Returns: `true` when the element has a live record of that width.
+  func isLaidOut(_ id: TranscriptEntry.ID, width: CGFloat) -> Bool {
+    record(of: id, width: width)?.isLive == true
+  }
+
+  /// The record of an element at a width of the stack.
+  ///
+  /// - Parameters:
+  ///   - id: The id of the entry of the element.
+  ///   - width: The width of the stack.
+  /// - Returns: The record, or `nil` when the element has no record of
+  ///   that width.
+  private func record(of id: TranscriptEntry.ID, width: CGFloat) -> Record? {
+    records[id].flatMap { abs($0.width - width) <= TranscriptMeasuredRowHeights.widthTolerance ? $0 : nil }
   }
 
   /// The height of an element without its bottom padding.
