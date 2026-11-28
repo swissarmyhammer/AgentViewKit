@@ -4,10 +4,12 @@ import FoundationModelsACPClient
 /// The chrome rule of each row kind: the padding, the header heights and the
 /// block frames that AgentViewKit adds around the text parts of a row.
 ///
-/// Each rule is a pure function of the row content, the theme metrics and
-/// the text measure. A rule follows the layout of the views of its row kind,
-/// so a change to that layout changes the rule too. The tests of the rules
-/// mount each row kind and compare its height with the rule.
+/// Each rule is a pure function of the row content and the theme metrics.
+/// A rule gives the layout tree of its row (``TranscriptRowNode``), and the
+/// height of the row is the height of that tree with the text measure. A
+/// rule follows the layout of the views of its row kind, so a change to that
+/// layout changes the rule too. The tests of the rules mount each row kind
+/// and compare its height with the rule.
 nonisolated public enum TranscriptRowChrome {
   /// The height of a text part at a width.
   public typealias Measure = (TranscriptTextPart, CGFloat) -> CGFloat
@@ -28,171 +30,167 @@ nonisolated public enum TranscriptRowChrome {
     of content: TranscriptRowContent, width: CGFloat, metrics: TranscriptRowMetrics, measure: Measure
   ) -> CGFloat? {
     withoutActuallyEscaping(measure) { measure in
-      TranscriptRowRule(metrics: metrics, measure: measure).height(of: content.kind, width: width)
+      layout(of: content, metrics: metrics)?.height(width: width, measure: measure)
     }
+  }
+
+  /// The layout tree of a row.
+  ///
+  /// - Parameters:
+  ///   - content: The content of the row.
+  ///   - metrics: The theme metrics.
+  /// - Returns: The tree, or `nil` when no rule covers the content.
+  static func layout(of content: TranscriptRowContent, metrics: TranscriptRowMetrics) -> TranscriptRowNode? {
+    TranscriptRowRule(metrics: metrics).layout(of: content.kind)
   }
 }
 
-/// The chrome rules with their metrics and their measure.
+/// The chrome rules with their metrics.
 nonisolated private struct TranscriptRowRule {
   /// The theme metrics.
   let metrics: TranscriptRowMetrics
 
-  /// The text measure.
-  let measure: TranscriptRowChrome.Measure
-
-  /// The height of a row of one kind.
+  /// The layout tree of a row of one kind.
   ///
-  /// - Parameters:
-  ///   - kind: The data of the row kind.
-  ///   - width: The width of the row.
-  /// - Returns: The height, or `nil` when no rule covers the row.
-  func height(of kind: TranscriptRowContent.Kind, width: CGFloat) -> CGFloat? {
+  /// - Parameter kind: The data of the row kind.
+  /// - Returns: The tree, or `nil` when no rule covers the row.
+  func layout(of kind: TranscriptRowContent.Kind) -> TranscriptRowNode? {
     switch kind {
-    case .message(let blocks, let sendState): message(blocks: blocks, sendState: sendState, width: width)
-    case .collapsedThought: collapsedThought()
-    case .toolCall(let call): toolCall(call, width: width)
-    case .terminal(let terminal): self.terminal(terminal, width: width)
-    case .plan(let rows): plan(rows, width: width)
-    case .error(let detail): error(detail: detail, width: width)
-    case .compaction(let compaction): self.compaction(compaction, width: width)
-    case .sessionMessage(let participants, let blocks):
-      sessionMessage(participants: participants, blocks: blocks, width: width)
+    case .message(let role, let blocks, let sendState): message(role: role, blocks: blocks, sendState: sendState)
+    case .collapsedThought(let title): collapsedThought(title: title)
+    case .toolCall(let call): toolCall(call)
+    case .terminal(let terminal): self.terminal(terminal)
+    case .plan(let rows): plan(rows)
+    case .error(let detail): error(detail: detail)
+    case .compaction(let compaction): self.compaction(compaction)
+    case .sessionMessage(let participants, let blocks): sessionMessage(participants: participants, blocks: blocks)
     case .uncovered: nil
     }
   }
 
   // MARK: - Shared chrome
 
-  /// The height of a content tile around a stack of parts.
+  /// A content tile around a list of parts.
   ///
   /// `ContentTileStack` puts the tile gap between the parts, and
   /// `contentTile()` pads the stack on each side.
   ///
-  /// - Parameter parts: The heights of the parts, or `nil` for a part that no
-  ///   rule covers.
-  /// - Returns: The height.
-  func tile(_ parts: CGFloat?...) -> CGFloat? {
+  /// - Parameter parts: The parts, or `nil` for a part that no rule covers.
+  /// - Returns: The tile, or `nil` when a part has no rule.
+  func tile(_ parts: [TranscriptRowNode?]) -> TranscriptRowNode? {
+    stack(parts, spacing: metrics.tileGap).map { .inset($0, padding: metrics.tilePadding) }
+  }
+
+  /// A content tile around a stack of parts (``tile(_:)``).
+  ///
+  /// - Parameter parts: The parts, or `nil` for a part that no rule covers.
+  /// - Returns: The tile, or `nil` when a part has no rule.
+  func tile(_ parts: TranscriptRowNode?...) -> TranscriptRowNode? {
     tile(parts)
   }
 
-  /// The height of a content tile around a list of parts.
+  /// All parts.
   ///
-  /// - Parameter parts: The heights of the parts, or `nil` for a part that no
-  ///   rule covers.
-  /// - Returns: The height.
-  func tile(_ parts: [CGFloat?]) -> CGFloat? {
-    stack(parts, spacing: metrics.tileGap).map { $0 + bothEdges(metrics.tilePadding) }
+  /// - Parameter parts: The parts, or `nil` for a part that no rule covers.
+  /// - Returns: The parts, or `nil` when a part has no rule.
+  func all(_ parts: [TranscriptRowNode?]) -> [TranscriptRowNode]? {
+    let nodes = parts.compactMap(\.self)
+    return nodes.count == parts.count ? nodes : nil
   }
 
-  /// The width of the content of a tile in a view of `width`.
-  ///
-  /// - Parameter width: The width of the view.
-  /// - Returns: The width less the tile padding on each side.
-  func tileContent(_ width: CGFloat) -> CGFloat {
-    width - bothEdges(metrics.tilePadding)
-  }
-
-  /// The number of edges that a padding pads on one axis: SwiftUI
-  /// `padding(_:)` pads the leading and the trailing edge, or the top and the
-  /// bottom edge.
-  static let paddedEdgesPerAxis: CGFloat = 2
-
-  /// The length that a padding of `padding` on each edge adds on one axis.
-  ///
-  /// - Parameter padding: The padding of one edge.
-  /// - Returns: The padding of the two edges.
-  func bothEdges(_ padding: CGFloat) -> CGFloat {
-    padding * Self.paddedEdgesPerAxis
-  }
-
-  /// The heights of all parts.
-  ///
-  /// - Parameter parts: The heights of the parts, or `nil` for a part that no
-  ///   rule covers.
-  /// - Returns: The heights, or `nil` when a part has no height.
-  func all(_ parts: [CGFloat?]) -> [CGFloat]? {
-    let heights = parts.compactMap(\.self)
-    return heights.count == parts.count ? heights : nil
-  }
-
-  /// The height of a stack of parts with a spacing between them.
+  /// A stack of parts with a spacing between them.
   ///
   /// - Parameters:
-  ///   - parts: The heights of the parts.
+  ///   - parts: The parts, or `nil` for a part that no rule covers.
   ///   - spacing: The spacing.
-  /// - Returns: The height, or `nil` when a part has no height.
-  func stack(_ parts: [CGFloat?], spacing: CGFloat) -> CGFloat? {
-    all(parts).map { heights in heights.reduce(.zero, +) + spacing * CGFloat(max(heights.count - 1, .zero)) }
+  /// - Returns: The stack, or `nil` when a part has no rule.
+  func stack(_ parts: [TranscriptRowNode?], spacing: CGFloat) -> TranscriptRowNode? {
+    all(parts).map { .stack($0, spacing: spacing) }
   }
 
-  /// The height of a row of views that a horizontal stack centers.
+  /// A line of views that a horizontal stack centers.
   ///
-  /// - Parameter parts: The heights of the views.
-  /// - Returns: The largest height, or `nil` when a view has no height.
-  func line(_ parts: CGFloat?...) -> CGFloat? {
-    all(parts).map { heights in heights.max() ?? .zero }
+  /// - Parameter parts: The views.
+  /// - Returns: The line, or `nil` when a view has no rule.
+  func line(_ parts: TranscriptRowNode?...) -> TranscriptRowNode? {
+    all(parts).map(TranscriptRowNode.line)
   }
 
-  /// The height of a text part.
+  /// A line of chrome views of fixed heights, which the flat form draws as
+  /// one chrome line.
+  ///
+  /// - Parameters:
+  ///   - heights: The heights of the views, or `nil` for a view that the
+  ///     probe did not lay out.
+  ///   - line: The chrome line of the views, or `nil` for a line that the
+  ///     flat form does not draw.
+  /// - Returns: The chrome view of the height of the tallest view, or `nil`
+  ///   when a view has no height.
+  func chrome(_ heights: CGFloat?..., line: TranscriptChromeLine?) -> TranscriptRowNode? {
+    let known = heights.compactMap(\.self)
+    guard known.count == heights.count else { return nil }
+    return .chrome(height: known.max() ?? .zero, line: line)
+  }
+
+  /// A text part.
   ///
   /// - Parameters:
   ///   - text: The text.
   ///   - style: The kind of view that shows the text.
-  ///   - width: The width of the view.
-  /// - Returns: The height.
-  func text(_ text: String, _ style: TranscriptTextPart.Style, width: CGFloat) -> CGFloat {
-    measure(TranscriptTextPart(text: text, style: style), width)
+  /// - Returns: The text part.
+  func text(_ text: String, _ style: TranscriptTextPart.Style) -> TranscriptRowNode {
+    .text(TranscriptTextPart(text: text, style: style))
   }
 
-  /// The height of a `ResponseView`: one rendered Markdown view, or a
-  /// stack of prose and code blocks when the text has a code fence.
+  /// A `ResponseView`: one rendered Markdown view, or a stack of prose and
+  /// code blocks when the text has a code fence.
   ///
-  /// - Parameters:
-  ///   - markdown: The Markdown text.
-  ///   - width: The width of the view.
-  /// - Returns: The height.
-  func response(_ markdown: String, width: CGFloat) -> CGFloat? {
+  /// - Parameter markdown: The Markdown text.
+  /// - Returns: The response.
+  func response(_ markdown: String) -> TranscriptRowNode? {
     let pieces = MarkdownCodeFences.segments(in: markdown)
-    guard pieces.contains(where: \.isCode) else { return text(markdown, .markdown, width: width) }
-    let heights = pieces.map { segment -> CGFloat? in
+    guard pieces.contains(where: \.isCode) else { return text(markdown, .markdown) }
+    let nodes = pieces.map { segment -> TranscriptRowNode? in
       switch segment {
-      case .prose(let prose): text(prose, .markdown, width: width)
-      case .code(let code, let language, _): codeBlock(code, language: language, width: width)
+      case .prose(let prose): text(prose, .markdown)
+      case .code(let code, let language, let filename):
+        codeBlock(code, language: language, title: CodeBlockView.title(language: language, filename: filename))
       }
     }
-    return stack(heights, spacing: metrics.stackSpacing)
+    return stack(nodes, spacing: metrics.stackSpacing)
   }
 
-  /// The height of a `CodeBlockView`: a tile with a block header and the
-  /// code.
+  /// A `CodeBlockView`: a tile with a block header and the code, in the
+  /// frame of a code block.
   ///
   /// - Parameters:
   ///   - code: The code.
   ///   - language: The language of the code, or `nil`.
-  ///   - width: The width of the view.
-  /// - Returns: The height.
-  func codeBlock(_ code: String, language: String?, width: CGFloat) -> CGFloat? {
-    let header = line(metrics.height(.blockHeaderTitle), metrics.height(.copyButton))
+  ///   - title: The title of the header, or `nil` for a header that the
+  ///     flat form does not draw.
+  /// - Returns: The code block.
+  func codeBlock(_ code: String, language: String?, title: String?) -> TranscriptRowNode? {
+    let header = chrome(
+      metrics.height(.blockHeaderTitle), metrics.height(.copyButton), line: title.map(TranscriptChromeLine.codeBlockHeader))
     // The part names the language as the view of the block keeps it, so
     // the slot of the view finds the picture of the part.
     let style = TranscriptTextPart.Style.code(language: CodeBlockView.normalized(language))
-    return tile(header, text(code, style, width: tileContent(width)))
+    return tile(header, text(code, style)).map(TranscriptRowNode.band)
   }
 
-  /// The height of a `StatusTitleLayout`: the symbol and the headline title
-  /// on one line, and the explanation label below the title.
+  /// A `StatusTitleLayout`: the symbol and the headline title on one line,
+  /// and the explanation label below the title.
   ///
   /// - Parameters:
   ///   - symbol: The name of the symbol.
   ///   - explanation: The explanation text.
-  ///   - width: The width of the layout.
-  /// - Returns: The height.
-  func statusTitle(symbol: String, explanation: String, width: CGFloat) -> CGFloat? {
-    guard let row = line(metrics.height(.symbol(symbol)), metrics.height(.headline)) else { return nil }
+  /// - Returns: The status title.
+  func statusTitle(symbol: String, explanation: String) -> TranscriptRowNode? {
+    guard let row = chrome(metrics.height(.symbol(symbol)), metrics.height(.headline), line: nil) else { return nil }
     guard !explanation.isEmpty else { return row }
-    let textWidth = width - metrics.symbolColumnWidth - metrics.spacingM
-    return row + metrics.spacingXS + text(explanation, .label(.ui(.callout)), width: textWidth)
+    let label = TranscriptRowNode.narrowed(
+      text(explanation, .label(.ui(.callout))), by: metrics.symbolColumnWidth + metrics.spacingM)
+    return .stack([row, label], spacing: metrics.spacingXS)
   }
 
   // MARK: - Row kinds
@@ -204,68 +202,61 @@ nonisolated private struct TranscriptRowRule {
   /// extra-small spacing, and the extra-small inset pads the whole message.
   ///
   /// - Parameters:
+  ///   - role: The sender of the message.
   ///   - blocks: The text blocks.
   ///   - sendState: The send state of a user message, or `nil`.
-  ///   - width: The width of the row.
-  /// - Returns: The height.
-  func message(blocks: [String], sendState: SendState?, width: CGFloat) -> CGFloat? {
-    let inner = width - bothEdges(metrics.spacingXS)
-    let parts = [metrics.height(.messageHeader)] + blocks.map { response($0, width: inner) }
-    guard let height = stack(parts, spacing: metrics.spacingS) else { return nil }
-    let padded = height + bothEdges(metrics.spacingXS)
-    guard let sendState else { return padded }
-    return metrics.height(.sendState(sendState)).map { padded + metrics.spacingXS + $0 }
+  /// - Returns: The message.
+  func message(role: MessageRole, blocks: [String], sendState: SendState?) -> TranscriptRowNode? {
+    let header = chrome(metrics.height(.messageHeader), line: .messageHeader(role))
+    guard let layout = stack([header] + blocks.map(response), spacing: metrics.spacingS) else { return nil }
+    guard let sendState else { return .inset(layout, padding: metrics.spacingXS) }
+    let caption = chrome(metrics.height(.sendState(sendState)), line: .sendState(sendState))
+    return stack([layout, caption], spacing: metrics.spacingXS).map { .inset($0, padding: metrics.spacingXS) }
   }
 
   /// The rule of a collapsed thought (`ReasoningBlock`): a tile with the
   /// title and the disclosure toggle on one line.
   ///
-  /// - Returns: The height.
-  func collapsedThought() -> CGFloat? {
-    tile(line(metrics.height(.rowText), metrics.height(.disclosureButton)))
+  /// - Parameter title: The title of the header.
+  /// - Returns: The thought.
+  func collapsedThought(title: String) -> TranscriptRowNode? {
+    tile(chrome(metrics.height(.rowText), metrics.height(.disclosureButton), line: .thoughtHeader(title: title)))
   }
 
   /// The rule of a tool call card (`ToolCallView`): a tile with the header
   /// line, and the body parts when the card is expanded.
   ///
-  /// - Parameters:
-  ///   - call: The data of the card.
-  ///   - width: The width of the row.
-  /// - Returns: The height.
-  func toolCall(_ call: TranscriptRowContent.ToolCall, width: CGFloat) -> CGFloat? {
-    let header = line(
+  /// - Parameter call: The data of the card.
+  /// - Returns: The card.
+  func toolCall(_ call: TranscriptRowContent.ToolCall) -> TranscriptRowNode? {
+    let header = chrome(
       metrics.height(.buttonText), metrics.height(.buttonSymbol(call.kindSymbol)),
-      metrics.height(.buttonSymbol(call.statusSymbol)),
-      metrics.height(.buttonSymbol(metrics.disclosureSymbol)))
+      metrics.height(.buttonSymbol(call.statusSymbol)), metrics.height(.buttonSymbol(metrics.disclosureSymbol)),
+      line: .toolCallHeader(call.header))
     guard let body = call.body else { return tile(header) }
-    let inner = tileContent(width)
-    return tile(header, stack(body.map { bodyPart($0, width: inner) }, spacing: metrics.tileGap))
+    return tile(header, stack(body.map(bodyPart), spacing: metrics.tileGap))
   }
 
-  /// The height of one part of the body of a tool call (`ToolCallBody`).
+  /// One part of the body of a tool call (`ToolCallBody`).
   ///
-  /// - Parameters:
-  ///   - part: The part.
-  ///   - width: The width of the body.
-  /// - Returns: The height.
-  func bodyPart(_ part: TranscriptRowContent.BodyPart, width: CGFloat) -> CGFloat? {
+  /// - Parameter part: The part.
+  /// - Returns: The part.
+  func bodyPart(_ part: TranscriptRowContent.BodyPart) -> TranscriptRowNode? {
     switch part {
-    case .json(let json): codeBlock(json, language: TranscriptRowChrome.jsonLanguage, width: width)
-    case .text(let markdown): response(markdown, width: width)
-    case .diff(let patch): diff(patch, width: width)
-    case .commandOutput(let output, let exitSymbol): commandOutput(output, exitSymbol: exitSymbol, width: width)
+    case .json(let json): codeBlock(json, language: TranscriptRowChrome.jsonLanguage, title: nil)
+    case .text(let markdown): response(markdown)
+    case .diff(let patch): diff(patch)
+    case .commandOutput(let output, let exitSymbol): commandOutput(output, exitSymbol: exitSymbol)
     }
   }
 
   /// The rule of a diff in a tool call (`DiffView`): the file chip, then the
   /// diff, with the tile gap and no padding.
   ///
-  /// - Parameters:
-  ///   - patch: The git patch text.
-  ///   - width: The width of the view.
-  /// - Returns: The height.
-  func diff(_ patch: String, width: CGFloat) -> CGFloat? {
-    stack([metrics.height(.pathChip), text(patch, .diff, width: width)], spacing: metrics.tileGap)
+  /// - Parameter patch: The git patch text.
+  /// - Returns: The diff.
+  func diff(_ patch: String) -> TranscriptRowNode? {
+    stack([chrome(metrics.height(.pathChip), line: nil), text(patch, .diff)], spacing: metrics.tileGap)
   }
 
   /// The rule of a command output (`CommandOutputView`): a tile with the
@@ -274,30 +265,29 @@ nonisolated private struct TranscriptRowRule {
   /// - Parameters:
   ///   - output: The shown output.
   ///   - exitSymbol: The symbol of the exit label, or `nil` with no exit code.
-  ///   - width: The width of the view.
-  /// - Returns: The height.
-  func commandOutput(_ output: String, exitSymbol: String?, width: CGFloat) -> CGFloat? {
-    let header = line(metrics.height(.codeText), metrics.height(.copyButton))
-    let body = text(output, .output, width: tileContent(width))
+  /// - Returns: The output.
+  func commandOutput(_ output: String, exitSymbol: String?) -> TranscriptRowNode? {
+    let header = chrome(metrics.height(.codeText), metrics.height(.copyButton), line: nil)
+    let body = text(output, .output)
     guard let exitSymbol else { return tile(header, body) }
-    return tile(header, body, metrics.height(.exitLabel(exitSymbol)))
+    return tile(header, body, chrome(metrics.height(.exitLabel(exitSymbol)), line: nil))
   }
 
   /// The rule of a terminal (`TerminalView`): a tile with the command line,
   /// the output and the exit label.
   ///
-  /// - Parameters:
-  ///   - terminal: The data of the terminal.
-  ///   - width: The width of the row.
-  /// - Returns: The height.
-  func terminal(_ terminal: TranscriptRowContent.Terminal, width: CGFloat) -> CGFloat? {
-    let inner = tileContent(width)
+  /// - Parameter terminal: The data of the terminal.
+  /// - Returns: The terminal.
+  func terminal(_ terminal: TranscriptRowContent.Terminal) -> TranscriptRowNode? {
     let gaps = metrics.spacingS * CGFloat(TranscriptRowRule.terminalHeaderGapCount)
-    let labelWidth = inner - metrics.symbolColumnWidth - gaps
-    let command = text(terminal.command, .label(.code), width: labelWidth)
-    let folder = terminal.folder.map { text($0, .label(.ui(.caption)), width: labelWidth) } ?? .zero
-    let header = line(metrics.height(.symbol(metrics.terminalSymbol)), command, folder)
-    return tile(header, text(terminal.output, .output, width: inner), metrics.height(.exitLabel(terminal.exitSymbol)))
+    let labelInset = metrics.symbolColumnWidth + gaps
+    let command = TranscriptRowNode.narrowed(text(terminal.command, .label(.code)), by: labelInset)
+    let folder = terminal.folder.map { TranscriptRowNode.narrowed(text($0, .label(.ui(.caption))), by: labelInset) }
+    let header = line(
+      chrome(metrics.height(.symbol(metrics.terminalSymbol)), line: nil), command,
+      folder ?? .chrome(height: .zero, line: nil))
+    return tile(
+      header, text(terminal.output, .output), chrome(metrics.height(.exitLabel(terminal.exitSymbol)), line: nil))
   }
 
   /// The number of small gaps that the rule takes from the width of the
@@ -308,29 +298,26 @@ nonisolated private struct TranscriptRowRule {
   /// The rule of a plan (`TaskListView`): the headline, then the rows with
   /// the large spacing, with the medium spacing between the two.
   ///
-  /// - Parameters:
-  ///   - rows: The rows of the plan.
-  ///   - width: The width of the row.
-  /// - Returns: The height.
-  func plan(_ rows: [TranscriptRowContent.PlanRow], width: CGFloat) -> CGFloat? {
-    let steps = stack(rows.map { planRow($0, width: width) }, spacing: metrics.spacingL)
-    return stack([metrics.height(.headline), steps], spacing: metrics.spacingM)
+  /// - Parameter rows: The rows of the plan.
+  /// - Returns: The plan.
+  func plan(_ rows: [TranscriptRowContent.PlanRow]) -> TranscriptRowNode? {
+    let steps = stack(rows.map(planRow), spacing: metrics.spacingL)
+    return stack([chrome(metrics.height(.headline), line: nil), steps], spacing: metrics.spacingM)
   }
 
   /// The rule of one row of a plan (`PlanEntryRow`): the status symbol, the
   /// label and the priority symbol on one line.
   ///
-  /// - Parameters:
-  ///   - row: The data of the row.
-  ///   - width: The width of the row.
-  /// - Returns: The height.
-  func planRow(_ row: TranscriptRowContent.PlanRow, width: CGFloat) -> CGFloat? {
+  /// - Parameter row: The data of the row.
+  /// - Returns: The row.
+  func planRow(_ row: TranscriptRowContent.PlanRow) -> TranscriptRowNode? {
     guard let priorityWidth = metrics.width(.symbol(row.prioritySymbol)) else { return nil }
     let gaps = metrics.spacingS * CGFloat(TranscriptRowRule.planRowGapCount)
-    let labelWidth = width - metrics.symbolColumnWidth - priorityWidth - gaps
+    let label = TranscriptRowNode.narrowed(
+      text(row.text, .label(.inherited)), by: metrics.symbolColumnWidth + priorityWidth + gaps)
     return line(
-      metrics.height(.symbol(row.statusSymbol)), text(row.text, .label(.inherited), width: labelWidth),
-      metrics.height(.symbol(row.prioritySymbol)))
+      chrome(metrics.height(.symbol(row.statusSymbol)), line: nil), label,
+      chrome(metrics.height(.symbol(row.prioritySymbol)), line: nil))
   }
 
   /// The number of small gaps of a plan row: the three stack spaces and the
@@ -340,26 +327,21 @@ nonisolated private struct TranscriptRowRule {
   /// The rule of a compaction notice (`CompactionEntryView`): a tile with the
   /// status title, the error label and the summary blocks.
   ///
-  /// - Parameters:
-  ///   - compaction: The data of the notice.
-  ///   - width: The width of the row.
-  /// - Returns: The height.
-  func compaction(_ compaction: TranscriptRowContent.Compaction, width: CGFloat) -> CGFloat? {
-    let inner = tileContent(width)
-    let title = statusTitle(symbol: compaction.symbol, explanation: compaction.summary, width: inner)
-    let error = compaction.error.map { text($0, .label(.ui(.callout)), width: inner) }
-    return tile([title] + [error].compactMap(\.self) + compaction.blocks.map { response($0, width: inner) })
+  /// - Parameter compaction: The data of the notice.
+  /// - Returns: The notice.
+  func compaction(_ compaction: TranscriptRowContent.Compaction) -> TranscriptRowNode? {
+    let title = statusTitle(symbol: compaction.symbol, explanation: compaction.summary)
+    let error = compaction.error.map { text($0, .label(.ui(.callout))) }
+    return tile([title] + [error].compactMap(\.self) + compaction.blocks.map(response))
   }
 
   /// The rule of an error notice (`ErrorView`): a tile with the status
   /// title.
   ///
-  /// - Parameters:
-  ///   - detail: The explanation text.
-  ///   - width: The width of the row.
-  /// - Returns: The height.
-  func error(detail: String, width: CGFloat) -> CGFloat? {
-    tile(statusTitle(symbol: metrics.errorSymbol, explanation: detail, width: tileContent(width)))
+  /// - Parameter detail: The explanation text.
+  /// - Returns: The notice.
+  func error(detail: String) -> TranscriptRowNode? {
+    tile(statusTitle(symbol: metrics.errorSymbol, explanation: detail))
   }
 
   /// The rule of a message from another session (`SessionMessageView`): the
@@ -368,10 +350,8 @@ nonisolated private struct TranscriptRowRule {
   /// - Parameters:
   ///   - participants: The participants text.
   ///   - blocks: The text blocks.
-  ///   - width: The width of the row.
-  /// - Returns: The height.
-  func sessionMessage(participants: String, blocks: [String], width: CGFloat) -> CGFloat? {
-    let label = text(participants, .label(.systemCaption), width: width)
-    return stack([label] + blocks.map { response($0, width: width) }, spacing: SessionMessageView.spacing)
+  /// - Returns: The message.
+  func sessionMessage(participants: String, blocks: [String]) -> TranscriptRowNode? {
+    stack([text(participants, .label(.systemCaption))] + blocks.map(response), spacing: SessionMessageView.spacing)
   }
 }

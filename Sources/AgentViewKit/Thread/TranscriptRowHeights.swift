@@ -147,6 +147,21 @@ import os
     worker = TranscriptRowHeightWorker(measure: measure, metrics: metrics, pictureByteLimit: pictureByteLimit)
     pictures = TranscriptPictureCache(byteLimit: pictureByteLimit)
     self.expandedBlocks = expandedBlocks
+    self.metrics = metrics
+  }
+
+  /// The theme metrics of the rows.
+  @ObservationIgnored private let metrics: TranscriptRowMetrics
+
+  /// The layout tree of a row from the chrome rule of its last copy
+  /// (``TranscriptRowChrome/layout(of:metrics:)``), for the flat form of
+  /// its static row (card ^9ync5h3).
+  ///
+  /// - Parameter rowKey: The row key of the entry.
+  /// - Returns: The tree, or `nil` when the cache did not copy the row or no
+  ///   chrome rule covers it.
+  func layout(ofRow rowKey: String) -> TranscriptRowNode? {
+    contents[rowKey].flatMap { TranscriptRowChrome.layout(of: $0, metrics: metrics) }
   }
 
   /// Stops the drain of the queue: a cache that no thread holds computes no

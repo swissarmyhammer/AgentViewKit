@@ -3,7 +3,8 @@ import FoundationModelsACP
 import FoundationModelsACPClient
 import SwiftUI
 
-/// A copy of the data of one transcript row that sets its height.
+/// A copy of the data of one transcript row that sets its height and the
+/// text of its chrome lines.
 ///
 /// The copy is a value, so ``TranscriptRowHeights`` sends it to a background
 /// task. Its hash is the content digest of the entry version. A row whose
@@ -24,12 +25,12 @@ nonisolated public struct TranscriptRowContent: Hashable, Sendable {
 
   /// The data of each row kind.
   enum Kind: Hashable, Sendable {
-    /// A user or an agent message: its text blocks, and the send state of a
-    /// user message.
-    case message(blocks: [String], sendState: SendState?)
+    /// A user or an agent message: its sender, its text blocks, and the
+    /// send state of a user message.
+    case message(role: MessageRole, blocks: [String], sendState: SendState?)
 
-    /// A collapsed thought.
-    case collapsedThought
+    /// A collapsed thought: the title of its header.
+    case collapsedThought(title: String)
 
     /// A tool call card.
     case toolCall(ToolCall)
@@ -55,6 +56,9 @@ nonisolated public struct TranscriptRowContent: Hashable, Sendable {
 
   /// The data of a tool call card.
   struct ToolCall: Hashable, Sendable {
+    /// The header of the card: its title, its kind and its status.
+    let header: TranscriptToolCallHeader
+
     /// The symbol of the kind of the call.
     let kindSymbol: String
 
@@ -141,11 +145,12 @@ nonisolated public struct TranscriptRowContent: Hashable, Sendable {
   @MainActor private static func kind(of entry: TranscriptEntry, isExpanded: Bool) -> Kind {
     switch entry {
     case .userMessage(let message):
-      textBlocks(of: message.content).map { .message(blocks: $0, sendState: message.sendState) } ?? .uncovered
+      textBlocks(of: message.content).map { .message(role: .user, blocks: $0, sendState: message.sendState) }
+        ?? .uncovered
     case .agentMessage(let message):
-      textBlocks(of: message.content).map { .message(blocks: $0, sendState: nil) } ?? .uncovered
+      textBlocks(of: message.content).map { .message(role: .assistant, blocks: $0, sendState: nil) } ?? .uncovered
     case .thought:
-      isExpanded ? .uncovered : .collapsedThought
+      isExpanded ? .uncovered : .collapsedThought(title: ReasoningView.completedTitle(duration: entry.timing.duration))
     case .toolCall(let call):
       toolCall(call, isExpanded: isExpanded).map(Kind.toolCall) ?? .uncovered
     case .terminal(let terminal):
@@ -191,9 +196,13 @@ nonisolated public struct TranscriptRowContent: Hashable, Sendable {
     else { return nil }
     let kindSymbol = TranscriptRowSymbols.tool(call.shownKind)
     let statusSymbol = TranscriptRowSymbols.status(status)
-    guard isExpanded else { return ToolCall(kindSymbol: kindSymbol, statusSymbol: statusSymbol, body: nil) }
+    let header = TranscriptToolCallHeader(
+      title: ToolCallView.displayTitle(call.shownTitle), kind: call.shownKind, status: status, isExpanded: isExpanded)
+    guard isExpanded else {
+      return ToolCall(header: header, kindSymbol: kindSymbol, statusSymbol: statusSymbol, body: nil)
+    }
     guard let body = toolCallBody(call) else { return nil }
-    return ToolCall(kindSymbol: kindSymbol, statusSymbol: statusSymbol, body: body)
+    return ToolCall(header: header, kindSymbol: kindSymbol, statusSymbol: statusSymbol, body: body)
   }
 
   /// The parts of the expanded body of a tool call.

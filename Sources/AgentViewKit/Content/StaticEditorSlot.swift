@@ -18,7 +18,7 @@ import SwiftUI
 /// view has no such gesture. The still view is one accessibility element
 /// (``StaticSlotAccessibility``): the press of an assistive app on it, or its
 /// focus on it, also makes the row real, so the app reads the text of the
-/// editor. A hover does not.
+/// editor. A hover does not (``TranscriptStillInteraction``).
 ///
 /// A slot whose editor was never laid out, such as the slot of a row that
 /// shows its static form from its first frame, shows the still view at the
@@ -59,14 +59,9 @@ struct StaticEditorSlot<Editor: View, Still: View>: View {
   let picturePart: TranscriptTextPart?
 
   @Environment(\.transcriptSlotForm) private var form
-  @Environment(\.transcriptRowMount) private var rowMount
-  @Environment(\.transcriptRowMounts) private var mounts
 
   /// The height of the editor at its last layout.
   @State private var laidOutHeight = LaidOutHeight()
-
-  /// Whether an assistive app has its focus on the still view.
-  @AccessibilityFocusState private var isAccessibilityFocused: Bool
 
   /// Makes the slot of an editor.
   ///
@@ -94,16 +89,7 @@ struct StaticEditorSlot<Editor: View, Still: View>: View {
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .frame(height: laidOutHeight.points, alignment: .top)
         .clipped()
-        .simultaneousGesture(
-          DragGesture(minimumDistance: 0).onChanged { _ in noteInteraction() },
-          including: form == .waiting ? .all : .none)
-        .accessibilityElement(children: .combine)
-        .accessibilityIdentifier(StaticSlotAccessibility.identifier)
-        .accessibilityAction { noteInteraction() }
-        .accessibilityFocused($isAccessibilityFocused)
-        .onChange(of: isAccessibilityFocused) { _, isFocused in
-          noteAccessibilityFocus(isFocused)
-        }
+        .modifier(TranscriptStillInteraction())
     } else {
       let laidOutHeight = laidOutHeight
       editor
@@ -114,12 +100,45 @@ struct StaticEditorSlot<Editor: View, Still: View>: View {
         }
     }
   }
+}
 
-  /// Records an interaction of the user with the still view of the slot: a
-  /// press of the mouse, or a press of an assistive app. In a row that
-  /// waits, the wait of the row ends, so each slot of the row shows its
-  /// editor at once. While the rows move, the row shows its real form when
-  /// they come to rest.
+/// The interaction of the user with a still view of a thread row: the
+/// still view of a ``StaticEditorSlot``, or a ``TranscriptFlatRow`` (card
+/// ^7625j1b).
+///
+/// In a row that waits at rest in the ``TranscriptRowMountQueue``
+/// (``TranscriptSlotForm/waiting``), a press of the mouse on the still view
+/// ends the wait of the row (``SwiftUI/EnvironmentValues/transcriptRowMount``),
+/// so the row shows its real form at once. In each other form, the still
+/// view has no such gesture. The still view is one accessibility element
+/// (``StaticSlotAccessibility``): the press of an assistive app on it, or its
+/// focus on it, also ends the wait. A hover does not.
+struct TranscriptStillInteraction: ViewModifier {
+  @Environment(\.transcriptSlotForm) private var form
+  @Environment(\.transcriptRowMount) private var rowMount
+  @Environment(\.transcriptRowMounts) private var mounts
+
+  /// Whether an assistive app has its focus on the still view.
+  @AccessibilityFocusState private var isAccessibilityFocused: Bool
+
+  func body(content: Content) -> some View {
+    content
+      .simultaneousGesture(
+        DragGesture(minimumDistance: 0).onChanged { _ in noteInteraction() },
+        including: form == .waiting ? .all : .none)
+      .accessibilityElement(children: .combine)
+      .accessibilityIdentifier(StaticSlotAccessibility.identifier)
+      .accessibilityAction { noteInteraction() }
+      .accessibilityFocused($isAccessibilityFocused)
+      .onChange(of: isAccessibilityFocused) { _, isFocused in
+        noteAccessibilityFocus(isFocused)
+      }
+  }
+
+  /// Records an interaction of the user with the still view: a press of
+  /// the mouse, or a press of an assistive app. In a row that waits, the
+  /// wait of the row ends, so the row shows its real form at once. While
+  /// the rows move, the row shows its real form when they come to rest.
   private func noteInteraction() {
     guard let rowMount, rowMount.waits else { return }
     mounts?.release(rowMount)
@@ -135,13 +154,13 @@ struct StaticEditorSlot<Editor: View, Still: View>: View {
   }
 }
 
-/// The accessibility of the still view of a ``StaticEditorSlot`` (card
-/// ^7625j1b).
+/// The accessibility of a still view of a thread row: the still view of a
+/// ``StaticEditorSlot``, or a ``TranscriptFlatRow`` (card ^7625j1b).
 ///
 /// The still view is one element that holds the text of the slot. Its
 /// press, and the focus of an assistive app on it, make the row of the slot
 /// real.
 enum StaticSlotAccessibility {
-  /// The accessibility identifier of the still view of a slot.
+  /// The accessibility identifier of a still view.
   static let identifier = "static-editor-slot-still"
 }

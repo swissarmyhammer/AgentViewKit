@@ -3,7 +3,7 @@ import EditorTheme
 import SwiftUI
 
 /// The sender of a message item (plan.md §9 A2).
-public enum MessageRole: Sendable, Hashable, CaseIterable {
+nonisolated public enum MessageRole: Sendable, Hashable, CaseIterable {
   /// A message from the user.
   case user
 

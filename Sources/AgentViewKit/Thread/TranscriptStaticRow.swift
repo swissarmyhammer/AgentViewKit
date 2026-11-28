@@ -180,12 +180,24 @@ enum TranscriptSlotForm: Equatable {
 /// rows move, the row takes the height of its content. In the real form,
 /// the modifier records the size of the row in
 /// ``TranscriptMeasuredRowHeights``.
+///
+/// A static row whose height cache has the layout tree of the row, its
+/// exact height, a picture of each text part and a chrome line for each
+/// chrome view (``TranscriptFlatRowPlan``) shows its flat form: one
+/// ``TranscriptFlatRow`` of the pictures of the row in place of each view
+/// of the real row, so the row builds and measures no view of its real row
+/// while it is static. A row with a footer of its message, with a find hit,
+/// or with a status of its MCP server keeps the views of its real row in
+/// its static form: the flat form draws none of these. A row that holds the
+/// views of its real row already, such as a row that the list made at rest
+/// past the edge of the view, keeps them in its static form too
+/// (``TranscriptRowRealViews``), so a change of form builds no new view.
 struct TranscriptStaticRow: ViewModifier {
   /// The start of the ``BodyEvaluationCounter`` key of each row.
   static let counterKeyPrefix = "static-row-"
 
-  /// The id of the entry of the row.
-  let id: TranscriptEntry.ID
+  /// The entry of the row.
+  let entry: TranscriptEntry
 
   /// The form of the editor slots of the row
   /// (``TranscriptRowForm/slotForm(rowsMove:waitsToMount:holds:knowsHeight:)``).
@@ -197,6 +209,11 @@ struct TranscriptStaticRow: ViewModifier {
   /// thread. They record the size of the real row, and they are the height
   /// provider of the static form.
   let heights: TranscriptStaticRowHeights?
+
+  /// Whether the row built the views of its real row. The modifier notes
+  /// each body that shows them, and a row that built them never shows its
+  /// flat form.
+  let realViews: TranscriptRowRealViews
 
   /// The action when the modifier records the first size of the row: the
   /// thread then knows the height of a row that it did not know before
@@ -211,24 +228,66 @@ struct TranscriptStaticRow: ViewModifier {
     BodyEvaluationKey.make(prefix: counterKeyPrefix, id: id)
   }
 
+  @Environment(\.messageFooter) private var footer
+  @Environment(\.transcriptSearch) private var search
+  @Environment(\.toolCallConnectionState) private var connectionState
+  @Environment(\.colorScheme) private var colorScheme
+  @Environment(\.displayScale) private var displayScale
+
   func body(content: Content) -> some View {
     #if DEBUG
       BodyEvaluationCounter.note(Self.counterKey(for: id.rowKey))
     #endif
+    let flatPlan = realViews.areBuilt ? nil : flatPlan
+    if flatPlan == nil {
+      realViews.areBuilt = true
+    }
     return TranscriptStaticRowFrame(id: id, staticHeight: staticHeight) {
-      content
-        .environment(\.transcriptSlotForm, slotForm)
-        .environment(\.transcriptRowPictures, heights.map { TranscriptRowPictures(heights: $0, rowKey: id.rowKey) })
+      if let flatPlan, let heights {
+        TranscriptFlatRow(rowKey: id.rowKey, plan: flatPlan, chrome: heights.chrome)
+          .environment(\.transcriptSlotForm, slotForm)
+      } else {
+        content
+          .environment(\.transcriptSlotForm, slotForm)
+          .environment(\.transcriptRowPictures, heights.map { TranscriptRowPictures(heights: $0, rowKey: id.rowKey) })
+      }
     }
     .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
       recordRealSize(size)
     }
   }
 
+  /// The id of the entry of the row.
+  private var id: TranscriptEntry.ID {
+    entry.id
+  }
+
   /// Whether the row shows its static form: the frame of the row has the
   /// height of the provider.
   private var isStatic: Bool {
     slotForm != .real
+  }
+
+  /// The plan of the flat form of the row, or `nil` for a real row and for
+  /// a static row that keeps the views of its real row.
+  ///
+  /// Only a static row reads the find hits and the pictures, so a new
+  /// search or a new picture evaluates no real row.
+  private var flatPlan: TranscriptFlatRowPlan? {
+    guard isStatic, let heights, showsOnlyFlatChrome else { return nil }
+    return heights.flatPlan(of: id, appearance: TranscriptTextAppearance(colorScheme: colorScheme, scale: displayScale))
+  }
+
+  /// Whether the real row shows no view that the flat form does not draw:
+  /// no footer of a message, no find hit, and no status of the MCP server
+  /// of a tool call.
+  private var showsOnlyFlatChrome: Bool {
+    guard search?.mark(forRowKey: id.rowKey) == nil else { return false }
+    switch entry {
+    case .userMessage, .agentMessage: return footer == nil
+    case .toolCall(let call): return connectionState?(call) == nil
+    case .thought, .terminal, .plan, .unknown, .error, .compaction, .sessionMessage: return true
+    }
   }
 
   /// The height of the static form at a width, or `nil` in the real form.
@@ -252,6 +311,23 @@ struct TranscriptStaticRow: ViewModifier {
       onFirstHeight()
     }
   }
+}
+
+/// Whether one row of a thread built the views of its real row (card
+/// ^9ync5h3).
+///
+/// ``TranscriptStaticRow`` notes it in each body that shows the views of the
+/// real row: in the real form, and in a static form that is not the flat
+/// form, such as the static form of a row with no picture yet. A row that
+/// built them keeps them in each later static form, and never shows its
+/// flat form: a change to the flat form would drop views that are built,
+/// and build a new view in the step that shows the row. A row that the
+/// list made at rest past the edge of the view, which is real, thus keeps
+/// its views when a flick brings it into view. The value is not observable,
+/// so a note evaluates no body.
+final class TranscriptRowRealViews {
+  /// Whether the row built the views of its real row.
+  var areBuilt = false
 }
 
 /// The frame of one row: the height of the provider at the width of the row

@@ -1,3 +1,4 @@
+import FoundationModelsACP
 import FoundationModelsACPClient
 
 /// The synthetic turns of the flick trace harness of card ^9ync5h3: in each
@@ -36,14 +37,35 @@ enum FlickTranscript {
 
   /// The items of `turns` turns.
   ///
+  /// Each message has a message id with the name of the test, so the row
+  /// keys of one test are not the row keys of another test. The flick tests
+  /// count the work of each row key, and the main run loop of one test can
+  /// run the jobs of another test (``PendingRunLoopBlocks``).
+  ///
   /// - Parameters:
   ///   - turns: The number of turns.
-  ///   - name: The name of the test, which each text holds.
+  ///   - name: The name of the test, which each text and each message id
+  ///     holds.
   /// - Returns: A user message, a thought and an answer for each turn.
   static func items(turns: Int, in name: String) -> [PreviewTranscriptItem] {
     (0..<turns).flatMap { turn -> [PreviewTranscriptItem] in
-      [.user(userText(turn, in: name)), .thought(thoughtText(turn, in: name)), .agent(answerText(turn, in: name))]
+      let id = { (role: String) in MessageId(rawValue: "\(name)-\(role)-\(turn)") }
+      return [
+        .update(.userMessageChunk(chunk(userText(turn, in: name), id: id("user")))),
+        .update(.agentThoughtChunk(chunk(thoughtText(turn, in: name), id: id("thought")))),
+        .update(.agentMessageChunk(chunk(answerText(turn, in: name), id: id("answer")))),
+      ]
     }
+  }
+
+  /// A content chunk of one text block.
+  ///
+  /// - Parameters:
+  ///   - text: The text of the block.
+  ///   - id: The message id.
+  /// - Returns: The chunk.
+  static func chunk(_ text: String, id: MessageId) -> ContentChunk {
+    ContentChunk(content: .text(TextContent(text: text)), messageId: id)
   }
 
   /// The user message of a turn.

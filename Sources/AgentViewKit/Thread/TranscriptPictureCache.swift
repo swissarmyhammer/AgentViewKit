@@ -92,7 +92,14 @@ nonisolated struct TranscriptPictureCache<Key: Hashable, Value: TranscriptPictur
 extension EditorStaticRendering: TranscriptPictureMemory {
   /// The bytes of the bitmap of the picture.
   nonisolated var pictureBytes: Int {
-    image.map { $0.bytesPerRow * $0.height } ?? .zero
+    image?.pictureBytes ?? .zero
+  }
+}
+
+extension CGImage: TranscriptPictureMemory {
+  /// The bytes of the bitmap.
+  nonisolated var pictureBytes: Int {
+    bytesPerRow * height
   }
 }
 

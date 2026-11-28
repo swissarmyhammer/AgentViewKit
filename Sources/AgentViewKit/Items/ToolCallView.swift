@@ -435,12 +435,11 @@ private struct ToolCallHeader: View {
     // A stale live call shows the lost status (`ToolCallBackground`).
     let status = ToolCallBackground.shownStatus(of: entry)
     return HStack(spacing: editorStyle.spacing.s) {
-      // The toggle is EditorKit's `EditorPlainButton`: the theme, and the one
-      // focus ring of EditorKit.
-      EditorPlainButton(ToolCallView.accessibilityLabel(title: entry.shownTitle, status: status)) {
+      let header = TranscriptToolCallHeader(
+        title: ToolCallView.displayTitle(entry.shownTitle), kind: entry.shownKind, status: status,
+        isExpanded: expanded)
+      ToolCallToggle(header: header, title: title) {
         store.toggle(entry: .toolCall(entry))
-      } label: {
-        rowContent(status: status)
       }
       .accessibilityValue(
         expanded ? Text("Expanded", bundle: .module) : Text("Collapsed", bundle: .module)
@@ -455,25 +454,6 @@ private struct ToolCallHeader: View {
     }
   }
 
-  /// The symbols and the text inside the row button.
-  ///
-  /// - Parameter status: The status that the row shows.
-  /// - Returns: The content of the row button.
-  private func rowContent(status: FoundationModelsACP.ToolCallStatus) -> some View {
-    HStack(spacing: editorStyle.spacing.s) {
-      EditorSymbolImage(.tool(.init(entry.shownKind)))
-        .symbolColumn()
-      title
-        .lineLimit(1)
-        .truncationMode(.middle)
-      Spacer(minLength: editorStyle.spacing.s)
-      statusGlyph(status: status)
-      EditorSymbolImage(.action(.disclosure))
-        .rotationEffect(expanded ? ReasoningView.expandedChevronAngle : .zero)
-    }
-    .contentShape(Rectangle())
-  }
-
   /// The title of the call. In the row of a search hit with terms, each
   /// match of a term has the find highlight of the theme, the stronger one
   /// when the hit is current (TestudoApp D207 (f)).
@@ -484,19 +464,54 @@ private struct ToolCallHeader: View {
       shown, terms: searchMark.terms, highlight: searchMark.highlight(in: editorTheme))
     return Text(highlighted)
   }
+}
+
+/// The button of the header of a ``ToolCallView``, which expands the call:
+/// an EditorKit `EditorPlainButton` (the theme, and the one focus ring of
+/// EditorKit) around the symbol of the kind, the title, the status symbol
+/// and the disclosure symbol.
+///
+/// ``ToolCallView`` shows it, and the flat form of a static row draws a
+/// picture of it (``TranscriptChromeLine/toolCallHeader(_:)``, card
+/// ^9ync5h3).
+struct ToolCallToggle: View {
+  /// The header data: the title, the kind, the status and the open state.
+  let header: TranscriptToolCallHeader
+
+  /// The title as the button shows it, such as with the find highlight.
+  let title: Text
+
+  /// The action of a press: it expands or collapses the call.
+  let action: () -> Void
+
+  @Environment(\.editorStyle) private var editorStyle
+
+  var body: some View {
+    EditorPlainButton(ToolCallView.accessibilityLabel(title: header.title, status: header.status), action: action) {
+      HStack(spacing: editorStyle.spacing.s) {
+        EditorSymbolImage(.tool(.init(header.kind)))
+          .symbolColumn()
+        title
+          .lineLimit(1)
+          .truncationMode(.middle)
+        Spacer(minLength: editorStyle.spacing.s)
+        statusGlyph
+        EditorSymbolImage(.action(.disclosure))
+          .rotationEffect(header.isExpanded ? ReasoningView.expandedChevronAngle : .zero)
+      }
+      .contentShape(Rectangle())
+    }
+  }
 
   /// The status symbol, with the symbol effects of the row. The live symbol
   /// effect of a pending or running call shows that the call is live, so the
   /// row shows no separate spinner. EditorKit's `liveSymbolEffect(isActive:)`
   /// comes last, so under Reduce Motion it also removes the bounce.
-  ///
-  /// - Parameter status: The status that the row shows.
-  /// - Returns: The status symbol.
-  private func statusGlyph(status: FoundationModelsACP.ToolCallStatus) -> some View {
-    ToolStatusImage(status: status)
+  private var statusGlyph: some View {
+    ToolStatusImage(status: header.status)
       .contentTransition(.symbolEffect(.replace))
-      .symbolEffect(.bounce, value: status == .completed)
-      .liveSymbolEffect(isActive: EditorStatus(status).isLive)
+      .symbolEffect(.bounce, value: header.status == .completed)
+      .liveSymbolEffect(isActive: EditorStatus(header.status).isLive)
   }
 }
 

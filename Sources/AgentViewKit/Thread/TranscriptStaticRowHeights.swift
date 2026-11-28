@@ -36,6 +36,10 @@ import SwiftUI
   /// The record of the size of each real row.
   let measured = TranscriptMeasuredRowHeights()
 
+  /// The pictures of the chrome lines of the flat rows of the thread. A
+  /// new cache, such as for a new theme, drops them.
+  @ObservationIgnored let chrome = TranscriptChromePictures()
+
   /// The cache of the rows, or `nil` when the rows have no cache.
   private(set) var cache: TranscriptRowHeights?
 
@@ -83,6 +87,7 @@ import SwiftUI
   ///   - session: The session of the rows.
   func attach(cache: TranscriptRowHeights?, session: SessionModel) {
     self.cache = cache
+    chrome.removeAll()
     self.session = session
     generation += 1
     tracksTranscript = false
@@ -126,6 +131,24 @@ import SwiftUI
     of part: TranscriptTextPart, inRow rowKey: String, appearance: TranscriptTextAppearance
   ) -> EditorStaticRendering? {
     cache?.picture(of: part, inRow: rowKey, appearance: appearance)
+  }
+
+  /// The plan of the flat form of a static row (``TranscriptFlatRowPlan``):
+  /// the parts of the layout tree of the cache at the width of the cache,
+  /// with the pictures of the cache, at the exact height of the cache.
+  ///
+  /// - Parameters:
+  ///   - id: The id of the entry of the row.
+  ///   - appearance: The appearance of the row.
+  /// - Returns: The plan, or `nil` when the rows have no cache, when the
+  ///   cache has no exact height of the row, or when the flat form cannot
+  ///   draw the row.
+  func flatPlan(of id: TranscriptEntry.ID, appearance: TranscriptTextAppearance) -> TranscriptFlatRowPlan? {
+    guard let cache, let node = cache.layout(ofRow: id.rowKey), let height = cache.height(of: id, width: cache.width)
+    else { return nil }
+    return TranscriptFlatRowPlan.make(node: node, width: cache.width, height: height) { part in
+      cache.picture(of: part, inRow: id.rowKey, appearance: appearance)
+    }
   }
 
   /// Records the positions of the rows in view, and gives them to the

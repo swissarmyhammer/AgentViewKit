@@ -131,6 +131,10 @@ struct TranscriptRowElement: View, Equatable {
   /// The wait of the row in the queue of the thread.
   @State private var mount: TranscriptRowMount
 
+  /// Whether the row built the views of its real row, so its static form
+  /// keeps them and is not its flat form (``TranscriptRowRealViews``).
+  @State private var realViews = TranscriptRowRealViews()
+
   /// Makes the element of an entry.
   ///
   /// - Parameters:
@@ -166,11 +170,15 @@ struct TranscriptRowElement: View, Equatable {
         .modifier(TranscriptRowLiveness(position: slot.position))
         .coordinateSpace(.named(TranscriptFileOrder.rowSpace))
         .textSelectionRegion(selection.forwarding(to: threadSelection))
-        .environment(\.transcriptRowMount, mount)
         .modifier(
-          TranscriptStaticRow(id: slot.id, slotForm: slotForm, heights: heights) {
+          TranscriptStaticRow(
+            entry: slot.entry, slotForm: slotForm, heights: heights, realViews: realViews
+          ) {
             noteFirstHeight(rowsMoveLive: rowsMoveLive)
           })
+        // The flat form of the row is outside the content of the static
+        // row, so the wait of the row reaches both forms.
+        .environment(\.transcriptRowMount, mount)
         .onHover { hovering in
           // A row that comes under the mouse while the rows move takes no
           // hold, so it does not mount its editors during the move.

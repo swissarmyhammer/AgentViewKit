@@ -141,29 +141,11 @@ public struct CodeBlockView: View {
       comment: "The VoiceOver label of a code block: the name of its language, such as swift.")
   }
 
-  /// The header with the symbol, the title and the Copy button: a
-  /// ``BlockHeader``.
-  ///
-  /// The symbol (``AgentSymbol/codeBlock``) is the same for each language.
-  /// It is in the symbol column, as the symbol of the header of
-  /// ``TerminalView`` is, so the title starts at the x of the command of a
-  /// terminal. The ``BlockHeader`` gives the symbol the color of the title,
-  /// and the small spacing of the style between the symbol and the title.
+  /// The header with the symbol, the title and the Copy button
+  /// (``CodeBlockHeader``).
   private var header: some View {
-    BlockHeader {
-      Image(systemName: AgentSymbol.codeBlock)
-        .symbolColumn()
-        .accessibilityHidden(true)
-      Text(filename ?? language ?? Self.plainTextName)
-        .accessibilityIdentifier(Self.titleIdentifier)
-    } actions: {
-      EditorToolbarButton(
-        String(localized: "Copy code", bundle: .module), systemImage: AgentSymbol.copy
-      ) {
-        pasteboard.copyText(code)
-      }
-      .editorButtonCaptions(.hidden)
-      .accessibilityIdentifier(Self.copyIdentifier)
+    CodeBlockHeader(title: Self.title(language: language, filename: filename)) {
+      pasteboard.copyText(code)
     }
   }
 
@@ -211,6 +193,18 @@ public struct CodeBlockView: View {
     return .textMate(textMate)
   }
 
+  /// The title of the header of a block: the file name, else the
+  /// language, else ``plainTextName``, each with no whitespace at the start
+  /// or the end.
+  ///
+  /// - Parameters:
+  ///   - language: The language of the code, or `nil`.
+  ///   - filename: The file name of the code, or `nil`.
+  /// - Returns: The title.
+  nonisolated static func title(language: String?, filename: String?) -> String {
+    normalized(filename) ?? normalized(language) ?? plainTextName
+  }
+
   /// `text` with no whitespace at the start or the end, or `nil` when no
   /// other character remains.
   ///
@@ -221,6 +215,40 @@ public struct CodeBlockView: View {
       !trimmed.isEmpty
     else { return nil }
     return trimmed
+  }
+}
+
+/// The header of a code block: the symbol, the title and the Copy button,
+/// in a ``BlockHeader``.
+///
+/// The symbol (``AgentSymbol/codeBlock``) is the same for each language.
+/// It is in the symbol column, as the symbol of the header of
+/// ``TerminalView`` is, so the title starts at the x of the command of a
+/// terminal. The ``BlockHeader`` gives the symbol the color of the title,
+/// and the small spacing of the style between the symbol and the title.
+///
+/// ``CodeBlockView`` shows it, and the flat form of a static row draws a
+/// picture of it (``TranscriptChromeLine/codeBlockHeader(title:)``, card
+/// ^9ync5h3).
+struct CodeBlockHeader: View {
+  /// The title: the file name, the language, or the plain text name.
+  let title: String
+
+  /// The action of the Copy button.
+  let copy: () -> Void
+
+  var body: some View {
+    BlockHeader {
+      Image(systemName: AgentSymbol.codeBlock)
+        .symbolColumn()
+        .accessibilityHidden(true)
+      Text(title)
+        .accessibilityIdentifier(CodeBlockView.titleIdentifier)
+    } actions: {
+      EditorToolbarButton(String(localized: "Copy code", bundle: .module), systemImage: AgentSymbol.copy, action: copy)
+        .editorButtonCaptions(.hidden)
+        .accessibilityIdentifier(CodeBlockView.copyIdentifier)
+    }
   }
 }
 

@@ -24,6 +24,18 @@ import Testing
   /// flick trace harness.
   static let flickStep: CGFloat = 40
 
+  /// The ``BodyEvaluationCounter`` keys whose count grows when the stack
+  /// makes the row of a row key: the body of its real row (``ItemRow``) and
+  /// the body of its flat form (``TranscriptFlatRow``). Each one evaluates
+  /// its body only when the stack makes the row, or when the row changes
+  /// form.
+  ///
+  /// - Parameter rowKey: The row key of the entry.
+  /// - Returns: The keys.
+  static func makeKeys(of rowKey: String) -> [String] {
+    [ItemRow.counterKey(for: rowKey), TranscriptFlatRow.counterKey(for: rowKey)]
+  }
+
   /// A production change that fails this test: the list of the rows reads
   /// the scroll position in its body. SwiftUI writes the position each time
   /// a new row comes to the top edge of the list, so each such write in the
@@ -75,7 +87,7 @@ import Testing
     let thread = try await MovingThread.makeCached(session: session, frames: ManualFrames())
     thread.startMoving()
     let windowKey = TranscriptRowWindow.counterKey(for: session)
-    let rowKeys = session.transcript.map { ItemRow.counterKey(for: $0.rowKey) }
+    let rowKeys = session.transcript.flatMap { Self.makeKeys(of: $0.rowKey) }
     BodyEvaluationCounter.reset([windowKey] + rowKeys)
 
     for _ in 0..<Self.flickSteps {
@@ -84,6 +96,28 @@ import Testing
 
     let madeRows = rowKeys.map(BodyEvaluationCounter.count).reduce(0, +)
     #expect(BodyEvaluationCounter.count(windowKey) <= madeRows)
+  }
+
+  /// A production change that fails this test: a row that the stack makes
+  /// in a live flick builds the views of its real row (the item view, its
+  /// content, its responses and its buttons), and not one flat view of its
+  /// pictures (``TranscriptFlatRow``).
+  @Test func aFlickBuildsNoRealRowForARowThatComesIn() async throws {
+    let name = "flickFlatRows"
+    let session = SessionModel.preview(transcript: FlickTranscript.items(turns: Self.flickTurns, in: name))
+    let thread = try await MovingThread.makeCached(session: session, frames: ManualFrames())
+    thread.startMoving()
+    let rowKeys = session.transcript.map(\.rowKey)
+    let madeKeys = rowKeys.map(TranscriptStaticRow.counterKey(for:))
+    let realKeys = rowKeys.flatMap(TranscriptFlatRowTests.realViewKeys(of:))
+    BodyEvaluationCounter.reset(madeKeys + realKeys)
+
+    for _ in 0..<Self.flickSteps {
+      thread.step(by: Self.flickStep, isLive: true)
+    }
+
+    try #require(madeKeys.map(BodyEvaluationCounter.count).reduce(0, +) > 0, "no row came in")
+    #expect(realKeys.map(BodyEvaluationCounter.count).reduce(0, +) == 0)
   }
 
   /// The number of the first steps of a flick in which the stack does not
@@ -98,15 +132,14 @@ import Testing
   ///
   /// The test lays the host out and runs one pass of the main run loop
   /// after each step, so the list reports its rows in view. A row counts
-  /// when the step that first shows it also made it (``ItemRow`` evaluates
-  /// its body only when the stack makes it).
+  /// when the step that first shows it also made it (``makeKeys(of:)``).
   @Test func aSteadyFlickMountsNoRowInTheStepThatShowsIt() async throws {
     let name = "flickLeadRow"
     let session = SessionModel.preview(transcript: FlickTranscript.items(turns: Self.flickTurns, in: name))
     let thread = try await MovingThread.makeCached(session: session, frames: ManualFrames())
     thread.startMoving()
     let rowKeys = session.transcript.map(\.rowKey)
-    let makes = { (key: String) in BodyEvaluationCounter.count(ItemRow.counterKey(for: key)) }
+    let makes = { (key: String) in Self.makeKeys(of: key).map(BodyEvaluationCounter.count).reduce(0, +) }
     var shown = thread.rowKeysInView
     var steadyRows: [String] = []
     var madeInView: [String] = []
@@ -139,7 +172,7 @@ import Testing
     let thread = try await MovingThread.makeCached(session: session, frames: ManualFrames())
     thread.startMoving()
     let mountKeys = [TranscriptRowWindow.counterKey(for: session)]
-      + session.transcript.map { ItemRow.counterKey(for: $0.rowKey) }
+      + session.transcript.flatMap { Self.makeKeys(of: $0.rowKey) }
     let workKeys = [
       TranscriptRowWindow.reportCounterKey(for: session), ConversationLayout.offsetCounterKey(for: thread.anchors),
       ConversationLayout.positionCounterKey(for: thread.anchors), ConversationLayout.listCounterKey(for: thread.anchors),

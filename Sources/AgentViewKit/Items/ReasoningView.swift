@@ -152,7 +152,6 @@ struct ReasoningBlock<Content: View>: View {
   @State private var ownStore = ExpandedBlocksStore()
 
   @Environment(\.expandedBlocksStore) private var environmentStore
-  @Environment(\.editorStyle) private var editorStyle
   @Environment(\.themeSecondary) private var themeSecondary
 
   var body: some View {
@@ -199,8 +198,7 @@ struct ReasoningBlock<Content: View>: View {
       set: { _ in store.toggle(entry: entry) })
   }
 
-  /// The title and the expand button: an EditorKit toolbar toggle, on while
-  /// the block is open.
+  /// The title and the expand button (``ReasoningHeader``).
   ///
   /// - Parameters:
   ///   - store: The store of the user decisions.
@@ -208,30 +206,55 @@ struct ReasoningBlock<Content: View>: View {
   ///   - duration: The `duration` of the thought entry, or `nil`.
   /// - Returns: The header view.
   private func header(store: ExpandedBlocksStore, expanded: Bool, duration: TimeInterval?) -> some View {
-    let toggle = { store.toggle(entry: policyEntry) }
-    return HStack(spacing: editorStyle.spacing.s) {
-      title(duration: duration)
+    ReasoningHeader(
+      id: id, title: ReasoningView.completedTitle(duration: duration), isOn: isExpandedBinding(in: store),
+      isExpanded: expanded
+    ) {
+      store.toggle(entry: policyEntry)
+    }
+  }
+}
+
+/// The header of a block of reasoning: the title and the expand button, an
+/// EditorKit toolbar toggle, on while the block is open.
+///
+/// ``ReasoningBlock`` shows it, and the flat form of a static row draws a
+/// picture of it (``TranscriptChromeLine/thoughtHeader(title:)``, card
+/// ^9ync5h3).
+struct ReasoningHeader: View {
+  /// The id of the reasoning: the row key of the entry. It keys the
+  /// accessibility identifiers.
+  let id: String
+
+  /// The title: "Thought for D", or "Thought" with no shown duration
+  /// (``ReasoningView/completedTitle(duration:)``).
+  let title: String
+
+  /// The open state of the block, as the binding of the expand toggle.
+  let isOn: Binding<Bool>
+
+  /// Whether the block is open.
+  let isExpanded: Bool
+
+  /// The action of a tap on the header: it opens or closes the block.
+  let toggle: () -> Void
+
+  @Environment(\.editorStyle) private var editorStyle
+  @Environment(\.themeSecondary) private var themeSecondary
+
+  var body: some View {
+    HStack(spacing: editorStyle.spacing.s) {
+      Text(title)
+        .foregroundStyle(themeSecondary)
+        .accessibilityIdentifier(ReasoningView.titleIdentifier(for: id))
       Spacer(minLength: editorStyle.spacing.s)
-      EditorToolbarButton(
-        String(localized: "Show reasoning", bundle: .module), symbol: .action(.disclosure),
-        isOn: isExpandedBinding(in: store)
-      )
-      .editorButtonCaptions(.hidden)
-      .rotationEffect(expanded ? ReasoningView.expandedChevronAngle : .zero)
-      .accessibilityIdentifier(ReasoningView.toggleIdentifier(for: id))
+      EditorToolbarButton(String(localized: "Show reasoning", bundle: .module), symbol: .action(.disclosure), isOn: isOn)
+        .editorButtonCaptions(.hidden)
+        .rotationEffect(isExpanded ? ReasoningView.expandedChevronAngle : .zero)
+        .accessibilityIdentifier(ReasoningView.toggleIdentifier(for: id))
     }
     .contentShape(Rectangle())
     .onTapGesture(perform: toggle)
-  }
-
-  /// The complete title.
-  ///
-  /// - Parameter duration: The `duration` of the thought entry, or `nil`.
-  /// - Returns: "Thought for D", or "Thought" with no shown duration.
-  private func title(duration: TimeInterval?) -> some View {
-    Text(ReasoningView.completedTitle(duration: duration))
-      .foregroundStyle(themeSecondary)
-      .accessibilityIdentifier(ReasoningView.titleIdentifier(for: id))
   }
 }
 
